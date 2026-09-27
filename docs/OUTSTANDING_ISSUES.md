@@ -133,6 +133,12 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 エラーではなく、明示的にオフにしたユーザーの選択は永続値が勝つ。**戻すのは1行**だが、
 戻す者は上記4条件のどれが再発したかを言えること（`tests/vr-app-wiring.test.js` がこの既定を固定）。
 
+- ~~voice '閉じるようお願いします'/'閉じるよう頼みます'/'閉じる要請'/'閉じるお願い'/'閉じる希望'/'閉じる依頼' の よう依頼・名詞型依頼が NO-MATCH~~ — **Session 185 で実装**（FR 尾 よう+依頼名詞枠 + bare名詞尾）
+- ~~voice '閉じてくださいまし'/'閉じてくださいますよう'/'閉じてくれますかね'/'閉じてくれりゃ'/'閉じてくれないかなあ'/'閉じてくれるのでしょうか'/'閉じてくれるかどうか'/'閉じてくださったら'/'閉じてもらったら'/'閉じてもらうよう'/'閉じて頂戴いたします'/'閉じてお願い申し上げます'/'閉じてお願いいたします' のて受益残置IIIが NO-MATCH~~ — **Session 185 で実装**（TAIL_TE 拡張）
+- ~~voice '閉じることはできますか'/'閉じるべきではある'/'閉じるべきもの'/'閉じるべきかもしれない'/'閉じるのが良い'/'閉じるのが望ましい'/'閉じるほうがよろしい'/'閉じる必要があろう'/'閉じる必要性がある'/'閉じる必要ありそう' の判断枠が NO-MATCH~~ — **Session 185 で実装**（FR 尾拡張。'べきではないか'→negate 維持）
+- ~~voice 'it would help a lot if you could close it'/'it would mean a lot if'/'how would you like to'/'what would you say to closing it'/'do you suppose you could'/'do you reckon you could'/'do you figure you could'/'how do you feel about closing it'/'any chance of closing it'/'is there any chance of closing it'/'would it be too much trouble to close it'/'may i ask you to close it'/'i beg you to close it'/'humbly request you close it'/'think you could close it'/'perhaps you could close it'/'you might as well close it'/'might as well close it' の深礼儀・可能性・推量枠が NO-MATCH/help・scoped-help 誤ルート~~ — **Session 185 で実装**（chain1 拡張 + help/scoped-help 先行ルール窄め + 'is there any chance' の 'of' 最長一致化）
+- ~~voice 'close it at your earliest convenience'/'close it at once'/'close it forthwith'/'close it double quick'/'close it in a jiffy'/'close it when you can'/'close it if convenient'/'close it momentarily' の即時・便宜語尾が NO-MATCH~~ — **Session 185 で実装**（EN 語尾拡張 + 'double quick' 先行配置）
+
 - ~~voice '閉じていただけないものでしょうか'/'戻ってくれませんかね'/'閉じていただければ幸いに存じます'/'閉じてもいいのであれば' の複合受益尾が NO-MATCH~~ — **Session 184 で実装**（TAIL_TE メガ拡張 + くださるでしょうか）
 - ~~voice '閉じたいと思います'/'閉じたいんですが'/'閉じようと考えて'/'閉じようかと思って'/'閉じるというわけです'/'閉じる次第です'/'閉じるんですが'/'閉じればよろしい'/'閉じざるを得ないです'/'閉じなければいけない' の意向・義務報告尾が NO-MATCH/describe-tab 誤ルート~~ — **Session 184 で実装**（FR 拡張 + たい先行剥がし + よう残存→て + ばよろしい規則 + negob ざるを得ない）
 - ~~voice '閉鎖してください'/'タブを閉鎖して'/'削除をお願いします'/'消去してください'/'リセットしてください'/'クリアしてください' の名詞型依頼が NO-MATCH~~ — **Session 184 で実装**（close-tab/settings-reset/clear-history リテラル）

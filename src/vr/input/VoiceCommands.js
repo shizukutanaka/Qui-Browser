@@ -520,7 +520,13 @@ export class VoiceCommands {
       'くださるとありがたいです|もらいたいんです|いただきたく思います|' +
       'いただきたく存じます|いただければ幸いに存じます|もらえると助かります|' +
       'いただけますと大変助かります|もいいのであれば|もかまわないのであれば|' +
-      'しまってもよい|もよろしいでしょうか)[。！？!?]?$', 'u');
+      'しまってもよい|もよろしいでしょうか|' +
+      'くれますかね|くれりゃ|くれないかなあ|くれないですかね|くださいまし|' +
+      'くださいますよう(?:お願い(?:申し上げます|いたします|致します|します)?)?|' +
+      'くれるのでしょうか|くれるんでしょうか|くれるだろうか|くれるかどうか|' +
+      'くださったら|もらったら|もらうよう|いただくよう|くださるようお願い(?:申し上げます|いたします)?|' +
+      '頂戴いたします|頂戴する|ちょうだいする|' +
+      'お願い申し上げます|お願いいたします|お願い致します)[。！？!?]?$', 'u');
     push(normalized.replace(TAIL_TE, '$1'));
     // 'んです/のです' copula tail: '読んでほしいんです' tail via TAIL_TE; bare 'んですが' drops
     push(normalized.replace(/(?:んですが|のですが|んです|のです)[。！？!?]?$/u, ''));
@@ -537,7 +543,7 @@ export class VoiceCommands {
     // dict+ residual frames: '閉じると思い'/'閉じることにして'/'閉じるしかない'/
     // '閉じるわけにはいかない'/'閉じる必要がある'/'閉じるでしょ'/'閉じるより'→'閉じて'
     const FR = normalized.replace(
-      /(?:と思い|ようと思い|んだよね|んだけどさ|んですよ|ことに(?:する|した|して)|ほうがいい(?:ね|かも)?|ほうがマシ(?:だ|です)?|といい(?:よ|です)|ばどうか?|しかない(?:んだ|よ)?|だけしかない|わけにはいかない|必要が(?:ある|あります|ありそう)|べきです|べきなのに|なくちゃいけない|なあかんで|でしょ|でしょう|だろう|んじゃないか|んじゃなかった|より|ましてよ|ますので|ますよね|たいと思います|たいと思ってます|たいんですが|たいと思う|かと思って|かと考えて|と思います|と思ってます|と思っています|と考えて|方がいいと思う|方がいい|しかないんです|しかありません|しかないのでは|ということ(?:です|で|ですね|ね)?|というわけです|方向性?で|感じで|形で|次第です|予定です|んですが|のであれば|なら早く|なら今のうち)[。！？!?]?$/u, '');
+      /(?:と思い|ようと思い|んだよね|んだけどさ|んですよ|ことに(?:する|した|して)|ほうがいい(?:ね|かも)?|ほうがマシ(?:だ|です)?|といい(?:よ|です)|ばどうか?|しかない(?:んだ|よ)?|だけしかない|わけにはいかない|必要が(?:ある|あります|ありそう)|べきです|べきなのに|なくちゃいけない|なあかんで|でしょ|でしょう|だろう|んじゃないか|んじゃなかった|より|ましてよ|ますので|ますよね|たいと思います|たいと思ってます|たいんですが|たいと思う|かと思って|かと考えて|と思います|と思ってます|と思っています|と考えて|方がいいと思う|方がいい|しかないんです|しかありません|しかないのでは|ということ(?:です|で|ですね|ね)?|というわけです|方向性?で|感じで|形で|次第です|予定です|んですが|のであれば|なら早く|なら今のうち|ように?(?:お願い|頼み|願い|要請|希望)(?:申し上げます|致します|いたします|します|する|ます)?|要請|お願い|希望|依頼|ことはできますか|ことができますか|ことは可能ですか|べきではある|べきかと|べきもの|べきかもしれない|のが良い(?:と思う)?|のがいいかも|のがいいでしょう|のが正しい|ことが望ましい|のが望ましい|のが好ましい|ほうがいいと思います|ほうがいいです|ほうがいいと考えます|ほうがよろしい|ほうがいいかも|必要があろう|必要性がある|必要があるように思う|必要がありそう|必要ありそう|必要がありますね|必要があるのでは|必要があるようだ)[。！？!?]?$/u, '');
     if (FR !== normalized &&
         !(normalized.match(/より[。！？!?]?$/u) &&
           !/[うつるくぐすぬぶむきぎしちにみびるい]$/u.test(FR))) {
@@ -869,7 +875,7 @@ export class VoiceCommands {
         "i'?d appreciate it if you|i (?:want|wanna|need)(?: na| to)?|i'm gonna|" +
         'gonna|wanna|gotta|gimme|lemme (?:have|see|get)|lemme|imma|' +
         "let me (?:have|see|get)|let me|let's|may i|i said|i meant to|i meant|" +
-        'i was wondering if|i was hoping you(?:' + "'?" + 'd|d| would| could)|i was hoping|do you think you could|is there any chance|' +
+        'i was wondering if|i was hoping you(?:' + "'?" + 'd|d| would| could)|i was hoping|do you think you could|is there any chance of|is there any chance|' +
         'any chance you could|if you would be so kind|would you be so kind|' +
         'if you wouldnt mind|how about we|why dont we|shall we|suppose we|lets|' +
         'supposed to|fixing to|about to|feel like|in the mood to|how bout|' +
@@ -879,6 +885,18 @@ export class VoiceCommands {
         'might you|wont you|care to|fancy|please and thank you|uh|um|er|erm|' +
         'if you\'?d be so kind|why not|hows about|' +
         'do (?:us|me|everyone)(?: all)? (?:a|the) favor(?: of| and)?|do a favor(?: and)?|' +
+        'it would (?:help|mean) a lot if you(?: could)?|' +
+        'how would you like to|what would you say to|what do you say to|' +
+        'how do you feel about|up for|down for|humbly request (?:that )?you|' +
+        'i (?:request|ask) that you|i (?:ask|beg|urge|implore) you to|' +
+        'may i (?:ask|trouble) you to|might i trouble you to|ask you to|trouble you to|' +
+        '(?:think|reckon|figure|guess|imagine|believe|suppose) you could|' +
+        'do you (?:think|suppose|reckon|figure) you (?:could|might)(?: maybe)?|' +
+        'any possibility of|any chance of|is there any chance of|' +
+        'would it be (?:too much(?: trouble)?|possible) to|' +
+        '(?:perhaps|maybe|possibly|surely|certainly) you (?:could|can|would)|' +
+        'you (?:could|can|might|may) (?:always|just|as well)|' +
+        '(?:might|may) as well|perhaps|maybe|possibly|surely|certainly|' +
         'help me|i need you to|' +
         'i want you to|i\'?d like you to|i\'?d appreciate it if you|don\'?t forget to|' +
         'make sure to|be sure to|remember to|try to|try and|just|simply|' +
@@ -903,7 +921,8 @@ export class VoiceCommands {
         'ya (?:better|gotta|should|could|can|need to|wanna|will|would|must)|' +
         'better|you might (?:wanna|as well|need to)|you might|' +
         'plz|pls|pliss|pwease|pweety pwease|be so good as to|' +
-        'it would help if (?:you|ya)|it would be (?:great|nice|helpful|awesome|amazing) if (?:you|ya)|' +
+        'it would help if (?:you|ya)|' +
+        'it would be (?:great|nice|helpful|awesome|amazing|lovely|wonderful|fantastic|marvelous) if (?:you|ya)(?: could)?|' +
         'i (?:would|\'d) (?:really )?appreciate it if (?:you|ya)|' +
         'i (?:would|\'d) love it if (?:you|ya)|' +
         'lemme (?:have|see|get)|let me (?:have|see|get)|' +
@@ -939,8 +958,8 @@ export class VoiceCommands {
       .replace(/[,\s]+(?:won'?tcha|wouldja|couldja|wontcha)[.!?]?$/i, '')
       .replace(/[,\s]+for (?:me|us)[.!?]?$/i, '')
       .replace(/[,\s]+(?:please )?thanks[.!?]?$/i, '')
-      .replace(/[,\s]+(?:real )?(?:quick|fast|quickly)[.!?]?$/i, '')
-      .replace(/[,\s]+(?:right now|asap|pronto|stat|at your leisure|when you have a moment|whenever you get around to it|if you don'?t mind|for me thanks|for me|thanks|soon|slowly|carefully|gently|quietly|that would be (?:great|nice|awesome|helpful|lovely|wonderful))[.!?]?$/i, '')
+      .replace(/[,\s]+(?:real )?(?:double quick|quick|fast|quickly)[.!?]?$/i, '')
+      .replace(/[,\s]+(?:right now|asap|pronto|stat|at your leisure|when you have a moment|whenever you get around to it|if you don'?t mind|for me thanks|for me|thanks|soon|slowly|carefully|gently|quietly|that would be (?:great|nice|awesome|helpful|lovely|wonderful)|if you might|when ready|when you can|when possible|at your earliest convenience|at your convenience|if convenient|where possible|as soon as possible|as quickly as you can|as fast as you can|as soon as you can|at once|this instant|immediately if possible|right away please|right away|straightaway|forthwith|posthaste|double quick|in a jiffy|in a flash|in a sec|in a moment|momentarily)[.!?]?$/i, '')
       .replace(/([,\s]+(?:now|then|first|next|also|too|again|yet|already|once more|one more time|immediately|right away|this instant|at once|today|tonight|rn|ttyl|brb|g2g|gtg|thx|kthx|tyvm|pls|plz|pwease|thanks in advance))+[.!?]?$/i, '')
       .replace(/[,\s]+(?:if (?:u|you) (?:could|can|would|want(?: to)?|don'?t mind)|if ur able|if (?:u|you)'?re able|whenever you (?:want|feel like it|get around to it|can))[.!?]?$/i, '')
       .replace(/[,\s]+and[.!?]?$/i, '')
@@ -2144,7 +2163,7 @@ export class VoiceCommands {
         '知らん', 'しらん', 'できひん', 'でけへん',
         '対応してますか', 'できません', 'これできる',
         /what can i do/i, /what do i say/i, /how does this work/i, /^can i /i,
-        /^do (i|we)\b/i, /^do (you|they)(?! mind| hear| think)\b/i, /^mind if i\b/i,
+        /^do (i|we)\b/i, /^do (you|they)(?! mind| hear| think| suppose| reckon| figure)\b/i, /^mind if i\b/i,
         /^any way you can/i, /^is there a way to/i, /かね(?:る|ます|ません)$/,
         '困ってる', '困りました', '困ってます', '困ってるんだけど',
         'なんとかならない', 'なんとかならないか', 'なんとかならん', 'なんとかなりません',
@@ -2161,7 +2180,7 @@ export class VoiceCommands {
         /^どうやって/,
         /^help( me)?$/i,
         '何を聞けばいい', '何が聞ける', '何を頼めば',
-        /^how (do|can|to) i/i, /^how do (we|you)\b(?!.*\bspell)/i,
+        /^how (do|can|to) i/i, /^how do (we|you)\b(?!.*\bspell)(?!.*feel about)/i,
         'what do i press', 'which button', 'which do i press', 'what button',
         'what do i do', 'what should i do', 'how does this work',
         'どう閉じる', '閉じ方は', '閉じかたは', '戻り方は', '戻りかたは', '進み方は', '読み方は',
@@ -2188,7 +2207,7 @@ export class VoiceCommands {
     this.registerCommand('scoped-help', {
       // 'help me'/'help me please' are cries for help itself, not a topic
       // query — the (?!me) lookahead passes them to the 'help' command.
-      patterns: [/(.+)について教えて/, /help (?!me\b|please\b|if\b|it\b)(?:with |about )?(.+?)(?:\s+please)?$/i],
+      patterns: [/(.+)について教えて/, /help (?!me\b|please\b|if\b|it\b|a lot if\b)(?:with |about )?(.+?)(?:\s+please)?$/i],
       action: (transcript) => {
         const m = transcript.match(/(.+)について教えて/) ||
           transcript.match(/help (?!me\b|please\b)(?:with |about )?(.+?)(?:\s+please)?$/i);

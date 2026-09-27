@@ -1720,6 +1720,70 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 185: 殊さ依頼原子 — よう依頼枠・名詞型依頼・て受益残置III・EN深礼儀II
+
+Round 111 of the standing "おまかせ" improvement loop (stacks on #396's
+`devin/1790528928-compound-request-atoms` @ ee36a2d). All forms below verified
+NO-MATCH (or misroute) via live probes before implementation; ~136 candidates
+probed, 137 failing-first cases shipped.
+
+#### JA dict + よう(に)? + 依頼名詞枠（FR 尾）
+- `ように?(?:お願い|頼み|願い|要請|希望)(?:申し上げます|致します|いたします|します|する|ます)?`
+  → '閉じるようお願いします'/'閉じるよう頼みます'/'閉じるよう願います'→実行
+  （初回は末尾 'ます' を落として '頼みます'/'願います' が NONE — プローブで捕捉）
+- dict + bare 依頼名詞 `要請|お願い|希望|依頼`（'閉じる要請'→close-tab）
+
+#### JA て + 受益・敬体残置III（TAIL_TE 拡張）
+- `くれますかね|くれりゃ|くれないかなあ|くれないですかね|くださいまし|
+  くださいますよう(お願い…)?|くれるのでしょうか|くれるんでしょうか|くれるだろうか|
+  くれるかどうか|くださったら|もらったら|もらうよう|いただくよう|
+  くださるようお願い…|頂戴いたします|頂戴する|ちょうだいする|
+  お願い申し上げます|お願いいたします|お願い致します`
+
+#### JA dict + 判断枠（FR 尾）
+- `ことはできますか|ことができますか|ことは可能ですか`（能力→実行と解釈）
+- `べきではある|べきかと|べきもの|べきかもしれない`（**'べきではないか' は
+  negate 維持 — 判定枠と禁止枠を分離**）
+- `のが良い(と思う)?|のがいいかも|のがいいでしょう|のが正しい|ことが望ましい|
+  のが望ましい|のが好ましい|ほうがいいと思います|ほうがいいです|
+  ほうがいいと考えます|ほうがよろしい|ほうがいいかも`
+- `必要があろう|必要性がある|必要があるように思う|必要がありそう|必要ありそう|
+  必要がありますね|必要があるのでは|必要があるようだ`
+
+#### EN 深礼儀ネストII（chain1 拡張 + 先行ルール修正）
+- `'it would (help|mean) a lot if you (could)?'` + 'it would be X if you could' に
+  `lovely|wonderful|fantastic|marvelous` 追加（scoped-help が 'help a lot' を
+  トピック問い合わせと誤認 → `a lot if` だけ除外に窄め、'it would help a lot'
+  単体の scoped-help を回帰維持）
+- 意見枠: `how would you like to|what would you say to|what do you say to|
+  how do you feel about|up for|down for`
+- 陳述依頼: `humbly request (that )?you|i (request|ask) that you|
+  i (ask|beg|urge|implore) you to|may i (ask|trouble) you to|
+  might i trouble you to|ask you to|trouble you to`（'may i' が先に食う
+  順序問題は 'ask you to|trouble you to' 残余ブランチで解消）
+- 推量枠: `(think|reckon|figure|guess|imagine|believe|suppose) you could|
+  do you (think|suppose|reckon|figure) you (could|might)( maybe)?` —
+  help の `^do (you|they)` を `(?! suppose| reckon| figure)` に窄め、
+  `^how do (we|you)` に `(?!.*feel about)` 追加（**共に実行ルートへ是正**）
+- 可能性枠: `any possibility of|any chance of|is there any chance of|
+  would it be (too much( trouble)?|possible) to`（'is there any chance' が
+  'of' を残して先行マッチ → `(?: of)?` で最長一致化）
+- 接頭副詞: `(perhaps|maybe|possibly|surely|certainly) you (could|can|would)|
+  you (could|can|might|may) (always|just|as well)|(might|may) as well|
+  perhaps|maybe|possibly|surely|certainly`
+
+#### EN 即時・便宜語尾
+- `if you might|when ready|when you can|when possible|at your earliest
+  convenience|at your convenience|if convenient|where possible|as soon as
+  possible|as quickly as you can|as fast as you can|as soon as you can|at once|
+  this instant|immediately if possible|right away( please)?|straightaway|
+  forthwith|posthaste|in a jiffy|in a flash|in a sec|in a moment|momentarily`
+- 'double quick' は先行する bare-'quick' 語尾に先勝ちさせて配置
+  （961 行目の `(?:real )?(?:quick|fast|quickly)` 内の最長一致として移動）
+
+Verification: 157/157 new cases green (137 red pre-impl), full suite 9324/9324,
+eslint 0 errors / 136 warnings (=baseline), `npm run build` green, FFFD 0.
+
 ### Session 184: 複合依頼原子 — 受益メガ尾II・意向報告・ばよろしい・EN礼儀ネスト深掘り
 
 Round 110 of the standing "おまかせ" improvement loop (stacks on #394/#395's merged
