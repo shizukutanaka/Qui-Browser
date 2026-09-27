@@ -137,6 +137,11 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice 'why dontcha close it'/"whyn't you"/'i command/order you to'/'i hereby request/ask that you'/'the move is to'/'best move is'/'be an angel and' が NO-MATCH~~ — **Session 199 で実装**（ENPRE VIII）
 - ~~voice 'close it if you could possibly'/'please sir'/"if it's not too much trouble"/"if it isn't too much to ask"/'closing it is the way to go'/'closing it would be the move' が NO-MATCH~~ — **Session 199 で実装**（EN語尾）
 - ~~voice 'デカくして'/'小さめにして'/'読み上げ止めて'/'どこ読んでる' が NO-MATCH~~ — **Session 199 で実装**（リテラル）
+- ~~voice '閉じてくれんのか'/'閉じてもらうよ'/'閉じてもらっときたい'/'閉じてくださいなよ'/'閉じてくだされよ'/'閉じてやってもらおうか'/'閉じてこそ'/'閉じていいんちゃう'/'閉じてええんとちゃう' の受益・関西残置が NO-MATCH~~ — **Session 200 で実装**（TAIL_TE XVIII）
+- ~~voice '閉じるのも一手だ'/'のも選択肢の一つだ'/'べきところだ'/'ほうが楽'/'閉じたほうが早くない' が NO-MATCH~~ — **Session 200 で実装**（FR X + た→て規則）
+- ~~voice '閉じさせてもらうよ'/'閉じさせてくれますように'/'お閉じなさいませ'/'さえ閉じればいい'/'なあ閉じて' が NO-MATCH~~ — **Session 200 で実装**（SE_TAIL/敬語尾/prefix）
+- ~~voice 'am i asking too much to close it'/'too much to ask you to'/'would it be asking too much'（help誤ルート）/'just this once close it'/'see to closing it'/'make sure you close it'/'youre gonna close it'/'you shall close it'/'the tab needs closing'/'it should get closed'/'this wants closing' が NO-MATCH~~ — **Session 200 で実装**（ENPRE IX + lookahead 除外 + swap 拡張）
+- ~~voice '閉じてばかり'/'まだ開いてる'/'なあ聞いて' が NO-MATCH~~ — **Session 200 で実装**（リテラル：trouble/describe-tab/say-again）
 - ~~voice '閉じてくれないかしら'/'閉じてもらいましょうよ'/'閉じてくれればそれでいい'/'閉じてやるぞ'/'閉じてくれうるか' の受益残置が NO-MATCH~~ — **Session 198 で実装**（TAIL_TE XVI）
 - ~~voice '閉じちゃいなさいよ'/'閉じちゃうのも悪くない'/'閉じちゃってもかまわない'/'閉じとくといい'/'閉じとかないと' のちゃ/とく残置が NO-MATCH~~ — **Session 198 で実装**
 - ~~voice '閉じるのが一番だよ'/'閉じるのが得策だ'/'閉じることでいい'/'閉じるならOK'/'閉じたらよろしいでしょうか'/'閉じたらいいですよ' が NO-MATCH~~ — **Session 198 で実装**（FR VIII + たら残置）

@@ -1720,6 +1720,20 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 200
+
+- ✨ 受益尾XVIII: TAIL_TE — '閉じてくれんのか'/'もらうよ'/'もらっときたい'/'くださいなよ'/'くだされよ'/'やってもらおうか'/'てこそ'/'いいんちゃう(関西)'/'ええん(と)?ちゃう' → 実行。
+- ✨ dict判定X: FR — '閉じるのも一手だ'/'のも選択肢の一つだ'/'べきところだ'/'ほうが楽(だ)' → 実行；'閉じたほうが早くない' は た→て / だ→で 変換規則追加。
+- ✨ させて残置: SE_TAIL に 'もらうよ'/'くれますように' 追加 → '閉じさせてもらうよ'/'くれますように' → 実行。
+- ✨ お/ご敬語: 尾に 'なさいませ' 追加 → 'お閉じなさいませ' → 実行。
+- ✨ 前置詞: JA prefix に 'さえ'/'なあ' 追加 → 'さえ閉じればいい'/'なあ、閉じて' → 実行。
+- ✨ EN前置詞IX: 'would it be asking too much to'/'am i asking too much to'/'too much to ask you to'/'just this once'/'one time'/'see to (it that you|it that)'/'see that it gets'/'ensure it gets'/'make sure'/"you're gonna"/'you shall'/'the tab needs'/'it should get'/'this wants' → 実行；語尾 'just this once' 追加。
+- ✨ EN主語スワップ: 'it closes' → 'close it'（closes→close マップ追加）。
+- 🐛 誤ルート是正: 'would it be asking too much to X' が help 誤ルート → help の `would it be` lookahead に `asking` 除外を追加して実行化。
+- 🐛 回帰消化: 裸 `you` 前置詞追加で 'you ought to close it' を奪取 → `you oughta|you ought to` を裸 `you` より前置で解消（ENPRE 最長一致ルール再確認）。
+- ✨ リテラル: '閉じてばかり(だと)'/'閉じちゃうばっかり'→trouble、'まだ開いてる'→describe-tab、'なあ聞いて'→say-again。
+- ✅ tests/command-frame-atoms.test.js +46（実装前41件赤確認）、計10695全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
 ### Session 199
 
 - ✨ 受益尾XVII: TAIL_TE — '閉じてくれんですか'（ん縮約）/'くれたまえ(よ)'（たまえ命令調）/'もらって(も)いいですかね' → 実行。

@@ -368,7 +368,7 @@ export class VoiceCommands {
     // 'お読みいただけますか'/'お読みなさい'/'お読みくださいませ'/'お読みおくれ'
     push(normalized.replace(new RegExp('^(お|ご)(.{1,10}?)(?:くださいますか|くださいませんか|くださいませ|' +
       'ください|下さい|願えませんか|いただけませんか|いただきたい|いただけ(?:ますか|ます|る|るか)|' +
-      'なさい|おくれ|願います|いたします)[。！？!?]?$', 'u'),
+      'なさい|なさいませ|おくれ|願います|いたします)[。！？!?]?$', 'u'),
     (m, p, stem) => MASU_TE[stem.slice(-1)] ? stem.slice(0,-1) + MASU_TE[stem.slice(-1)] : stem + 'て'));
     // Casual imperative masu-stem+な: '閉じな'→'閉じて', '読みな'→'読んで'
     push(normalized.replace(/^(.{1,10}?)な[。！？!?]?$/u,
@@ -502,7 +502,7 @@ export class VoiceCommands {
     stemTe(normalized.replace(/(?:つつ|ながら)[。！？!?]?$/u, ''));
     // Apology/hedge openers + benefactive-tail escalations → bare て-form
     const HP = normalized.replace(
-      /^(?:恐れ入りますが|恐縮です(?:が)?|申し訳ありませんが|申し訳ない(?:んですが)?|ついでに|まず|さあ|ほら|やっぱり|やっぱ|できれば|可能なら|よかったら|もしよければ|よろしければ|良ければ|すみませんが|すみません|悪いんだけど|悪いんだが|悪いけど|お手数ですが|差し支えなければ|お手すきの際に|できたら|もし可能なら|もし|よければ|ぜひ|どうぞ|とにかく|ともかく|とっとと|さっさと|直ちに|早急に|急いで|いそいで|早く|はやく|だって|ほんとに|本当に|マジで|ガチで|つーか|っつーか|つうか|早よ|あのね|ねえねえ|ねえ|あのう|そういえば|いいから|いい加減(?:に)?|この場で|今|じゃあ|ほなら|ほな|さて|では|あのさあ|あのさ)[、,]?/u, '');
+      /^(?:恐れ入りますが|恐縮です(?:が)?|申し訳ありませんが|申し訳ない(?:んですが)?|ついでに|まず|さあ|ほら|やっぱり|やっぱ|できれば|可能なら|よかったら|もしよければ|よろしければ|良ければ|すみませんが|すみません|悪いんだけど|悪いんだが|悪いけど|お手数ですが|差し支えなければ|お手すきの際に|できたら|もし可能なら|もし|よければ|ぜひ|どうぞ|とにかく|ともかく|とっとと|さっさと|直ちに|早急に|急いで|いそいで|早く|はやく|だって|ほんとに|本当に|マジで|ガチで|つーか|っつーか|つうか|早よ|あのね|ねえねえ|ねえ|あのう|そういえば|いいから|いい加減(?:に)?|この場で|今|じゃあ|ほなら|ほな|さて|では|あのさあ|あのさ|さえ|なあ)[、,]?/u, '');
     if (HP !== normalized) {
       push(HP);
       for (const v of this._politeVariants(HP)) {
@@ -560,7 +560,7 @@ export class VoiceCommands {
       'くれんかね|くれんか|くれますかねえ|くれますかね|もらってよろしいか|もらってよろしい|' +
       'もらいますか|もらえますかな|おいていただけると|おいていただければ|' +
       'はくれませんか|はくれないか|おきませんか|おきますか|しまおうかな|しまおうか|' +
-      'くれないものか|結構ですか|構いませんか|もろてええか|もろてよろしいか|もろていいか|もろてええ|もろてよろしい|よろしくお願いします|よろしくお願い致します|おねがいします|頼みます|頼む|もらえないものか|もらえないものかしら|もええんちゃう|もええんですか|もいいんじゃないか|もいいんじゃない|くれませんかな|くれませんかい|くれますかい|もいいかい|ほしいです|ほしいんだ|もらえますかね|もらえますか|ちょ|いただけますでしょうか|いただければと存じます|いただけましたら幸甚です|くださると大変助かります|くだされば幸いに存じます|くれるようお願いします|くださるようお願いいたします|頂くわけにはいきませんか|頂いても宜しいでしょうか|くれるだけでいい|あげましょうか|あげる|もいいんじゃないですか|もいいと思うよ|も差し支えなければ|はいかがかと|お願いね|お願いできるかな|お願いしてもいいかな|お願いしてもらえますか|お願いしたいのですが|お願いしたく存じます|お願い申し上げたく|もらえたなら|くれたら助かる|くれないですかね|くれないかなあ|くれると助かるわ|くれたらいいのに|くれさえすれば|もらいたいんですが|もらいたいのですが|もらうのは無理ですか|あればいい|いただけると大変ありがたいです|いただけるとありがたく存じます|いただければ幸いでございます|いただけますようお願い申し上げます|もらいたく存じます|もらいたく思います|くれたならば|おくれる|おくれます|おくれませか|やってもらえる|やってもらえます|もらいますので|くださいませんかね|くださいましな|くださいませますか|くれますの|くださるかな|ほしいんだよね|ほしいのよ|もらいたいんだ|もらえると助かる|もらいたいところ|ほしいところです|もらえるとありがたい|くれてもいいんです|くれてもかまいません|もらっちゃおう|もらうつもり|もらう予定|おきたいところ|おくことにする|おきましょうかね|くれるんだけど|くれるんだよね|くれたっていい|もらうんだ|もらうんだけど|もらうことになって|やるから|あげるから|くださったなら|くれさえすればいい|くれりゃいい|くれたなら|くれればいいのに|もいいですかね|もいいかね|もいいんですけど|もいいんですが|もいいんです|もいいです|もいいかもしれない|もいいんではないか|もいいと思うんだけどね|もいいと思うんだけどよ|もいいと思うんだけど|もいいんじゃないの|も結構ですよ|も結構です|も結構だ|も差し支えないです|も差し支えない|も差し支えありません|も問題ないです|も問題ない|も問題ありません|も大丈夫です|も大丈夫|いいんですけど|いいんですが|いいですよ|いいんではないか|いいかもしれない|いいんじゃないの|いいと思うんだけどね|いいと思うんだけどよ|いいと思うんだけど|もいい|みようかな|みようか|みようではないか|みたらどうかな|みたらどう|みてほしい|みてくれ|みてください|ちょっと|てほしい|るべき|るべきだ|るべきです|みせる|みせます|みましょうか|みましょうね|くれないかしら|もらいましょうよ|くれればそれでいい|やるぞ|くれうるか|くれんですか|くれたまえよ?|もらって(?:も)?いいですかね?)[。！？!?]?$', 'u');
+      'くれないものか|結構ですか|構いませんか|もろてええか|もろてよろしいか|もろていいか|もろてええ|もろてよろしい|よろしくお願いします|よろしくお願い致します|おねがいします|頼みます|頼む|もらえないものか|もらえないものかしら|もええんちゃう|もええんですか|もいいんじゃないか|もいいんじゃない|くれませんかな|くれませんかい|くれますかい|もいいかい|ほしいです|ほしいんだ|もらえますかね|もらえますか|ちょ|いただけますでしょうか|いただければと存じます|いただけましたら幸甚です|くださると大変助かります|くだされば幸いに存じます|くれるようお願いします|くださるようお願いいたします|頂くわけにはいきませんか|頂いても宜しいでしょうか|くれるだけでいい|あげましょうか|あげる|もいいんじゃないですか|もいいと思うよ|も差し支えなければ|はいかがかと|お願いね|お願いできるかな|お願いしてもいいかな|お願いしてもらえますか|お願いしたいのですが|お願いしたく存じます|お願い申し上げたく|もらえたなら|くれたら助かる|くれないですかね|くれないかなあ|くれると助かるわ|くれたらいいのに|くれさえすれば|もらいたいんですが|もらいたいのですが|もらうのは無理ですか|あればいい|いただけると大変ありがたいです|いただけるとありがたく存じます|いただければ幸いでございます|いただけますようお願い申し上げます|もらいたく存じます|もらいたく思います|くれたならば|おくれる|おくれます|おくれませか|やってもらえる|やってもらえます|もらいますので|くださいませんかね|くださいましな|くださいませますか|くれますの|くださるかな|ほしいんだよね|ほしいのよ|もらいたいんだ|もらえると助かる|もらいたいところ|ほしいところです|もらえるとありがたい|くれてもいいんです|くれてもかまいません|もらっちゃおう|もらうつもり|もらう予定|おきたいところ|おくことにする|おきましょうかね|くれるんだけど|くれるんだよね|くれたっていい|もらうんだ|もらうんだけど|もらうことになって|やるから|あげるから|くださったなら|くれさえすればいい|くれりゃいい|くれたなら|くれればいいのに|もいいですかね|もいいかね|もいいんですけど|もいいんですが|もいいんです|もいいです|もいいかもしれない|もいいんではないか|もいいと思うんだけどね|もいいと思うんだけどよ|もいいと思うんだけど|もいいんじゃないの|も結構ですよ|も結構です|も結構だ|も差し支えないです|も差し支えない|も差し支えありません|も問題ないです|も問題ない|も問題ありません|も大丈夫です|も大丈夫|いいんですけど|いいんですが|いいですよ|いいんではないか|いいかもしれない|いいんじゃないの|いいと思うんだけどね|いいと思うんだけどよ|いいと思うんだけど|もいい|みようかな|みようか|みようではないか|みたらどうかな|みたらどう|みてほしい|みてくれ|みてください|ちょっと|てほしい|るべき|るべきだ|るべきです|みせる|みせます|みましょうか|みましょうね|くれないかしら|もらいましょうよ|くれればそれでいい|やるぞ|くれうるか|くれんですか|くれたまえよ?|もらって(?:も)?いいですかね?|くれんのか|もらうよ|もらっときたい|くださいなよ|くだされよ|やってもらおうか|こそ|いいんちゃう|ええんちゃう|ええんとちゃう)[。！？!?]?$', 'u');
     push(normalized.replace(/(?:たっ|ったっ|ちゃった)ていい(?:ですよ|よ|です|かもしれない)?[。！？!?]?$/u, 'て'));
     push(normalized.replace(/(?:だっ|んだっ|じゃった)ていい(?:ですよ|よ|です|かもしれない)?[。！？!?]?$/u, 'で'));
     push(normalized.replace(TAIL_TE, '$1'));
@@ -579,7 +579,7 @@ export class VoiceCommands {
     // dict+ residual frames: '閉じると思い'/'閉じることにして'/'閉じるしかない'/
     // '閉じるわけにはいかない'/'閉じる必要がある'/'閉じるでしょ'/'閉じるより'→'閉じて'
     const FR = normalized.replace(
-      /(?:と思い|ようと思い|んだよね|んだけどさ|んですよ|ことに(?:する|した|して)|ほうがいい(?:ね|かも)?|ほうがマシ(?:だ|です)?|といい(?:よ|です)|ばどうか?|しかない(?:んだ|よ|な)?|っきゃないな|よりほかない(?:な)?|だけしかない|わけにはいかない|必要が(?:ある|あります|ありそう)|べきです|べきなのに|なくちゃいけない|なあかんで|でしょ|でしょう|だろう|んじゃないか|んじゃなかった|より|ましてよ|ますので|ますよね|たいと思います|たいと思ってます|たいんですが|たいと思う|かと思って|かと考えて|と思います|と思ってます|と思ってる|と思ってるんです|と思っています|と考えて|方がいいと思う|方がいい|しかないんです|しかありません|しかないのでは|ということ(?:です|で|ですね|ね)?|というわけです|方向性?で|感じで|形で|次第です|予定です|んですが|のであれば|なら早く|なら今のうち|ように?(?:お願い|頼み|願い|要請|要求|依頼|希望)(?:申し上げます|致します|いたします|します|する|ます)?|要請|お願い|希望|依頼|ことはできますか|ことができますか|ことは可能ですか|べきではある|べきかと|べきもの|べきかもしれない|のが良い(?:と思う)?|のがいいかも|のがいいでしょう|のが正しい|ことが望ましい|のが望ましい|のが好ましい|ほうがいいと思います|ほうがいいです|ほうがいいと考えます|ほうがよろしい|ほうがいいかも|必要があろう|必要性がある|必要があるように思う|必要がありそう|必要ありそう|必要がありますね|必要があるのでは|必要があるようだ|ならばよろしい|ならば結構です|ならば|ならいいんだけど|ならいい|なら早い|なら今のうちに|のなら早く|のならいい|のであれば早く|のであればよろしい|のであれば大丈夫|のでいい|のでよい|のでしたら|ので結構です|というのであれば|ということであれば|ことならいい|ことならできる|とかいう|とか言って|とかで|とかして|とかね|とかよ|とかなんとかして|なんかして|なんかで|くらいなら|くらいで|くらいして|ぐらいなら|程度で|ほどで|だけならいい|だけなら|だけでいい|だけのこと|だけの話|だけなんだけど|だけなんです|だけなのに|さえすれば|すらすれば|でもいい|でもして|でもすれば|か何かして|かなんかして|後で|後に|あとで|あとに|たら次|ようになさい|ようにしてほしい|ようにしてくれ|ようにしていただけますか|ようにしてもらえますか|ようにして|ようにお願いできますか|べくお願いします|べく|べきと考えます|べきと存じます|べきでしょう|べきものと考えます|ことが望ましいと思います|のが望ましいと思います|ほうが望ましい|ほうがよろしいかと思います|ほうがよろしいかと|ほうがよろしいと存じます|ほうがいいと存じます|のが筋(?:では)?|ほうが賢明|のが妥当|のが適切|ことを推奨|ことをおすすめ|ことを望む|ことを望みます|ことを期待|ことにしよう|ことにしたい|ように言った|ように言われた|ようにと言った|ばいいじゃん|ばよいのでは|ばいいのでは|ばええじゃん|なら今|ならここ|んなら|んであれば|のであれば早めに|のなら今|ことか|ことなんだけど|ってことで|ってことですか|ってこと|ということでよろしいですか|ということで|ものなら|のならば|のであったら|んだったら早く|んだったらね|んだったら|ことにしようかな|ことにした方がいい|ことにしたほうがいい|というわけにはいかない|のが筋ではないだろうか|ことにします|ことに致します|ものとする|ものとします|ものと思います|ものと考えます|がよい|がよろしい|ほうがいいかもしれない|のもあり|のもいい|のも手だ|ってのもあり|というのもあり|という手もある|といいんじゃない|といいんじゃないか|とよいでしょう|とよろしい|とよいです|ようにする|ようにしてください|ほかないだろう|ほかあるまい|らよいのではないか|らいかがでしょうか|らいかがでしょう|らどうでしょうか|らどうですか|よう(?:に)?伝えて(?:ください)?|ようお伝えください|くれるよう言って(?:ほしい)?|って言ってる(?:でしょ|よ)?|って何回も言ってる|方がいいかな|ほうがいいかな|方がいいんじゃないか|ほうがいいんじゃないか|としよう(?:か|な)?|といいでしょう|といいんじゃないの|ましょうか(?:ね)?|べきかと存じます|べきかと思われます|ことが望ましいのでは|のが良いと存じます|ことをお願い申し上げます|ことをお願いいたします|だけで結構です|だけでいいです|とありがたい(?:です)?|と助かります|ばありがたい|ればありがたい|れば幸いです|れば助かる|ならありがたい|ことは可能でしょうか|ことが可能ですか|ことが望ましいかと|という選択肢もあります|という手があります|必要あるかな|必要ありそう|たいんですがね|たいんですけども|たいなあ|たい気がする|たいと思ってるんです|たい気分です|たい時は|たい場合は|た方がいい気がする|たほうがよさそう|た方がいいと思うんです|たほうが良いと思う|た状態にして|た状態でいて|しかないと思う|と決めた|ことに決めた|ことを決めた|つもりですが|つもりなんです|つもりでいる|予定なんです|予定です|予定なので|はずなんです|はずです|はずと思います|ようにしました|と思うんだけど|と思うんですが|と思いますので|べきかと考えます|のが賢明かと|のが賢明です|たほうがいいのでは|ほうがいいのでは|こともできる|こともできます|のもいいですね|のもいいね|たらどうかと思う|たらどうかと思います|たらいいと思います|たらいいと思う|たほうがいいと思うのですが|た方がいいと思います|たいんだけれど|たいですわ|たいわ|たく思います|たく存じます|たくなってきた|たくなった|のもいいんじゃない|ことにしておく|ことにしておこう|のが無難だ|のが定石だ|のが賢明だろう|ほうが無難|のが常套手段だ|という選択もある|という手がありますね|のも検討事項だ|ことも視野に入れて|のがセオリーだ|のが筋だと思う|のが本筋だ|ようにしてくださいね|ようにお願いね|としておく|こととする|でよろしいか|方向でいこう|方向で|系で|感じでいこう|案で|プランで|作戦で|といいですよ|がよかろう|んじゃないかな|こともできるし|ということもある|のも悪くない|のでいいんじゃない|以外ない|のほかない|のが一番だ|といいかもね|のが早い|に越したことはない|べきだろうね|でいいのかな|のでいいですか|ちゃうのも手だ|ちゃうしかないか|ちゃったほうが早い|たいと思っています|たいと思っている|たいと思ってる|たいと思うのですが|たいと思うんだけど|たいと思うんです|たい感じがする|たい場面です|たい局面です|ようと思うのですが|ようと思うんだけど|ようと思ってる|ようと思っている|ようと思ってます|ようと思いますが|ようと考えてる|ようと考えている|ようと考えてます|れればいい|のが一番だよ|のが得策だ|のが良い選択だ|ことでいい|ならok|ものね|ものですね|わけです|わけなんです)[。！？!?]?$/u, '');
+      /(?:と思い|ようと思い|んだよね|んだけどさ|んですよ|ことに(?:する|した|して)|ほうがいい(?:ね|かも)?|ほうがマシ(?:だ|です)?|といい(?:よ|です)|ばどうか?|しかない(?:んだ|よ|な)?|っきゃないな|よりほかない(?:な)?|だけしかない|わけにはいかない|必要が(?:ある|あります|ありそう)|べきです|べきなのに|なくちゃいけない|なあかんで|でしょ|でしょう|だろう|んじゃないか|んじゃなかった|より|ましてよ|ますので|ますよね|たいと思います|たいと思ってます|たいんですが|たいと思う|かと思って|かと考えて|と思います|と思ってます|と思ってる|と思ってるんです|と思っています|と考えて|方がいいと思う|方がいい|しかないんです|しかありません|しかないのでは|ということ(?:です|で|ですね|ね)?|というわけです|方向性?で|感じで|形で|次第です|予定です|んですが|のであれば|なら早く|なら今のうち|ように?(?:お願い|頼み|願い|要請|要求|依頼|希望)(?:申し上げます|致します|いたします|します|する|ます)?|要請|お願い|希望|依頼|ことはできますか|ことができますか|ことは可能ですか|べきではある|べきかと|べきもの|べきかもしれない|のが良い(?:と思う)?|のがいいかも|のがいいでしょう|のが正しい|ことが望ましい|のが望ましい|のが好ましい|ほうがいいと思います|ほうがいいです|ほうがいいと考えます|ほうがよろしい|ほうがいいかも|必要があろう|必要性がある|必要があるように思う|必要がありそう|必要ありそう|必要がありますね|必要があるのでは|必要があるようだ|ならばよろしい|ならば結構です|ならば|ならいいんだけど|ならいい|なら早い|なら今のうちに|のなら早く|のならいい|のであれば早く|のであればよろしい|のであれば大丈夫|のでいい|のでよい|のでしたら|ので結構です|というのであれば|ということであれば|ことならいい|ことならできる|とかいう|とか言って|とかで|とかして|とかね|とかよ|とかなんとかして|なんかして|なんかで|くらいなら|くらいで|くらいして|ぐらいなら|程度で|ほどで|だけならいい|だけなら|だけでいい|だけのこと|だけの話|だけなんだけど|だけなんです|だけなのに|さえすれば|すらすれば|でもいい|でもして|でもすれば|か何かして|かなんかして|後で|後に|あとで|あとに|たら次|ようになさい|ようにしてほしい|ようにしてくれ|ようにしていただけますか|ようにしてもらえますか|ようにして|ようにお願いできますか|べくお願いします|べく|べきと考えます|べきと存じます|べきでしょう|べきものと考えます|ことが望ましいと思います|のが望ましいと思います|ほうが望ましい|ほうがよろしいかと思います|ほうがよろしいかと|ほうがよろしいと存じます|ほうがいいと存じます|のが筋(?:では)?|ほうが賢明|のが妥当|のが適切|ことを推奨|ことをおすすめ|ことを望む|ことを望みます|ことを期待|ことにしよう|ことにしたい|ように言った|ように言われた|ようにと言った|ばいいじゃん|ばよいのでは|ばいいのでは|ばええじゃん|なら今|ならここ|んなら|んであれば|のであれば早めに|のなら今|ことか|ことなんだけど|ってことで|ってことですか|ってこと|ということでよろしいですか|ということで|ものなら|のならば|のであったら|んだったら早く|んだったらね|んだったら|ことにしようかな|ことにした方がいい|ことにしたほうがいい|というわけにはいかない|のが筋ではないだろうか|ことにします|ことに致します|ものとする|ものとします|ものと思います|ものと考えます|がよい|がよろしい|ほうがいいかもしれない|のもあり|のもいい|のも手だ|ってのもあり|というのもあり|という手もある|といいんじゃない|といいんじゃないか|とよいでしょう|とよろしい|とよいです|ようにする|ようにしてください|ほかないだろう|ほかあるまい|らよいのではないか|らいかがでしょうか|らいかがでしょう|らどうでしょうか|らどうですか|よう(?:に)?伝えて(?:ください)?|ようお伝えください|くれるよう言って(?:ほしい)?|って言ってる(?:でしょ|よ)?|って何回も言ってる|方がいいかな|ほうがいいかな|方がいいんじゃないか|ほうがいいんじゃないか|としよう(?:か|な)?|といいでしょう|といいんじゃないの|ましょうか(?:ね)?|べきかと存じます|べきかと思われます|ことが望ましいのでは|のが良いと存じます|ことをお願い申し上げます|ことをお願いいたします|だけで結構です|だけでいいです|とありがたい(?:です)?|と助かります|ばありがたい|ればありがたい|れば幸いです|れば助かる|ならありがたい|ことは可能でしょうか|ことが可能ですか|ことが望ましいかと|という選択肢もあります|という手があります|必要あるかな|必要ありそう|たいんですがね|たいんですけども|たいなあ|たい気がする|たいと思ってるんです|たい気分です|たい時は|たい場合は|た方がいい気がする|たほうがよさそう|た方がいいと思うんです|たほうが良いと思う|た状態にして|た状態でいて|しかないと思う|と決めた|ことに決めた|ことを決めた|つもりですが|つもりなんです|つもりでいる|予定なんです|予定です|予定なので|はずなんです|はずです|はずと思います|ようにしました|と思うんだけど|と思うんですが|と思いますので|べきかと考えます|のが賢明かと|のが賢明です|たほうがいいのでは|ほうがいいのでは|こともできる|こともできます|のもいいですね|のもいいね|たらどうかと思う|たらどうかと思います|たらいいと思います|たらいいと思う|たほうがいいと思うのですが|た方がいいと思います|たいんだけれど|たいですわ|たいわ|たく思います|たく存じます|たくなってきた|たくなった|のもいいんじゃない|ことにしておく|ことにしておこう|のが無難だ|のが定石だ|のが賢明だろう|ほうが無難|のが常套手段だ|という選択もある|という手がありますね|のも検討事項だ|ことも視野に入れて|のがセオリーだ|のが筋だと思う|のが本筋だ|ようにしてくださいね|ようにお願いね|としておく|こととする|でよろしいか|方向でいこう|方向で|系で|感じでいこう|案で|プランで|作戦で|といいですよ|がよかろう|んじゃないかな|こともできるし|ということもある|のも悪くない|のでいいんじゃない|以外ない|のほかない|のが一番だ|といいかもね|のが早い|に越したことはない|べきだろうね|でいいのかな|のでいいですか|ちゃうのも手だ|ちゃうしかないか|ちゃったほうが早い|たいと思っています|たいと思っている|たいと思ってる|たいと思うのですが|たいと思うんだけど|たいと思うんです|たい感じがする|たい場面です|たい局面です|ようと思うのですが|ようと思うんだけど|ようと思ってる|ようと思っている|ようと思ってます|ようと思いますが|ようと考えてる|ようと考えている|ようと考えてます|れればいい|のが一番だよ|のが得策だ|のが良い選択だ|ことでいい|ならok|ものね|ものですね|わけです|わけなんです|のも一手だ|のも選択肢の一つだ|べきところだ|ほうが楽だ|ほうが楽)[。！？!?]?$/u, '');
     if (FR !== normalized &&
         !(normalized.match(/より[。！？!?]?$/u) &&
           !/[うつるくぐすぬぶむきぎしちにみびるい]$/u.test(FR))) {
@@ -632,7 +632,7 @@ export class VoiceCommands {
     const SE_TAIL = '(?:くれ|くれる|もらう|もらえる|もらえますか|もらえたら' +
       '|いただけないか|いただきたい|いただきます|いただけますか|ください|ほしい' +
       '|もらいます|もらうね|もらうわ|' +
-      '|いただければ|いただけたら|いただくね|いただくよ|いただけるかな)';
+      '|いただければ|いただけたら|いただくね|いただくよ|いただけるかな|もらうよ|くれますように)';
     push(normalized.replace(new RegExp('させて' + SE_TAIL + '[。！？!?]?$', 'u'), 'て'));
     push(normalized.replace(new RegExp('([まらわかがさたなばぱ])せて' + SE_TAIL + '[。！？!?]?$', 'u'),
       (m, ch) => A_SE_TE[ch] || ch));
@@ -846,6 +846,8 @@ export class VoiceCommands {
     stemTe(normalized.replace(/たら(?:どう|いかが)(?:ですか|かな|かしら)?[。！？!?]?$/u, ''));
     stemTe(normalized.replace(/たら(?:よろしいでしょうか|いいですよ)[。！？!?]?$/u, ''));
     stemTe(normalized.replace(/(?:なさいってば?|なってば)[。！？!?]?$/u, ''));
+    push(normalized.replace(/たほうが早くない[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/だほうが早くない[。！？!?]?$/u, 'で'));
     // 'なよね' casual imperative: '閉じなよね'→'閉じて'.
     stemTe(normalized.replace(/なよね?[。！？!?]?$/u, ''));
     // Negative-rhetorical urge: '閉じないでどうする'/'閉じずにどうする'→'閉じて'
@@ -1063,7 +1065,7 @@ export class VoiceCommands {
         'humor me and|bear with (?:me|it) and|put up with it and|give|' +
         'help me|i need you to|' +
         'i was (?:kinda )?hoping you could|i had hoped you could|i would have thought you could|i expected you to|i assumed you would|i figured maybe you could|i thought maybe you could|i was thinking maybe|supposedly you can|apparently you can|presumably you can|obviously you can|surely you can|surely you could|do the honou?rs and|have the courtesy to|have the decency to|extend (?:me )?the courtesy of|grant me the favor of|afford me the favor of|oblige me by|humor me and|i need (?:it |this |that |the tab )|i want (?:that |it |this |the tab )|i was thinking you could|i was thinking you can|i figured you could|i figured you can|i reckoned you could|i thought you could|imagine you|pretend you|i guess you could|i guess you can|i suppose you could|i suppose you can|i could use you to|i want you(?: to| closing| reading)?|i\'?d like you to|i\'?d appreciate it if you|don\'?t forget to|' +
-        'make sure to|be sure to|remember to|try to|try and|just|simply|' +
+        'make sure to|be sure to|remember to|try to|try and|just this once|just|simply|' +
         'while you(?:\'?re| are) at it|since you(?:\'?re| are) (?:here|there|at it)|when you get a (?:sec|second|minute|chance|moment)|' +
         'if you have a (?:sec|second|minute|moment|chance)|if it\'?s not too much trouble|' +
         'before (?:you go|i (?:leave|go))|whenever you (?:can|get a chance)|at your (?:earliest )?convenience|no rush but|' +
@@ -1106,7 +1108,7 @@ export class VoiceCommands {
         'would you terribly mind|i\'?d be much obliged if you|i would hate to ask but|' +
         'not to impose but|sorry to bother but|pardon me but|forgive me for asking but|' +
         'it would do no harm to|there\'?s no harm in|' +
-        'one option is to|why don\'?tcha|whyn\'?t you|i command you to|i order you to|i hereby request (?:that )?you|i hereby ask that you|the move is to|best move is|be an angel and)[,\\s]+', 'i');
+        'one option is to|why don\'?tcha|whyn\'?t you|i command you to|i order you to|i hereby request (?:that )?you|i hereby ask that you|the move is to|best move is|be an angel and|would it be asking too much to|am i asking too much to|too much to ask you to|one time|see to it that you|see to|see that it gets|ensure it gets|make sure|you\'?re gonna|you shall|the tab needs|it should get|this wants|you oughta|you ought to|you)[,\\s]+', 'i');
     const en = normalized
       .replace(/^please[,\s]+/i, '')
       .replace(ENPRE, '')
@@ -1128,7 +1130,7 @@ export class VoiceCommands {
       .replace(/[,\s]+for (?:me|us)[.!?]?$/i, '')
       .replace(/[,\s]+(?:(?:please|and) )*thanks[.!?]?$/i, '')
       .replace(/[,\s]+(?:real )?(?:double quick|quick|fast|quickly)[.!?]?$/i, '')
-      .replace(/[,\s]+(?:right now|asap|pronto|stat|at your leisure|when you have a moment|whenever you get around to it|if you don'?t mind|for me thanks|for me|thanks|soon|slowly|carefully|gently|quietly|that would be (?:great|nice|awesome|helpful|lovely|wonderful)|if you might|when ready|when you can|when possible|at your earliest convenience|at your convenience|if convenient|where possible|at your discretion|whenever possible|when you get the chance|when you get a chance|whenever you can|as soon as possible|as quickly as you can|as fast as you can|as soon as you can|at once|this instant|immediately if possible|right away please|right away|straightaway|forthwith|posthaste|double quick|if you would be so kind|if you'?d be so kind|if you would kindly|and be done with it|and be done|and get it over with|and let'?s move on|once and for all|for good|permanently|for the last time|in a jiffy|in a flash|in a sec|in a moment|momentarily|for you|for once|a shot|a try|a go|now|is all i ask|is all i need|is what i want|is the idea|i was thinking you could|i figured you could|i reckoned you could|i thought you could|i guess you could|i suppose you could|i was thinking|i was hoping|i was wondering|i thought|i guess|i suppose|i figured|i reckoned|kind sir|kindly|would you be so kind|would you kindly|at your earliest|at your soonest|please and thanks|thanks a bunch|thanks a ton|thanks a million|much obliged|much appreciated|(?:would|could) be (?:great|nice|lovely|wonderful|awesome|amazing|fantastic|splendid|marvelous|delightful|appreciated|much appreciated|greatly appreciated|helpful)|would help|would mean a lot|is an option|thank you kindly|would you mind awfully|if you could possibly|please sir|if it's not too much trouble|if it isn't too much to ask|is the way to go|would be the move)[.!?]?$/i, '')
+      .replace(/[,\s]+(?:right now|asap|pronto|stat|at your leisure|when you have a moment|whenever you get around to it|if you don'?t mind|for me thanks|for me|thanks|soon|slowly|carefully|gently|quietly|that would be (?:great|nice|awesome|helpful|lovely|wonderful)|if you might|when ready|when you can|when possible|at your earliest convenience|at your convenience|if convenient|where possible|at your discretion|whenever possible|when you get the chance|when you get a chance|whenever you can|as soon as possible|as quickly as you can|as fast as you can|as soon as you can|at once|this instant|immediately if possible|right away please|right away|straightaway|forthwith|posthaste|double quick|if you would be so kind|if you'?d be so kind|if you would kindly|and be done with it|and be done|and get it over with|and let'?s move on|once and for all|for good|permanently|for the last time|in a jiffy|in a flash|in a sec|in a moment|momentarily|for you|for once|a shot|a try|a go|now|is all i ask|is all i need|is what i want|is the idea|i was thinking you could|i figured you could|i reckoned you could|i thought you could|i guess you could|i suppose you could|i was thinking|i was hoping|i was wondering|i thought|i guess|i suppose|i figured|i reckoned|kind sir|kindly|would you be so kind|would you kindly|at your earliest|at your soonest|please and thanks|thanks a bunch|thanks a ton|thanks a million|much obliged|much appreciated|(?:would|could) be (?:great|nice|lovely|wonderful|awesome|amazing|fantastic|splendid|marvelous|delightful|appreciated|much appreciated|greatly appreciated|helpful)|would help|would mean a lot|is an option|thank you kindly|would you mind awfully|if you could possibly|please sir|if it's not too much trouble|if it isn't too much to ask|is the way to go|would be the move|just this once)[.!?]?$/i, '')
       .replace(/([,\s]+(?:now|then|first|next|also|too|again|yet|already|once more|one more time|immediately|right away|this instant|at once|today|tonight|rn|ttyl|brb|g2g|gtg|thx|kthx|tyvm|pls|plz|pwease|thanks in advance))+[.!?]?$/i, '')
       .replace(/[,\s]+(?:if (?:u|you) (?:could|can|would|want(?: to)?|don'?t mind)|if ur able|if (?:u|you)'?re able|whenever you (?:want|feel like it|get around to it|can))[.!?]?$/i, '')
       .replace(/[,\s]+and[.!?]?$/i, '')
@@ -1148,11 +1150,12 @@ export class VoiceCommands {
         mute: 'mute ', pinned: 'pin ', pin: 'pin ', saved: 'save ', shut: 'close ',
         save: 'save ', reopened: 'reopen ', reopen: 'reopen ' })[v.toLowerCase()] + p)
       .replace(new RegExp('^(it|this|that) (closed|close|muted|mute|pinned|pin|' +
-        'saved|save|paused|pause|stopped|stop|deleted|delete|shut|reopened|reopen)$', 'i'),
+        'saved|save|paused|pause|stopped|stop|deleted|delete|shut|closes|reopened|reopen)$', 'i'),
       (m, p, v) => ({ closed: 'close ', close: 'close ', muted: 'mute ',
         mute: 'mute ', pinned: 'pin ', pin: 'pin ', saved: 'save ',
         save: 'save ', paused: 'pause ', pause: 'pause ', stopped: 'stop ',
         stop: 'stop ', deleted: 'delete ', delete: 'delete ', shut: 'close ',
+        closes: 'close ',
         reopened: 'reopen ', reopen: 'reopen ' })[v.toLowerCase()] + p);
     push(en);
     push(normalized.replace(/^please[,\s]+/i, ''));
@@ -2344,7 +2347,7 @@ export class VoiceCommands {
         /(?:ほう|方)がいいのかな?[。！？!?]?$/, /(?<!ちゃう)(?<!じゃう)のが正解(?:かな|か|ですか)?[。！？!?]?$/,
         /^do (i|we)\b/i, /^do (you|they)(?! (?:mind|hear|think|suppose|reckon|figure|want|need)\b)/i, /^mind if i\b/i,
         /^is there (?:any )?way to\b/i, /かね(?:る|ます|ません)$/,
-        /^(?:can|could|would|might|will) it be (?!too much|possible)/i, /^is it closable\b/i,
+        /^(?:can|could|would|might|will) it be (?!too much|possible|asking)/i, /^is it closable\b/i,
         /^is it possible this can be\b/i, /^any idea how to\b/i, /^is it true\b/i,
         '困ってる', '困りました', '困ってます', '困ってるんだけど',
         'なんとかならない', 'なんとかならないか', 'なんとかならん', 'なんとかなりません',
@@ -2699,7 +2702,7 @@ export class VoiceCommands {
     // Trouble report — a voice-only user whose panels vanished can't see the
     // reset affordance; answer with the two spoken escape hatches.
     this.registerCommand('trouble', {
-      patterns: [/this (?:tab|page|thing)? ?sucks/i, /it sucks/i, /this is (?:garbage|trash|useless)/i,
+      patterns: ['閉じてばかりだと', '閉じてばかり', '閉じちゃうばっかり', /this (?:tab|page|thing)? ?sucks/i, /it sucks/i, /this is (?:garbage|trash|useless)/i,
         '反応しない', '反応がない', '応答しない', '真っ暗', '画面が見えない',
         'なにも表示されない', '動かない', '動作が遅い', 'ページが重い', '重い', '遅い',
         '遅すぎる', '動作が重い', '遅すぎ', '重すぎる',
@@ -5075,7 +5078,7 @@ export class VoiceCommands {
     // "where am I" and tab-list announces. No confirmationText: each
     // command's whole output is the announcement itself.
     this.registerCommand('say-again', {
-      patterns: ['もう一度', 'もう一回', '聞き直し', 'もう一度言って', '再読み上げ',
+      patterns: ['なあ聞いて', 'もう一度', 'もう一回', '聞き直し', 'もう一度言って', '再読み上げ',
         'もう一回聞いて', '聞き直して', 'もう一回言って', '今の行をもう一度',
         'もう一度再生',
         '繰り返して', 'もう一度お願い', '今のを繰り返して', 'リピート',
@@ -6181,7 +6184,7 @@ export class VoiceCommands {
     // describe-tab — the richer sibling of title/tab-status: index, title,
     // load state, privacy and pin flags in one line.
     this.registerCommand('describe-tab', {
-      patterns: ['このページ見せて', 'このページ見て', 'ページの内容教えて', '閉じる寸前', '閉じるところです', 'このタブについて', 'このタブは', 'タブの状態', 'ページ情報',
+      patterns: ['まだ開いてる?', 'まだ開いてる', 'まだあいてる', 'このページ見せて', 'このページ見て', 'ページの内容教えて', '閉じる寸前', '閉じるところです', 'このタブについて', 'このタブは', 'タブの状態', 'ページ情報',
         'このページについて', 'ページについて', 'ページについて教えて',
         'どのタブか忘れた', 'どのタブだっけ', 'どのタブを見てる', '今どのタブ',
         'このページの情報', 'サイト情報', 'このサイトの情報',
