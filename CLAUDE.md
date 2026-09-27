@@ -1720,6 +1720,17 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 199
+
+- ✨ 受益尾XVII: TAIL_TE — '閉じてくれんですか'（ん縮約）/'くれたまえ(よ)'（たまえ命令調）/'もらって(も)いいですかね' → 実行。
+- ✨ 命令残置: '閉じなさいって'/'閉じなさいってば'/'閉じなってば'（関西 なって+ば）→ stemTe でて形化。
+- ✨ dict coda残置: FR IX — '閉じるものね'/'ものですね'/'わけです'/'わけなんです' → 実行（'わけです' は ack 誤ルートから実行化へ是正 — 意図表明）。
+- ✨ EN前置詞VIII: 'why dontcha'/"whyn't you"/'i command/order you to'/'i hereby request/ask that you'/'the move is to'/'best move is'/'be an angel and' → 実行。
+- ✨ EN語尾: 'if you could possibly'/'please sir'/"if it's not too much trouble"/"if it isn't too much to ask"/'is the way to go'/'would be the move' → 実行（'closing it is the way to go' は語尾剥がし→GERUND_STEM→'close it'）。
+- ✨ リテラル: 'デカくして'→volume-up、'小さめにして'→volume-down、'読み上げ止めて'→stop-reading、'どこ読んでる'→reader-progress。
+- 🐛 回帰消化: '閉じな' は関西命令形（閉じなさい縮約）→ close-tab 維持をピン（negate ではない）。正規表現リテラル内 `\'` は no-useless-escape エラー → 裸 `'` に修正。
+- ✅ tests/formal-command-atoms.test.js +38（実装前31件赤確認）、計10649全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
 ### Session 198
 
 - ✨ 受益尾XVI: TAIL_TE — '閉じてくれないかしら'（かしら フェミニン依頼）/'閉じてもらいましょうよ'/'閉じてくれればそれでいい'/'閉じてやるぞ'/'閉じてくれうるか' → 実行。
