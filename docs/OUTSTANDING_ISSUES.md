@@ -137,6 +137,9 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice 'why dontcha close it'/"whyn't you"/'i command/order you to'/'i hereby request/ask that you'/'the move is to'/'best move is'/'be an angel and' が NO-MATCH~~ — **Session 199 で実装**（ENPRE VIII）
 - ~~voice 'close it if you could possibly'/'please sir'/"if it's not too much trouble"/"if it isn't too much to ask"/'closing it is the way to go'/'closing it would be the move' が NO-MATCH~~ — **Session 199 で実装**（EN語尾）
 - ~~voice 'デカくして'/'小さめにして'/'読み上げ止めて'/'どこ読んでる' が NO-MATCH~~ — **Session 199 で実装**（リテラル）
+- ~~voice '閉じてもらう方向で/ことで'/'閉じていただければ幸甚です'/'もらえますでしょうかね' の受益残置が NO-MATCH~~ — **Session 207 で実装**（TAIL_TE XXV）
+- ~~voice '閉じることで/ことにより/こととします/ことになります'/'のですがね'/'のもありな気がする'/'んでしょうか/んだろう' の dict 残置が NO-MATCH~~ — **Session 207 で実装**（FR XVII）
+- ~~voice 'do you think you can/we could'/'say we'/'hows about we'/'why do we not'/'lets go for'/'supposing you could' が NO-MATCH~~ — **Session 207 で実装**（ENPRE XVI）
 - ~~voice '閉じてみぃ/みい/みようや/みるわい'/'てしまいな/しまうがよい'/'ておくがよい/んじゃ/のがいい'/'おけばいい' の残置が NO-MATCH~~ — **Session 206 で実装**（TM/TAIL_TE XXIV）
 - ~~voice '閉じときな/ときんしゃい/とけば(いい)'/'閉じちゃいな/ちゃうといい/べき/がよろしい' が NO-MATCH~~ — **Session 206 で実装**
 - ~~voice '閉じるものだな/ですが'/'んすよ/ね/けど/が'/'がいいのでは'/'わけね/さ'（ack誤ルート）の dict 残置が NO-MATCH/誤ルート~~ — **Session 206 で実装**（FR XVI）
