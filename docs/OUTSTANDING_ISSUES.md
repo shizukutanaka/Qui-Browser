@@ -133,6 +133,11 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 エラーではなく、明示的にオフにしたユーザーの選択は永続値が勝つ。**戻すのは1行**だが、
 戻す者は上記4条件のどれが再発したかを言えること（`tests/vr-app-wiring.test.js` がこの既定を固定）。
 
+- ~~voice '閉じると思い'/'閉じるんだよね'/'閉じることにする'/'閉じたほうがいいね'/'閉じる必要がある'/'閉じるべきです'/'閉じちゃっていい'/'閉じてみるか'/'閉じるでしょ'/'閉じるより'/'閉じますので' の複合・残置フレーム尾が NO-MATCH~~ — **Session 183 で実装**（FR 複合尾拡張 + た形幹の先行て形 push + CHA/TM/SE_TAIL 補強）
+- ~~voice '閉じないわけにはいかない'/'閉じなくちゃいけない'/'閉じないとダメ'/'読まないわけにはいかない' の一段・五段否定義務が NO-MATCH/negate 誤ルート~~ — **Session 183 で実装**（negob 最優先て形 push + インラインあ段→てマップ）
+- ~~voice 'close it for me thanks'/'close it soon|slowly|carefully|gently|quietly'/'do go and close it'/'cant you close it'/'could you close it'/'very well close it' の EN 語尾副詞・前置詞が NO-MATCH/go-to 誤ルート~~ — **Session 183 で実装**（EN tail/ENPRE 拡張）
+- ~~voice 'the fifth tab'/'fifth tab'/'tab number five'/'third tab'/'go back three'/'back twice'/'forward once'/'残りを閉じて'/'他を閉じて'/'音量さげて'/'音おとして'/'音なしにして'/'はやくして'/'ゆっくりして'/'速度を上げて'/'字を小さく'/'中ほどへ'/'半分へ'/'ポーズして'/'続きを'/'止めておけ'/'やめておけ'/'続き読んで'/'一番下に行って'/'全部閉じてほしい'/'閉まって'/'shut down this tab'/'it reopened' が NO-MATCH~~ — **Session 183 で実装**（bare序数/nav-steps EN/量指定子/副詞音量・速度/事故報告・消失タブ質問/bulk名詞）
+
 - ~~voice '閉じたいのに'/'閉じたいんだ'/'戻りたいので'/'閉じると思います'/'閉じると考えて'/'閉じるはず'/'閉じるのでは'/'閉じるのだ'/'閉じるのである' の たい/意向/期待尾が NO-MATCH~~ — **Session 182 で実装**（たい汎用尾 + QC_TAIL 意向報告 + dict+はず規則；過去 たはず→trouble 分離）
 - ~~voice '閉じといてほしい(な)'/'閉じといてくれ'/'閉じといてもらう'/'閉じさせてもらいます'/'閉じさせてもらうね'/'読ませてもらいます' の残置依頼尾が NO-MATCH~~ — **Session 182 で実装**（といて依頼尾 + SE_TAIL もらいます系）
 - ~~voice '閉じていいよね'/'閉じても大丈夫'/'閉じていいっす'/'閉じてええん(か)?'/'閉じてくださいますと幸いです'/'閉じてくだされば幸いです'/'閉じてくれますと'/'閉じてもいいでしょうか'/'閉じて問題ありませんか'/'閉じて構いません' の許可・敬語尾が NO-MATCH~~ — **Session 182 で実装**（TAIL_TE 許可/敬語群）
