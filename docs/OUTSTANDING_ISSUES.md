@@ -133,6 +133,12 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 エラーではなく、明示的にオフにしたユーザーの選択は永続値が勝つ。**戻すのは1行**だが、
 戻す者は上記4条件のどれが再発したかを言えること（`tests/vr-app-wiring.test.js` がこの既定を固定）。
 
+- ~~voice '閉じていただけないものでしょうか'/'戻ってくれませんかね'/'閉じていただければ幸いに存じます'/'閉じてもいいのであれば' の複合受益尾が NO-MATCH~~ — **Session 184 で実装**（TAIL_TE メガ拡張 + くださるでしょうか）
+- ~~voice '閉じたいと思います'/'閉じたいんですが'/'閉じようと考えて'/'閉じようかと思って'/'閉じるというわけです'/'閉じる次第です'/'閉じるんですが'/'閉じればよろしい'/'閉じざるを得ないです'/'閉じなければいけない' の意向・義務報告尾が NO-MATCH/describe-tab 誤ルート~~ — **Session 184 で実装**（FR 拡張 + たい先行剥がし + よう残存→て + ばよろしい規則 + negob ざるを得ない）
+- ~~voice '閉鎖してください'/'タブを閉鎖して'/'削除をお願いします'/'消去してください'/'リセットしてください'/'クリアしてください' の名詞型依頼が NO-MATCH~~ — **Session 184 で実装**（close-tab/settings-reset/clear-history リテラル）
+- ~~voice 'i was hoping youd close it'/'it would be great if you could close it'/'would you do me a favor and close it'/'do me the favor of closing it'/'you might want to close it'/'if you could close it that would be great' の深い礼儀ネストが NO-MATCH~~ — **Session 184 で実装**（ENPRE chain1 最長一致修正 + post-would-you 再剥がし + 'that would be great' 語尾）
+- ~~voice '後戻りして'/'逆戻りして'/'ひとつ前に戻って'/'来た道を戻って'/'さかのぼって'・'スクロールをお願い'/'ページを下げて'/'もうちょっと下に'・'朗読して'/'声で読んで'/'冒頭から読んで'/'get on with it'/'carry on reading'/'wrap up reading'/'今何ページ目'/'全体の何割' が NO-MATCH~~ — **Session 184 で実装**（back/scroll-down/read-aloud/resume-reading/reader-progress リテラル）
+
 - ~~voice '閉じると思い'/'閉じるんだよね'/'閉じることにする'/'閉じたほうがいいね'/'閉じる必要がある'/'閉じるべきです'/'閉じちゃっていい'/'閉じてみるか'/'閉じるでしょ'/'閉じるより'/'閉じますので' の複合・残置フレーム尾が NO-MATCH~~ — **Session 183 で実装**（FR 複合尾拡張 + た形幹の先行て形 push + CHA/TM/SE_TAIL 補強）
 - ~~voice '閉じないわけにはいかない'/'閉じなくちゃいけない'/'閉じないとダメ'/'読まないわけにはいかない' の一段・五段否定義務が NO-MATCH/negate 誤ルート~~ — **Session 183 で実装**（negob 最優先て形 push + インラインあ段→てマップ）
 - ~~voice 'close it for me thanks'/'close it soon|slowly|carefully|gently|quietly'/'do go and close it'/'cant you close it'/'could you close it'/'very well close it' の EN 語尾副詞・前置詞が NO-MATCH/go-to 誤ルート~~ — **Session 183 で実装**（EN tail/ENPRE 拡張）

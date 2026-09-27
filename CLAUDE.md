@@ -1720,6 +1720,76 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 184: 複合依頼原子 — 受益メガ尾II・意向報告・ばよろしい・EN礼儀ネスト深掘り
+
+Round 110 of the standing "おまかせ" improvement loop (stacks on #394/#395's merged
+`devin/1790527012-desire-report-atoms`, base commit 9979632). Everything below is
+grounded in real GitHub issues / Qiita・Zenn voice-UI posts / papers (Tsujimura
+依頼方略、Sifianou indirectness) plus this repo's own precedence invariants —
+all verified via live probes before a single literal was added.
+
+#### 受益メガ尾II（TAIL_TE 拡張）
+- `(て|で)` + 残余受益/許可フレーム一括: `もらうことはできますか`/`くれませんかね`/
+  `くださるでしょうか`/`いただけないものでしょうか`/`いただけたらと思います`/
+  `もらえたら嬉しい`/`もらえれば助かる`/`もらえるとありがたい`/`くれたら助かる`/
+  `もらいました`/`いただきました`/`くれればと`/`もらえたらなあ`/`くださるとありがたいです`/
+  `もらいたいんです`/`いただきたく思います`/`いただきたく存じます`/`いただければ幸いに存じます`/
+  `もらえると助かります`/`いただけますと大変助かります`/`もいいのであれば`/
+  `もかまわないのであれば`/`しまってもよい`/`もよろしいでしょうか`
+  → て形（'閉じていただけないものでしょうか'→close-tab、'戻ってくれませんかね'→back）
+
+#### 意向・義務報告尾（FR 拡張 + よう残存解消）
+- FR 尾 += `たいと思います|たいと思ってます|たいんですが|たいと思う|かと思って|かと考えて|
+  と思います|と思ってます|と思っています|と考えて|方がいいと思う|方がいい|しかないんです|
+  しかありません|しかないのでは|ということ(です|で)?|というわけです|方向性?で|感じで|形で|
+  次第です|予定です|んですが|のであれば|なら早く|なら今のうち`
+  → '閉じたいと思います'→close-tab（従来は describe-tab 誤ルート — FR が '閉じたい' を残して
+  たい規則を素通りしていた。たい付き形を先に剥がす順序付けで解消）
+- volitional 残存: FR 結果が `よう` 終わり → `slice(0,-2)+'て'` を先行 push
+  （'閉じようと考えて'/'閉じようかと思って'→close-tab。初回 `slice(0,-1)` で
+  '閉じよて' を生成する誤りをプローブで捕捉→修正）
+- `ば+よろしい/よいのですが`: 一段 `(?:れ|え)?ば(?:よろしい|よいのですが)$` → stemTe
+- negob += `ざるを(得|え)ない(です)?|なくてはならない`
+
+#### EN 礼儀ネスト深掘り
+- chain1 最長一致修正: 'i was hoping you('d| would| could)' を汎用 'i was hoping' の
+  前に（'i was hoping youd close it'→close-tab。従来 'i was hoping' だけ剥がれて
+  'youd close it' で死んでいた）
+- favor 枠: `do (me|us|everyone) (a|the) favor (of|and)` — 'do me the favor of
+  closing it'→close-tab（'the' 欠落で 'do ' だけ食われていた）
+- post-'would-you' 再剥がし（favor/want-to/modal の狙い撃ちのみ — 広い ENPRE
+  再適用は 'say it slower' の 'say' を剥がす回帰を起こしたため撤去）
+- ENPRE += 'be kind enough to'/'it would be great if you could'/'id appreciate if you'/
+  'i would be grateful if you could'/'would you care to'/'care to'/'what if you'/
+  'suppose you'/'how about'/'you might want to'/'you may want to'/'you probably want to'/
+  'if you could just'
+- EN 尾 += 'that would be (great|nice|awesome|helpful|lovely|wonderful)'
+
+#### リテラル充填（全て実測 NONE 確認済み）
+- close-tab: 閉鎖名詞系8 + 消去/削除4 + EN 'make sure it is closed'/'see to it that
+  it gets closed'/'make it go away|disappear|vanish'/'have it gone'/'want|need it
+  gone'/'want it out of here'/'make it close'
+- settings-reset: リセットしてください/お願いします/して
+- clear-history: クリアしてください/をお願いします/してくださいね/して
+- scroll-down: スクロールをお願い/下の方に/下のほうまで/ページを下げて/画面を下げて/
+  もうちょっと下に/もう少しだけ下に
+- redo: 最初からやり直して
+- back: 後戻りして/逆戻りして/ひとつ前に戻って/前のに戻って/前に引き返して/
+  来た道を戻って/さかのぼって（**元に戻系は undo 意味論で reopen-tab へ移動 —
+  'もとに戻して' の奪取回帰を消化**）
+- read-aloud: もう一度/も一回/再び/再度読んで・もう一回読み直して・読み直してほしい・
+  読み始めから/先頭から/最初の行から/冒頭から読んで・読み聞かせてくれ/読み上げてもらえますか/
+  音読してください/朗読して/朗読をお願い/声で読んで/音声で読んで/'finish reading it'
+- resume-reading: 'get on with it'/'keep on reading for me'/'go on reading'/
+  'carry on reading'/'read on please'/'read on'/'keep going with it'
+- stop-everything: 'get it over with'/'finish it up'/'end it all';
+  stop-reading: 'wrap up reading'
+- reader-progress: 進捗は/進み具合は/今何枚目/今何ページ目/全体の何割/どこまでいった
+  （'あとどのくらい' は remaining-time 維持 — 意味的に正しい）
+
+Verification: 167/167 new cases green (117 red pre-impl), full suite 9167/9167,
+eslint 0 errors / 136 warnings (=baseline), `npm run build` green, FFFD byte-scan 0.
+
 ### Session 183: 残置フレーム原子 — 複合義務尾・受動スワップIII・序数/量指定子II
 外部基準: JA double-negative obligation (ないわけにはいかない/なくちゃいけない = 実行)、
 tentative affirmative processing (Norrick '79)、EN imperative suffix adverbs
