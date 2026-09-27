@@ -133,6 +133,13 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 エラーではなく、明示的にオフにしたユーザーの選択は永続値が勝つ。**戻すのは1行**だが、
 戻す者は上記4条件のどれが再発したかを言えること（`tests/vr-app-wiring.test.js` がこの既定を固定）。
 
+- ~~JA 副詞/へッジ開放子（さあ/ほら/やっぱり/できれば/可能なら/よかったら/もしよければ/よろしければ/良ければ）~~ — **Session 174 で実装**
+- ~~提案疑問枠（てはどう/いかが、たらどうかな/いいか）+ てみて 尾~~ — **Session 174 で実装**
+- ~~意向報告（Xようと思って/と思う）の動詞化~~ — **Session 174 で実装**
+- ~~方言依頼尾（ておくれ、ちゃおうかな/じゃおうかな、たりして/だり）~~ — **Session 174 で実装**
+- ~~EN 動名詞枠（how about/what about/why not X-ing）、句動詞 down、whenever/if-you-would 尾~~ — **Session 174 で実装**
+- ~~reader-progress 残り枚数（あと何枚/how many pages left）・navigate 先に進んで系~~ — **Session 174 で実装**
+
 ~~'save it for later' が defer に奪われブックマーク喪失 → literal除去 + '... later' tail を do/leave/finish 限定（Devin Review #384）~~ — **Session 173 で実装**
 ~~'この次のタブを閉じて'/'その隣のタブを閉じて' が tab-relative で選択実行 → (?!を) lookahead で実行系を除外（Devin Review #384）~~ — **Session 173 で実装**
 ~~'この次のタブ'/'一個右のタブ' がストリップ端で無回答 → 一歩隣接は modulo ラップ（nextTab/prevTab と一致）、数え指定（N tabs to the right/二個後）は厳密維持（Devin Review #384）~~ — **Session 173 で実装**
