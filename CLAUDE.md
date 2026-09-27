@@ -252,6 +252,13 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 167
+
+- 🐛 実害修正: '戻るまい'/'閉じるまい'（否定意志形）が back/close-tab を実行 → negate `/まい$/` + lookahead 修正。'keep it up/going/rolling' が negate の `/keep it/i` に誤ルート → resume-reading literal で先勝ち。'did it mute/save/bookmark'・'did i pin it' がトグル実行 → status 透過。
+- ✨ dict形+接続尾レイヤー: `dict+(か|かな|けど|し|から|の|んや|んだ|じゃ|んか)`→dictTe（'閉じるけど'→close-tab、'読むじゃ'→read-aloud）。させて-依頼尾（くれ/もらう/もらえる/いただけないか/ほしい）→て形（'閉じさせてもらう'）。bare dict 最終リゾート dictTe(normalized) — 'ついでに読む'→read-aloud。
+- ✨ 別れ句→vr-exit（じゃあね/ばいばい/お疲れさま/終わり/see ya/peace out/adios/ciao/im out）、JA相槌→ack（承知/かしこまり/合点/御意/ほんそれ/まさに/そうそう/あざます/感謝）、ENフィラー→ack（umm/ah/err）。working-status に '生きてる/働いてる/whats going on'、mic-status に 'd?ya hear me'、volume 'bump it up/down'、repeat-command 'もっかい/もいっかい'、stop-everything '止まれ/やまれ'、back 'お戻りなさい'、navigate 'お進みなさい'、describe-tab 'ご覧なさい'、close-tab '閉じれ'、help 'お願いします/よろしく/わかんない/どうしたら'、negate 'no can do/no dice/whatever/doesnt matter/forget everything'。
+- ✅ tests/connection-tail-atoms.test.js +171（stash で160件赤確認）、計6444全緑・lint 0エラー（警告137=baseline）・build green・FFFD 0件。
+
 ### Session 166: 敬語連鎖/方言原子 — 敬語前置詞+受益尾・博多よる・EN前置詞チェーン
 外部基準: keigo escalation chains (お/ご/させて/いただく)、Hakata よる progressive、EN 'i was wondering if' politeness nests、radio/military ack idioms ('roger that'/'wilco'/'copy that')。
 - ✨ **敬語前置詞層（再帰）**: '恐れ入りますが'/'恐縮ですが'/'申し訳ありませんが'/'ついでに'/'まず' を剥がし残りを `_politeVariants` へ再帰投入（連鎖で 'まず戻って'/'恐縮ですが読んで'/'申し訳ありませんが戻ってください' 全成立）。
