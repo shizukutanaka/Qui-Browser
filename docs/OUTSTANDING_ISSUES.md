@@ -997,6 +997,11 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - ~~**EN 相槌・辞退・存在確認・一括句が未認識**~~ — **Session 165 で実装**: ack に yeah/sure-thing/go-ahead 系 + JA 'どうも/すみません/はい/そっか' 系、negate に nvm/whoops/drop-it/'それじゃない'/'やめといた' 系、working-status に 'still there' 系、tab-relative に 'second to last'/'penultimate'、close-others に 'close the rest'/'keep just this one' 等。
 - その他 fill: 'wipe my history'→clear-history（history 一覧奪取を解消）、'mute them all'→tab-audio（mute-toggle 誤トグルを解消）、'open a duplicate'/'clone it'→duplicate-tab、'put this tab first'→move-tab-start、'start over'→read-aloud、'fresh start'→settings-reset、'sort by name'→sort-tabs。
 
+- ~~**敬語前置詞+受益尾の連鎖が未認識**~~ — **Session 166 で実装**: '恐れ入りますが'/'恐縮ですが'/'申し訳ありませんが'/'ついでに'/'まず' 前置剥がしを `_politeVariants` 再帰へ、TAIL_TE に いただけ…/くだされ/くださいませ/くれると…/ほしいんですが 系を追加。'恐れ入りますが閉じていただけますか'→close-tab。
+- ~~**博多よる進行・dictだけ・べし形が未認識**~~ — **Session 166 で実装**: '読みよる'→speaking-status、'閉じよる'→describe-tab、'閉じるだけ'→close-tab、'閉じるべし'→close-tab、'開けっぱなし'→describe-tab、'鳴りっぱなし'→tab-audio。
+- ~~**EN 前置詞ネスト（i was wondering if / do you think you could / would you be so kind and X）が未認識**~~ — **Session 166 で実装**: EN prefix chain に wondering/hoping/think-you-could/any-chance/be-so-kind/mind/how-about-we/why-dont-we/shall-we/suppose-we/lets + you-(have|need|got)-to/shoulda/coulda/should/could/might + and|then 逐次剥がし、動名詞化を post-strip にも適用。'if you wouldnt mind closing this'→close-tab。
+- ~~**EN 無線相槌・強否定・メタ句が未認識**~~ — **Session 166 で実装**: ack に roger/copy/aye-aye/ten-four/wilco/yessir/okie-dokie/noted/gotcha 系、negate に nopers/absolutely-not/negative/hell-no 系、help に 'what can i say'/'show commands'/'do me a favor'/'just do it'/JA 'できること教えて' 系、trouble に 'おかしい'/'なんか変'/'へんだ' 系、nav 系に 'head back'/'walk it back'/'head forward'/'run it back'/'scroll on down'/'keep on scrolling'、describe-tab に 'bring/pull/queue/line it up'。
+
 ---
 
 ## 使い方（次のセッションへ）
