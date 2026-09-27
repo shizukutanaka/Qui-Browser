@@ -133,6 +133,12 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 エラーではなく、明示的にオフにしたユーザーの選択は永続値が勝つ。**戻すのは1行**だが、
 戻す者は上記4条件のどれが再発したかを言えること（`tests/vr-app-wiring.test.js` がこの既定を固定）。
 
+- ~~voice '閉じてくださいますかな'/'閉じてくださいますね'/'閉じてくださいまいか'/'閉じてもらおう'/'閉じてもらいましょう'/'閉じてもらうか' のて敬語・受益残置が NO-MATCH／'くださいまいか' が negate 誤ルート~~ — **Session 189 で実装**（TAIL_TE 拡張）
+- ~~voice '閉じてもいいっすか'/'閉じてもええですか'/'閉じちゃってもいいですか'/'閉じちゃってもよいですか'/'閉じちゃってもいいっすか' のても許可・ちゃっても残置が NO-MATCH~~ — **Session 189 で実装**（TAIL_TE + ちゃっても/じゃっても→て/で push）
+- ~~voice '閉じられませんか(ね|な)'/'戻られませんか'/'読めませんか' の不能依頼質問が NO-MATCH~~ — **Session 189 で実装**（られませんか→て / godan られ融合→stem+'り'→stemTe / え段ませんか→E_TE）
+- ~~voice '閉じるなら今'/'閉じるならここ'/'閉じるんなら'/'閉じるんであれば'/'閉じるのであれば早めに'/'閉じたほうがいいかもしれない' の条件・判定残置が NO-MATCH~~ — **Session 189 で実装**（FR 拡張）
+- ~~voice '閉じるべきかな'/'閉じるべきですかね'/'閉じるべきでしょうか' が NO-MATCH、'戻るべきですかね' が back 誤実行~~ — **Session 189 で実装**（help `/べき(かな|ですかね|でしょうか|かね)$/` + 戻る regex に べ lookahead）
+- ~~voice 'should we X'/'ought we'/'might we'/'would we'/'would you possibly'/'might you possibly'/'i wonder if you could'/'wondering if you could'/'theres gotta be a way to'/'is it possible for you to'/'is there any way to' が NO-MATCH／一部 misroute~~ — **Session 189 で実装**（ENPRE chain1 拡張 + 'is there any way to'→help）
 - ~~voice '閉じてはどうでしょう'/'閉じてはいかがですか'/'閉じてはもらえませんか'/'閉じてはいただけませんか' の ては依頼枠が NO-MATCH~~ — **Session 188 で実装**（TAIL_TE 拡張）
 - ~~voice '閉じてやってください'/'閉じてもらっていいですか'/'閉じてもらうわけにはいかないでしょうか'/'閉じてしまおうではないか'/'閉じちゃおうではないか' の受益・意向残置が NO-MATCH~~ — **Session 188 で実装**（TAIL_TE + CHA 拡張）
 - ~~voice '閉じるように言った'/'閉じなさいってば'/'閉じなって'/'戻りなって' の引用・関西命令残置が NO-MATCH~~ — **Session 188 で実装**（FR + なさい尾 + なって stemTe 規則）
