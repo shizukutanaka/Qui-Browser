@@ -1720,6 +1720,16 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 194
+- ラウンド120: 決意報告・不要宣言原子層（tests/decision-report-atoms.test.js、+80件 / 実装前74件赤）
+  - JA dict決意・予定尾（FR IV）: `と決めた|ことに決めた|ことを決めた|つもりですが|つもりなんです|つもりでいる|予定なんです|予定です|予定なので|はずなんです|はずです|ようにしました|と思うんだけど|と思いますので|のが賢明かと|ほうがいいのでは|こともできる|のもいいですね|たらどうかと思う|たらいいと思います|たほうがいいと思うのですが|たいんだけれど|たいですわ|たく思います|たくなってきた`
+  - JA て受益残置XII（TAIL_TE）: `もらいたく存じます|くれたならば|おくれる|やってもらえる|もらいますので|くださいませんかね|くださいましな|くださいませますか|もいいですかね|みせる|みましょうか`
+  - JA negate II: `ほしくな(?:い|く)`（'閉じてほしくないの' 不要宣言）、`ずに(?:おいて|おきましょう)`、'ないままにして/でいて'、`つもりはありません`
+  - JA trouble II: `と思ったのに`/`てもまだ.*ない`/`どころか`/`てばっかり`/`はずがまだ`（'閉じたと思ったのに'→trouble）
+  - EN IV: ENPRE `could you be so kind to|may/might i suggest (?:you|that you)|i would like for you to|i was hoping for you to|i would like it if you|go for it|i dare you to|dont be shy` — `may i suggest` は裸 `may i`（941行）より**前置必須**、'i was hoping for you to' は裸 'i was hoping'（942行）より前置；受動needs枠 literals（'it needs closing'/'this has got to go'）、尾 `at your discretion|whenever possible|when you get the chance`
+  - リテラル: close-tab 名詞依頼（閉鎖を願います/廃棄してください/閉じる操作をして）、早く opener、ゆっくりめで→speech-slower、'kind of low'→volume-up、'a bit loud'/'turn the volume way down'→volume-down、'どこまで読んだっけ'/'半分くらい読んだ'→reader-progress
+  - **回帰消化**: 'way down' は scroll-bottom 維持（volume-down リテラル競合を除去）、'keep on reading' は resume-reading 維持、'閉じるべきかと思います' は既存テストが help を固定（私の実装を合わせて撤回 — 'べきかと思います' は contemplation、'べきかと存じます' のみ実行）
+
 ### Session 193
 - ラウンド119: 感謝・確信フレーム残置原子層（tests/gratitude-frame-atoms.test.js、+79件 / 実装前54件赤）
   - JA て受益残置XI（TAIL_TE）: `お願いね|お願いできるかな|お願いしてもいいかな|お願いしてもらえますか|お願いしたいのですが|お願いしたく存じます|お願い申し上げたく|もらえたなら|くれたら助かる|くれないですかね|くれないかなあ|くれると助かるわ|くれたらいいのに|くれさえすれば|もらいたいん(ですが|のですが)|もらうのは無理ですか|あればいい|いただけると(大変ありがたい|ありがたく存じ)ます|いただければ幸いでございます|いただけますようお願い申し上げます`
