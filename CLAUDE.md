@@ -1720,6 +1720,17 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 201
+
+- ✨ 受益尾XIX: TAIL_TE — '閉じてくれるのかな'/'くれませんこと'/'くれるはず'/'くれるべき'/'やってもらおうじゃないか'/'もらおうかね'/'もらうとするか' + 九州・博多系 'もらうけん'/'もらうばい'/'もらうちゃ'/'くれたる' + 'くださいますように'/'くれてもいいじゃん'/'くださるまいか' → 実行。
+- ✨ dict判定XI: FR — 'のが順当'/'のが適切か'/'ほうが無難だ'/'ほうが手っ取り早い'/'しかないじゃん'/'のも賢い'/'のも吉'/'ことに限る'/'と決まっている'/'が道理'/'が順序'/'に決まってる'/'一択'/'ましょうね'/'しかあるまい' → 実行。
+- ✨ 命令残置: '閉じておしまい'/'閉じてしまえと'（TAIL_TE）+ '閉じーや'/'閉じや'（関西命令 literal）→ close-tab。
+- ✨ させて・たら残置: SE_TAIL + 'いただきたいんです'/'くれんか'；たら + 'どうかね'/'どうなの'/'いいと思うよ'/'いいと思うんだ'/'と思います' → 実行。
+- ✨ EN前置詞X: 'can/could/will you just'、'do yourself(s) a favor and'、'get on it'/'hop to it'、"i'm asking/telling/begging you to"、受動 'needs/has/should/ought to be closed'/'needs to get'、'the tab wants/could use'/'could do with' → 実行；語尾 'please and thank you'/'for pete's/goodness' sake'/'for crying out loud'；裸過去分詞 'closed'/'shut'/'opened' → 命令形解決。
+- 🐛 誤ルート是正: '閉じてくださるまいか'/'閉じるしかあるまい'/'閉じておしまい' が negate `/まい$/` 奪取 → lookbehind に かある/くださる/おし 追加（'ほかある' は 'かある' に包含）。help の `^do (you|they)` が 'do yourself…' を先食い → `\b` 追加。
+- 🐛 回帰消化: ENPRE 裸 'do' が 'do yourself a favor and X' を先食い → 長形前置（最長一致）。'do you mind/think… closing it' は依頼枠 → close-tab ピン（help ではない — probe 実測で訂正）。
+- ✅ tests/request-frame-atoms.test.js +61（実装前43件赤確認）、計10757全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
 ### Session 200
 
 - ✨ 受益尾XVIII: TAIL_TE — '閉じてくれんのか'/'もらうよ'/'もらっときたい'/'くださいなよ'/'くだされよ'/'やってもらおうか'/'てこそ'/'いいんちゃう(関西)'/'ええん(と)?ちゃう' → 実行。
