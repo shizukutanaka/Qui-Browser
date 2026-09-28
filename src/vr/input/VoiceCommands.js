@@ -1243,6 +1243,31 @@ export class VoiceCommands {
     push(normalized.replace(/ろじゃい[。！？!?]?$/u, 'て'));
     push(normalized.replace(/ろじゃ[。！？!?]?$/u, 'て'));
     push(normalized.replace(/ろって言ってんでしょ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ておいてもいい[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ておいても[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ておいたら[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ておけば[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ておくと[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ておくなら[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ておくわよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ておくんだ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/たまへ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/たまえぞ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/たまえな[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/やがった[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/やすぞ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/んちゃい[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てちょうだいまし[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てちょーだい[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てちょいちょい[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てよねえ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てよなあ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てよーね[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てよろしいかしら[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てよきこと[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てよきかな[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てよきな[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てよき[。！？!?]?$/u, 'て'));
     push(normalized.replace(/(て|で)(?:あげて|あげ(?:る|ます)[ねよわか]?|くれる|くださる|くださいます)[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)(?:くれ|くださ)ちゃう[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)もら(?:う|える|った|います|えます|ってもいい|っていい)[。！？!?]?$/u, '$1'));
@@ -5011,6 +5036,13 @@ export class VoiceCommands {
         'i reckon you could close it', 'i figure you could close it',
         'i imagine you could close it', 'i bet you could close it',
         'i bet you can close it', 'assuming you close it',
+        'its been open long enough', 'its been up long enough',
+        'its been sitting there', 'its been sitting open',
+        'its been ages', 'its been ages open', 'its been open for ages',
+        'its been around too long', 'its overstayed its welcome',
+        'its time it closed', 'shouldnt we close it',
+        'dont you think we should close it',
+        'dont you think you should close it',
         '閉じてもらえそうな',
         '閉じるほかないよ',
         'just a click close it', 'one click close it',

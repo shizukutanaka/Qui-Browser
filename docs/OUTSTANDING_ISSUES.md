@@ -1652,6 +1652,10 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - `help yourself close it` — scoped-help 先取り（登録順・確立規則；意味的にも許容）
 - `閉じないろ` — 変形ない命令 → negate 維持
 
+## R257 skip-list（Session 331）
+- `should i|shall i close it` — 疑問形 → help（確立ピン）
+- `ought i close it` — 古風疑問 → null
+
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。
