@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 241
+### Session 242
 
+- ✨ JA: てね呼びかけ尾（ねって・ねー・よねって）・てくれ長形残置（くれよう・くれましょう）・dict助言名詞尾（のが助言だ・のが忠告だ・のが進言だ・のが提言だ・のが指針だ・のが戒めだ）→ 実行。
+- ✨ EN LI: 'give it a rest'・'call it quits and'・'pull the plug and' 前置 + 'pull the plug on it'/'shut the book on it' 比喩スワップ → 実行。
+- ✅ tests/plug-pull-atoms.test.js +26（実装前19件赤確認）、計12514全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 241
 - ✨ JA: しまった完了報告尾（しまったようです・しまったみたいです・しまったところです）・はじめて創始尾（はじめていい・はじめてすっきり）・dict手順名詞尾（のが手順として正しい・のがプロセスだ・のがワークフローだ・のがステップだ・のが工程だ・のが標準だ）→ 実行。
 - ✨ EN L: 'im ready/willing/happy/prepared for you to'・'id welcome you'・'id welcome it if youd'・'id appreciate it ever so much if youd' 前置 → 実行。
 - ✅ tests/welcome-frame-atoms.test.js +25（実装前18件赤確認）、計12488全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
