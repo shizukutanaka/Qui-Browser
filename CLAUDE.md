@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 281
+### Session 282
 
+- ✨ JA: てちゃい残置（ちゃいなよ/ちゃおうかな）・dict礎名詞尾（のが礎だ/基礎だ/根本だ/基底だ/大黒柱だ/急所なり）→ 実行。
+- ✨ EN XCI: 'i wonder if you would mind|would be so kind as to'・'i had been|i am wondering if you could' 前置 → 実行（'i wonder if you could|youd mind|would|i was wondering' は既ルート緑）。
+- ✅ tests/wonder-if-atoms.test.js +24（実装前12件赤確認）、計13496全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 281
 - ✨ JA: てくれん残置（くれんかの/くれんじゃないか）・dict大本名詞尾（のが大本だ/本元だ/根幹です/本筋ですね/基盤だ/土台だ）→ 実行。
 - ✨ EN XC: 'may i implore|request you to' を ask/trouble-you-to 枠へ併合 → 実行（'may|might i ask|trouble you to' は既ルート緑）。
 - ✅ tests/may-i-implore-atoms.test.js +24（実装前10件赤確認）、計13472全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
