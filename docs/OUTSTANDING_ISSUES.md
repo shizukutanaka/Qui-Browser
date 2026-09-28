@@ -1559,7 +1559,14 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - **閉じ意図不明瞭**: 'close off/shut off/shut out/cut that/stop the tab' — 電源/遮断/停止の混同域。
 - **苦情句**: 'sick of/tired of/fed up with/had enough of this tab' — 要望は非明示。
 - **JA 曖昧尾**: '閉じるなんて'（驚き/嫌悪）・'閉じるのが下策ではない'（二重否定の弱肯定）・'閉じておるのに/閉じとるし'（進行状態の報告）。
-- **ENPRE 空白**: 2トークン slang（'no cap'、'on god'、'on a stack'）は未登録 — 次ラウンド候補。
+- **ENPRE 空白**: 2トークン slang（'no cap' 済、'on god'、'on a stack'）は未登録 — 次ラウンド候補。
+
+## R240 (PR 待ち) で意図スキップした残原子
+
+- **Speaker-dismissal II**: 'vanish it'・'close on in'・'call it with this tab'・'wind down this tab' — 閉じ意図が弱い/ターゲット曖昧。
+- **人称化処分**: 'close her/him up|down'・'shut her/him down' — 対象が人（うるさい人を黙らせる）と取れるため unrouted 維持。
+- **JA 依頼曖昧尾**: '閉じぬきで'・'閉じよっちゅうの'・'閉じておくれやす'・'閉じておくんなはれ'・'閉じてくれっつってんだろ' — 方言+罵倒混合で命令明度が低い。
+- **閉じてんか**: '閉じているのか' の進行質問 → describe-tab は正当ルート（実行ではなく状態応答）。
 
 ## 使い方（次のセッションへ）
 
