@@ -207,6 +207,9 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice '閉じるのが急所と存じ上げます' の急所名詞尾Xが NO-MATCH~~
 - ~~voice '閉じてくださり幸いです' の kudasari 残置が NO-MATCH~~
 - ~~voice '閉じるのが急所と考えております' の急所名詞尾XIが NO-MATCH~~
+- ~~voice '閉じてくださったでしょうか' の kudasatta 残置が NO-MATCH~~
+- ~~voice '閉じるのが急所に存じ上げます' の急所名詞尾XIIが NO-MATCH~~
+- ~~voice 'id be more than happy|delighted|pleased|glad|willing|ready to' の強調自発枠が NO-MATCH~~
 - ~~voice 'i would be happy|delighted|pleased|glad|willing|ready to' の自発枠が NO-MATCH~~
 - ~~voice 'if you would be so good|kind enough as to' の重丁寧枠が NO-MATCH~~
 - ~~voice 'i would not mind|object if you closed it' の同意枠が NO-MATCH~~
