@@ -1334,6 +1334,34 @@ export class VoiceCommands {
     push(normalized.replace(/じちょい[。！？!?]?$/u, 'じて'));
     push(normalized.replace(/じちょって[。！？!?]?$/u, 'じて'));
     push(normalized.replace(/じちょ[。！？!?]?$/u, 'じて'));
+    push(normalized.replace(/じまえ[。！？!?]?$/u, 'じて'));
+    push(normalized.replace(/てまえば[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てまえな[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てまえの[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てまえそうだ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てまえそうよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てまえそう[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るまでだよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るまでだ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るまでのことだ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るまでです[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るまでね[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ちゃうまでだ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るべきだな[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るべきね[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るべきじゃ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るべきことか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るべきことです[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るべきこと[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るべき場面[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るべきタイミングだ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るべきタイミングか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るべきなんだよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/させて頂きます[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/させていただく[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/させていただきますね[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/させていただきますが[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/させていただき[。！？!?]?$/u, 'て'));
     push(normalized.replace(/(て|で)(?:あげて|あげ(?:る|ます)[ねよわか]?|くれる|くださる|くださいます)[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)(?:くれ|くださ)ちゃう[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)もら(?:う|える|った|います|えます|ってもいい|っていい)[。！？!?]?$/u, '$1'));
@@ -5128,6 +5156,15 @@ export class VoiceCommands {
         'sooner rather than later close it',
         'no time like the present close it',
         'theres no time like now close it',
+        'it wouldnt kill you to close it', 'whats the harm in closing it',
+        'what harm is there in closing it',
+        'what harm would it do to close it', 'no harm no foul close it',
+        'harm to close it', 'its not gonna hurt to close it',
+        'close it one way or another', 'one way or another it closes',
+        'come hell or high water close it',
+        'close it come hell or high water',
+        'by hook or by crook close it', 'whatever it takes close it',
+        'whatever you have to do close it', 'close it whatever it takes',
         'dont you think we should close it',
         'dont you think you should close it',
         '閉じてもらえそうな',
@@ -5297,7 +5334,10 @@ export class VoiceCommands {
         '思わず閉じた', '間違えて閉じちゃった', '間違って閉じてしまった',
 
         '消えたよ', '消えたんだけど', '消えちゃいました', '閉じちゃいました',
-        '閉じちゃったから', '閉じられたんだ', '閉じちゃうんだ',
+        '閉じちゃったから', '閉じてしまいましたから', '閉じてしまったから',
+        '閉じてしまったので',
+        '閉じちゃいましたから', '閉じてしまいましたんで',
+        '閉じられたんだ', '閉じちゃうんだ',
         /(?:誤って|うっかり|間違えて|間違って|ミスって)[ぁ-んァ-ヶ一-龠]*(?:閉じ|消え|消し)/,
         'i closed it by accident', 'i closed it by mistake', 'i accidentally closed it',
         'i closed the wrong tab', 'wrong tab closed', 'whoops i closed it',

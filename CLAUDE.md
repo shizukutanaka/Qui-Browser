@@ -2848,6 +2848,12 @@ permission/capability questions (てもいいでしょうか / られますか)�
 - ✅ **テスト +170（実装前実行で140件赤確認、内26件は共存ガードの設計上緑）**: Total 6918 tests (144 suites); 0 lint errors（警告 137 = baseline 同一）; build green; FFFD 0件。
 
 ### Session 313: Voice atoms CXCIII — 方向処分句動詞 + スラング vocative + JA 方言依頼残置 + dict 名詞尾XXXII。EN: directional disposal（down/away/out with this/the tab・out with it/this・through/finished with this/(the tab)・over and done with it）・wrap/pack/end 系（wrap the tab up・pack it up/away・do it/the tab in・tear/rip/pull it down・put an end to it/this・put/lay it to rest・retire it/the tab・put it out of its misery）・slang discourse 前置（bro/sis/fam/fams/dawg/cuz/tbh/ngl/lowkey/highkey/deadass/ong/fr fr/fr — ENPRE の |bruh|dude|be a champ and| 交互に併入）。JA: しもた/しもうた/しもて（近畿完了）・とこなあ/とこうな（南日本意向+否定型→stem-な 誤爆を (?<!とこ|どこ) lookbehind で回避）・とか(や)・ってのはどう・たらええのに・た方がええ・ましょうぜ・ますかね・かなあ・なよー・なよっと・やぁ。dict 名詞尾XXXII（最適解/好判断/良案/名案/上策/妙案/早道/近道/得策/策）。確立ピン維持: 'wrap it up'/'wrap this up'→stop-everything・'shut X down'→vr-exit・'put it to sleep'→sleep-mode・'のが正解'→help・'んといて'→negate・sick/tired/fed-up・なんて・下策ではない は意図スキップ。
+### Session 334: arch atom sweep — EN harm/resolve + JA mae/made/beki/sase-itadaku + shimatta-cause
+外部基準: EN harm frames ("would it kill you", "whats the harm"), resolve idioms ("one way or another", "come hell or high water", "by hook or by crook"); JA まえ/まで idiom tails, べき residue, させていただく declarations, しまった-cause reports.
+- ✨ **EN**: harm（it wouldnt kill you・whats the harm|what harm is there|would it do・no harm no foul・not gonna hurt）；resolve（one way or another・come hell or high water・by hook or by crook・whatever it takes|you have to do）。
+- ✨ **JA**: まえ（じまえ→'じて'・てまえ(ば|な|の|そう(だ|よ)?) → 'て'）；まで（るまでだ(よ)?|のことだ|です|ね・ちゃうまでだ → 'て'）；べき（だな|ね|じゃ|こと(か|です)?|場面|タイミング(だ|か)|なんだよ → 'て'）；させていただく（頂きます|いただく|いただき|ますね|ますが → 'て'）；しまった-cause→reopen-tab（てしまいましたから|てしまったから|ので|ちゃいましたから|てしまいましたんで）。
+- ✅ tests/arch-atom-sweep.test.js +64（実装前 ~50件赤確認）、計16802全緑・lint 0エラー/警告136=baseline・build green・FFFD 0件。
+
 ### Session 333: truss atom sweep — EN nested-conditional/sooner + JA nari/tara IV/nantoka/cho
 外部基準: EN nested-conditional ("if/when able", "sooner rather than later", "strike while the iron is hot"); JA なり/とともに/ついで residue, たら suggestions IV, なんとか determiner, ちょう/ちょ casual tails.
 - ✨ **EN**: 条件利便（if possible|able・when able|get a second|have time|have a sec・at the earliest convenience）；早急慣用（the sooner|quicker you close it the better・sooner rather than later・no time like the present・theres no time like now）。
