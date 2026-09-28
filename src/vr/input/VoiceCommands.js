@@ -508,7 +508,7 @@ export class VoiceCommands {
     stemTe(normalized.replace(/(?:つつ|ながら)[。！？!?]?$/u, ''));
     // Apology/hedge openers + benefactive-tail escalations → bare て-form
     const HP = normalized.replace(
-      /^(?:恐れ入りますが|恐縮です(?:が)?|申し訳ありませんが|申し訳ない(?:んですが)?|ついでに|まず|さあ|ほら|やっぱり|やっぱ|できれば|可能なら|よかったら|もしよければ|よろしければ|良ければ|すみませんが|すみません|悪いんだけど|悪いんだが|悪いけど|お手数ですが|差し支えなければ|お手すきの際に|できたら|もし可能なら|もし|よければ|ぜひ|どうぞ|とにかく|ともかく|とっとと|さっさと|直ちに|早急に|急いで|いそいで|早く|はやく|だって|ほんとに|本当に|マジで|ガチで|つーか|っつーか|つうか|早よ|あのね|ねえねえ|ねえ|あのう|そういえば|いいから|いい加減(?:に)?|この場で|今|じゃあ|ほなら|ほな|さて|では|あのさあ|あのさ|さえ|なあ|せめて)[、,]?/u, '');
+      /^(?:恐れ入りますが|恐縮です(?:が)?|申し訳ありませんが|申し訳ない(?:んですが)?|ついでに|まず|さあ|ほら|やっぱり|やっぱ|できれば|可能なら|よかったら|もしよければ|よろしければ|良ければ|すみませんが|すみません|悪いんだけど|悪いんだが|悪いけど|お手数ですが|差し支えなければ|お手すきの際に|できたら|もし可能なら|もし|よければ|ぜひ|どうぞ|とにかく|ともかく|とっとと|さっさと|直ちに|早急に|急いで|いそいで|早く|はやく|だって|ほんとに|本当に|マジで|ガチで|つーか|っつーか|つうか|早よ|あのね|ねえねえ|ねえ|あのう|そういえば|いいから|いい加減(?:に)?|この場で|今|じゃあ|ほなら|ほな|さて|では|あのさあ|あのさ|さえ|なあ|せめて|なんとかして|なんとしても|なんとか)[、,]?/u, '');
     if (HP !== normalized) {
       push(HP);
       for (const v of this._politeVariants(HP)) {
@@ -1296,6 +1296,44 @@ export class VoiceCommands {
     push(normalized.replace(/ちゃうぞい[。！？!?]?$/u, 'て'));
     push(normalized.replace(/ちゃうぞ[。！？!?]?$/u, 'て'));
     push(normalized.replace(/るわよぞ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るなりと[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るなりとも[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るなりなんなりと[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/たなり[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るとともにね[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ると同時にお願い[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るついで[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/たらどうか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/たらどうだ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/たらいいんじゃ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/たらええやん[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/たらええよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/たらええ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/たらいいではないか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/たらいいではない[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/たらよろしいのでは[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/たらどうかのう[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/たらもういい[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのはなんとかして[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのはなんとかなる[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのはなんとか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ることはなんとかなる[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ることはなんとか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/なんとかして[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/なんとしても[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのをなんとかして[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るの何とかして[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るぞなんとか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てちょう[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てちょい[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てちょっとお願い[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てちょっとね[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てちょくれ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/じちょう[。！？!?]?$/u, 'じて'));
+    push(normalized.replace(/じちょっと[。！？!?]?$/u, 'じて'));
+    push(normalized.replace(/じちょい[。！？!?]?$/u, 'じて'));
+    push(normalized.replace(/じちょって[。！？!?]?$/u, 'じて'));
+    push(normalized.replace(/じちょ[。！？!?]?$/u, 'じて'));
     push(normalized.replace(/(て|で)(?:あげて|あげ(?:る|ます)[ねよわか]?|くれる|くださる|くださいます)[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)(?:くれ|くださ)ちゃう[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)もら(?:う|える|った|います|えます|ってもいい|っていい)[。！？!?]?$/u, '$1'));
@@ -5082,6 +5120,14 @@ export class VoiceCommands {
         'close it before it crashes', 'close it before it eats my ram',
         'close it before it wastes more time',
         'close it before i change my mind',
+        'close it if possible', 'close it when able',
+        'close it when you get a second', 'close it when you have time',
+        'close it when you have a sec', 'close it at the earliest convenience',
+        'the sooner you close it the better',
+        'the quicker you close it the better',
+        'sooner rather than later close it',
+        'no time like the present close it',
+        'theres no time like now close it',
         'dont you think we should close it',
         'dont you think you should close it',
         '閉じてもらえそうな',
