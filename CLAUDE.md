@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 293
+### Session 294
 
+- ✨ JA: てもらう残置V（のが一番です/のが良いです/方がいいです）・dict急所名詞尾XIII（のが急所と言います 等6形）→ 実行。
+- ✨ EN CIII: 'i would be only too happy|glad|delighted|pleased|willing|ready to' 前置 → 実行。
+- ✅ tests/only-too-atoms.test.js +24（実装前15件赤確認）、計13784全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 293
 - ✨ JA: てくださった残置（でしょうか/かしら/りしますか）・dict急所名詞尾XII（のが急所に存じ上げます 等6形）→ 実行。
 - ✨ EN CII: 'id be more than happy|delighted|pleased|glad|willing|ready to' 前置 → 実行。
 - ✅ tests/more-than-happy-atoms.test.js +24（実装前15件赤確認）、計13760全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
