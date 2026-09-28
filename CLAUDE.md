@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 253
+### Session 254
 
+- ✨ JA: ておくのだ・てくれるんじゃ残置（おくんだよ・おくのです・おくというのが・くれるんじゃないか・くれるんじゃないの）・dict処置名詞尾（のが措置だ・処置だ・処分だ・対処だ・処置です・処方だ）→ 実行。
+- ✨ EN LXIII: 'be a peach/sport' を vocative-beg 枠に併合 → 実行。
+- ✅ tests/be-a-peach-atoms.test.js +25（実装前13件赤確認）、計12820全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 253
 - ✨ JA: ておけば・てある残置（おけば大丈夫・おけば安心・あるはずです・あるべきだった・あるところです）・dict解名詞尾（のが結論だ・答えだ・解答だ・解だ・至極だ・真髄だ）→ 実行。
 - ✨ EN LXII: 'for the love of mike'・'for christs sake'・'for pitys sake' 前置 → 実行（gods/heavens/goodness sake は既ルート緑）。
 - ✅ tests/for-pitys-sake-atoms.test.js +26（実装前14件赤確認）、計12795全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
