@@ -1058,6 +1058,22 @@ export class VoiceCommands {
     push(normalized.replace(/てくれるのよね[。！？!?]?$/u, 'て'));
     push(normalized.replace(/てくれるよね[。！？!?]?$/u, 'て'));
     push(normalized.replace(/るなり[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ればいいよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ればいいんです[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ればよいぞ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/れば済むのに[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/れば済む[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/れば解決[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ればいいじゃない[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ればよろしいのに[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ればいいはず[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ればいい筈[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/たらいいのでは[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ばいい[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/じゃいい[。！？!?]?$/u, 'じて'));
+    push(normalized.replace(/るの忘れてたよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/忘れてたわ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/忘れてる[。！？!?]?$/u, 'て'));
     push(normalized.replace(/(て|で)(?:あげて|あげ(?:る|ます)[ねよわか]?|くれる|くださる|くださいます)[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)(?:くれ|くださ)ちゃう[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)もら(?:う|える|った|います|えます|ってもいい|っていい)[。！？!?]?$/u, '$1'));
@@ -3056,6 +3072,9 @@ export class VoiceCommands {
         'this wont close', 'this just wont close',
         '閉じないのかよ', '閉じないわけ', '閉じへんのか', '閉じへんわけ',
         '閉じたつもりなのに', '閉じたと思ってた', '閉じたはずだったのに',
+        '閉じられるはずだった', '閉じられるはずなのに', '閉じられるはず',
+        '閉じるはずだったんだけど', '閉じるはずだったんだ', '閉じるはずのに',
+        '閉じれてるはずだった', '閉じてるはずだった', '閉じてるはずのに',
         '何も見えない', '真っ白', '画面が白い', '映らない', '固まる', '落ちた',
         'クラッシュした', 'クラッシュ', '画面が落ちた', 'アプリが落ちた',
         '耳が痛い', '酔った', '気分が悪い', '目が疲れた', '滑らかじゃない',
@@ -4784,6 +4803,16 @@ export class VoiceCommands {
         'the tabs got to go', 'tab needs to go', 'tab has to go',
         'tabs got to go', 'close r up', 'close r down',
         'close the thing', 'close that tab there',
+        'close it you', 'close it you please', 'youd close it',
+        'you best close it', 'you better just close it',
+        'what i want is to close it', 'what i need is to close it',
+        'all i want is it closed', 'all i need is it closed',
+        'all im asking is it closed', 'all im asking is you close it',
+        'im begging for it closed', 'im asking nicely close it',
+        'im asking nicely for you to close it',
+        '閉じてよ本当', '閉じてよまったく', '閉じてよったく',
+        '閉じてよもう', '閉じてくださいよ本当', '閉じてよったら',
+        '閉じなさいよったら', '閉じろよったら', '閉じれよったら',
         'should probably close it', 'might just close it',
         'could just close it', 'go right ahead close it',
         'deal with the tab', 'deal with this tab',
@@ -6704,6 +6733,8 @@ export class VoiceCommands {
         '閉じるとこだった', '閉じるとこでした', '閉じる寸前だった',
         '閉じる寸前でした', '閉じそうだった', '閉じそうでした',
         '閉じかけていた', '閉じかけた', '閉じかけてた',
+        '閉じっぱなしにしてた', '閉じっぱなしだったよ',
+        '開きっぱなしにしてた', '開いたまんま', '開いたまんまだった',
 
         'ご覧になりますか', 'ご覧になります', 'ご覧になりたい', 'ご覧くださいました',
         'can you see this', 'can you see it', '開けっぱなし',
