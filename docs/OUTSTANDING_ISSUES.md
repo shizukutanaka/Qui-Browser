@@ -194,6 +194,9 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice '閉じるのが急所ですか/勘所だね' の急所名詞尾IIが NO-MATCH~~
 - ~~voice '閉じてもらいますわ' のもらいます残置が NO-MATCH~~
 - ~~voice '閉じるのが急所かも/狙い目です' の急所名詞尾IIIが NO-MATCH~~
+- ~~voice '閉じてくださいますかしら/ませんでしょうか' のくださいます残置が NO-MATCH~~
+- ~~voice '閉じるのが急所だと思います/勘所と考えます' の急所名詞尾IVが NO-MATCH~~
+- ~~voice 'could you conceivably' の推測枠が NO-MATCH~~
 - ~~voice 'would you be opposed|averse|reluctant to' の反対枠が NO-MATCH~~
 - ~~voice 'would|might you be inclined|willing to' の意向枠が NO-MATCH~~
 - ~~voice 'i wonder if you would mind|i am wondering if you could' の wondering 変体が NO-MATCH~~

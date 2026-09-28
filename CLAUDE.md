@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 284
+### Session 285
 
+- ✨ JA: てくださいます残置（かしら/ませんでしょうか）・dict急所名詞尾IV（のが急所だと思います/急所と存じます/勘所と考えます/要諦と思う/眼目かと/狙い目かと）→ 実行。
+- ✨ EN XCIV: 'could you conceivably' 前置 → 実行（'could you possibly|perhaps|maybe'、'might you possibly'、'would you perhaps' は既ルート緑）。
+- ✅ tests/conceivably-atoms.test.js +24（実装前9件赤確認）、計13568全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 284
 - ✨ JA: てもらいますわ残置・dict急所名詞尾III（のが急所かも/急所だろう/要諦だね/勘所かな/眼目です/狙い目です）→ 実行。
 - ✨ EN XCIII: 'would you be opposed|averse|adverse|reluctant to' + be-X-to 残置 → 実行（'would you mind|mind terribly closing' は既ルート緑）。
 - ✅ tests/be-opposed-atoms.test.js +24（実装前11件赤確認）、計13544全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
