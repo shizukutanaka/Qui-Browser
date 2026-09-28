@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 299
+### Session 300
 
+- ✨ JA: くださいますれば残置（幸いです/助かります/ありがたいです）・dict急所名詞尾XIX（のが急所と確信しています 等6形）→ 実行。
+- ✨ EN CIX: 'id be much|so|deeply|truly|most|ever obliged to' 前置 → 実行。
+- ✅ tests/obliged-short-atoms.test.js +24（実装前15件赤確認）、計13928全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 299
 - ✨ JA: てもらうと残置VI（助かります/ありがたいです/嬉しいです）・dict急所名詞尾XVIII（のが急所という見解です 等6形）→ 実行。
 - ✨ EN CVIII: 'i would be much|so|deeply|truly|most|ever obliged to' 前置（自発 obliged-to 枠）→ 実行。
 - ✅ tests/obliged-to-atoms.test.js +24（実装前15件赤確認）、計13904全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
