@@ -167,6 +167,9 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice '閉じるのが恒例だ/しきたりだ' の慣習名詞尾が NO-MATCH~~
 - ~~voice '閉じておくに限ります' のおく限り尾が NO-MATCH~~
 - ~~voice '閉じるのが本道だ/真っ当だ' の正道名詞尾が NO-MATCH~~
+- ~~voice '閉じておけば大丈夫です/正解だ' のおけば安心尾が NO-MATCH~~
+- ~~voice '閉じるのが体面だ/面目だ' の体面名詞尾が NO-MATCH~~
+- ~~voice 'id really appreciate it if youd' の感謝依頼枠が NO-MATCH~~
 - ~~voice 'how say you|what do ya say we' の提案枠が NO-MATCH~~
 - ~~voice 'id be grateful|thankful if youd' の感謝条件枠が NO-MATCH~~
 - ~~voice 'could i trouble you for a close' の依頼枠が NO-MATCH~~

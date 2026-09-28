@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 271
+### Session 272
 
+- ✨ JA: ておけば大丈夫です・おけば間違いない・おけば正解だ残置。dict体面名詞尾（のが格だ/格式だ/体だ/体面だ/面目だ/意地だ）→ 実行。
+- ✨ EN LXXXI: 'id (really |truly |surely )?appreciate it if youd' 前置 → 実行（if you would|could は既ルート緑）。
+- ✅ tests/appreciate-it-atoms.test.js +24（実装前13件赤確認）、計13256全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 271
 - ✨ JA: ておくに限ります・おくのが得になる・おくべきですか残置。dict本道名詞尾（のが源流だ/本筋です/本道だ/正道だ/真っ当だ）→ 実行。
 - ✨ EN LXXX: 'how say you'・'what do ya say we' 前置 → 実行（what say we/say we/whaddya say we は既ルート緑）。
 - ✅ tests/say-we-atoms.test.js +24（実装前10件赤確認）、計13232全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
