@@ -1720,8 +1720,15 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 228
+### Session 229
 
+- ✨ てしまう判定/決断尾: しまったほうがいいかと・しまうのがいいかもしれん・しまうのも手か・しまうことを勧める・しまうことにしようか/している → 実行（'てみるべきでは' はべきでは禁止ピン整合で negate 維持）。
+- ✨ てみる試行尾: みるのが良いのでは・みるという手もある・みることも視野・みるしかないじゃん・みたらいいんちゃう → 実行。
+- ✨ dict慣習/当然名詞尾: のが当然/常識/当たり前/自然/礼儀/お作法だ → 実行。
+- ✨ EN XXXVIII: your duty|mission is to・it is your job to・it falls to you to・the responsibility is yours to・someone has to・somebody has got to・it is high|about|past time you 前置 → 実行。
+- ✅ tests/duty-judgment-atoms.test.js +38（実装前27件赤確認）、計12105全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 228
 - 🐛 '閉じていただけぬものか' が negate（ものか拒否修辞）誤ルート — lookbehind に `いただけぬ` 追加。
 - ✨ てもらう進行/謙譲残置: もらっております・もらうことになります → 実行。
 - ✨ dict願望/目的尾III: ことを切望する・ことを所望いたします・ことを請い願う・べく頼む・べくお願い申し上げる・ようにと切に → 実行。
