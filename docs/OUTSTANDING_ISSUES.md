@@ -1573,6 +1573,19 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - **EN 曖昧処分IV (Session 316)**: 'murk it'/'write it off'/'gut it'/'wreck it'/'smash it'/'crush it'（賞賛語または語義曖昧）、'murder it dead'/'kill it dead'（冗長強調）、'vanish this'/'poof it'/'make it poof'、'begone/be gone tab'（古語呼びかけ）、'hit the bricks'/'hang it up'/'leave the tab'/'drop it like its hot'/'flush it'/'burn it down'/'for good close it'/'batten it down'/'why wouldnt you close it'（wh 枠は wont/cant のみ pin）。
 - **JA 非対象 (Session 316)**: '閉じぬこ'（まれな南方方言形）。
 
+### R242 / Session 316（CXCVI）— 意図スキップ一覧
+- EN: `smash it` / `crush it` / `lose it` / `begone tab` / `leave the tab` — 処分意図不明瞭または pin 衝突 (`leave`族)
+- EN: `why wont/cant you close it` — trouble 確立ピン維持（修正試行は既存3テストの回帰で撤回）
+- JA: `閉じるべきでは` — negate 確立ピン維持
+
+### R243 / Session 317（CXCVII）— 意図スキップ一覧
+- EN: `do it then` — 動詞指称なし、単独では閉じ意図不明
+- EN: `curtain call for this tab` — device-apps 誤爆するが演劇語で処分意図が曖昧 → 観察
+- EN: `end of the line for this tab` — caret-edge（End キー語）先勝ちのため維持
+- EN: `leave it closed` — 「閉じたままに」意 → negate 維持
+- EN: `scram` / `get lost` / `sick of this tab` / `tired of this tab` — 感情表現 or 罵倒、処分意図不明
+- JA: `閉じとくよ/ね/わ` — 話者宣言（"自分で閉じる" とも取れる）→ とく尾としてルート化済みだが実行可否は観察枠
+
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。
