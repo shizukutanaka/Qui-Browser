@@ -1720,8 +1720,16 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 230
+### Session 231
 
+- 🐛 '閉じるつもりで進める' が navigate 誤ルート → FR `つもりで進める` で実行化。
+- ✨ てもらう手配/謙譲残置: もらう手はずになっている・もらう算段だ・もらう段取りです・もらいたくお願いする/申し上げます → 実行。
+- ✨ てきて方向残置: きてくれ/ください/ほしい/もらえますか/もらいたい/なさい → 実行。
+- ✨ dict意図/方針名詞尾: 意向です・意図です・方針です・旨連絡・という方針で → 実行。
+- ✨ EN XL: if youd/could be so good・see it in your heart・within your power・no trouble at all・no inconvenience・presents no difficulty・manageable/works for you/suits you 前置 → 実行。
+- ✅ tests/capability-courtesy-atoms.test.js +37（実装前27件赤確認）、計12179全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 230
 - ✨ てちょうだい俗残置: ちょうだいませんか → 実行（ね/よ/な/ませ/なさい は既存）。
 - ✨ dict手配/段取尾: 段取りで・手はずで・手配を頼む・段取りをとる・という段取り・のが筋だと考えます → 実行。
 - ✨ EN XXXIX: if you see fit/as you see fit・if you deem it appropriate|necessary・should you feel so inclined・if you are so inclined/of a mind to・if you feel up to it・at your pleasure 前置 → 実行。
