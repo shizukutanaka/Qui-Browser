@@ -230,6 +230,8 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice '閉じるのが急所と推奨します' の急所名詞尾XXIVが NO-MATCH~~
 - ~~voice '閉じるのが急所と進言します' の急所名詞尾XXVが NO-MATCH~~
 - ~~voice '閉じるのが急所と提案します' の急所名詞尾XXVIが NO-MATCH~~
+- ~~voice '閉じるのが急所という所見です' の急所名詞尾XXVIIが NO-MATCH~~
+- ~~voice 'you could probably|conceivably|potentially' の中置副詞が NO-MATCH~~
 - ~~voice 'do you think you could conceivably|probably|potentially' の副詞挿入が NO-MATCH~~
 - ~~voice 'do you think you would|might be able to' の think-able 枠が NO-MATCH~~
 - ~~voice 'would you be a dear|an angel|a love|a pal|a sport|a darling to' の be-a-X 枠が NO-MATCH~~

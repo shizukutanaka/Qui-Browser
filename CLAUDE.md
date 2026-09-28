@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 307
+### Session 308
 
+- ✨ JA: dict急所名詞尾XXVII（のが急所という所見です 等6形）→ 実行（もらえますか/いただけますか残置は既緑）。
+- ✨ EN CXVII: mid-adverb 前置 'you could|can|would|might|may (probably|conceivably|potentially|certainly|surely|perhaps|possibly)' → 'you could probably close it' 等実行（ADV-you-could 対称形）。
+- ✅ tests/could-adv-atoms.test.js +24（実装前11件赤確認）、計14123全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 307
 - ✨ 英単語/重複語/識別子の typo 棚卸し（omakase + 'Typoむし' リクエスト）→ src/tests/docs/tools 全域で実害 0 件を確認。
 - ✨ JA: dict急所名詞尾XXVI（のが急所と提案します 等6形）→ 実行（もらえるかな/いただけるかな残置は既緑）。
 - ✨ EN CXVI: bare-adverb 前置リストに conceivably|probably|potentially 追加（possibly/perhaps/maybe と同スロット）→ 'do you think you could probably close it' 等 → 実行。
