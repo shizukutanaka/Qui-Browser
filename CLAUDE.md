@@ -1720,8 +1720,14 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 244
+### Session 245
 
+- ✨ JA: てある・てもらう残置（あるのがいい・あるといい・もらうもん・もらうわけ・もらうのが筋）・dict契機名詞尾（のが合図だ・契機だ・きっかけだ・節目だ・境目だ・区切りだ）→ 実行。
+- ✨ EN LIV: 'pretend i said'・'imagine i asked you to'・'indulge me'・'do me proud'・'make my day' 前置 → 実行。
+- 🐛 先食い: 裸 'indulge me' が oblige枠 'indulge me by/and' を先食い → `(?! (?:by|and))` lookahead で最長一致（回帰1件→緑）。
+- ✅ tests/humor-me-atoms.test.js +25（実装前16件赤確認）、計12592全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 244
 - ✨ JA: ておこう口語尾（おこうね・おこうかな）・dict結果名詞尾（のが成り行きだ・結末だ・帰結だ・終わりだ・締めだ・仕舞いだ）→ 実行。
 - ✨ EN LIII: 'be done with it'・'be through with it'・'enough of that/enough already'・'that does it/that settles it' 前置 → 実行。
 - ✅ tests/done-with-it-atoms.test.js +27（実装前15件赤確認）、計12567全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
