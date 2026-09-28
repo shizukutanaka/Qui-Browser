@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 240
+### Session 241
 
+- ✨ JA: しまった完了報告尾（しまったようです・しまったみたいです・しまったところです）・はじめて創始尾（はじめていい・はじめてすっきり）・dict手順名詞尾（のが手順として正しい・のがプロセスだ・のがワークフローだ・のがステップだ・のが工程だ・のが標準だ）→ 実行。
+- ✨ EN L: 'im ready/willing/happy/prepared for you to'・'id welcome you'・'id welcome it if youd'・'id appreciate it ever so much if youd' 前置 → 実行。
+- ✅ tests/welcome-frame-atoms.test.js +25（実装前18件赤確認）、計12488全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 240
 - ✨ JA: てあげましょう自発尾・ておきました/おいた報告・理由尾（おきましたよ・おきましたから・おいたので・おいたから）・てゆく方言尾（ゆけばいい・ゆくべき・ゆくのがいい）・dict程度名詞尾（のが相当だ・のが度合いだ・のが程度だ・のが丁度いい・のがちょうどいい頃合）→ 実行。
 - ✨ EN XLIX: 'by way of tidying up'・'as a matter of housekeeping'・'in the interest of tidiness'・'for the sake of cleanliness'・'out with it'・'speak the word and' 前置 → 実行。
 - ✅ tests/housekeeping-atoms.test.js +27（実装前19件赤確認）、計12463全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
