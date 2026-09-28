@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 283
+### Session 284
 
+- ✨ JA: てもらいますわ残置・dict急所名詞尾III（のが急所かも/急所だろう/要諦だね/勘所かな/眼目です/狙い目です）→ 実行。
+- ✨ EN XCIII: 'would you be opposed|averse|adverse|reluctant to' + be-X-to 残置 → 実行（'would you mind|mind terribly closing' は既ルート緑）。
+- ✅ tests/be-opposed-atoms.test.js +24（実装前11件赤確認）、計13544全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 283
 - 🐛 誤ルート: '閉じてくれませんものか'（依頼）が negate 誤ルート → `ものか` lookbehind に `ません` 追加。
 - ✨ JA: てくれません残置（かねぇぇ/ものか）・dict急所名詞尾II（のが急所ですか/核心だね/肝心です/急所かな/要諦でしょう/勘所だね）→ 実行。
 - ✨ EN XCII: 'would|might you be inclined|willing|disposed to' + be-X-to 残置 → 実行（'would you care to|be amenable to' は既ルート緑）。
