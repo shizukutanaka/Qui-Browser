@@ -4,6 +4,10 @@
 
 各項目には「対応可否」の目安として難易度と優先度を付けています。優先度は「実際にユーザーに影響するか」を基準にしており、コード上の見た目の重大さとは一致しない場合があります。
 
+~~- Session 312: EN end/halt/dispose 俗語動詞(end it/halt it/snip/chop/murder/smite)・needs-to-go・time-to-close・go/come close it・bye tab・JA とくれ/おくれ/んとくれ・てなよ/てわよ・ちゃうなら/ちゃったほうが・許可問い(てもいいよね/ええか)・dict名詞尾XXXI(慣例/原則/規範/ルール 等)~~
+~~- Session 312: 'scram/beat it/get lost/begone'(話者解散)・'close off/shut off/shut out/cut that/stop the tab'(曖昧)は意図的に未ルート；'ておる/とる' 進行形は describe-tab 正当ヒットでピン見送り~~
+
+
 ~~- Session 311: EN 俗語処分動詞(bin/chuck/junk/nuke/kill/ditch/dump/toss 等)・close-all 俗語形・JA じゃい/まえよう/ておいちゃ/ちゃうけど・dict名詞尾XXX(定石/鉄則/王道 等)・閉鎖願い系が negate 複写リテラルに誤爆~~
 ~~- Session 311: 'wind it up'/'put a lid on it'/'lose it' は閉じ意図不明瞭のため意図的に未ルートのまま（false-positive 回避）~~
 
@@ -1548,6 +1552,14 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - ~~**依頼前置詞・困惑句が未認識**~~ — **Session 167 で実装**: help に 'お願いします/よろしくお願いします/どうぞ/わかんない/わかりませんでした/どうしたら'、negate に 'nah bruh/no can do/no dice/negative ghostrider/most certainly not/whatever/doesnt matter/forget everything'。
 
 ---
+
+## R239 (PR #525待ち) で意図スキップした残原子
+
+- **Speaker-dismissal**: 'scram/beat it/get lost/begone/vamoose/skedaddle/git gone/be gone' — 話者自身が立ち去る＝vr-exit 寄りだが、ターゲット曖昧で誤実行リスクのため unrouted 維持。
+- **閉じ意図不明瞭**: 'close off/shut off/shut out/cut that/stop the tab' — 電源/遮断/停止の混同域。
+- **苦情句**: 'sick of/tired of/fed up with/had enough of this tab' — 要望は非明示。
+- **JA 曖昧尾**: '閉じるなんて'（驚き/嫌悪）・'閉じるのが下策ではない'（二重否定の弱肯定）・'閉じておるのに/閉じとるし'（進行状態の報告）。
+- **ENPRE 空白**: 2トークン slang（'no cap'、'on god'、'on a stack'）は未登録 — 次ラウンド候補。
 
 ## 使い方（次のセッションへ）
 
