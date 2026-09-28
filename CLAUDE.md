@@ -1720,8 +1720,14 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 242
+### Session 243
 
+- ✨ JA: てやる意志尾（わい・んじゃ・やっちゃうわ・やりましょう）・てかまわない許可尾（かまわない・かまいません・かまわないよ）・dict任務名詞尾（のが任務だ・役目だ・役割だ・責務だ・務めだ）→ 実行。
+- 🐛 誤ルート: '閉じてかまわないよ' が変体 '…かまわないで' 経由で negate 誤ルート → `ないで` に `(?<!かまわ)` 追加（'閉じないで' 否定はピン維持）。
+- ✨ EN LII: 'say when/say the magic word/your word is my command/fire away/have at it/knock yourself out' 前置 → 実行。
+- ✅ tests/word-is-command-atoms.test.js +26（実装前19件赤確認）、計12540全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 242
 - ✨ JA: てね呼びかけ尾（ねって・ねー・よねって）・てくれ長形残置（くれよう・くれましょう）・dict助言名詞尾（のが助言だ・のが忠告だ・のが進言だ・のが提言だ・のが指針だ・のが戒めだ）→ 実行。
 - ✨ EN LI: 'give it a rest'・'call it quits and'・'pull the plug and' 前置 + 'pull the plug on it'/'shut the book on it' 比喩スワップ → 実行。
 - ✅ tests/plug-pull-atoms.test.js +26（実装前19件赤確認）、計12514全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
