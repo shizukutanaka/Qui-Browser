@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 268
+### Session 269
 
+- ✨ JA: てみたほうがいいかも・みるのがいいかも・みるのもいいかも残置。dict信念名詞尾（のが信念だ/信条です/主義だ/宗旨だ/所信だ/譲れない線だ）→ 実行。
+- ✨ EN LXXVIII: 'could i trouble you for a' 前置 → 実行（trouble you to 系は既ルート緑）。
+- ✅ tests/trouble-you-atoms.test.js +24（実装前10件赤確認）、計13184全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 268
 - ✨ JA: ておくのが吉だ・おくのが得だ・おくのが上策だ残置。dict配慮名詞尾（のが気遣いだ/配慮だ/心配りだ/思いやりだ/優しさだ/親切だ）→ 実行。
 - ✨ EN LXXVII: 'would you be gracious|sweet|nice|lovely enough to' 前置 → 実行（kind|good enough は既ルート緑）。
 - ✅ tests/sweet-enough-atoms.test.js +24（実装前13件赤確認）、計13160全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
