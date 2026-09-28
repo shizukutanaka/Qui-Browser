@@ -1113,6 +1113,30 @@ export class VoiceCommands {
     push(normalized.replace(/てはくれないのか[。！？!?]?$/u, 'て'));
     push(normalized.replace(/てもくれないのか[。！？!?]?$/u, 'て'));
     push(normalized.replace(/てくれないのかな[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ることができるでしょうか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ることができる[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ること可能ですか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのは可能ですか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのはできる[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/られる予定だった[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/られる予定[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る予定でした[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る手筈だった[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る手筈[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る段取りだった[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る算段だった[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る見込みだった[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る見込みでした[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る目算だった[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る心算だった[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ようじゃないの[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ょうではないか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/じゃろうではないか[。！？!?]?$/u, 'じて'));
+    push(normalized.replace(/るではないか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てくれてもいい[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てくださるなら[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てくださるのであれば[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てもらっていいよ[。！？!?]?$/u, 'て'));
     push(normalized.replace(/(て|で)(?:あげて|あげ(?:る|ます)[ねよわか]?|くれる|くださる|くださいます)[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)(?:くれ|くださ)ちゃう[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)もら(?:う|える|った|います|えます|ってもいい|っていい)[。！？!?]?$/u, '$1'));
@@ -2696,6 +2720,8 @@ export class VoiceCommands {
         'what button closes it', 'whats the shortcut to close it',
         'shortcut to close it', 'key to close it',
         'whats the command for close', 'what was the close command',
+        '閉じれるんですか', '閉じれるのですか', '閉じれますでしょうか',
+        '閉じられるんでしょうか',
         /^is it possible to/i,
         'どうすればいい', 'どうすれば', 'なんとかして',
         '使い方がわからない', '操作方法がわからない', 'やり方がわからない',
@@ -3117,7 +3143,7 @@ export class VoiceCommands {
         '閉じたつもりなのに', '閉じたと思ってた', '閉じたはずだったのに',
         '閉じられるはずだった', '閉じられるはずなのに', '閉じられるはず',
         '閉じないのかしら', '閉じれないのかしら', '閉じないわけか',
-        '閉じないのかなって',
+        '閉じないのかなって', '閉じる約束だった', '閉じる約束なのに',
         '閉じるはずだったんだけど', '閉じるはずだったんだ', '閉じるはずのに',
         '閉じれてるはずだった', '閉じてるはずだった', '閉じてるはずのに',
         '何も見えない', '真っ白', '画面が白い', '映らない', '固まる', '落ちた',
@@ -4850,6 +4876,10 @@ export class VoiceCommands {
         'close the thing', 'close that tab there',
         'close it you', 'close it you please', 'youd close it',
         'only close it', 'close it only', 'all you do is close it',
+        'close it if you may', 'close it when you may',
+        'close it soonish', 'close it before long',
+        'id prefer it closed', 'id prefer that closed',
+        'i want it out of here',
         'just a click close it', 'one click close it',
         'one tap close it', 'a single click close it',
         'you best close it', 'you better just close it',
