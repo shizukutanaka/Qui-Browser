@@ -1720,8 +1720,14 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 236
+### Session 237
 
+- 誤ルート: brightness `/lights on/` が 'turn out the lights on it'（終了メタファ）を奪取 → `(?<!turn out the )`＋明示スワップ。
+- ✨ JA: てある/ておいた尾（あるべきだ・あるはずなのに・おいたほうがいい・おいたんだけどな・おいたほうが・あると助かる）・てから順序尾（からでいい・からにして・からこそ）・dict時機名詞尾（のが順序だと考えます・のが時機だ・のが潮時だ・のが頃合いだ・のが佳境だ・のが正念場だ）→ 実行。
+- ✨ EN XLVI: 'lets/time to wrap this up and'・'wind this down and'・'call it a day and'・'sign off and' 前置 + 'shut it down for the night'/'put it to bed'/'turn out the lights on it' スワップ → 実行。
+- ✅ tests/wind-down-atoms.test.js +30（実装前19件赤確認）、計12380全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 236
 - 誤ルート3件: describe の `(閉じる|…)ところ/` が '閉じるところを見たい'（観察依頼）を奪取 → `(?!を)` で除外（'閉じるところです'→describe ピン維持）；trouble の `/can't close/`・リテラル 'cant close it' が 'bet you cant/wager you cant' 挑発依頼を奪取 → `(?<!bet you )(?<!wager you )`；web-search `を見たい` が 'ところを見たい' を奪取 → `(?<!ところ)`。
 - ✨ JA: ところ観察依頼尾（見たい/みていただきたい/拝見したい/ご覧になりたい/ご覧に入れたい）・所存です・ていく/てくる方向尾（いくべきだ/いく方向で/いくしかない/いくことにする/くるべき/くるんだ）→ 実行。
 - ✨ EN XLV: 'id dare say'・'bet/wager you cant' 挑発枠・'the last thing before bed'/'last order of business'/'final thing on the agenda is to' 前置 + 'closing it is the last order of business' スワップ → 実行。
