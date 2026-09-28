@@ -4,6 +4,10 @@
 
 各項目には「対応可否」の目安として難易度と優先度を付けています。優先度は「実際にユーザーに影響するか」を基準にしており、コード上の見た目の重大さとは一致しない場合があります。
 
+~~- Session 311: EN 俗語処分動詞(bin/chuck/junk/nuke/kill/ditch/dump/toss 等)・close-all 俗語形・JA じゃい/まえよう/ておいちゃ/ちゃうけど・dict名詞尾XXX(定石/鉄則/王道 等)・閉鎖願い系が negate 複写リテラルに誤爆~~
+~~- Session 311: 'wind it up'/'put a lid on it'/'lose it' は閉じ意図不明瞭のため意図的に未ルートのまま（false-positive 回避）~~
+
+
 ~~- Session 310: vocative 尾(man/pal/champ/love/darling/honey/guys/yall)・hey browser/bruh/dude 前置・do-X-a-favour・theres-a-love・er/'em eye-dialect・JA てんか/なはれ/おくり/もうて/たろか/させます 未ルート群~~
 ~~- Session 310: 曖昧処分句(sort it out/take care of it/deal with it/handle it)は破壊的操作と断定不可 → ack へ（'off with it' 系の明確な処分慣用句のみ close-tab）~~
 

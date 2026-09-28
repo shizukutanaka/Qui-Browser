@@ -2847,6 +2847,12 @@ permission/capability questions (てもいいでしょうか / られますか)�
 - 🐛 **共存回帰捕捉**: 'shut up' は mute-toggle の既存所有（stop-reading 追加を撤回）、'閉じてまい' は raw `/まい$/`→negate が防御的に先勝ち（てまい をルールから除外）、'消しちゃい'→'消して'→dismiss-notify は既存 `消して` 所有と整合、'how much left' は reader-progress の `(read|left)` を `read` へ窄めて remaining-time へ透過、'close up shop'→close-all-tabs（close-by-name は ` tab$` 限定で非衝突）。
 - ✅ **テスト +170（実装前実行で140件赤確認、内26件は共存ガードの設計上緑）**: Total 6918 tests (144 suites); 0 lint errors（警告 137 = baseline 同一）; build green; FFFD 0件。
 
+### Session 311: Voice atoms CXCI — カジュアル処分動詞層。EN: 俗語処分動詞(bin/chuck/junk/zap/dump/toss/kill/axe + it/this/that/the tab)・finish/sweep/wipe/strike-off系・take it away/out/down・lose the tab・i want it dead・get it out of/outta here・put this to bed・tie it off・close-all 俗語形(bin/kill/shut/nuke/wipe/clear/ditch all the tabs・every single tab)・dismissive cancel(screw it/that→negate)・'like right now' 語尾。JA: じゃい→て(サ変ステム救済・で両立)・まえよう・まいなさい・ておいちゃ(う|って)・ちゃう/じゃう+けど(ね)・てしまう+よ/ね/わ/な/けど・dict名詞尾XXX(案内/定石/鉄則/掟/常道/正道/定番/本道/王道/最善/常套)。閉鎖願い系(廃棄/破棄してください・閉じる操作/手続き・タブの閉鎖を願います)が negate 内複写リテラルに誤爆していたのを close-tab 側リテラル先勝ちで正当化。
+外部基準: Reddit/Discord の処分動詞パラダイム(bin it/chuck it/nuke)、英語 dismissive cancel イディオム、関西 'じゃい'/'まえよう'。
+- 🐛 **TAIL_TE アンカー制約**: TAIL_TE は `(て|で)(?:tail)$`→`$1` — tail 自身に て/で を含まない形(じゃい等)はここでは拾えない → 専用 push が必要（で両立で て/で 両バリアント生成）。
+- 🐛 **文字クラス→列挙の退化**: `う[よねかな]?` を `(?:よ|ね|わ|かな|けど)` へ書換え時に単字 'か'/'な' と 'うわ' を脱落させ '閉じちゃうか' リグレッション → 単字は文字クラス同等列挙で保持。
+- ✅ **テスト +73（実装前 ~45件赤確認済み・'wind it up'/'put a lid on it'/'lose it' は意図不明瞭でスキップ）**: Total 14470 tests (284 suites); 0 lint errors（警告 136 = baseline 同一）; build green; FFFD 0件。
+
 ### Session 310: Voice atoms CXC — vocative/方言残層。EN: vocative 尾(man/pal/champ/love/darling/honey/guys/yall)・前置(hey browser/ok browser/bruh/dude)・be-a-X-and 拡張(champ/good chap/good lad/good girl/ever so good/old dear/mind awfully)・favour 英国綴り(do us/me/yourself a favour and)・theres-a-(good-)X 尾・eye-dialect er→it/'em→close-all・off/away/down-with-it 処分句動詞・曖昧処分(sort/take care/deal/handle)→ack。JA: 方言尾(てんか/なはれ/おくり/もうて/しもて/といてちょ/ときなよ)・意向使役(たろか/たる/たります/させます)・dict名詞尾XXIX(見込み/思惑/目論見/腹積もり/心づもり/筋書き/目算/意中/胸中/肚/腹/おぼしめし)・てよかった→ack・ばっかりだ→trouble。
 外部基準: Reddit/Discord  vocative 呼びかけパラダイム、British 'there's a good chap' 丁寧尾、関西/和歌山方言命令尾。
 - 🐛 **交替順序の罠II**: giant ENPRE の bare `do|`・`mind|` が `do us a favour and`/`mind awfully and` を先取り → 長い代替を先へ移動（'favour' 形は `|do|` 前、'mind awfully' は `|mind|` 前）。
