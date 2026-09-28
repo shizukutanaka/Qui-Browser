@@ -1074,6 +1074,45 @@ export class VoiceCommands {
     push(normalized.replace(/るの忘れてたよ[。！？!?]?$/u, 'て'));
     push(normalized.replace(/忘れてたわ[。！？!?]?$/u, 'て'));
     push(normalized.replace(/忘れてる[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るより他ない[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るよりほかはない[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るよりない[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る以外にない[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る他はない[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るほかはない[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのが一番[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのが最善[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのが最適[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るがベスト[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るがベター[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るが一番[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るとしたら今[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るなら今だ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るタイミングかな[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るタイミングだ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るタイミング[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/じ時かな[。！？!?]?$/u, 'じて'));
+    push(normalized.replace(/じ時では[。！？!?]?$/u, 'じて'));
+    push(normalized.replace(/じ時だ[。！？!?]?$/u, 'じて'));
+    push(normalized.replace(/じどきかな[。！？!?]?$/u, 'じて'));
+    push(normalized.replace(/る頃合いだ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る頃合い[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るいい機会[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る機会だ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るの任せる[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るの任せた[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのお任せします[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのおまかせします[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのおまかせ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのよろしくね[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ることをお願いします[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ることをお願いする[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ることをお願い[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ることお願いします[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ることお願いする[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てはくれないのか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てもくれないのか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てくれないのかな[。！？!?]?$/u, 'て'));
     push(normalized.replace(/(て|で)(?:あげて|あげ(?:る|ます)[ねよわか]?|くれる|くださる|くださいます)[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)(?:くれ|くださ)ちゃう[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)もら(?:う|える|った|います|えます|ってもいい|っていい)[。！？!?]?$/u, '$1'));
@@ -2653,6 +2692,10 @@ export class VoiceCommands {
         /(?:られ|れ)るのか[。！？!?]?$/, /(?<!く)られることができますか?[。！？!?]?$/, /(?<!く|おか)れますか[。！？!?]?$/,
         '閉じたほうがいいかしら', '閉じるほうがいいかしら',
         '閉じるのとどう思う', '閉じたらどうなるかしら',
+        'which button closes it', 'which key closes it',
+        'what button closes it', 'whats the shortcut to close it',
+        'shortcut to close it', 'key to close it',
+        'whats the command for close', 'what was the close command',
         /^is it possible to/i,
         'どうすればいい', 'どうすれば', 'なんとかして',
         '使い方がわからない', '操作方法がわからない', 'やり方がわからない',
@@ -3073,6 +3116,8 @@ export class VoiceCommands {
         '閉じないのかよ', '閉じないわけ', '閉じへんのか', '閉じへんわけ',
         '閉じたつもりなのに', '閉じたと思ってた', '閉じたはずだったのに',
         '閉じられるはずだった', '閉じられるはずなのに', '閉じられるはず',
+        '閉じないのかしら', '閉じれないのかしら', '閉じないわけか',
+        '閉じないのかなって',
         '閉じるはずだったんだけど', '閉じるはずだったんだ', '閉じるはずのに',
         '閉じれてるはずだった', '閉じてるはずだった', '閉じてるはずのに',
         '何も見えない', '真っ白', '画面が白い', '映らない', '固まる', '落ちた',
@@ -4804,6 +4849,9 @@ export class VoiceCommands {
         'tabs got to go', 'close r up', 'close r down',
         'close the thing', 'close that tab there',
         'close it you', 'close it you please', 'youd close it',
+        'only close it', 'close it only', 'all you do is close it',
+        'just a click close it', 'one click close it',
+        'one tap close it', 'a single click close it',
         'you best close it', 'you better just close it',
         'what i want is to close it', 'what i need is to close it',
         'all i want is it closed', 'all i need is it closed',
