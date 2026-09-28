@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 304
+### Session 305
 
+- ✨ JA: dict急所名詞尾XXIV（のが急所と推奨します 等6形）→ 実行（もらえたなら/いただけたなら残置は既緑）。
+- ✨ EN CXIV: 'would you be a dear|an angel|a love|a pal|a sport|a darling to' 前置 → 実行。
+- ✅ tests/be-a-dear-atoms.test.js +24（実装前12件赤確認）、計14048全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 304
 - ✨ JA: dict急所名詞尾XXIII（のが急所と主張します 等6形）→ 実行（もらえませんか/いただけませんか残置は既緑）。
 - ✨ EN CXIII: 'might|may you be so kind|good|sweet|gracious to' 前置 → 実行。
 - ✅ tests/might-so-atoms.test.js +24（実装前12件赤確認）、計14024全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
