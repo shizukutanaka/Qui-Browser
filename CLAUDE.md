@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 277
+### Session 278
 
+- ✨ JA: ておこうかと・おいてもらえますか残置・dict心髄名詞尾（のが心髄だ/真骨頂だ/真髄です/奥義だ/秘訣だ/勘どころだ）→ 実行。
+- ✨ EN LXXXVII: 'id be eternally|infinitely|deeply indebted|endlessly grateful if youd' 前置 → 実行（'forever indebted'、'beyond grateful' は既ルート緑）。
+- ✅ tests/be-indebted-atoms.test.js +24（実装前12件赤確認）、計13400全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 277
 - ✨ JA: てくれません残置（くれませんだろうか/かねええ/でしょうかな）・dict要旨名詞尾（のが要旨だ/趣旨だ/主眼だ/本旨だ/旨趣だ/神髄ですね）→ 実行。
 - ✨ EN LXXXVI: 'id be ever so obliged|most obliged|deeply obliged|so obliged|truly obliged if youd' 前置 → 実行（'id be much obliged if youd' は既ルート緑）。
 - ✅ tests/be-obliged-atoms.test.js +24（実装前14件赤確認）、計13376全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
