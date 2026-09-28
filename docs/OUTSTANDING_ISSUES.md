@@ -218,6 +218,9 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice '閉じるのが急所かと心得ております' の急所名詞尾XVIが NO-MATCH~~
 - ~~voice '閉じるのが急所と見受けられます' が help 誤ルート~~
 - ~~voice '閉じるのが急所と思われます' の急所名詞尾XVIIが NO-MATCH~~
+- ~~voice '閉じてもらうと助かります' の morau-to 残置VIが NO-MATCH~~
+- ~~voice '閉じるのが急所という見解です' の急所名詞尾XVIIIが NO-MATCH~~
+- ~~voice 'i would be much|deeply obliged to' の obliged-to 自発枠が NO-MATCH~~
 - ~~voice 'id be most happy|glad|delighted|pleased|willing|ready to' の id-most 枠が NO-MATCH~~
 - ~~voice 'i would be most happy|glad|delighted|pleased|willing|ready to' の most-X-to 枠が NO-MATCH~~
 - ~~voice 'id be ever so happy|glad|delighted|pleased|willing|ready to' の ever-so 自発枠が NO-MATCH~~
