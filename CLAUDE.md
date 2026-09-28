@@ -1720,8 +1720,14 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 234
+### Session 235
 
+- ✨ しまえ/みろ命令尾: しまえって・しまえや・しまえってば・しまおうぜ・みろよ・みろって・みなって・みなさいって・みてもいいんじゃない → 実行。
+- ✨ dict方針名詞尾III: のが我が家の方針・のがうちのやり方・のがこの家のルール・のが鉄則だ・のが心得だ・のが信条だ → 実行。
+- ✨ EN XLIV: 'it is overdue to'・'it is long past time to'・'it was time to'・'ages ago you should have' 前置・'the tab is overdue for closing'/'closing it is long overdue' スワップ・語尾 'long ago'/'ages ago' → 実行。
+- ✅ tests/overdue-report-atoms.test.js +36（実装前23件赤確認）、計12323全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 234
 - ✨ てもらう疑問尾残置: もらえるんでしょうか・もらえますでしょうかね・もらえぬものでしょうか・もらえますかいな/かしら・もらえんのかな → 実行。
 - ✨ ておく報告/決断尾: おくのがいいと思います・おくに越したことはない・おくべきかと思います・おくしかないかも・おきさえすれば・おきゃあいい → 実行（'おくべきかと思います' は宣言=実行、裸 'おくべきか' は質問として help 維持）。
 - ✨ dict目的/理由名詞尾II: 目的です・理由です・ためのものです・ためなんです・という趣旨です・ための指示です → 実行。
