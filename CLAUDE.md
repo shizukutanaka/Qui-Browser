@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 278
+### Session 279
 
+- ✨ JA: てみる残置（みるとするか/みるとしよう）・くれません残置（かしら/かねぇ）・dict骨髄名詞尾（のが骨髄だ/精髄だ/核心です/要諦です/急所ですね）→ 実行。
+- ✨ EN LXXXVIII: 'i would ask of you that you|beg of you to|urge you to|entreat you to' 前置 → 実行（'i would ask|request that you' は既ルート緑）。
+- ✅ tests/i-would-urge-atoms.test.js +24（実装前13件赤確認）、計13424全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 278
 - ✨ JA: ておこうかと・おいてもらえますか残置・dict心髄名詞尾（のが心髄だ/真骨頂だ/真髄です/奥義だ/秘訣だ/勘どころだ）→ 実行。
 - ✨ EN LXXXVII: 'id be eternally|infinitely|deeply indebted|endlessly grateful if youd' 前置 → 実行（'forever indebted'、'beyond grateful' は既ルート緑）。
 - ✅ tests/be-indebted-atoms.test.js +24（実装前12件赤確認）、計13400全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。

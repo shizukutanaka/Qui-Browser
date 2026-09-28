@@ -182,6 +182,9 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice '閉じるのが要旨だ/旨趣だ' の要旨名詞尾が NO-MATCH~~
 - ~~voice '閉じておこうかと/おいてもらえますか' のておき残置が NO-MATCH~~
 - ~~voice '閉じるのが心髄だ/奥義だ' の心髄名詞尾が NO-MATCH~~
+- ~~voice '閉じてみるとするか/くれませんかしら' のみる/くれません残置が NO-MATCH~~
+- ~~voice '閉じるのが骨髄だ/精髄だ' の骨髄名詞尾が NO-MATCH~~
+- ~~voice 'i would ask of you|urge you to' の懇願枠が NO-MATCH~~
 - ~~voice 'id be eternally|deeply indebted if youd' の indebted 変体が NO-MATCH~~
 - ~~voice 'id be most|ever so obliged if youd' の obliged 変体が NO-MATCH~~
 - ~~voice 'would you do me the courtesy|honor of' の名誉枠が NO-MATCH~~
