@@ -152,6 +152,10 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice '閉じるのが進め方だ' の navigate 誤ルート~~
 - ~~voice '閉じてもいいかしらね' のもいいか残置が NO-MATCH~~
 - ~~voice '閉じるのが流儀だ/進め方だ' の流儀名詞尾が NO-MATCH~~
+- ~~voice '閉じてくださいよお' の長音残置が NO-MATCH~~
+- ~~voice '閉じてしまおうぞ/ね' のしまおう残置が NO-MATCH~~
+- ~~voice '閉じるのが任意だ/裁量だ/お任せだ' の裁量名詞尾が NO-MATCH~~
+- ~~voice 'if you could bring yourself to' の自己条件枠が NO-MATCH~~
 - ~~voice 'if youd be a dear/pal and' の条件呼びかけ枠が NO-MATCH~~
 - ~~voice '閉じておくのも手かも/ありかと' のおくのも残置が NO-MATCH~~
 - ~~voice '閉じるのが必須だ/不可欠だ' の必須名詞尾が NO-MATCH~~

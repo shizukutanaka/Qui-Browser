@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 264
+### Session 265
 
+- ✨ JA: てくださいよお・てしまおう残置（しまおうぞ・しまおうね）・dict裁量名詞尾（のが任意だ/随意だ/裁量だ/自由だ/お任せだ/一任だ）→ 実行。
+- ✨ EN LXXIV: 'if you could bring yourself to/manage to'・'if youd be kind|good enough to' 前置 → 実行。
+- ✅ tests/free-discretion-atoms.test.js +24（実装前13件赤確認）、計13088全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 264
 - 🐛 誤ルート: '閉じるのが進め方だ' → navigate（名詞 '進め方' にヒット → lookahead に `方` 追加、2箇所）。
 - ✨ JA: てもいいか残置（もいいかしらね・もいいかなって）・dict流儀名詞尾（のが流儀だ/です・やり甲斐だ・仕方だ・遣り方だ・進め方だ）→ 実行。
 - ✨ EN LXXIII: 'if youd be so kind|good as to'・'if youd be a dear|angel|love|pal and' 前置 → 実行。
