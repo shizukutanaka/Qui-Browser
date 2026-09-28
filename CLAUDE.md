@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 291
+### Session 292
 
+- ✨ JA: てくださり残置（幸いです/助かります/と幸甚です）・dict急所名詞尾XI（のが急所と考えております 等6形）→ 実行。
+- ✨ EN CI: 'i would be happy|delighted|pleased|glad|willing|ready to' 前置 → 実行。
+- ✅ tests/would-be-happy-atoms.test.js +24（実装前15件赤確認）、計13736全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 291
 - ✨ JA: dict急所名詞尾X（のが急所と存じ上げます 等6形）→ 実行。
 - ✨ EN C: 'if you would be so good|so kind enough|good enough|kind enough|gracious enough|sweet enough as to' 前置 → 実行。
 - ✅ tests/kind-enough-atoms.test.js +24（実装前12件赤確認）、計13712全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
