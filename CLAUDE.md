@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 245
+### Session 246
 
+- ✨ JA: てよろしい・てねば残置（よろしいです・よろしいぞ・ねばならん・ねばいかん）・dict急務名詞尾（のが急務だ・要務だ・喫緊だ・先決だ・焦眉だ・火急だ）→ 実行。
+- ✨ EN LV: 'word to the wise'・'trust me on this'・'take my word for it'・'believe you me'・'mark my words'・'cross my heart'・'swear to god' 前置 → 実行。
+- ✅ tests/trust-oath-atoms.test.js +25（実装前17件赤確認）、計12617全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 245
 - ✨ JA: てある・てもらう残置（あるのがいい・あるといい・もらうもん・もらうわけ・もらうのが筋）・dict契機名詞尾（のが合図だ・契機だ・きっかけだ・節目だ・境目だ・区切りだ）→ 実行。
 - ✨ EN LIV: 'pretend i said'・'imagine i asked you to'・'indulge me'・'do me proud'・'make my day' 前置 → 実行。
 - 🐛 先食い: 裸 'indulge me' が oblige枠 'indulge me by/and' を先食い → `(?! (?:by|and))` lookahead で最長一致（回帰1件→緑）。
