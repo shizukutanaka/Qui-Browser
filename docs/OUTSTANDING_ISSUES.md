@@ -4,6 +4,10 @@
 
 各項目には「対応可否」の目安として難易度と優先度を付けています。優先度は「実際にユーザーに影響するか」を基準にしており、コード上の見た目の重大さとは一致しない場合があります。
 
+~~- Session 312: EN end/halt/dispose 俗語動詞(end it/halt it/snip/chop/murder/smite)・needs-to-go・time-to-close・go/come close it・bye tab・JA とくれ/おくれ/んとくれ・てなよ/てわよ・ちゃうなら/ちゃったほうが・許可問い(てもいいよね/ええか)・dict名詞尾XXXI(慣例/原則/規範/ルール 等)~~
+~~- Session 312: 'scram/beat it/get lost/begone'(話者解散)・'close off/shut off/shut out/cut that/stop the tab'(曖昧)は意図的に未ルート；'ておる/とる' 進行形は describe-tab 正当ヒットでピン見送り~~
+
+
 ~~- Session 311: EN 俗語処分動詞(bin/chuck/junk/nuke/kill/ditch/dump/toss 等)・close-all 俗語形・JA じゃい/まえよう/ておいちゃ/ちゃうけど・dict名詞尾XXX(定石/鉄則/王道 等)・閉鎖願い系が negate 複写リテラルに誤爆~~
 ~~- Session 311: 'wind it up'/'put a lid on it'/'lose it' は閉じ意図不明瞭のため意図的に未ルートのまま（false-positive 回避）~~
 
