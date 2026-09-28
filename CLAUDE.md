@@ -1720,8 +1720,15 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 227
+### Session 228
 
+- 🐛 '閉じていただけぬものか' が negate（ものか拒否修辞）誤ルート — lookbehind に `いただけぬ` 追加。
+- ✨ てもらう進行/謙譲残置: もらっております・もらうことになります → 実行。
+- ✨ dict願望/目的尾III: ことを切望する・ことを所望いたします・ことを請い願う・べく頼む・べくお願い申し上げる・ようにと切に → 実行。
+- ✨ EN XXXVII: 'out of the kindness of your heart'/'as an act of kindness|mercy'/'as a (personal )?favor to me'/'be an obliging soul and' 前置 → 実行；'indulge me by' を oblige-favor 枠に併合。
+- ✅ tests/deep-honorific-atoms.test.js +37（実装前16件赤確認）、計12067全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 227
 - ✨ てくれ推量/仮定尾: くれるかなあ・くれるかしらね・くれるのを望む・くれるといいんだが・くれればそれで足りる・くれたのならば・くれようとは → 実行。
 - ✨ ておく受益/許可残置: おいてもらえば・おいてもらいたいんだけど/ものだ・おかせてくれ/おかせていただきます・おきたいと願っております → 実行。
 - ✨ dict前提/仮定尾: のでしたらば・とすれば幸い・ようであれば助かる・とお願いする/と期待する・という条件で → 実行。
