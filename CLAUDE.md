@@ -1720,8 +1720,14 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 285
+### Session 286
 
+- 🐛 誤ルート: '閉じておかれますか'（尊敬依頼）が help 誤ルート → `れますか` ケーパビリティ疑問に `おか` lookbehind 追加。
+- ✨ JA: ておかれます残置（かしら/ませんか）・dict急所名詞尾V（のが急所べきだ/べしだ/勘所べきです/要諦べきだ/眼目べきだ/狙い目べきだ）→ 実行。
+- ✨ EN XCV: 'i would be ever so grateful|appreciative|thankful|obliged|glad|happy if youd' 前置 → 実行。
+- ✅ tests/ever-so-atoms.test.js +24（実装前15件赤確認）、計13592全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 285
 - ✨ JA: てくださいます残置（かしら/ませんでしょうか）・dict急所名詞尾IV（のが急所だと思います/急所と存じます/勘所と考えます/要諦と思う/眼目かと/狙い目かと）→ 実行。
 - ✨ EN XCIV: 'could you conceivably' 前置 → 実行（'could you possibly|perhaps|maybe'、'might you possibly'、'would you perhaps' は既ルート緑）。
 - ✅ tests/conceivably-atoms.test.js +24（実装前9件赤確認）、計13568全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
