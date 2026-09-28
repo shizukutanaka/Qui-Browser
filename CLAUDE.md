@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 260
+### Session 261
 
+- ✨ JA: ておくしか・てあげる残置（おくしかないんだ/です/んですが・あげるのがいい・あげるのが筋だ・あげるのが妥当だ）・dict選択名詞尾（のが選択肢だ・岐路だ・分かれ目だ・分岐点だ・選択だ・選びだ）→ 実行。
+- ✨ EN LXX: 'the sooner the better'・'no time to lose'・'not a moment too soon'・'quick as you can' 前置 → 実行。
+- ✅ tests/sooner-the-better-atoms.test.js +24（実装前18件赤確認）、計12992全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 260
 - ✨ JA: てちゃって/てじゃって残置（ちゃってね・ちゃってよ・じゃって・じゃってよ — CHA 層に併合）・てくれ方言残置（くれぞ・くれわ・くれが）・dict心がけ名詞尾（のが心がけだ・心掛けだ・心得です・心持ちだ・気構えだ・覚悟です）→ 実行。
 - ✨ EN LXIX: 'while|since youre in there'・'as long as youre at it' 前置 → 実行。
 - ✅ tests/while-in-there-atoms.test.js +25（実装前15件赤確認）、計12968全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
