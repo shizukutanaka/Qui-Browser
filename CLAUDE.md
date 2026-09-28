@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 303
+### Session 304
 
+- ✨ JA: dict急所名詞尾XXIII（のが急所と主張します 等6形）→ 実行（もらえませんか/いただけませんか残置は既緑）。
+- ✨ EN CXIII: 'might|may you be so kind|good|sweet|gracious to' 前置 → 実行。
+- ✅ tests/might-so-atoms.test.js +24（実装前12件赤確認）、計14024全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 303
 - ✨ JA: dict急所名詞尾XXII（のが急所と断定します 等6形）→ 実行（もらえば/いただけば残置は既緑）。
 - ✨ EN CXII: 'would you kindly|please be so kind|good to'・'could you please be so kind|good to' 入れ子前置 → 実行。
 - ✅ tests/kindly-so-atoms.test.js +24（実装前12件赤確認）、計14000全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
