@@ -1449,6 +1449,15 @@ export class VoiceCommands {
     push(normalized.replace(/てくれれば(?:助かる|有難い|万々歳|言うことなし|文句なし|申し分ない|十分|それで(?:十分|いい)?|良し|ok|よし)[。！？!?]?$/u, 'て'));
     push(normalized.replace(/てくださいます(?:ぞ|んで|よね|から|なあ|わよ|わね|わ|かのう|かの|かぞ|かいな|かい|こと|のね|もの)[。！？!?]?$/u, 'て'));
     push(normalized.replace(/てなんし|てなんせ|てたまえや|てたもれぞ[。！？!?]?$/u, 'て'));
+    // pass CCXX
+    push(normalized.replace(/ておく(?:がいい|とよい|のだ|ぞ|がええ)[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ておき(?:ます(?:から|んで|わ)?|ましょうか|たいものだ|たいのだが)[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ておいてええよ|といておいていいよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てもらいたく候|てほしく候|ておくれ候|るように候|たく存じ候|てよろしゅうございます[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てもらう[どだ]|てもらわんか|てくれんならん|とくれたい|とくれぞ|とくれたら[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てお願い(?:します(?:ぞ|ね|わ|よ|って)?|しとります|してんの|だから|だ|を)[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てお頼み(?:します|申します)|てお願いさせてください|てくださいじゃ|てくださいまへんか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てしまいませ|てしまいだまれ|てしまいだめ|てもうていいよ|てもうてもええで|てみなはれ|てみてほしいよ|てみてくれんか|てみてもらいたい[。！？!?]?$/u, 'て'));
     push(normalized.replace(/(て|で)(?:あげて|あげ(?:る|ます)[ねよわか]?|くれる|くださる|くださいます)[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)(?:くれ|くださ)ちゃう[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)もら(?:う|える|った|います|えます|ってもいい|っていい)[。！？!?]?$/u, '$1'));
@@ -5377,6 +5386,43 @@ export class VoiceCommands {
         '閉じてはくれないものか', '閉じてはもらえないか',
         '閉じてはもらえぬか', '閉じてはくれないかしら',
         '閉じてくださいますな',
+        // pass CCXX: formal directives + immediacy idioms + farewell III +
+        // permanence + fun/dialect + JA negate misroute fixes
+        'i demand it be closed', 'you are to close it', 'thou shalt close it',
+        'close it immediately if not sooner', 'close it on the double quick',
+        'close it in two shakes', 'close it in a heartbeat',
+        'close it in a second', 'close it in a minute', 'close it in no time',
+        'close it stat pronto', 'close it make it snappy',
+        'close it quick sticks', 'close it tout de suite', 'close it schnell',
+        'close it vite',
+        'au revoir tab', 'arrivederci tab', 'hasta la vista tab',
+        'hasta luego tab', 'auf wiedersehen tab', 'bye tab bye',
+        'peace out close it', 'close it good riddance',
+        'good riddance close it', 'tab dont let the door hit you',
+        'dont let the door hit you tab',
+        'close it for keeps', 'close it forever', 'close it for ever',
+        'close it for all eternity', 'close it eternally',
+        'close it shoo', 'shoo close it', 'shoo tab',
+        'off you pop close it', 'okey dokey close it', 'okie dokie close it',
+        'righto close it', 'close it for the road',
+        'close it done and dusted', 'done and dusted close it',
+        'farewell cruel tab', 'close it if you know whats good for you',
+        'close it godspeed', 'godspeed close it',
+        'close that tab yonder',
+        '閉じてくれんねん', '閉じてお願いしますな', '閉じてくださいそうな',
+        '閉じてもらうが筋だ', '閉じてくれるのが筋',
+        '閉じてくれれば助かるのに', '閉じてくれればなあ',
+        '閉じてくれればええのに', '閉じてくれればと思うのに',
+        '閉じてくれるなら助かるのに', '閉じてくれるなら助かるけど',
+        '閉じてくれるなら幸いだが', '閉じてくれるなら文句ない',
+        '閉じてくれるならば助かる',
+        '閉じたいからね', '閉じたいからさ', '閉じたいのですから',
+        '閉じたいんですから', '閉じたいんだからね',
+        '閉じたくてたまらん', '閉じたくてしょうがない', '閉じたくてしかたない',
+        '閉じたい衝動', '閉じたい気分', '閉じたい気持ちが強い',
+        '閉じたい一心', '閉じたく思っている', '閉じたく思う',
+        '閉じる方が好みだ', '閉じるが好み', '閉じたほうが好みだ',
+        '閉じるのが好み',
         'dont you think we should close it',
         'dont you think you should close it',
         '閉じてもらえそうな',
