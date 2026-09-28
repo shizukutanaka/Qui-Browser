@@ -2847,6 +2847,13 @@ permission/capability questions (てもいいでしょうか / られますか)�
 - 🐛 **共存回帰捕捉**: 'shut up' は mute-toggle の既存所有（stop-reading 追加を撤回）、'閉じてまい' は raw `/まい$/`→negate が防御的に先勝ち（てまい をルールから除外）、'消しちゃい'→'消して'→dismiss-notify は既存 `消して` 所有と整合、'how much left' は reader-progress の `(read|left)` を `read` へ窄めて remaining-time へ透過、'close up shop'→close-all-tabs（close-by-name は ` tab$` 限定で非衝突）。
 - ✅ **テスト +170（実装前実行で140件赤確認、内26件は共存ガードの設計上緑）**: Total 6918 tests (144 suites); 0 lint errors（警告 137 = baseline 同一）; build green; FFFD 0件。
 
+### Session 310: Voice atoms CXC — vocative/方言残層。EN: vocative 尾(man/pal/champ/love/darling/honey/guys/yall)・前置(hey browser/ok browser/bruh/dude)・be-a-X-and 拡張(champ/good chap/good lad/good girl/ever so good/old dear/mind awfully)・favour 英国綴り(do us/me/yourself a favour and)・theres-a-(good-)X 尾・eye-dialect er→it/'em→close-all・off/away/down-with-it 処分句動詞・曖昧処分(sort/take care/deal/handle)→ack。JA: 方言尾(てんか/なはれ/おくり/もうて/しもて/といてちょ/ときなよ)・意向使役(たろか/たる/たります/させます)・dict名詞尾XXIX(見込み/思惑/目論見/腹積もり/心づもり/筋書き/目算/意中/胸中/肚/腹/おぼしめし)・てよかった→ack・ばっかりだ→trouble。
+外部基準: Reddit/Discord  vocative 呼びかけパラダイム、British 'there's a good chap' 丁寧尾、関西/和歌山方言命令尾。
+- 🐛 **交替順序の罠II**: giant ENPRE の bare `do|`・`mind|` が `do us a favour and`/`mind awfully and` を先取り → 長い代替を先へ移動（'favour' 形は `|do|` 前、'mind awfully' は `|mind|` 前）。
+- 🐛 **尾の部分消費**: `theres a love` は suffix 交替の `love` が末尾だけ食い 'close it theres a' 残骸 → `there'?s a (?:good )?X` を一体尾として `(?:good )?` 任意化。
+- 🐛 **er 方言正規化**: `er`→'it' 変種で 'shut er down'→vr-exit、'wrap er up'→stop-everything；'close er up' 系は close-tab リテラル補完。
+- ✅ **テスト +78（実装前 ~60件赤確認済み）**: Total 14397 tests (283 suites); 0 lint errors（警告 136 = baseline 同一）; build green; FFFD 0件。
+
 ### Session 309: Voice atoms CLXXXIX — 実害バッチ（silent-probe 検出残留 ~90 件の修正）。JA: negate 拒否枠（のは見送り/断念/保留/よし/後/いりません/不要/ナシ・ずに/なくて済み・のをやめ）・dict急所名詞尾XXVIII（認識/判断/総意/評価/所存/確信）・TAIL_TE（くださいますかね・たもれ・至急系副詞尾）・help（AかBか審議・ほうがいいですか）・reopen（誤って/うっかり/間違えて閉じました）。EN: ENPRE（let us/discourse openers/負助動詞依頼/very kindly 系/appreciate you/oi）・語尾（right quick/on the double/chop chop/por favor/tag 収縮/while-youre-at-it/please please 連打）・close 別表現（this here/right there/very）・close-all（every/all the）・close-other（以外全部/but except save this one）・close-ordinal（from-the-right/leftmost/rightmost/final 索引解決）・pin（current/active + して形）・bookmark（add/save X to bookmarks/favorites + ブックマークに追加して）・scroll/home/history 表面形。誤ルート: close-tab-by-name lookahead に every/each/both/those/these 追加（"close every tab" の名指し誤爆を封じ）。
 外部基準: Reddit/海外技術フォーラムの口語依頼表現（discourse markers, tag questions, quick-isms, while-youre-at-it）、敬語判定尾パラダイム。
 - 🐛 **発見 — silent-probe 盲点**: これまでのラウンドで jest --silent が console.log の RED マーカを握り潰し、「全緑」と誤判定していたバッチが残存。今回 it.each+expect プローブで ~90 件の実害を検出し一括修正（tests/saturation-pins.test.js 195件として恒久化）。

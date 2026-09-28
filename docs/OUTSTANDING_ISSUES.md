@@ -4,6 +4,10 @@
 
 各項目には「対応可否」の目安として難易度と優先度を付けています。優先度は「実際にユーザーに影響するか」を基準にしており、コード上の見た目の重大さとは一致しない場合があります。
 
+~~- Session 310: vocative 尾(man/pal/champ/love/darling/honey/guys/yall)・hey browser/bruh/dude 前置・do-X-a-favour・theres-a-love・er/'em eye-dialect・JA てんか/なはれ/おくり/もうて/たろか/させます 未ルート群~~
+~~- Session 310: 曖昧処分句(sort it out/take care of it/deal with it/handle it)は破壊的操作と断定不可 → ack へ（'off with it' 系の明確な処分慣用句のみ close-tab）~~
+
+
 ~~- Session 309: "close every tab" が close-tab-by-name 誤ルート（lookahead に every/each/both/those/these 追加で解消）~~
 ~~- Session 309: silent-probe 検出の約90件残留（negate 見送り/断念枠、かね/たもれ/至急尾、close-all every 形、pin current、bookmark add-to、reopen 誤って形、EN discourse 前置、quick-ism 語尾、ordinal from-the-right）~~
 
