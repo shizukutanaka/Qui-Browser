@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 305
+### Session 306
 
+- ✨ JA: dict急所名詞尾XXV（のが急所と進言します 等6形）→ 実行（もらえないかな/いただけないかな残置は既緑）。
+- ✨ EN CXV: 'do you think you would|might be able to' 前置 → 実行。'do you imagine|dream|guess|believe you could' は疑問形→help（確立済み interrogative ピンで維持・実害なし確認）。
+- ✅ tests/think-able-atoms.test.js +27（実装前9件赤確認・誤期待1件を help ピンへ修正）、計14075全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 305
 - ✨ JA: dict急所名詞尾XXIV（のが急所と推奨します 等6形）→ 実行（もらえたなら/いただけたなら残置は既緑）。
 - ✨ EN CXIV: 'would you be a dear|an angel|a love|a pal|a sport|a darling to' 前置 → 実行。
 - ✅ tests/be-a-dear-atoms.test.js +24（実装前12件赤確認）、計14048全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
