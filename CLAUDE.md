@@ -1720,8 +1720,15 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 224
+### Session 225
 
+- 🐛 Devin Review #436 指摘2件: 'remind me to X' が即実行 → ENPRE 撤去 + defer `/^remind me (?:to|about)\b/` で誠実応答化; negate `まい` の `(?<!ち|じ)` が '閉じまい' をルート消失 → `(?<!ち|んじ)` に限定（ちまい/んじまい 縮約のみ除外）。
+- ✨ ておく残置II: おくのもありだ・おくのがいいかも・おくことにするよ・おきなよ → 実行（'おくべきではないか' は禁止修辞 → negate 維持）。
+- ✨ dict確認/同意尾: のでいいね・ので構わないか・のが良いかと存じます・のが宜しいかと・のが筋かと → 実行。
+- ✨ EN XXXIV: '(it|the tab) (needs|has|should|ought) to get (closed|shut)'/'could use|could do with a closing'/'a closure|closing is (required|in order|necessary|what needed)' → close-tab スワップ。
+- ✅ tests/obligation-get-atoms.test.js +34（実装前20件赤確認）、計11959全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 224
 - ✨ なさい系拡張命令: なさってください・なされて・なさいますように・なさるよう・なさいって言って → stemTe 追加で て形化 → 実行。
 - ✨ しまえ/ちまえ残置: てしまえよ・てしまえばいいじゃん・ちまいな/ちまい → 実行；negate `まい` に `(?<!ち|じ)` 追加（'閉じちまい' の誤ルート是正）。
 - ✨ dict判定尾XXVII: のもいいかもしれん・のもいいんでは・のも一手か・のも悪くない気がする・のも十分ありだ・のが良いように思う・のがいい気がしてきた → 実行。

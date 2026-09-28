@@ -35,7 +35,7 @@ describe('imperative-nasai atoms (pass CIV)', () => {
     ['閉じるのがいい気がしてきた','close-tab'],
     // EN XXXIII — self-addressed/observational frames
     ['note to self, close it','close-tab'],
-    ['remind me to close it','close-tab'],
+    ['remind me to close it','defer'],
     ['someone close it','close-tab'],
     ['would someone close it','close-tab'],
     ['somebody shut it','close-tab'],
