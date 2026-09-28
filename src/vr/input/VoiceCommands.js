@@ -1420,6 +1420,31 @@ export class VoiceCommands {
     push(normalized.replace(/てちょうだいますよう[。！？!?]?$/u, 'て'));
     push(normalized.replace(/てちょうだいまして[。！？!?]?$/u, 'て'));
     push(normalized.replace(/てちょうだいます[。！？!?]?$/u, 'て'));
+    // pass CCXVIII: Tohoku てこ/てこい, てけ(りゃ), てきな, たれよ/たらん,
+    // たる-volitional, てやん, みせる/みせん/みりゃ, あげるで/あげよう,
+    // もらう dialect, くれる expectation, ちゃう/しちゃう/てもう/てもた, permission
+    push(normalized.replace(/てこい?[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てけ(りゃ)?[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てきな[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/たれよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/たらん[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/たるで[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てやん[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てみせる(よ|ぞ)?[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てみせん[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てみりゃ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てあげる(で)?[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てあげよう[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てもらう(から|で|ね)[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てもらうとします[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てもらうことにする[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てくれる(でしょ|よな|んでしょ|わよね)[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ちゃうねん(で)?[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ちゃうで[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/しちゃう(よ|ね)[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てもうわ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てもた[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てもええでしょうか[。！？!?]?$/u, 'て'));
     push(normalized.replace(/(て|で)(?:あげて|あげ(?:る|ます)[ねよわか]?|くれる|くださる|くださいます)[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)(?:くれ|くださ)ちゃう[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)もら(?:う|える|った|います|えます|ってもいい|っていい)[。！？!?]?$/u, '$1'));
@@ -5247,6 +5272,51 @@ export class VoiceCommands {
         'close it if its not a bother', 'close it if its no trouble at all',
         'close it if you wouldnt mind', 'close it if it suits you',
         'close it if its convenient for you',
+        // pass CCXVIII: retroactive urgency + motion disposal + axe/boot +
+        // movie-threat frames + finality markers + casual farewells +
+        // speed idioms + JA Kansai neg-requests + obligation/intent nouns
+        'needed it closed yesterday', 'i needed it closed yesterday',
+        'needed it gone five minutes ago', 'close it last week',
+        'should have closed it an hour ago',
+        'out you go', 'out it goes', 'away it goes', 'there it goes',
+        'off it goes', 'make it go poof', 'be gone with it',
+        'spare me the tab', 'give it the hook', 'give it the old heave-ho',
+        'the easy way close it', 'we can do this the easy way',
+        'easy way or the hard way', 'close it and no one gets hurt',
+        'close it and nobody gets hurt', 'close it while you still can',
+        'close it while theres still time', 'close it before i do it myself',
+        '3 2 1 close it', 'three two one close it', 'at will close it',
+        'close it full stop', 'close it periodt', 'close it no takebacks',
+        'close it i mean it this time', 'close it for real this time',
+        'close it not kidding', 'close it definitively',
+        'last chance close it', 'im not asking im telling close it',
+        'its been real tab', 'its been fun tab', 'so long tab',
+        'farewell tab', 'adieu tab', 'rip tab', 'rest in peace tab',
+        'goodnight sweet tab', 'take a bow tab', 'bow out tab',
+        'curtains for the tab', 'one less tab', 'minus one tab',
+        'you served well tab', 'exit stage left tab',
+        'close it lickety-split', 'close it presto', 'close it toot sweet',
+        'close it ahora', 'close it quick-like', 'make it fast',
+        'help me out and close it', 'close it for pitys sake',
+        'close it for heavens sake', 'id love it if youd close it',
+        // Kansai negative requests (もらえへん|くれへん|くれぬ = requests, not refusals)
+        '閉じてもらえへん', '閉じてもらえへんか', '閉じてもらえまへんか',
+        '閉じてくれへん', '閉じてくれへんか', '閉じてくれやへん',
+        '閉じてくれまへん', '閉じてくれぬ', '閉じてくれぬか',
+        '閉じてくれぬものか', '閉じてもらえぬか', '閉じてくれなくもない',
+        '閉じてくれることはない',
+        // obligation / intent nouns (なければならん, ざるを得ない, のみ|ものだ|気満々)
+        '閉じるしかないんだから', '閉じるしかないよな',
+        '閉じざるを得ない', '閉じざるをえない', '閉じざるを得ません',
+        '閉じないわけにはいかない', '閉じなければならん',
+        '閉じなければならんのだ', '閉じならんぞ',
+        '閉じならんことはない', '閉じなけりゃダメ',
+        '閉じるものだ', '閉じるものとする', '閉じるのみ',
+        '閉じるよりなし', '閉じる気満々', '閉じる覚悟だ',
+        '閉じる覚悟ができた', '閉じる腹はできてる',
+        '閉じる決心がついた', '閉じる勢いだ', '閉じる構えだ',
+        '閉じるぞと決めた', '閉じる気でいる',
+        '閉じる時が来た', '閉じる時だ', '閉じる時機',
         'dont you think we should close it',
         'dont you think you should close it',
         '閉じてもらえそうな',
@@ -7182,6 +7252,8 @@ export class VoiceCommands {
         '閉じましたよね', '閉じましたよ', '閉じてくれましたか',
         '閉じてくれたよね', '閉じましたっけ', '閉じたんだっけ',
         '閉じたのだ', '閉じたんだよ', '閉じたんだが', '閉じたのね',
+        '閉じてるでしょ', '閉じてあるんでしょ', '閉じてあるはず',
+        '閉じてあるんだよね',
         '閉じられましたか', '閉じれましたか', '閉じてもらいましたか',
         '閉じるとこだった', '閉じるとこでした', '閉じる寸前だった',
         '閉じる寸前でした', '閉じそうだった', '閉じそうでした',
@@ -9732,6 +9804,11 @@ export class VoiceCommands {
         'close it that was a joke', 'close it just kidding',
         'scratch that close it', 'that was a joke close it',
         'just kidding close it', '閉じるなよ絶対', '閉じるまいと思った',
+        '閉じなくて済む', '閉じなくて済むよ', '閉じなくて済むわ',
+        '閉じなくてええ', '閉じなくていーよ', '閉じる必要なし',
+        '閉じる意味なし', '閉じる意味がない', '閉じる甲斐なし',
+        '閉じるだけ無駄', '閉じるまでもない', '閉じるまでもなく',
+        '閉じるほどでもない', '閉じるものではない',
         'let it stay open', 'let it keep going', 'let it run',
         'let it sit', 'let it hang',
         '閉じないままおく', '閉じないでおく',
