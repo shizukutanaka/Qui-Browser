@@ -1720,8 +1720,15 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 223
+### Session 224
 
+- ✨ なさい系拡張命令: なさってください・なされて・なさいますように・なさるよう・なさいって言って → stemTe 追加で て形化 → 実行。
+- ✨ しまえ/ちまえ残置: てしまえよ・てしまえばいいじゃん・ちまいな/ちまい → 実行；negate `まい` に `(?<!ち|じ)` 追加（'閉じちまい' の誤ルート是正）。
+- ✨ dict判定尾XXVII: のもいいかもしれん・のもいいんでは・のも一手か・のも悪くない気がする・のも十分ありだ・のが良いように思う・のがいい気がしてきた → 実行。
+- ✨ EN XXXIII: 'note to self'/'remind me to'/'(would) someone|somebody' 前置 → 実行；'(shut|close) it (away|off|up)' スワップ→close-tab。
+- ✅ tests/imperative-nasai-atoms.test.js +35（実装前20件赤確認）、計11925全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 223
 - ✨ てくれ残置: くれなんだけど・くれないんだけど/んですが・くれるわけ/こと・くれんの(かな)・くれてもいいんだけど → 実行。
 - ✨ dict推量/判断尾: だろうね・であろう・ものと思われます・ものと考えられます・ものと見受けます・ものと判断(いた)します → 実行。
 - 🐛 誤ルート3件: trouble の `(れない|ない)(んだけど…)$` が 'くれない' 依頼を奪取 → `(?<!く)れない|(?<!くれ)ない` 分岐化；ack `/るわけ$/` が 'くれるわけ' 奪取 → `(?<!くれ)`；help `/(?<!く)られます/` が '考えられます' 奪取 → `(?<!く|考え)`。
