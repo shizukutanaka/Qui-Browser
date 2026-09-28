@@ -159,6 +159,9 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice '閉じておくと良かった' のおくと良かった尾が NO-MATCH~~
 - ~~voice '閉じるのが礼式だ/義理だ' の礼式名詞尾が NO-MATCH~~
 - ~~voice '閉じてくれませんかねえ' のくれません残置が NO-MATCH~~
+- ~~voice '閉じておくのが吉だ/上策だ' のおく+名詞複合尾が NO-MATCH~~
+- ~~voice '閉じるのが気遣いだ/親切だ' の配慮名詞尾が NO-MATCH~~
+- ~~voice 'would you be sweet enough to' の形容詞依頼枠が NO-MATCH~~
 - ~~voice '閉じるのが利益だ/好都合だ' の利益名詞尾が NO-MATCH~~
 - ~~voice 'id be honored|thrilled if youd' の形容詞条件枠が NO-MATCH~~
 - ~~voice 'if you could bring yourself to' の自己条件枠が NO-MATCH~~
