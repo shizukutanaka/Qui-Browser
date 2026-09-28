@@ -1720,8 +1720,15 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 226
+### Session 227
 
+- ✨ てくれ推量/仮定尾: くれるかなあ・くれるかしらね・くれるのを望む・くれるといいんだが・くれればそれで足りる・くれたのならば・くれようとは → 実行。
+- ✨ ておく受益/許可残置: おいてもらえば・おいてもらいたいんだけど/ものだ・おかせてくれ/おかせていただきます・おきたいと願っております → 実行。
+- ✨ dict前提/仮定尾: のでしたらば・とすれば幸い・ようであれば助かる・とお願いする/と期待する・という条件で → 実行。
+- ✨ EN XXXVI: im assuming/hoping/counting on/relying on/betting + id wager/ill assume + correct me if im wrong/if im not mistaken + god/heaven/luck willing 前置 → 実行。
+- ✅ tests/volitional-auxiliary-atoms.test.js +37（実装前29件赤確認）、計12030全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 226
 - ✨ てくれ引用/期待尾: くれとは言えない・くれとしか言いようがない・くれと頼みたい・くれと願っている・くれそうですか・くれますのでは・くれようや → 実行。
 - ✨ てもいい許可尾II: もいいでしょうかね・もいいかなあ・もいいんかな・もいいことにして・もいいとするなら → 実行。
 - ✨ dict「よう言ってる」進行依頼: よう言ってる/言っておる・ようにと・ように頼んでる/お願いしてる/言うてる・ようにと言っている → 実行。
