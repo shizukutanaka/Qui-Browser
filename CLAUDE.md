@@ -1720,8 +1720,15 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 232
+### Session 233
 
+- ✨ てください命令句残置: くださいませませ・くださいますの・くださいますようにと・くださいなさい・くださいなね → 実行。
+- ✨ なさい系方言残置: なさんな・なされい → stemTe 追加（'閉じないでちょうだい/いただきたい' は do-not 依頼で negate ピン維持）。
+- ✨ dict効率/利得名詞尾: のが効率的だ・ほうが効率的・のが合理的だ・のが賢いやり方・のがスマートだ・のが得だ → 実行。
+- ✨ EN XLII: 'do me the service|kindness|favor of'（service等を courtesy 枠に併合）・'oblige me with a'・'one small favor:?'/'one tiny favor' 前置 → 実行。
+- ✅ tests/favor-service-atoms.test.js +36（実装前20件赤確認）、計12251全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 232
 - 🐛 negate 裸 `おけ$` が '閉じておけ/おけよ/おけって/おけばいいじゃん' を否定誤ルート — やめ/止め/にしておけ の leave-it 語幹に限定（'止めておけ' 否定はピン維持）。
 - ✨ お+ます語幹 謙譲命令: お閉じしたいんです/いたしますね/申し上げます/お願いします/させていただきます → stemTe push で実行。
 - ✨ ておく条件/判定残置: おくんだったら・おくのであれば・おくがよろしい → 実行。
