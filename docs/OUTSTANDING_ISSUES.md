@@ -225,6 +225,8 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice '閉じるのが急所と認識しています' の急所名詞尾XXが NO-MATCH~~
 - ~~voice '閉じてもらったら幸いです' の morattara 残置が NO-MATCH~~
 - ~~voice '閉じるのが急所と考察します' の急所名詞尾XXIが NO-MATCH~~
+- ~~voice '閉じるのが急所と断定します' の急所名詞尾XXIIが NO-MATCH~~
+- ~~voice 'would you kindly|please be so kind|good to' の入れ子前置が NO-MATCH~~
 - ~~voice 'could you be so good|sweet|lovely|gracious|nice to' の could-so-Adj 枠が NO-MATCH~~
 - ~~voice 'would you be so sweet|lovely|gracious|nice to' の so-Adj-to 枠が NO-MATCH~~
 - ~~voice 'id be much|deeply obliged to' の obliged-to 短縮枠が NO-MATCH~~
