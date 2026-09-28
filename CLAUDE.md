@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 248
+### Session 249
 
+- ✨ JA: てな・てとく残置（なって・なってば・なさいまし・なさるがよい・とくべき・といてある）・dict常套名詞尾（のが定番だ・お決まりだ・王道だ・正攻法だ・基本だ）→ 実行。
+- ✨ EN LVIII: 'if ever there was a time'・'theres no time like the present'・'strike while the iron is hot'・'carpe diem'・'seize the day' 前置 → 実行。
+- ✅ tests/carpe-diem-atoms.test.js +25（実装前18件赤確認）、計12692全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 248
 - ✨ JA: てくれ・てかい方言残置（くれの・くれど・くれし・かいの）・dict決意名詞尾（のが決意だ・覚悟だ・腹だ・肝心だ・要だ・核心だ）→ 実行。
 - ✨ EN LVII: 'on my honor'・'i give you my word'・'scouts honor'・'cross my heart and hope to die'・'may god strike me down'・'on my mothers grave'・'as god is my witness' 前置 → 実行。
 - ✅ tests/honor-oath-atoms.test.js +25（実装前17件赤確認）、計12667全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
