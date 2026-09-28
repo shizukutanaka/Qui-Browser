@@ -1207,6 +1207,42 @@ export class VoiceCommands {
     push(normalized.replace(/るだけでもいい[。！？!?]?$/u, 'て'));
     push(normalized.replace(/るだけでも[。！？!?]?$/u, 'て'));
     push(normalized.replace(/るせめて[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/れろ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/れや[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/れんなよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/れらんないか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/れらんか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/れりゃいいのに[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/れりゃいいんだけど[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/れりゃいいじゃん[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/れりゃいいわ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/れりゃいい[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ればよいのです[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ればよいのよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ればよいわ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ればよいです[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ればよいではないか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ればよいだろう[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/れば宜しい[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/れば善い[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/れば好い[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/れば可也[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ればいいものを[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ればいいものだ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ればいいんですよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てもろても[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てもろた[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てもらうと[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てもらうのであれば[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろてな[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろて[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろっての[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろよな[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろはよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろはよう[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろじゃい[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろじゃ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろって言ってんでしょ[。！？!?]?$/u, 'て'));
     push(normalized.replace(/(て|で)(?:あげて|あげ(?:る|ます)[ねよわか]?|くれる|くださる|くださいます)[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)(?:くれ|くださ)ちゃう[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)もら(?:う|える|った|います|えます|ってもいい|っていい)[。！？!?]?$/u, '$1'));
@@ -4969,6 +5005,13 @@ export class VoiceCommands {
         'see that the tab closes', 'make sure the tab closes',
         'ensure it closes', 'be sure it closes',
         'dont leave it open', 'dont let it stay open',
+        'go on close it', 'go ahead close it', 'go on then close it',
+        'knock yourself out close it', 'be at liberty to close it',
+        'be at leisure close it', 'help yourself close it',
+        'i reckon you could close it', 'i figure you could close it',
+        'i imagine you could close it', 'i bet you could close it',
+        'i bet you can close it', 'assuming you close it',
+        '閉じてもらえそうな',
         '閉じるほかないよ',
         'just a click close it', 'one click close it',
         'one tap close it', 'a single click close it',
