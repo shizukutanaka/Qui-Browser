@@ -2847,6 +2847,13 @@ permission/capability questions (てもいいでしょうか / られますか)�
 - 🐛 **共存回帰捕捉**: 'shut up' は mute-toggle の既存所有（stop-reading 追加を撤回）、'閉じてまい' は raw `/まい$/`→negate が防御的に先勝ち（てまい をルールから除外）、'消しちゃい'→'消して'→dismiss-notify は既存 `消して` 所有と整合、'how much left' は reader-progress の `(read|left)` を `read` へ窄めて remaining-time へ透過、'close up shop'→close-all-tabs（close-by-name は ` tab$` 限定で非衝突）。
 - ✅ **テスト +170（実装前実行で140件赤確認、内26件は共存ガードの設計上緑）**: Total 6918 tests (144 suites); 0 lint errors（警告 137 = baseline 同一）; build green; FFFD 0件。
 
+### Session 309: Voice atoms CLXXXIX — 実害バッチ（silent-probe 検出残留 ~90 件の修正）。JA: negate 拒否枠（のは見送り/断念/保留/よし/後/いりません/不要/ナシ・ずに/なくて済み・のをやめ）・dict急所名詞尾XXVIII（認識/判断/総意/評価/所存/確信）・TAIL_TE（くださいますかね・たもれ・至急系副詞尾）・help（AかBか審議・ほうがいいですか）・reopen（誤って/うっかり/間違えて閉じました）。EN: ENPRE（let us/discourse openers/負助動詞依頼/very kindly 系/appreciate you/oi）・語尾（right quick/on the double/chop chop/por favor/tag 収縮/while-youre-at-it/please please 連打）・close 別表現（this here/right there/very）・close-all（every/all the）・close-other（以外全部/but except save this one）・close-ordinal（from-the-right/leftmost/rightmost/final 索引解決）・pin（current/active + して形）・bookmark（add/save X to bookmarks/favorites + ブックマークに追加して）・scroll/home/history 表面形。誤ルート: close-tab-by-name lookahead に every/each/both/those/these 追加（"close every tab" の名指し誤爆を封じ）。
+外部基準: Reddit/海外技術フォーラムの口語依頼表現（discourse markers, tag questions, quick-isms, while-youre-at-it）、敬語判定尾パラダイム。
+- 🐛 **発見 — silent-probe 盲点**: これまでのラウンドで jest --silent が console.log の RED マーカを握り潰し、「全緑」と誤判定していたバッチが残存。今回 it.each+expect プローブで ~90 件の実害を検出し一括修正（tests/saturation-pins.test.js 195件として恒久化）。
+- 🐛 **help 回帰回避**: か.+か 素朴実装は かどうか/いかが/おかれ/しか/いかん/とか/そっか を誤爆 → 前置/後置 lookaround で狭窄化（プライベートかどうか→privacy-status、閉じてはいかがですか→close-tab を維持しつつ 閉じるか閉じないか→help）。
+- 🐛 **語尾順序**: right quick は汎用 quick ストリップが先取りして close it right 化 → (?:right|real) 前置吸収へ変更；please please 連打は単発 please ルールのみ消費 → (?:please\s+)* へ；you know what は既存 you know 前置が先勝ち → 交替順序を what 先行へ。
+- ✅ **テスト +196（実装前 ~90件赤確認済み、silence 検証後全緑）**: Total 14319 tests (283 suites); 0 lint errors（警告 136 = baseline 同一）; build green; FFFD 0件。
+
 ### Session 169: 命令/方言残層原子 — dict+終助詞(よな/べ/のう/やろ/がいい/に限る/んちゃう)・語幹命令(なはれ/やれ/がてら/や)・命令引用(ろって)・ておく残り(とけば/ときゃ/とき/ときな)・りゃ・ばいいのに・ちゃえば・ずには・ねば・んと・てぇ/てやあ/てくれや・EN 前置(why not/do us a favor/i need you to/dont forget to/just/simply/go ahead and)・タグ質問(would you/eh/yeah)・語尾(quick/for us/now/then/again/already)・俗語 kill(kill it/yeet it)→close・cut it out→stop・as you were→resume・不可能形(られへん/めへん/んね)→negate
 外部基準: JA 方言命令パラダイム（京阪 なはれ/や、博多 んさい系）、EN 会話標記（fronted discourse markers、tag questions、phrasal slang）、Siri/Alexa 委任構文 'i need you to X'。
 - ✨ **終助詞層V**: dict+`よな|べ|のう|やろ(か)?|がいい|に限る|んちゃう|んちゃ`（'閉じるよな'→close、'読むべ'→read-aloud）。語幹命令に `なはれ|やれ|がてら|や` 追加（'閉じなはれ'/'読みや'→て形）。
