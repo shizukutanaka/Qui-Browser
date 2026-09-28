@@ -1570,6 +1570,8 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 
 - **EN 曖昧処分III (Session 315)**: 'scrub it'/'scratch the tab'（cancel 意味）、'lose it'（感情的意味）、'bye felicia'/'get gone'（話者解散・対人）、'fire the tab'（起動/解雇で曖昧）、'shut up shop'（'shut up' mute-toggle ピン先勝ちで不登録）。
 - **JA 非実在形 (Session 315)**: '閉じええよ'（実際に使われない形）等、逐語変換でたまたま生成される語尾は対象外。
+- **EN 曖昧処分IV (Session 316)**: 'murk it'/'write it off'/'gut it'/'wreck it'/'smash it'/'crush it'（賞賛語または語義曖昧）、'murder it dead'/'kill it dead'（冗長強調）、'vanish this'/'poof it'/'make it poof'、'begone/be gone tab'（古語呼びかけ）、'hit the bricks'/'hang it up'/'leave the tab'/'drop it like its hot'/'flush it'/'burn it down'/'for good close it'/'batten it down'/'why wouldnt you close it'（wh 枠は wont/cant のみ pin）。
+- **JA 非対象 (Session 316)**: '閉じぬこ'（まれな南方方言形）。
 
 ## 使い方（次のセッションへ）
 
