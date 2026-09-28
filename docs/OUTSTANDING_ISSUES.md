@@ -155,6 +155,10 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice '閉じてくださいよお' の長音残置が NO-MATCH~~
 - ~~voice '閉じてしまおうぞ/ね' のしまおう残置が NO-MATCH~~
 - ~~voice '閉じるのが任意だ/裁量だ/お任せだ' の裁量名詞尾が NO-MATCH~~
+- ~~voice '閉じておくのを忘れた' の忘れ報告が NO-MATCH（実行化）~~
+- ~~voice '閉じておくと良かった' のおくと良かった尾が NO-MATCH~~
+- ~~voice '閉じるのが礼式だ/義理だ' の礼式名詞尾が NO-MATCH~~
+- ~~voice 'id be honored|thrilled if youd' の形容詞条件枠が NO-MATCH~~
 - ~~voice 'if you could bring yourself to' の自己条件枠が NO-MATCH~~
 - ~~voice 'if youd be a dear/pal and' の条件呼びかけ枠が NO-MATCH~~
 - ~~voice '閉じておくのも手かも/ありかと' のおくのも残置が NO-MATCH~~
