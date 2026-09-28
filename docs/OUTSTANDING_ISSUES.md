@@ -149,6 +149,9 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice '閉じてゆくべき/ゆけばいい' のてゆく方言尾が NO-MATCH~~
 - ~~voice '閉じてしまったようです/ところです' の完了報告尾が NO-MATCH~~
 - ~~voice '閉じるのがワークフローだ/標準だ' の手順名詞尾が NO-MATCH~~
+- ~~voice '閉じておくが吉/みろう' のおく確定・みろ方言残置が NO-MATCH~~
+- ~~voice '閉じるのが秘策だ/隠し玉だ' の秘策名詞尾が NO-MATCH~~
+- ~~voice 'final answer/case closed' の評決枠が NO-MATCH~~
 - ~~voice '閉じてみるべし/くれんよ' のてみる・くれん残置が NO-MATCH~~
 - ~~voice '閉じるのが本命だ/最有力だ' の本命名詞尾が NO-MATCH~~
 - ~~voice '閉じてなって/とくべき' のてな・てとく残置が NO-MATCH~~
