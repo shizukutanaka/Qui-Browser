@@ -1720,8 +1720,14 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 306
+### Session 307
 
+- ✨ 英単語/重複語/識別子の typo 棚卸し（omakase + 'Typoむし' リクエスト）→ src/tests/docs/tools 全域で実害 0 件を確認。
+- ✨ JA: dict急所名詞尾XXVI（のが急所と提案します 等6形）→ 実行（もらえるかな/いただけるかな残置は既緑）。
+- ✨ EN CXVI: bare-adverb 前置リストに conceivably|probably|potentially 追加（possibly/perhaps/maybe と同スロット）→ 'do you think you could probably close it' 等 → 実行。
+- ✅ tests/probably-so-atoms.test.js +24（実装前9件赤確認）、計14099全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 306
 - ✨ JA: dict急所名詞尾XXV（のが急所と進言します 等6形）→ 実行（もらえないかな/いただけないかな残置は既緑）。
 - ✨ EN CXV: 'do you think you would|might be able to' 前置 → 実行。'do you imagine|dream|guess|believe you could' は疑問形→help（確立済み interrogative ピンで維持・実害なし確認）。
 - ✅ tests/think-able-atoms.test.js +27（実装前9件赤確認・誤期待1件を help ピンへ修正）、計14075全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
