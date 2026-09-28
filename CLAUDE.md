@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 257
+### Session 258
 
+- ✨ JA: てみるわ・てもろうて残置（みるわよ・みるわね・みたらどうかね・みたらどうかなあ・もろうてええか）・dict件名詞尾（のが件だ・件です・件につき・話だ・話です・お話だ）→ 実行。
+- ✨ EN LXVII: 'id be much obliged|in your debt|most grateful if youd'・'youd have my gratitude if youd'・'id thank you kindly|take it kindly if youd' 前置 → 実行。
+- ✅ tests/gratitude-if-atoms.test.js +25（実装前17件赤確認）、計12919全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 257
 - ✨ JA: てくださいゃ・てほしくて残置（くださいましょうか・くださいませね・くださいなし・ほしくてね・ほしくてな・ほしくてならないのです）・dict理名詞尾（のが理だ・理義だ・筋目だ・良識だ・判明だ）→ 実行。
 - ✨ EN LXVI: 'herewith'/'hereby'・'i hereby instruct/direct you to'・'i instruct/direct you to'・'i bid you' 前置 → 実行。
 - ✅ tests/hereby-atoms.test.js +25（実装前18件赤確認）、計12894全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
