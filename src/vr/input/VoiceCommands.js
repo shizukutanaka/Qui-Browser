@@ -1035,6 +1035,29 @@ export class VoiceCommands {
     push(normalized.replace(/るように言っといて[。！？!?]?$/u, 'て'));
     push(normalized.replace(/るように言っておいて[。！？!?]?$/u, 'て'));
     push(normalized.replace(/るべくして[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ることにしました[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る次第である[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る次第でして[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るようにします[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのを頼む[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのをお願い[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのを願います[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのをよろしく[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのをお願いします[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのお願いします[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るの頼みます[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのをたのむ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのを手伝って[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのを頼まれて[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのも一興[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/たい気もする[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る気もする[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/たほうがいい気もする[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのだぞ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るんだぞ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てくれるのよね[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てくれるよね[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るなり[。！？!?]?$/u, 'て'));
     push(normalized.replace(/(て|で)(?:あげて|あげ(?:る|ます)[ねよわか]?|くれる|くださる|くださいます)[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)(?:くれ|くださ)ちゃう[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)もら(?:う|える|った|います|えます|ってもいい|っていい)[。！？!?]?$/u, '$1'));
@@ -2612,6 +2635,8 @@ export class VoiceCommands {
         /べきか(?:どうか)?[。！？!?]?$/, /(?<!く)られるか?[。！？!?]?$/,
         /(?<!く|考え|見受け)られますか?[。！？!?]?$/,
         /(?:られ|れ)るのか[。！？!?]?$/, /(?<!く)られることができますか?[。！？!?]?$/, /(?<!く|おか)れますか[。！？!?]?$/,
+        '閉じたほうがいいかしら', '閉じるほうがいいかしら',
+        '閉じるのとどう思う', '閉じたらどうなるかしら',
         /^is it possible to/i,
         'どうすればいい', 'どうすれば', 'なんとかして',
         '使い方がわからない', '操作方法がわからない', 'やり方がわからない',
@@ -4749,6 +4774,16 @@ export class VoiceCommands {
         'close it for the love of', 'close it you hear',
         'close it i said', 'did i not say close it',
         'close it maybe', 'close it perhaps',
+        'its closed', 'it is closed', 'its done for', 'it is done',
+        'its over', 'it is over', 'its finished', 'it is finished',
+        'its dealt with', 'it is dealt with', 'its handled',
+        'it is handled', 'its sorted', 'it is sorted', 'its dead',
+        'it is dead', 'its toast', 'it is toast', 'its history',
+        'it is history', 'the tab is done', 'the tab is over',
+        'the tabs done', 'the tab has to go', 'the tab needs to go',
+        'the tabs got to go', 'tab needs to go', 'tab has to go',
+        'tabs got to go', 'close r up', 'close r down',
+        'close the thing', 'close that tab there',
         'should probably close it', 'might just close it',
         'could just close it', 'go right ahead close it',
         'deal with the tab', 'deal with this tab',
@@ -6666,6 +6701,9 @@ export class VoiceCommands {
         '閉じましたよね', '閉じましたよ', '閉じてくれましたか',
         '閉じてくれたよね', '閉じましたっけ', '閉じたんだっけ',
         '閉じられましたか', '閉じれましたか', '閉じてもらいましたか',
+        '閉じるとこだった', '閉じるとこでした', '閉じる寸前だった',
+        '閉じる寸前でした', '閉じそうだった', '閉じそうでした',
+        '閉じかけていた', '閉じかけた', '閉じかけてた',
 
         'ご覧になりますか', 'ご覧になります', 'ご覧になりたい', 'ご覧くださいました',
         'can you see this', 'can you see it', '開けっぱなし',
@@ -6936,6 +6974,7 @@ export class VoiceCommands {
     this.registerCommand('close-all-tabs', {
       patterns: ['close em', 'close em up', 'close em all', 'close em down', 'close em off',
         'shut em', 'shut em all', 'shut em down', 'shut em up',
+        'close m all', 'shut m all',
         'bin all the tabs', 'kill all the tabs', 'shut all the tabs', 'nuke the tabs',
         'nuke all the tabs', 'wipe all tabs', 'wipe all the tabs', 'clear all tabs', 'clear out the tabs', 'clean out the tabs', 'empty the tabs', 'purge the tabs', 'purge all tabs', 'purge all the tabs', 'purge them all', 'finish it all off', 'finish it all', 'finish them all off', 'close shop', 'shut shop', 'close the shop', 'shut the shop',
         'clear the tabs', 'clear all the tabs', 'close every single tab', 'close every tab',

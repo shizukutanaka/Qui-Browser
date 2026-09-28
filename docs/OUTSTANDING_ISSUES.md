@@ -1619,6 +1619,10 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - `閉じられてなかった/閉じられてない/閉じていなかった/閉じれてなかった/閉じれてない` — passive-potential 否定報告は R246 規則で null（訴え意図不明瞭）
 - `閉じずにいる(つもり)` — 本来 'ずにおく' negate 族だが `いる` で go-to 誤爆 → negate リテラルで吸収
 
+## R249 skip-list（Session 323）
+- `shut r down` — 'er 変種は曖昧のため null（'shut er down' は vr-exit 族ピン維持）
+- `close that there tab` — deictic-by-name 確立ルート踏襲
+
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。
