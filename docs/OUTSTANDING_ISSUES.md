@@ -202,6 +202,9 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice 'i would hate for you to close it' が未ルート（婉曲拒否）~~
 - ~~voice '閉じてくださったら幸いです' の kudasattara 残置が NO-MATCH~~
 - ~~voice '閉じるのが急所かと存じます' の急所名詞尾VIIIが NO-MATCH~~
+- ~~voice '閉じてくださいましたら嬉しいです' の kudasaimashitara 残置が NO-MATCH~~
+- ~~voice '閉じるのが急所なわけです' の急所名詞尾IXが NO-MATCH~~
+- ~~voice 'i would not mind|object if you closed it' の同意枠が NO-MATCH~~
 - ~~voice 'i would prefer|appreciate if you closed it' の希望枠が NO-MATCH~~
 - ~~voice 'i would love|like for it to be closed' の for-it 目的格が NO-MATCH~~
 - ~~voice '閉じるのが急所だと思うんです' の急所名詞尾VIIが NO-MATCH~~
