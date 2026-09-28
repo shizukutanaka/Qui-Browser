@@ -1720,8 +1720,14 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 287
+### Session 288
 
+- 🐛 意味修正: 'i would hate for you to close it'（婉曲拒否）を negate へ — 完全一致文字列では句中一致しないため `/i?['’]?d? ?(?:would )?hate for (?:you|ya) to/i` 正規表現で判定。
+- ✨ JA: ておきたいのです残置・dict急所名詞尾VII（のが急所だと思うんです）→ 実行。
+- ✨ EN XCVII: 'i would love for you to' 前置 + 'hate for it to stay open'・'love|like for it to be closed' スワップ → 実行。
+- ✅ tests/for-you-to-atoms.test.js +24（実装前7件赤確認）、計13640全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 287
 - ✨ JA: dict急所名詞尾VI（のが急所ごときだ/急所級だ/勘所級だ/要諦級だ/眼目級だ/狙い目級だ）→ 実行。
 - ✨ EN XCVI: 'i would be much|so|real|deeply|truly obliged if youd' 前置 → 実行（'i would be most obliged' は既ルート緑）。
 - ✅ tests/would-obliged-atoms.test.js +24（実装前11件赤確認）、計13616全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
