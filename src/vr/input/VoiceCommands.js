@@ -1362,6 +1362,34 @@ export class VoiceCommands {
     push(normalized.replace(/させていただきますね[。！？!?]?$/u, 'て'));
     push(normalized.replace(/させていただきますが[。！？!?]?$/u, 'て'));
     push(normalized.replace(/させていただき[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てくれますんでしょうか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ようかなあ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ようかなー[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ようかと思った[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ちゃおうかと[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ようかしらね[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ようかしらん[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ようかのう[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ようかの[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ようかねえ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てもらうのはどう[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てもらうのは[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てくれるのはどう[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てくれるのは[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのはどうかな[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのはいかが[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのはまずいかな[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのはまずい[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのはありかな[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのはありだよね[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのはあり[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのはどうだろう[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ちゃいますよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ちゃうかも[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ちゃったけどいいよね[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ちゃっていいかな[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ちゃっていいよな[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ちゃう方がいい[。！？!?]?$/u, 'て'));
     push(normalized.replace(/(て|で)(?:あげて|あげ(?:る|ます)[ねよわか]?|くれる|くださる|くださいます)[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)(?:くれ|くださ)ちゃう[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)もら(?:う|える|った|います|えます|ってもいい|っていい)[。！？!?]?$/u, '$1'));
@@ -5165,6 +5193,12 @@ export class VoiceCommands {
         'close it come hell or high water',
         'by hook or by crook close it', 'whatever it takes close it',
         'whatever you have to do close it', 'close it whatever it takes',
+        'i want it away', 'i want it off', 'i want it out',
+        'i need it gone already',
+        'just do it close it', 'do it close it', 'do the thing close it',
+        'make it happen close it', 'get it done close it',
+        'do what needs doing close it', 'make it so close it',
+        'you know what to do close it', 'close it like you mean it',
         'dont you think we should close it',
         'dont you think you should close it',
         '閉じてもらえそうな',
