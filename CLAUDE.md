@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 295
+### Session 296
 
+- ✨ JA: てくださるよう残置（お願いします/ようにお願いします）・dict急所名詞尾XV（のが急所と考え上げます 等6形）→ 実行。
+- ✨ EN CV: 'id be ever so happy|glad|delighted|pleased|willing|ready to' 前置 → 実行。
+- ✅ tests/ever-so-happy-atoms.test.js +24（実装前14件赤確認）、計13832全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 295
 - ✨ JA: dict急所名詞尾XIV（のが急所かと思い上げます 等6形）→ 実行。
 - ✨ EN CIV: 'id be only too happy|glad|delighted|pleased|willing|ready to' 前置 → 実行。
 - ✅ tests/id-only-too-atoms.test.js +24（実装前12件赤確認）、計13808全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
