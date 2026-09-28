@@ -200,6 +200,9 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice '閉じるのが急所べきだ' の急所名詞尾Vが NO-MATCH~~
 - ~~voice '閉じるのが急所級だ' の急所名詞尾VIが NO-MATCH~~
 - ~~voice 'i would hate for you to close it' が未ルート（婉曲拒否）~~
+- ~~voice '閉じてくださったら幸いです' の kudasattara 残置が NO-MATCH~~
+- ~~voice '閉じるのが急所かと存じます' の急所名詞尾VIIIが NO-MATCH~~
+- ~~voice 'i would prefer|appreciate if you closed it' の希望枠が NO-MATCH~~
 - ~~voice 'i would love|like for it to be closed' の for-it 目的格が NO-MATCH~~
 - ~~voice '閉じるのが急所だと思うんです' の急所名詞尾VIIが NO-MATCH~~
 - ~~voice 'i would be much|deeply obliged if youd' の obliged 変体IIが NO-MATCH~~

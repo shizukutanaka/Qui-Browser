@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 288
+### Session 289
 
+- ✨ JA: てくださったら残置（幸いです/助かります/と思います）・dict急所名詞尾VIII（のが急所かと存じます 等6形）→ 実行。
+- ✨ EN XCVIII: 'i would prefer|appreciate it if youd' 前置 + 'prefer|appreciate if|that you closed|close it' スワップ → 実行。
+- ✅ tests/prefer-appreciate-atoms.test.js +24（実装前15件赤確認）、計13664全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 288
 - 🐛 意味修正: 'i would hate for you to close it'（婉曲拒否）を negate へ — 完全一致文字列では句中一致しないため `/i?['’]?d? ?(?:would )?hate for (?:you|ya) to/i` 正規表現で判定。
 - ✨ JA: ておきたいのです残置・dict急所名詞尾VII（のが急所だと思うんです）→ 実行。
 - ✨ EN XCVII: 'i would love for you to' 前置 + 'hate for it to stay open'・'love|like for it to be closed' スワップ → 実行。
