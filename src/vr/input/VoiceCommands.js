@@ -1458,6 +1458,11 @@ export class VoiceCommands {
     push(normalized.replace(/てお願い(?:します(?:ぞ|ね|わ|よ|って)?|しとります|してんの|だから|だ|を)[。！？!?]?$/u, 'て'));
     push(normalized.replace(/てお頼み(?:します|申します)|てお願いさせてください|てくださいじゃ|てくださいまへんか[。！？!?]?$/u, 'て'));
     push(normalized.replace(/てしまいませ|てしまいだまれ|てしまいだめ|てもうていいよ|てもうてもええで|てみなはれ|てみてほしいよ|てみてくれんか|てみてもらいたい[。！？!?]?$/u, 'て'));
+    // pass CCXXI
+    push(normalized.replace(/て進ぜ(?:よう|ます)|て差し上げ(?:よう|ます)|てしかるべ(?:し|きだ|き)|て然るべき(?:だ)?[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てほしゅうございます|ておきなまし|てなまし|てやす(?:よ)?|てどす(?:え)?|ておし(?:てや)?|てやで|てやんす|てやんせ|てくれやんす|てくれは(?:ったら|れ|りな)|てはり(?:ますか|な)|てみはりな|てもらいは(?:る|れ)[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てほしな|てもらいたかねえ|てもらいますねん|てもらいなはれ|てもらっちゃ|てもらお(?:や|かな)[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てもらう(?:わい|ぞう|ぜよ|がや|みゃあ|ねん|す|っしょ|っちゃ|んやで|んやから|んじゃけえ|んだべ|んだな|んだべさ|っぺ(?:よ|な)?|ぺ|だっぺ|ぞな|ぞね|ぜい|さかい(?:に)?|のう|なあ|なー|なのう|ものをね|ものを|ものだが|ものね)[。！？!?]?$/u, 'て'));
     push(normalized.replace(/(て|で)(?:あげて|あげ(?:る|ます)[ねよわか]?|くれる|くださる|くださいます)[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)(?:くれ|くださ)ちゃう[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)もら(?:う|える|った|います|えます|ってもいい|っていい)[。！？!?]?$/u, '$1'));
@@ -5409,6 +5414,55 @@ export class VoiceCommands {
         'farewell cruel tab', 'close it if you know whats good for you',
         'close it godspeed', 'godspeed close it',
         'close that tab yonder',
+        // pass CCXXI: multilingual gratitude tails + immediacy II +
+        // question tags + vocatives III + JA negate misroute fixes
+        'close it thank you', 'close it ta', 'close it cheers',
+        'close it merci', 'close it danke', 'close it grazie',
+        'close it gracias', 'close it arigato', 'close it onegai',
+        'close it kudasai', 'close it svp', 'close it bitte',
+        'close it per favore', 'close it per piacere', 'close it prego',
+        'ta close it', 'merci close it', 'danke close it',
+        'gracias close it', 'arigato close it', 'onegai close it',
+        'close it thanks kindly',
+        'close it right this minute', 'close it this very minute',
+        'close it this very second', 'close it this very instant',
+        'close it without delay', 'close it with haste',
+        'close it expeditiously', 'close it swiftly',
+        'close it with alacrity', 'close it with dispatch',
+        'close it lickety', 'close it just now', 'close it anon',
+        'close it betimes', 'close it right', 'close it innit',
+        'eh close it', 'be a doll close it',
+        'close it padre', 'close it mama', 'close it papa',
+        'close it daddy', 'close it papi', 'close it sister',
+        'close it brother', 'close it cuz', 'close it cousin',
+        'close it unc', 'close it big man', 'close it big dawg',
+        'close it bossman', 'close it m lord', 'close it mlord',
+        'close it your majesty', 'close it your highness',
+        'close it o great one', 'close it o wise one',
+        'close it hot stuff', 'close it killer', 'close it tiger',
+        'close it slugger', 'close it soldier', 'close it trooper',
+        'close it cowboy', 'close it pardner', 'close it bucko',
+        'close it buckaroo', 'close it slick', 'close it shorty',
+        'close it dearie', 'close it deary', 'close it poppet',
+        'close it ducky', 'close it pet', 'close it flower',
+        'close it chuck', 'close it hen', 'close it hinny',
+        'close it petal', 'close it my darling', 'close it my dear',
+        'close it my friend', 'close it old friend', 'close it old chum',
+        'close it old bean', 'close it old sport', 'close it old boy',
+        'close it old man', 'close it old chap', 'close it old fruit',
+        'close it me old mate', 'close it me old china',
+        'close it bruv', 'close it bruvva', 'close it broski',
+        'close it broseph', 'close it brohan', 'close it bromigo',
+        'close it dudebro', 'close it guy', 'close it mister',
+        'close it mister man', 'close it sonny', 'close it sonny boy',
+        'close it kid', 'close it junior', 'close it rascal',
+        '閉じてくれますまいか', '閉じてほしいけんね', '閉じてもらうんぞ',
+        '閉じてくれまいか',
+        '閉じるが当然', '閉じるのが道理', '閉じるが至当',
+        '閉じるが定め', '閉じるが宿命', '閉じるが運命', '閉じるが天命',
+        '閉じるのが一興', '閉じるが一興', '閉じるも一興',
+        '閉じるのも風流', '閉じるが風流', '閉じるのが粋', '閉じるが粋',
+        '閉じるが美学', '閉じるのが美学', '閉じるが矜持', '閉じるのが矜持',
         '閉じてくれんねん', '閉じてお願いしますな', '閉じてくださいそうな',
         '閉じてもらうが筋だ', '閉じてくれるのが筋',
         '閉じてくれれば助かるのに', '閉じてくれればなあ',
