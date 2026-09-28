@@ -172,6 +172,9 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice '閉じてほしいものかな' の negate 誤ルート~~
 - ~~voice '閉じてくるべきだ' のくる方向尾が NO-MATCH~~
 - ~~voice '閉じるのが好機だ/旬だ' の好機名詞尾が NO-MATCH~~
+- ~~voice '閉じておくわけです' のおく断定尾が NO-MATCH~~
+- ~~voice '閉じるのが矜持だ/誇りだ' の矜持名詞尾が NO-MATCH~~
+- ~~voice 'id be indebted|eternally grateful if youd' の重感謝枠が NO-MATCH~~
 - ~~voice 'wed be grateful if youd' の複数感謝枠が NO-MATCH~~
 - ~~voice 'id really appreciate it if youd' の感謝依頼枠が NO-MATCH~~
 - ~~voice 'how say you|what do ya say we' の提案枠が NO-MATCH~~
