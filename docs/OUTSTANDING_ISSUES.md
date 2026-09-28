@@ -141,6 +141,9 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice 'bet/wager you cant close it' が trouble 誤ルート — 挑発枠を除外修正~~
 - ~~voice '閉じていくべきだ/くるべき' のていく・てくる方向尾が NO-MATCH~~
 - ~~voice 'turn out the lights on it' が brightness 誤ルート — 終了メタファを除外修正~~
+- ~~voice '閉じてごらんなさい/ご覧になって' のてごらん受益命令尾が NO-MATCH~~
+- ~~voice '閉じるのが理に適ってる/理屈だ' の妥当性名詞尾が NO-MATCH~~
+- ~~voice 'lets be done with it/write it off' の片付け枠が NO-MATCH~~
 - ~~voice '閉じてあるべきだ/おいたほうがいい' のてある・ておいた尾が NO-MATCH~~
 - ~~voice 'lets wrap this up and/put it to bed' の巻き締め枠が NO-MATCH~~
 - ~~voice '閉じてしまえって/てみろよ' のしまえ・みろ命令尾が NO-MATCH~~
