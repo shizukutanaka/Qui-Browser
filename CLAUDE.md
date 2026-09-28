@@ -1720,8 +1720,14 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 254
+### Session 255
 
+- 🐛 先食い: ENPRE 裸 `do`（filler語クラス）が 'do us both a favor and' を先食い → 長形を同行の `do` 前方に配置して最長一致。
+- ✨ JA: しまえば・てまえ残置（しまえばいいよ・しまえば良いではないか・しまったらどうですかね・てまえよ）・dict仕事名詞尾（のが済ませ物だ・仕事だ・用だ・用事だ・仕事です・頼みだ）→ 実行。
+- ✨ EN LXIV: 'do us both a favor and'・'grant/confer upon me the favor and' 前置 → 実行。
+- ✅ tests/do-us-both-atoms.test.js +25（実装前13件赤確認）、計12845全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 254
 - ✨ JA: ておくのだ・てくれるんじゃ残置（おくんだよ・おくのです・おくというのが・くれるんじゃないか・くれるんじゃないの）・dict処置名詞尾（のが措置だ・処置だ・処分だ・対処だ・処置です・処方だ）→ 実行。
 - ✨ EN LXIII: 'be a peach/sport' を vocative-beg 枠に併合 → 実行。
 - ✅ tests/be-a-peach-atoms.test.js +25（実装前13件赤確認）、計12820全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
