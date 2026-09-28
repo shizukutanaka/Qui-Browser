@@ -1553,6 +1553,14 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 
 ---
 
+## R239 (PR #525待ち) で意図スキップした残原子
+
+- **Speaker-dismissal**: 'scram/beat it/get lost/begone/vamoose/skedaddle/git gone/be gone' — 話者自身が立ち去る＝vr-exit 寄りだが、ターゲット曖昧で誤実行リスクのため unrouted 維持。
+- **閉じ意図不明瞭**: 'close off/shut off/shut out/cut that/stop the tab' — 電源/遮断/停止の混同域。
+- **苦情句**: 'sick of/tired of/fed up with/had enough of this tab' — 要望は非明示。
+- **JA 曖昧尾**: '閉じるなんて'（驚き/嫌悪）・'閉じるのが下策ではない'（二重否定の弱肯定）・'閉じておるのに/閉じとるし'（進行状態の報告）。
+- **ENPRE 空白**: 2トークン slang（'no cap'、'on god'、'on a stack'）は未登録 — 次ラウンド候補。
+
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。
