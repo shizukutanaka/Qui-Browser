@@ -1720,8 +1720,14 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 229
+### Session 230
 
+- ✨ てちょうだい俗残置: ちょうだいませんか → 実行（ね/よ/な/ませ/なさい は既存）。
+- ✨ dict手配/段取尾: 段取りで・手はずで・手配を頼む・段取りをとる・という段取り・のが筋だと考えます → 実行。
+- ✨ EN XXXIX: if you see fit/as you see fit・if you deem it appropriate|necessary・should you feel so inclined・if you are so inclined/of a mind to・if you feel up to it・at your pleasure 前置 → 実行。
+- ✅ tests/pleasure-inclination-atoms.test.js +37（実装前16件赤確認）、計12142全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 229
 - ✨ てしまう判定/決断尾: しまったほうがいいかと・しまうのがいいかもしれん・しまうのも手か・しまうことを勧める・しまうことにしようか/している → 実行（'てみるべきでは' はべきでは禁止ピン整合で negate 維持）。
 - ✨ てみる試行尾: みるのが良いのでは・みるという手もある・みることも視野・みるしかないじゃん・みたらいいんちゃう → 実行。
 - ✨ dict慣習/当然名詞尾: のが当然/常識/当たり前/自然/礼儀/お作法だ → 実行。
