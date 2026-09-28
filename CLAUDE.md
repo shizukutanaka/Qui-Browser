@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 249
+### Session 250
 
+- ✨ JA: てみる・てくれん残置（みればどう・みるといいよ・みるのが吉・みるべし・くれんな・くれんよ）・dict本命名詞尾（のが本命だ・大本命だ・本命視だ・第一候補だ・本命筋だ・最有力だ）→ 実行。
+- ℹ️ EN LIX 'why not/what say/how about' 提案枠は既ルートで全緑（変更なし）。
+- ✅ tests/frontrunner-atoms.test.js +26（実装前12件赤確認）、計12718全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 249
 - ✨ JA: てな・てとく残置（なって・なってば・なさいまし・なさるがよい・とくべき・といてある）・dict常套名詞尾（のが定番だ・お決まりだ・王道だ・正攻法だ・基本だ）→ 実行。
 - ✨ EN LVIII: 'if ever there was a time'・'theres no time like the present'・'strike while the iron is hot'・'carpe diem'・'seize the day' 前置 → 実行。
 - ✅ tests/carpe-diem-atoms.test.js +25（実装前18件赤確認）、計12692全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
