@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 301
+### Session 302
 
+- ✨ JA: てもらったら残置（幸いです/助かります/ありがたいです — いただきましたらは既緑）・dict急所名詞尾XXI（のが急所と考察します 等6形）→ 実行。
+- ✨ EN CXI: 'could you be so good|sweet|lovely|gracious|nice to' 前置 → 実行（'so kind to' は既ルート緑）。
+- ✅ tests/could-so-adj-atoms.test.js +24（実装前14件赤確認）、計13976全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 301
 - ✨ JA: dict急所名詞尾XX（のが急所と認識しています 等6形）→ 実行（もらえたら/もらえると残置は既ルート緑）。
 - ✨ EN CX: 'would you be so sweet|lovely|gracious|nice to' 前置 → 実行（'so kind|good to' は既ルート緑）。
 - ✅ tests/so-adj-to-atoms.test.js +24（実装前10件赤確認）、計13952全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
