@@ -1696,6 +1696,10 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 ## R271 skip-list（Session 345）
 - '閉じるのが正解だ'/'閉じるが正解だ' → スキップ（'閉じるのが正解'→help 確立ピンとの曖昧対；宣言形でも判定が分かれる）
 
+## R272 skip-list（Session 346）
+- 'close it why keep it'→negate 維持（'why keep it' は存続への反問で negate 収まり）
+- 'close it i repeat'→say-again 維持（'must i repeat close it' の repeat 確立ピンと整合）
+
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。
