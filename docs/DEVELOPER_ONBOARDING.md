@@ -31,6 +31,7 @@ This guide provides comprehensive onboarding materials for developers new to the
 Qui Browser VRは、**軽量で高性能なWebXRベースのVRブラウザ**です。
 
 **主な特徴:**
+
 - 🚀 **高速**: 90 FPS @ Meta Quest 3
 - 🪶 **軽量**: バンドルサイズ189 KB
 - ♿ **アクセシブル**: WCAG AAA準拠
@@ -137,6 +138,7 @@ npm install
 ```
 
 **インストールされる主な依存関係:**
+
 ```json
 {
   "dependencies": {
@@ -280,12 +282,14 @@ VRUISystem → Three.js Scene → WebXR → HMD
 #### 1. VRUISystem (630行)
 
 **責務:**
+
 - テキストレンダリング (font size計算)
 - テーマ管理 (default/dark/highContrast)
 - エルゴノミックUI (viewing zones)
 - パネル生成 (curved/flat)
 
 **主要メソッド:**
+
 ```javascript
 class VRUISystem {
   calculateFontSize(viewingDistance)  // 距離に応じたフォントサイズ
@@ -296,6 +300,7 @@ class VRUISystem {
 ```
 
 **使用例:**
+
 ```javascript
 const uiSystem = new VRUISystem();
 
@@ -318,6 +323,7 @@ uiSystem.applyTheme('dark');
 #### 2. VRInputSystem (680行)
 
 **責務:**
+
 - ジェスチャー認識 (pinch/swipe/grab)
 - ハンドトラッキング (21関節)
 - 視線入力 (dwell time)
@@ -325,6 +331,7 @@ uiSystem.applyTheme('dark');
 - 仮想キーボード
 
 **主要メソッド:**
+
 ```javascript
 class VRInputSystem {
   detectPinch(handData)              // ピンチ検出
@@ -335,6 +342,7 @@ class VRInputSystem {
 ```
 
 **使用例:**
+
 ```javascript
 const inputSystem = new VRInputSystem();
 
@@ -360,12 +368,14 @@ inputSystem.processVoiceCommand('次のタブ');
 #### 3. VRNavigationSystem (650行)
 
 **責務:**
+
 - タブ管理 (最大10タブ)
 - ブックマーク配置 (4レイアウト)
 - 空間ナビゲーション
 - 履歴管理
 
 **主要メソッド:**
+
 ```javascript
 class VRNavigationSystem {
   createTab(url, title)               // タブ作成
@@ -376,6 +386,7 @@ class VRNavigationSystem {
 ```
 
 **ブックマークレイアウト:**
+
 ```javascript
 // 1. Grid Layout (グリッド)
 navigationSystem.layoutBookmarks('grid');
@@ -397,12 +408,14 @@ navigationSystem.layoutBookmarks('wall');
 #### 4. VRMediaSystem (540行)
 
 **責務:**
+
 - 空間音響 (HRTF)
 - 360°/180°動画
 - WebGPU/WebGL2レンダリング
 - テクスチャキャッシュ (LRU)
 
 **主要メソッド:**
+
 ```javascript
 class VRMediaSystem {
   createSpatialSound(url, position)   // 空間音響作成
@@ -413,6 +426,7 @@ class VRMediaSystem {
 ```
 
 **使用例:**
+
 ```javascript
 const mediaSystem = new VRMediaSystem();
 
@@ -436,12 +450,14 @@ const renderer = await mediaSystem.initWebGPU();
 #### 5. VRSystemMonitor (470行)
 
 **責務:**
+
 - バッテリー監視
 - ネットワーク品質
 - 使用統計
 - システムヘルススコア
 
 **主要メソッド:**
+
 ```javascript
 class VRSystemMonitor {
   getBatteryLevel()                   // バッテリー残量
@@ -452,13 +468,14 @@ class VRSystemMonitor {
 ```
 
 **ヘルススコア計算:**
+
 ```javascript
 const monitor = new VRSystemMonitor();
 
 const score = monitor.calculateHealthScore({
-  fps: 90,                    // 現在のFPS
-  batteryLevel: 0.80,         // バッテリー残量
-  memoryUsage: 0.50,          // メモリ使用率
+  fps: 90, // 現在のFPS
+  batteryLevel: 0.8, // バッテリー残量
+  memoryUsage: 0.5, // メモリ使用率
   networkQuality: 'excellent' // ネットワーク品質
 });
 // → 100点満点でスコア計算
@@ -524,6 +541,7 @@ git push origin feature/add-new-gesture
 ```
 
 **Type:**
+
 - `feat`: 新機能
 - `fix`: バグ修正
 - `docs`: ドキュメント
@@ -533,6 +551,7 @@ git push origin feature/add-new-gesture
 - `chore`: ビルド・設定変更
 
 **例:**
+
 ```
 feat(navigation): add sphere bookmark layout
 
@@ -627,10 +646,12 @@ const message = `Tab ${tabId} created`;
 const message = 'Tab ' + tabId + ' created';
 
 // ✅ Good: 厳密等価
-if (value === null) { }
+if (value === null) {
+}
 
 // ❌ Bad: 緩い等価
-if (value == null) { }
+if (value == null) {
+}
 ```
 
 ### 🏗️ クラス設計
@@ -681,16 +702,13 @@ class VRGestureSystem {
       return null;
     }
 
-    const distance = this.calculateDistance(
-      handData.thumb,
-      handData.index
-    );
+    const distance = this.calculateDistance(handData.thumb, handData.index);
 
     if (distance < this.threshold) {
       return {
         detected: true,
         distance,
-        strength: 1 - (distance / this.threshold)
+        strength: 1 - distance / this.threshold
       };
     }
 
@@ -751,10 +769,10 @@ i++;
 
 ```javascript
 // Classes: PascalCase
-class VRInputSystem { }
+class VRInputSystem {}
 
 // Functions/Variables: camelCase
-const calculateDistance = () => { };
+const calculateDistance = () => {};
 const userName = 'Alice';
 
 // Constants: UPPER_SNAKE_CASE
@@ -763,8 +781,8 @@ const DEFAULT_FPS = 90;
 
 // Private members: _prefix
 class MyClass {
-  _privateMethod() { }
-  publicMethod() { }
+  _privateMethod() {}
+  publicMethod() {}
 }
 
 // Boolean: is/has/can prefix
@@ -841,8 +859,8 @@ describe('VRGestureSystem', () => {
 // Three.js Mock
 const mockThree = {
   Scene: class {
-    add() { }
-    remove() { }
+    add() {}
+    remove() {}
   },
   Mesh: class {
     constructor(geometry, material) {
@@ -870,7 +888,7 @@ global.navigator = {
     isSessionSupported: async (mode) => true,
     requestSession: async (mode, options) => ({
       requestAnimationFrame: (callback) => setTimeout(callback, 16),
-      end: async () => { }
+      end: async () => {}
     })
   }
 };
@@ -893,6 +911,7 @@ module.exports = {
 ```
 
 **現在のカバレッジ:**
+
 - ✅ unified-systems.test.js: 100% (64/64 tests)
 - ✅ vr-modules.test.js: 100% (21/21 tests)
 - 📊 Overall: 82.5% (85/103 tests)
@@ -913,6 +932,7 @@ module.exports = {
 ```
 
 **Remote Debugging:**
+
 ```javascript
 // コンソールログ
 console.info('VR System initialized');
@@ -981,10 +1001,9 @@ mesh.material.side = THREE.DoubleSide;
 
 ```javascript
 // デバッグコード
-navigator.xr.isSessionSupported('immersive-vr')
-  .then(supported => {
-    console.log('VR supported:', supported);
-  });
+navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
+  console.log('VR supported:', supported);
+});
 
 // 解決策
 // 1. HTTPS必須 (localhostは例外)
@@ -1065,15 +1084,15 @@ npm run lint:fix
 
 **A:** 機能別の編集場所:
 
-| 機能 | ファイル |
-|-----|---------|
-| UI関連 | `assets/js/vr-ui-system.js` |
-| 入力処理 | `assets/js/vr-input-system.js` |
-| ナビゲーション | `assets/js/vr-navigation-system.js` |
-| メディア | `assets/js/vr-media-system.js` |
-| 監視 | `assets/js/vr-system-monitor.js` |
+| 機能           | ファイル                                  |
+| -------------- | ----------------------------------------- |
+| UI関連         | `assets/js/vr-ui-system.js`               |
+| 入力処理       | `assets/js/vr-input-system.js`            |
+| ナビゲーション | `assets/js/vr-navigation-system.js`       |
+| メディア       | `assets/js/vr-media-system.js`            |
+| 監視           | `assets/js/vr-system-monitor.js`          |
 | パフォーマンス | `assets/js/unified-performance-system.js` |
-| セキュリティ | `assets/js/unified-security-system.js` |
+| セキュリティ   | `assets/js/unified-security-system.js`    |
 
 ### Q3: ビルドが遅い
 

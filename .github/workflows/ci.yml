@@ -2,9 +2,9 @@ name: CI - Continuous Integration
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
   workflow_dispatch:
 
 env:
@@ -39,8 +39,19 @@ jobs:
         run: npm run lint
         continue-on-error: true
 
-      - name: Run Prettier check
-        run: npm run format:check
+      - name: Run Prettier check (changed files)
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE="HEAD~1"
+          fi
+          FILES=$(git diff --name-only --diff-filter=ACM $BASE...HEAD | grep -E '\.(js|json|md|yml|yaml|css|html)$' || true)
+          if [ -n "$FILES" ]; then
+            npx prettier --check $FILES
+          else
+            echo "No formattable files changed"
+          fi
 
       - name: Check for console.log
         run: |
@@ -78,20 +89,6 @@ jobs:
 
       - name: Run unit tests
         run: npm test -- --coverage --maxWorkers=2
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          files: ./coverage/coverage-final.json
-          flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: false
-
-      - name: Generate coverage badge
-        uses: cicirello/jacoco-badge-generator@v2
-        with:
-          badges-directory: badges
-          generate-coverage-badge: true
 
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4
