@@ -1719,6 +1719,8 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - R277 pin: 'begone tab'→null（vault CXCIX 確立）・'tab begone'→close-tab。
 - R277 pin: '閉じるんだった'→close-tab（residual-register-atoms の should-have execute 確立 — trouble ではない）。
 
+- R278 pin: 'pack it in'/'call it quits'/'quit it'→stop-everything、'leave it for dead'→negate — close 系と誤認しやすいので注意。
+
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。
