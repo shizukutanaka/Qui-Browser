@@ -1473,6 +1473,8 @@ export class VoiceCommands {
     push(normalized.replace(/てくれりゃ(?:嬉しい|助かる|ありがてえ|万々歳|最高|文句なし|言うことなし)|てくれたなら(?:嬉しい|助かる|幸い)|てもらったなら(?:嬉しい|助かる)|るのだまし[。！？!?]?$/u, 'て'));
     // ちゃう+地域粒子
     push(normalized.replace(/ちゃう(?:がええ|がいい|べし|が吉|ぞよ|がな|わい|ぞう|ぜよ|けん|ばい|のう|さかい|だべ|っぺ|にゃあ|みゃあ|っちゃ|んや|ぞな|ぞね|なあ|のん|がや|だがや|だら|じゃん|っす|す|っしょ|だって|がす|てや)[。！？!?]?$/u, 'て'));
+    // pass CCXXIV
+    push(normalized.replace(/てくださいそうろう|てくださいせ|てくだされませ|てほしゅう(?:ございますね|ね)|てはり|てすん(?:な)?|てじゃん|てじゃわ|てきざい|てながら|てえんか|てやがら|てがも|てけ[ぇえのさ]|てくん(?:ない|なよ)|てなんね|てあれよ|てもろう(?:て)?|てもろて(?:もええ|な)|てもろたらええ|てなー|てなら(?:ーん|んか)|てくりゃ(?:れ|あ)|てくれんのね|ておいとき|ておいてー|てちょき|ておくべきでしょう|ておいた方がよろしい|ちゃっといて|といてよ[。！？!?]?$/u, 'て'));
     push(normalized.replace(/(て|で)(?:あげて|あげ(?:る|ます)[ねよわか]?|くれる|くださる|くださいます)[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)(?:くれ|くださ)ちゃう[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)もら(?:う|える|った|います|えます|ってもいい|っていい)[。！？!?]?$/u, '$1'));
@@ -5563,6 +5565,29 @@ export class VoiceCommands {
         '閉じるのが一興', '閉じるが一興', '閉じるも一興',
         '閉じるのも風流', '閉じるが風流', '閉じるのが粋', '閉じるが粋',
         '閉じるが美学', '閉じるのが美学', '閉じるが矜持', '閉じるのが矜持',
+        // pass CCXXIV: politeness tags II + conditionals + temporal + sake
+        'close it if you will', 'close it will you',
+        'close it wont you', 'close it would you', 'close it shall we',
+        'close it might you', 'close it may you', 'close it dare you',
+        'close it must you', 'close it if needed', 'close it if necessary',
+        'close it if required', 'close it as needed', 'close it at will',
+        'close it as you see fit', 'close it as you wish',
+        'close it whenever you like', 'close it at leisure',
+        'close it at convenience', 'close it sometime soon',
+        'close it afterwards', 'close it then', 'close it next',
+        'close it after this', 'close it after reading',
+        'close it once read', 'close it before bed', 'close it tonight',
+        'close it today', 'close it for now', 'close it for today',
+        'close it for good measure', 'close it to be sure',
+        'close it to be safe', 'close it for safety', 'close it for them',
+        'close it for everyone', 'close it as a favor',
+        'close it one last time', 'close it one final time',
+        'close it out of kindness', 'close it out of pity',
+        'close it for the love', 'close it for the sake',
+        'close it for your own good', 'close it for its own good',
+        'close it for the best', 'close it for better',
+        'close it for worse', 'close it all around',
+        'close it for everyone concerned',
         // pass CCXXIII: 名目評価名詞II (duty/policy/virtue/aesthetics/flow/conclusion)
         '閉じるのが作法', '閉じるが作法', '閉じるのが礼儀', '閉じるが礼儀',
         '閉じるのがマナー', '閉じるがマナー', '閉じるのがエチケット',
@@ -5624,6 +5649,20 @@ export class VoiceCommands {
         '閉じてもらえねえものか', '閉じていただけねえものか',
         '閉じないではおれない', '閉じないではいられない',
         '閉じるほかなかろう', '閉じるに限ろう',
+        // pass CCXXIV: 方言命令II + 評価名詞III + 宣言形
+        '閉じいん', '閉じんよ', '閉じんや', '閉じやい', '閉じんすい',
+        '閉じんせい', '閉じんど', '閉じんなってば', '閉じんちゃ',
+        '閉じろや', '閉じろったら', '閉じろったって',
+        '閉じたげて', '閉じたげてよ', '閉じたげるわ',
+        '閉じてあげればいいのに', '閉じてくれればありがたい',
+        '閉じるのが懸命', '閉じるが懸命', '閉じた方が懸命',
+        '閉じるのが利口', '閉じるが利口', '閉じるのが得策', '閉じるが得策',
+        '閉じるのが賢明かも', '閉じるのが道理', '閉じるが道理',
+        '閉じるのが常道', '閉じるのが当然の帰結', '閉じるが早い',
+        '閉じるのが早い話', '閉じるのが結局', '閉じるのが結局のところ',
+        '閉じるべきところ', '閉じるのでいいです', '閉じるが宜しい',
+        '閉じることに相違ない', '閉じるに相違ない', '閉じるのでございます',
+        '閉じるとするか', '閉じることとする', '閉じちゃおうかなあ',
         '閉じてくれんねん', '閉じてお願いしますな', '閉じてくださいそうな',
         '閉じてもらうが筋だ', '閉じてくれるのが筋',
         '閉じてくれれば助かるのに', '閉じてくれればなあ',
@@ -10125,6 +10164,8 @@ export class VoiceCommands {
         'close it that was a joke', 'close it just kidding',
         'scratch that close it', 'that was a joke close it',
         'just kidding close it', '閉じるなよ絶対', '閉じるまいと思った', '閉じるべからず', '閉じるべからざるなり',
+        '閉じてはいけない', '閉じてはいけません', '閉じるなんてもってのほか',
+        '閉じたらだめ', '閉じてはだめです', '閉じてはあかん',
         '閉じなくて済む', '閉じなくて済むよ', '閉じなくて済むわ',
         '閉じなくてええ', '閉じなくていーよ', '閉じる必要なし',
         '閉じる意味なし', '閉じる意味がない', '閉じる甲斐なし',
