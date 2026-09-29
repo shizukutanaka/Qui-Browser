@@ -1727,6 +1727,8 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 
 - R281 skip: 'call the tab off' は device-apps（'call'=電話 alias、登録順 ~3892 < close ~5609）が先勝ち — close literal 追加は無効。裸 'spent'/'used up'/'old news' はタブ参照なし曖昧で null 維持。
 
+- R282 skip: 'go pound sand' は go-to（/go / 先頭一致・登録順 go-to < negate）が先勝ち — negate literal 追加無効、拒絶意図だが navigate 誤ルート継続。'into next week'/'kick it into next week' は date ピン維持（時間読み）。
+
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。
