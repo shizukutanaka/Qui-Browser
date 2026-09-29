@@ -1463,6 +1463,11 @@ export class VoiceCommands {
     push(normalized.replace(/てほしゅうございます|ておきなまし|てなまし|てやす(?:よ)?|てどす(?:え)?|ておし(?:てや)?|てやで|てやんす|てやんせ|てくれやんす|てくれは(?:ったら|れ|りな)|てはり(?:ますか|な)|てみはりな|てもらいは(?:る|れ)[。！？!?]?$/u, 'て'));
     push(normalized.replace(/てほしな|てもらいたかねえ|てもらいますねん|てもらいなはれ|てもらっちゃ|てもらお(?:や|かな)[。！？!?]?$/u, 'て'));
     push(normalized.replace(/てもらう(?:わい|ぞう|ぜよ|がや|みゃあ|ねん|す|っしょ|っちゃ|んやで|んやから|んじゃけえ|んだべ|んだな|んだべさ|っぺ(?:よ|な)?|ぺ|だっぺ|ぞな|ぞね|ぜい|さかい(?:に)?|のう|なあ|なー|なのう|ものをね|ものを|ものだが|ものね)[。！？!?]?$/u, 'て'));
+    // pass CCXXII: て+方言単助詞粒子
+    push(normalized.replace(/て(?:せ|ず|ぬ|ぺ|す|ぐ|ら|やねん|やね|で|じゃあ|じゃけえ|じゃけ|じゃ|けえ|ちゃ|みゃあ|みゃ|にゃあ|にゃ|ぎゃ|ずら|っちゃ|けん|ばい|たい|とよ|とて|と|ごとね|ごと|わいな|わい|さかいに|さかい|のう|ぞな|ぞね|ぜい|ぞい|だべ|だっぺ|っぺ|がす|んじゃあ|じゃろう|じゃろ|にょ|んかい|んのかい|なの|のお|ぬか|まろ|ぞぉ|ぜぇ|わー|さー|ー)[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てて(?:や)?[。！？!?]?$/u, 'て'));
+    // ちゃう+地域粒子
+    push(normalized.replace(/ちゃう(?:がええ|がいい|べし|が吉|ぞよ|がな|わい|ぞう|ぜよ|けん|ばい|のう|さかい|だべ|っぺ|にゃあ|みゃあ|っちゃ|んや|ぞな|ぞね|なあ|のん|がや|だがや|だら|じゃん|っす|す|っしょ|だって|がす|てや)[。！？!?]?$/u, 'て'));
     push(normalized.replace(/(て|で)(?:あげて|あげ(?:る|ます)[ねよわか]?|くれる|くださる|くださいます)[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)(?:くれ|くださ)ちゃう[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)もら(?:う|える|った|います|えます|ってもいい|っていい)[。！？!?]?$/u, '$1'));
@@ -5457,6 +5462,56 @@ export class VoiceCommands {
         'close it mister man', 'close it sonny', 'close it sonny boy',
         'close it kid', 'close it junior', 'close it rascal',
         '閉じてくれますまいか', '閉じてほしいけんね', '閉じてもらうんぞ',
+        // pass CCXXII: vocatives IV (military/meta/media/mock) + JA negate fixes
+        'close it commander', 'close it general', 'close it admiral',
+        'close it colonel', 'close it sarge', 'close it sergeant',
+        'close it private', 'close it lieutenant', 'close it major',
+        'close it cadet', 'close it ensign', 'close it number one',
+        'close it doc', 'close it professor', 'close it coach',
+        'close it sire', 'close it siree', 'close it milady',
+        'close it mademoiselle', 'close it senor', 'close it senora',
+        'close it senorita', 'close it monsieur', 'close it mon ami',
+        'close it signor', 'close it signore', 'close it mi amigo',
+        'close it hermano', 'close it hermana', 'close it primo',
+        'close it vato', 'close it ese', 'close it carnal',
+        'close it brotha', 'close it sista', 'close it team',
+        'close it squad', 'close it robot', 'close it computer',
+        'close it machine', 'close it device', 'close it browser',
+        'close it system', 'close it ai', 'close it assistant',
+        'close it jarvis', 'close it hal', 'close it rookie',
+        'close it newbie', 'close it noob', 'close it pro',
+        'close it wizard', 'close it merlin', 'close it gandalf',
+        'close it padawan', 'close it young padawan', 'close it jedi',
+        'close it master', 'close it grasshopper', 'close it student',
+        'close it my son', 'close it child', 'close it baby',
+        'close it babe', 'close it doll', 'close it dollface',
+        'close it sweet pea', 'close it cutie', 'close it cutie pie',
+        'close it gorgeous', 'close it beautiful', 'close it handsome',
+        'close it lovely', 'close it luv', 'close it lovey',
+        'close it lamb', 'close it angel', 'close it precious',
+        'close it sugar', 'close it sugar plum', 'close it honeybun',
+        'close it honey bunny', 'close it honey pie', 'close it snookums',
+        'close it boo', 'close it bae', 'close it girl', 'close it boy',
+        'close it young man', 'close it young lady', 'close it youngster',
+        'close it whippersnapper', 'close it scallywag',
+        'close it rapscallion', 'close it scoundrel', 'close it knave',
+        'close it rogue', 'close it mortal', 'close it human',
+        'close it earthling', 'close it mere mortal', 'close it peasant',
+        'close it fool', 'close it buffoon', 'close it jester',
+        'close it clown', 'close it wiseacre', 'close it smart aleck',
+        'close it smarty pants', 'close it smarty', 'close it know it all',
+        'close it brain', 'close it brainiac', 'close it whiz',
+        'close it whiz kid', 'close it ace', 'close it star',
+        'close it superstar', 'close it mvp', 'close it goat',
+        'close it legend', 'close it hero', 'close it winner',
+        'close it genius', 'close it einstein', 'close it smart guy',
+        'close it wise guy', 'close it tough guy', 'close it big shot',
+        'close it hotshot', 'close it ninja', 'close it gangsta',
+        'close it gangster', 'close it playa', 'close it player',
+        'close it homeboy', 'close it homegirl', 'close it home slice',
+        'close it homeslice', 'close it dog', 'close it my good man',
+        'close it friendo',
+        '閉じてけんね', '閉じちゃうんぞ',
         '閉じてくれまいか',
         '閉じるが当然', '閉じるのが道理', '閉じるが至当',
         '閉じるが定め', '閉じるが宿命', '閉じるが運命', '閉じるが天命',
