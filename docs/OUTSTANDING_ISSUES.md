@@ -1709,6 +1709,9 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - R274 skip: '閉じてるのに' → describe — 「閉じたのに（まだ残ってる）」系の不満は別解釈余地、進行報告として登録済み。
 - R274 skip: 'closing time|last call|final boarding' → close-tab — ジョーク系だが閉鎖意図として受理（ドキュメント済み）。
 
+- R275 skip: bare 'oblige me'/'the needful'/'im asking (you) nicely'/'onegai (shimasu)' → null — 動詞・対象なし依頼、close-tab に倒すには曖昧すぎ。'oblige me by closing it' / 'do the needful' は close-tab 登録済み。
+- R275 skip: 'do me a solid' → help 既存ピン（対象なし favor）維持。
+
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。
