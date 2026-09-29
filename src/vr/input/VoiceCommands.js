@@ -1477,6 +1477,9 @@ export class VoiceCommands {
     push(normalized.replace(/てくださいそうろう|てくださいせ|てくだされませ|てほしゅう(?:ございますね|ね)|てはり|てすん(?:な)?|てじゃん|てじゃわ|てきざい|てながら|てえんか|てやがら|てがも|てけ[ぇえのさ]|てくん(?:ない|なよ)|てなんね|てあれよ|てもろう(?:て)?|てもろて(?:もええ|な)|てもろたらええ|てなー|てなら(?:ーん|んか)|てくりゃ(?:れ|あ)|てくれんのね|ておいとき|ておいてー|てちょき|ておくべきでしょう|ておいた方がよろしい|ちゃっといて|といてよ[。！？!?]?$/u, 'て'));
     // pass CCXXVI
     push(normalized.replace(/てクレメンス|てくれめんす|てくんろ|てはんな|てみや|てけれ|てしぇ|てねん|てしょー?|てなんしょ|てやれよ|てくれや[でな]|てくれなはれ|てくれまへん(?:やろか|かね)|てもらわんと(?:困る)?|てくれりゃあええ|てええ(?:んで|やん|わ|かも)|ておいてええ|といといて|ときゃいいんだ[。！？!?]?$/u, 'て'));
+    // pass CCXXVII
+    push(normalized.replace(/てもらおうと|てもらうとかして[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ることにした(?:よ|んだ)$/u, 'て'));
     push(normalized.replace(/(て|で)(?:あげて|あげ(?:る|ます)[ねよわか]?|くれる|くださる|くださいます)[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)(?:くれ|くださ)ちゃう[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)もら(?:う|える|った|います|えます|ってもいい|っていい)[。！？!?]?$/u, '$1'));
@@ -3034,6 +3037,7 @@ export class VoiceCommands {
     // commands available" with no list defeats the purpose of a help command.
     this.registerCommand('help', {
       patterns: ['ヘルプ', '助けて', '使い方', '何ができる',
+        '閉じるべきなんかな', '閉じるべきなのかな', '閉じるべきなのか',
         'どうすりゃいい', 'どうすんの', 'どうするんだ', 'どうするつもり',
         'どうするのか', 'どうします', 'どうしましょう', 'どうしろって',
         'わからなくなった', 'もうわからない', '全然わからない', 'さっぱりわからない',
@@ -3484,6 +3488,10 @@ export class VoiceCommands {
         '閉じられるはずだった', '閉じられるはずなのに', '閉じられるはず',
         '閉じないのかしら', '閉じれないのかしら', '閉じないわけか',
         '閉じないのかなって', '閉じる約束だった', '閉じる約束なのに',
+        'you still havent closed it', 'you havent closed it yet',
+        'you never closed it', 'you forgot to close it',
+        'you didnt close it', 'you wouldnt close it',
+        '閉じてないよ',
         '閉じてすらいない', '閉じてさえいない', '閉じてもいない',
         '閉じてすらない', '閉じてはいない', '閉じてはない',
         '閉じてなんていない',
@@ -5567,6 +5575,16 @@ export class VoiceCommands {
         '閉じるのが一興', '閉じるが一興', '閉じるも一興',
         '閉じるのも風流', '閉じるが風流', '閉じるのが粋', '閉じるが粋',
         '閉じるが美学', '閉じるのが美学', '閉じるが矜持', '閉じるのが矜持',
+        // pass CCXXVII: reliance/relative-clause + slam-verbs + reproaches
+        'im counting on you', 'im relying on you', 'im depending on you',
+        'the tab i want closed', 'the tab i asked you to close',
+        'the tab i told you about', 'the one i want gone',
+        'the tab we talked about', 'the tab i was on',
+        'the tab i just had',
+        'shut it tight', 'close it tight', 'slam it closed',
+        'bang it shut', 'click it shut', 'flick it closed',
+        'nail it shut', 'seal it tight',
+        'are you gonna close it',
         // pass CCXXVI: speed/resignation + reason tails + reference prefixes
         'close it in a bit', 'close it super quick',
         'close it lightning fast', 'close it im done with it',
@@ -5748,6 +5766,14 @@ export class VoiceCommands {
         '閉じるじゃろ', '閉じるんよ', '閉じるのん', '閉じるだっぺ',
         '閉じるんだな', '閉じるなの', '閉じるにぇ', '閉じるさぁ',
         '閉じるさあ', '閉じるさー', '閉じるよぉ', '閉じるよお',
+        // pass CCXXVII: negate-fix + decision/verdict declaratives II + accident variants
+        '閉じてくださいまへん', '閉じてくれないんだ',
+        '閉じるつもりなんだが', '閉じることになる',
+        '閉じることになりそう', '閉じることになりました',
+        '閉じることに決まり', '閉じることに決まりました',
+        '閉じるのは決まり', '閉じるのは決まりました',
+        '閉じるしかなさそ', '閉じるしかなさそう',
+        '閉じるべきかもね',
         '閉じてくれんねん', '閉じてお願いしますな', '閉じてくださいそうな',
         '閉じてもらうが筋だ', '閉じてくれるのが筋',
         '閉じてくれれば助かるのに', '閉じてくれればなあ',
@@ -5932,7 +5958,8 @@ export class VoiceCommands {
 
         '消えたよ', '消えたんだけど', '消えちゃいました', '閉じちゃいました',
         '閉じちゃったから', '閉じてしまいましたから', '閉じてしまったから',
-        '閉じてしまったので',
+        '閉じてしまったので', '閉じられちゃった', '閉じられてしまった',
+        '閉じてしまいましたが',
         '閉じちゃいましたから', '閉じてしまいましたんで',
         '閉じられたんだ', '閉じちゃうんだ',
         /(?:誤って|うっかり|間違えて|間違って|ミスって)[ぁ-んァ-ヶ一-龠]*(?:閉じ|消え|消し)/,
@@ -7679,6 +7706,8 @@ export class VoiceCommands {
     // load state, privacy and pin flags in one line.
     this.registerCommand('describe-tab', {
       patterns: ['まだ開いてる?', 'まだ開いてる', 'まだあいてる', 'このページ見せて', 'このページ見て', 'ページの内容教えて', '閉じる寸前', '閉じるところです', 'このタブについて', 'このタブは', 'タブの状態', 'ページ情報',
+        '閉じてもらったよ', '閉じてもらったんだ', '閉じてくれた',
+        '閉じてくれたよ', '閉じてくれたんだ', '閉じてくれてありがとう',
         'このページについて', 'ページについて', 'ページについて教えて',
         'どのタブか忘れた', 'どのタブだっけ', 'どのタブを見てる', '今どのタブ',
         'このページの情報', 'サイト情報', 'このサイトの情報',

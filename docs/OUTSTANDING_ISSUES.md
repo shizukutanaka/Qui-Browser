@@ -1700,6 +1700,10 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - 'close it why keep it'→negate 維持（'why keep it' は存続への反問で negate 収まり）
 - 'close it i repeat'→say-again 維持（'must i repeat close it' の repeat 確立ピンと整合）
 
+## R273 skip-list（Session 347）
+- '閉じてない' → null 維持（平叙ステータス報告、describe/negate と曖昧 — 確立ピン）
+- '閉じてもらった'（裸形）→ close-tab 維持（受益過去形は variant 'て' で close；報告系は語尾付きのみ describe へ）
+
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。
