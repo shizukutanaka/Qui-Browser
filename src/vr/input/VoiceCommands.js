@@ -1480,6 +1480,8 @@ export class VoiceCommands {
     // pass CCXXVII
     push(normalized.replace(/てもらおうと|てもらうとかして[。！？!?]?$/u, 'て'));
     push(normalized.replace(/ることにした(?:よ|んだ)$/u, 'て'));
+    // pass CCXXVIII
+    push(normalized.replace(/ちゃえば|ちゃったら|といたれ|ときやれ|とけや|てみよ|てみようぜ|てぷりーず|てもん[。！？!?]?$/u, 'て'));
     push(normalized.replace(/(て|で)(?:あげて|あげ(?:る|ます)[ねよわか]?|くれる|くださる|くださいます)[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)(?:くれ|くださ)ちゃう[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)もら(?:う|える|った|います|えます|ってもいい|っていい)[。！？!?]?$/u, '$1'));
@@ -3489,6 +3491,8 @@ export class VoiceCommands {
         '閉じないのかしら', '閉じれないのかしら', '閉じないわけか',
         '閉じないのかなって', '閉じる約束だった', '閉じる約束なのに',
         'you still havent closed it', 'you havent closed it yet',
+        '閉じてんのに', '閉じてるはずなのに', '閉じてへんねん',
+        '閉じてへんやん', '閉じてへんで', '閉じらんない',
         'you never closed it', 'you forgot to close it',
         'you didnt close it', 'you wouldnt close it',
         '閉じてないよ',
@@ -5575,6 +5579,29 @@ export class VoiceCommands {
         '閉じるのが一興', '閉じるが一興', '閉じるも一興',
         '閉じるのも風流', '閉じるが風流', '閉じるのが粋', '閉じるが粋',
         '閉じるが美学', '閉じるのが美学', '閉じるが矜持', '閉じるのが矜持',
+        // pass CCXXVIII: gerunds/disposal + deixis + tag tails + op frames
+        'closing it', 'closing the tab', 'closing this one',
+        'shutting it', 'shutting this', 'getting rid of it',
+        'getting rid of this', 'dumping it', 'ditching it',
+        'axing it', 'binning it', 'scrapping it', 'tossing it',
+        'chucking it', 'junking it', 'trashing it', 'zapping it',
+        'nuking it', 'that tabs gotta go', 'that one goes',
+        'this ones done', 'this tabs over', 'that page is done',
+        'this ones finished', 'its a goner', 'this ones a goner',
+        'dead tab', 'dead page', 'gone page', 'tab down',
+        'tab out', 'tab away', 'tab gone', 'tab off', 'tab shut',
+        'tab closed', 'close the other one', 'close this one here',
+        'close it will ya', 'close it would ya', 'close it why dontcha',
+        'close it wontcha', 'close it couldya', 'close it wouldja',
+        'close it pleaseplease', 'close it yeah', 'close it yep',
+        'you were gonna close it', 'you said youd close it',
+        'you promised', 'you said you would', 'you told me youd close it',
+        'make with the closing', 'commence closing', 'begin closing',
+        'proceed to close it', 'go ahead with the close',
+        'initiate close', 'execute close', 'perform the close',
+        'operation close tab', 'mission close tab', 'task close it',
+        'closing time', 'closing hour', 'its closing time',
+        'last call', 'final boarding',
         // pass CCXXVII: reliance/relative-clause + slam-verbs + reproaches
         'im counting on you', 'im relying on you', 'im depending on you',
         'the tab i want closed', 'the tab i asked you to close',
@@ -5774,6 +5801,8 @@ export class VoiceCommands {
         '閉じるのは決まり', '閉じるのは決まりました',
         '閉じるしかなさそ', '閉じるしかなさそう',
         '閉じるべきかもね',
+        // pass CCXXVIII: stem imperatives IV + misc
+        '閉じなんぜ', '閉じなんぜよ', '閉じましゅ', '閉じてんや', '閉じてみようぜ',
         '閉じてくれんねん', '閉じてお願いしますな', '閉じてくださいそうな',
         '閉じてもらうが筋だ', '閉じてくれるのが筋',
         '閉じてくれれば助かるのに', '閉じてくれればなあ',
@@ -7708,6 +7737,17 @@ export class VoiceCommands {
       patterns: ['まだ開いてる?', 'まだ開いてる', 'まだあいてる', 'このページ見せて', 'このページ見て', 'ページの内容教えて', '閉じる寸前', '閉じるところです', 'このタブについて', 'このタブは', 'タブの状態', 'ページ情報',
         '閉じてもらったよ', '閉じてもらったんだ', '閉じてくれた',
         '閉じてくれたよ', '閉じてくれたんだ', '閉じてくれてありがとう',
+        '閉じてるのに', '閉じてるから', '閉じてるんで', '閉じてるんだ',
+        '閉じてるんだが', '閉じてるんだよ', '閉じてるのよ',
+        '閉じてるのね', '閉じてるのさ', '閉じてるわよ', '閉じてるし',
+        '閉じてるって', '閉じてるからね', '閉じてるもん',
+        '閉じてるもんね', '閉じてるじゃん', '閉じてるじゃんね',
+        '閉じてるんだっけ', '閉じてるっけ', '閉じてるかも',
+        '閉じてるかもね', '閉じてるのか', '閉じてるの',
+        '閉じとるで', '閉じよるよ', '閉じよるわ', '閉じよるね',
+        '閉じちょるで', '閉じとう', '閉じとうよ', '閉じとうぜ',
+        '閉じとうね', '閉じとんねん', '閉じてんねん',
+        '閉じてんねんけど', '閉じてんねんで', '閉じられてる',
         'このページについて', 'ページについて', 'ページについて教えて',
         'どのタブか忘れた', 'どのタブだっけ', 'どのタブを見てる', '今どのタブ',
         'このページの情報', 'サイト情報', 'このサイトの情報',
