@@ -1475,6 +1475,8 @@ export class VoiceCommands {
     push(normalized.replace(/ちゃう(?:がええ|がいい|べし|が吉|ぞよ|がな|わい|ぞう|ぜよ|けん|ばい|のう|さかい|だべ|っぺ|にゃあ|みゃあ|っちゃ|んや|ぞな|ぞね|なあ|のん|がや|だがや|だら|じゃん|っす|す|っしょ|だって|がす|てや)[。！？!?]?$/u, 'て'));
     // pass CCXXIV
     push(normalized.replace(/てくださいそうろう|てくださいせ|てくだされませ|てほしゅう(?:ございますね|ね)|てはり|てすん(?:な)?|てじゃん|てじゃわ|てきざい|てながら|てえんか|てやがら|てがも|てけ[ぇえのさ]|てくん(?:ない|なよ)|てなんね|てあれよ|てもろう(?:て)?|てもろて(?:もええ|な)|てもろたらええ|てなー|てなら(?:ーん|んか)|てくりゃ(?:れ|あ)|てくれんのね|ておいとき|ておいてー|てちょき|ておくべきでしょう|ておいた方がよろしい|ちゃっといて|といてよ[。！？!?]?$/u, 'て'));
+    // pass CCXXVI
+    push(normalized.replace(/てクレメンス|てくれめんす|てくんろ|てはんな|てみや|てけれ|てしぇ|てねん|てしょー?|てなんしょ|てやれよ|てくれや[でな]|てくれなはれ|てくれまへん(?:やろか|かね)|てもらわんと(?:困る)?|てくれりゃあええ|てええ(?:んで|やん|わ|かも)|ておいてええ|といといて|ときゃいいんだ[。！？!?]?$/u, 'て'));
     push(normalized.replace(/(て|で)(?:あげて|あげ(?:る|ます)[ねよわか]?|くれる|くださる|くださいます)[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)(?:くれ|くださ)ちゃう[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)もら(?:う|える|った|います|えます|ってもいい|っていい)[。！？!?]?$/u, '$1'));
@@ -5565,6 +5567,24 @@ export class VoiceCommands {
         '閉じるのが一興', '閉じるが一興', '閉じるも一興',
         '閉じるのも風流', '閉じるが風流', '閉じるのが粋', '閉じるが粋',
         '閉じるが美学', '閉じるのが美学', '閉じるが矜持', '閉じるのが矜持',
+        // pass CCXXVI: speed/resignation + reason tails + reference prefixes
+        'close it in a bit', 'close it super quick',
+        'close it lightning fast', 'close it im done with it',
+        'close it im through with it', 'close it im over it',
+        'close it im finished with it', 'close it i dont need it',
+        'close it i no longer need it', 'close it its useless',
+        'close it its pointless', 'close it it serves no purpose',
+        'close it theres no point', 'close it no point keeping it',
+        'close it why bother keeping it', 'close it its eating ram',
+        'close it its slowing me down', 'close it you heard me',
+        'close it you heard', 'close it once more with feeling',
+        'close it step on it', 'close it shake a leg',
+        'close it move it', 'close it go go go', 'close it vamos',
+        'close it andale', 'close it dale', 'close it lets go',
+        'close it whatever', 'close it i dont care anymore',
+        'close it im done asking', 'close it or dont bother',
+        'about that tab close it', 'regarding the tab close it',
+        'as for the tab close it',
         // pass CCXXV: insistence/expectation/modal declaratives + lets
         'i expect it closed', 'i expect it shut',
         'i demand it be shut', 'i order it closed',
@@ -5714,6 +5734,20 @@ export class VoiceCommands {
         '閉じる段階だ', '閉じる局面だ', '閉じる場面だ',
         '閉じる状況だ', '閉じるのでした', '閉じるのでしたから',
         '閉じるからです', '閉じる訳です', '閉じることです',
+        // pass CCXXVI: stem imperatives III + ru-form dialect declaratives
+        '閉じろお', '閉じろォ', '閉じんしゃれ', '閉じんされ',
+        '閉じなすってよ', '閉じてやすな',
+        '閉じるんだってばよ', '閉じるのさ', '閉じるのさね',
+        '閉じるしか', '閉じるしかや', '閉じるがもんだ',
+        '閉じるんだわさ', '閉じるのよさ', '閉じるにゃ', '閉じるど',
+        '閉じるがね', '閉じるがや', '閉じるだがや', '閉じるみゃあ',
+        '閉じるでかんわ', '閉じるわいや', '閉じるさけ',
+        '閉じるさかい', '閉じるじゃん', '閉じるじゃんね',
+        '閉じるじゃんけ', '閉じるばい', '閉じるたい', '閉じるけん',
+        '閉じるっちゃ', '閉じるごたる', '閉じるんじゃけど',
+        '閉じるじゃろ', '閉じるんよ', '閉じるのん', '閉じるだっぺ',
+        '閉じるんだな', '閉じるなの', '閉じるにぇ', '閉じるさぁ',
+        '閉じるさあ', '閉じるさー', '閉じるよぉ', '閉じるよお',
         '閉じてくれんねん', '閉じてお願いしますな', '閉じてくださいそうな',
         '閉じてもらうが筋だ', '閉じてくれるのが筋',
         '閉じてくれれば助かるのに', '閉じてくれればなあ',
