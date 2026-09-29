@@ -1689,6 +1689,10 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 ## R269 skip-list（Session 343）
 - 特になし — 新規候補は全件ルート済み（'閉じるべからず|べからざるなり' は禁止宣言のため negate で正当化）
 
+## R270 skip-list（Session 344）
+- 'close it later today' → defer（意図通り延期ルート）・'close it when done/finished' → conditional（確立ルート）
+- '閉じてはるな' → negate（てはる敬語+な禁止の合成で正当化）・'閉じておくべきでは' → negate（べきでは=禁止前置）
+
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。
