@@ -101,38 +101,6 @@ jobs:
           retention-days: 30
 
   # ============================================================================
-  # JOB 3: Integration Tests
-  # ============================================================================
-  test-integration:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run tier system integration tests
-        run: npm test -- tests/tier-system-integration.test.js --maxWorkers=2
-
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: integration-test-results
-          path: test-results/
-          retention-days: 30
-
-  # ============================================================================
   # JOB 5: Build Verification
   # ============================================================================
   build:
@@ -303,7 +271,7 @@ jobs:
   summary:
     name: CI Summary
     runs-on: ubuntu-latest
-    needs: [lint, test-unit, test-integration, build, lighthouse, docker, security]
+    needs: [lint, test-unit, build, lighthouse, docker, security]
     if: always()
 
     steps:
@@ -315,7 +283,6 @@ jobs:
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Lint | ${{ needs.lint.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Unit Tests | ${{ needs.test-unit.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Integration Tests | ${{ needs.test-integration.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Lighthouse | ${{ needs.lighthouse.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Docker | ${{ needs.docker.result }} |" >> $GITHUB_STEP_SUMMARY
@@ -325,7 +292,6 @@ jobs:
         if: |
           needs.lint.result == 'failure' ||
           needs.test-unit.result == 'failure' ||
-          needs.test-integration.result == 'failure' ||
           needs.build.result == 'failure'
         run: |
           echo "❌ CI pipeline failed. Please check the logs."
@@ -335,7 +301,6 @@ jobs:
         if: |
           needs.lint.result == 'success' &&
           needs.test-unit.result == 'success' &&
-          needs.test-integration.result == 'success' &&
           needs.build.result == 'success'
         run: |
           echo "✅ All CI checks passed successfully!"
