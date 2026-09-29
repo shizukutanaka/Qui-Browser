@@ -1721,6 +1721,8 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 
 - R278 pin: 'pack it in'/'call it quits'/'quit it'→stop-everything、'leave it for dead'→negate — close 系と誤認しやすいので注意。
 
+- R279 pin: 'lose it'→null（曖昧）・'閉じてはんな'→close-tab（はん収縮）・'閉じてちゃぁ'→null（曖昧）。describe literal の includes-match は 'てはん' でも 'てはんな' を横取りするため、はん族は describe 不可。
+
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。
