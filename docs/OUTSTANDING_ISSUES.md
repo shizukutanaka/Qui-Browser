@@ -1725,6 +1725,8 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 
 - R280 pin: 'smash it'/'burn it down'→null・'てあるべきだ'/'てあればいい'→close。裸'てある'/'てあって'/'burn it' literal は variant 残置（べきだ→てあって、down→burn it）を横取りするため追加不可 — てある系は修飾形（わ|んだ|けど|のに）のみ describe/trouble 可能。
 
+- R281 skip: 'call the tab off' は device-apps（'call'=電話 alias、登録順 ~3892 < close ~5609）が先勝ち — close literal 追加は無効。裸 'spent'/'used up'/'old news' はタブ参照なし曖昧で null 維持。
+
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。
