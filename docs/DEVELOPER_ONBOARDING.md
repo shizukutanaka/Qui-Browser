@@ -82,7 +82,6 @@ qui-browser-vr/
 │   ├── vr-modules.test.js        # モジュールテスト
 │   └── comprehensive.test.js     # 総合テスト
 ├── tools/                        # 開発ツール
-│   ├── benchmark.js              # パフォーマンス計測
 │   └── README.md                 # ツール説明
 ├── .github/
 │   └── workflows/                # CI/CDワークフロー
