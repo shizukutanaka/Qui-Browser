@@ -1720,8 +1720,28 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 219
+### Session 222
 
+- ✨ ては提案尾III: はどうですかね/は如何ですか/はどうかしら/はどうぞ/はいかがかと存じます → 実行。
+- ✨ あげる/やる受益尾: あげるわよ/からね/ますよ/てもいい/ようか/ので・やるわ/やるんで/やろうか/やっから → 実行。
+- ✨ dict条件尾: ならよろしい/なら大丈夫です/なら構いません/のでしたら結構です/のであれば幸いです → 実行。
+- ✨ EN XXXI: 'if you could see your way (clear) to'/'i would take it (kindly|as a favor) if you'/'you would do well to'/'it behooves you to' → 実行（裸 'if you could'/'you' 先食いを最長一致で是正）；'closed it' 語順スワップ push；語尾 'for my benefit'/'as a kindness to me'/'as a gesture of goodwill'。
+- ✅ tests/favor-idiom-atoms.test.js +38（実装前28件赤確認）、計11851全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 221
+- ✨ 受益/命令残置: ちょうだいなさい/頂戴な/ちょうだいませ・くださいまして(ね)・おきたいんですが/ところです/ものです・おいてもらえますかね・おいていただきたいんです・おけばよかった → 実行。
+- ✨ dict理由・目的尾: という次第です/次第であります/という具合です/のが目的です/のが狙いです/のが目標です → 実行。
+- ✨ EN XXX: 'would you be so kind as to'/'kind enough to'/'good enough to'（裸 'would you be so kind' 先食いを最長一致で是正）、'i would ask of you to'、'may i ask a favor of you'（裸 'may i' 先食いを是正）→ 実行；語尾 'for my sake'/'for old times sake'/'do me the honor/courtesy'/'you would be doing me a kindness'。
+- ✅ tests/courtesy-advance-atoms.test.js +40（実装前25件赤確認）、計11813全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 220
+- ✨ ては提案尾II: はどうかと思います/は如何でしょうか/は如何かと → 実行（はいかが系は既存）。
+- ✨ 受益深敬語残置: もらいたく存じ上げます・くれるのを願います・くれませんことでしょうか・くださいませんことでしょうか → 実行。
+- ✨ dict+おく compound: ようにしておいて/ことにしておいて → 実行。
+- ✨ EN XXIX: 書面調 'i am writing to ask/request that you'/'i write to request'・公文調 'per my request'/'as per my request'/'pursuant to my request' → 実行；'kindly see to it that the tab is closed' → 目的格スワップ push；語尾 'i would be much obliged/appreciative'/'thank you in advance'/'much appreciated in advance'/'in advance thank you'。
+- ✅ tests/written-request-atoms.test.js +39（実装前21件赤確認）、計11773全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 219
 - ✨ 受け身/可能残置: られとく/といた/とこう・られる+結尾（と/ように/と嬉しい/こと/てもいい/は）・られたい/たく(思います|存じます) → て形で実行（'られることができますか' は help にピン — 能力質問）。
 - ✨ TAIL_TE/方言残置: てもらうんです(が)/もらえたらと・てもろたら/もろうて → 実行。
 - ✨ 命令残置: たまえか/たまいよ → て形；negate の `(?<!…おし)まい` に `た` を追加 — 'たまい' はたまえ命令であって否定ではない。
