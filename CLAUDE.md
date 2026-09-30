@@ -1720,8 +1720,15 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 225
+### Session 226
 
+- ✨ てくれ引用/期待尾: くれとは言えない・くれとしか言いようがない・くれと頼みたい・くれと願っている・くれそうですか・くれますのでは・くれようや → 実行。
+- ✨ てもいい許可尾II: もいいでしょうかね・もいいかなあ・もいいんかな・もいいことにして・もいいとするなら → 実行。
+- ✨ dict「よう言ってる」進行依頼: よう言ってる/言っておる・ようにと・ように頼んでる/お願いしてる/言うてる・ようにと言っている → 実行。
+- ✨ EN XXXV: any way/possibility/chance + in the event/in case/whenever possible/if at all feasible 前置 → 実行。
+- ✅ tests/quotative-irrealis-atoms.test.js +34（実装前25件赤確認）、計11993全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 225
 - 🐛 Devin Review #436 指摘2件: 'remind me to X' が即実行 → ENPRE 撤去 + defer `/^remind me (?:to|about)\b/` で誠実応答化; negate `まい` の `(?<!ち|じ)` が '閉じまい' をルート消失 → `(?<!ち|んじ)` に限定（ちまい/んじまい 縮約のみ除外）。
 - ✨ ておく残置II: おくのもありだ・おくのがいいかも・おくことにするよ・おきなよ → 実行（'おくべきではないか' は禁止修辞 → negate 維持）。
 - ✨ dict確認/同意尾: のでいいね・ので構わないか・のが良いかと存じます・のが宜しいかと・のが筋かと → 実行。
