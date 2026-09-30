@@ -1720,6 +1720,16 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 211
+
+- ✨ 受益尾XXIX（ほしい敬語/条件）: TAIL_TE — ほしく存じます/ほしく思います/ほしいのですが/ほしいんですけど/ほしいと存じます/ほしいところですが・構わなければ/構わないなら/良ければ/よろしければ(幸い) → 実行。
+- ✨ 受け身依頼（閉じられ〜 = 間接依頼）: '閉じられてもいい/ては'・否定質問形 '閉じられないでしょうか/かな/かしら'・'閉じられるはずです/と思います/と思うんですが' → て形生成で実行。
+- ✨ 義務残置: negob +ならないでしょう/ならないのでは・IKE +ねばならぬ/ねばなりません/なきゃいけませんね + 依頼 'ませんね'（masu+んね）→ 実行。
+- ✨ EN前置詞XX: 'i shall require/must ask/request that you'・'i would request that you'・'i am requesting/begging you please'・'i am pleading/plead/appeal to you'・'do you care to' → 実行；語尾 'whenever convenient'/'in your own time'。
+- 🐛 誤ルート3件: '閉じられないXか' が trouble 奪取 → lookahead で かな/かしら/かね/でしょうか/かて（変換アーティファクト）を除外；negate `ないで` が 'ならないで' 変体（なければならないでしょう→…ならないで）を奪取 → `(?<!なら)`；方言尾 `んね` が 'ませんね' を奪取 → `(?<!ま)`；help `^do (you|they)` が 'do you care to' を奪取 → lookahead に care 追加。
+- 📌 ピン確認: '閉じられますか/ますかね/ますでしょうか'→help（能か質問の既存意味論維持）、'閉じなくていい系'→negate（不要宣言）。
+- ✅ tests/passive-request-atoms.test.js +53（実装前42件赤確認）、計11283全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
 ### Session 210
 
 - ✨ 受益尾XXVIII: TAIL_TE — くれはります/くれよなあ/くれなあ/くれよー/くれー・もろうて → 実行。
