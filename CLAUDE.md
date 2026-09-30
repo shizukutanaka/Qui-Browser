@@ -1720,8 +1720,16 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 231
+### Session 232
 
+- 🐛 negate 裸 `おけ$` が '閉じておけ/おけよ/おけって/おけばいいじゃん' を否定誤ルート — やめ/止め/にしておけ の leave-it 語幹に限定（'止めておけ' 否定はピン維持）。
+- ✨ お+ます語幹 謙譲命令: お閉じしたいんです/いたしますね/申し上げます/お願いします/させていただきます → stemTe push で実行。
+- ✨ ておく条件/判定残置: おくんだったら・おくのであれば・おくがよろしい → 実行。
+- ✨ dict見解/立場尾: のが見解だ・のが立場だ・という見解で・べきとの見解・のが私の意見・べきという意見 → 実行。
+- ✨ EN XLI: first thing you do・at the first|earliest opportunity・the moment|instant you can・the second you get a chance・next chance you get・when the opportunity arises 前置 → 実行。
+- ✅ tests/humble-imperative-atoms.test.js +36（実装前29件赤確認）、計12215全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 231
 - 🐛 '閉じるつもりで進める' が navigate 誤ルート → FR `つもりで進める` で実行化。
 - ✨ てもらう手配/謙譲残置: もらう手はずになっている・もらう算段だ・もらう段取りです・もらいたくお願いする/申し上げます → 実行。
 - ✨ てきて方向残置: きてくれ/ください/ほしい/もらえますか/もらいたい/なさい → 実行。
