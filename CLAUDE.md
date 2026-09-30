@@ -1725,6 +1725,11 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ### Session 295
 >>>>>>> origin/devin/1790601129-ever-so-happy-atoms
 
+- ✨ JA: てもらうと残置VI（助かります/ありがたいです/嬉しいです）・dict急所名詞尾XVIII（のが急所という見解です 等6形）→ 実行。
+- ✨ EN CVIII: 'i would be much|so|deeply|truly|most|ever obliged to' 前置（自発 obliged-to 枠）→ 実行。
+- ✅ tests/obliged-to-atoms.test.js +24（実装前15件赤確認）、計13904全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 298
 - 🐛 誤ルート: '閉じるのが急所と見受けられます'（宣言行）が help 誤ルート → `られますか?` に `見受け` lookbehind 追加。
 - ✨ JA: くださいますように・てもらい残置（幸いです/助かります/と幸甚です）・dict急所名詞尾XVII（のが急所と思われます 等6形）→ 実行。
 - ✨ EN CVII: 'id be most happy|glad|delighted|pleased|willing|ready to' 前置 → 実行。
