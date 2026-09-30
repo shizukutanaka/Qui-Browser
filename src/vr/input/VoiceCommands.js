@@ -2248,12 +2248,16 @@ export class VoiceCommands {
         /([0-9一二三四五六七八九十]+)\s*番のタブ(?!を閉じ)/,
         /^([0-9一二三四五六七八九十]+)\s*番目?$/,
         /(ひと|ふた|み|よ|いつ|む|なな|や|ここの|とお)っ?つ?めのタブ(?!を閉じ)/,
-        /^(ひと|ふた|み|よ|いつ|む|なな|や|ここの|とお)っ?つ?め$/],
+        /^(ひと|ふた|み|よ|いつ|む|なな|や|ここの|とお)っ?つ?め$/,
+        // pass CCLXXIX: kanji つ目 forms (三つ目のタブ)
+        /([0-9一二三四五六七八九十]+)つ目のタブ(?!を閉じ)/,
+        /^([0-9一二三四五六七八九十]+)つ目$/],
       action: (transcript) => {
         const ORD = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10 };
         const TUME = { ひと: 1, ふた: 2, み: 3, よ: 4, いつ: 5, む: 6, なな: 7, や: 8, ここの: 9, とお: 10 };
         const m = transcript.match(/([0-9一二三四五六七八九十]+)\s*番/) ||
-          transcript.match(/(ひと|ふた|み|よ|いつ|む|なな|や|ここの|とお)っ?つ?め/);
+          transcript.match(/(ひと|ふた|み|よ|いつ|む|なな|や|ここの|とお)っ?つ?め/) ||
+          transcript.match(/([0-9一二三四五六七八九十]+)つ目/);
         const n = m ? (ORD[m[1]] || TUME[m[1]] || parseInt(m[1], 10) || 0) : 0;
         const t = (this._tabManager?.tabs || [])[n - 1];
         if (!t) {
@@ -2648,6 +2652,8 @@ export class VoiceCommands {
         'im over this', 'im finished', 'thats all for me', 'signing off',
         'close app', 'close browser', 'close the browser', /close the app/i,
         /^quit$/i, /^exit$/i, 'shut down', 'shutdown', 'close the app',
+        // pass CCLXXIX
+        'vrをやめて', 'vr終了して', 'leave vr', 'vr抜けて', 'vrを抜ける', 'ヘッドセット外す',
         'shut it down', 'turn it off', 'switch it off',
         'じゃあね', 'ばいばい', 'さようなら', 'またね', 'また後で', 'お疲れさま',
         '終わり', '終わります', 'おしまい', 'しゅうりょう',
@@ -2964,6 +2970,8 @@ export class VoiceCommands {
     this.registerCommand('time', {
       patterns: ['今何時', '現在の時刻', '時刻を教えて', '何時ですか', '時間を教えて',
         '何時', '時計', '時計は',
+        // pass CCLXXIX
+        '時刻教えて',
         /what time/i, /current time/i, /tell me (the )?time/i,
         'whats the time', 'time is it', 'got the time', 'do you have the time',
         'got the time on you', 'you got the time'],
@@ -3083,6 +3091,8 @@ export class VoiceCommands {
         'コマンド一覧を表示', 'コマンドを表示',
         '操作方法', 'できること', 'コマンドを教えて', 'コマンドを読み上げて',
         'コマンド一覧を読んで', 'ヘルプを読んで', '聞き方を教えて', '音声ガイド',
+        // pass CCLXXIX
+        'ヘルプ表示して',
         '使い方は', '何ができますか', 'コマンド一覧',
         'コマンドは', 'どんなコマンド', '操作方法は', 'ヘルプは', '命令一覧', '命令を教えて',
         '教えて', '教えてほしい',
@@ -3338,6 +3348,8 @@ export class VoiceCommands {
     // word (or that it's off) rather than flipping it.
     this.registerCommand('wake-word-status', {
       patterns: ['ウェイクワードは', 'ウェイクワードの状態',
+        // pass CCLXXIX
+        'ウェイクワード教えて',
         /wake word(?! (on|off))/i],
       action: () => {
         const on = !!this.settings.requireWakeWord;
@@ -3421,6 +3433,8 @@ export class VoiceCommands {
     this.registerCommand('online-status', {
       patterns: ['オンラインか', 'オフラインか', 'ネットに繋がっている',
         'Wi-Fiは', '接続状態', 'ネットワーク状態',
+        // pass CCLXXIX
+        'オンラインか確認', '接続状態教えて',
         'つながらない', '繋がらない', 'ネットが切れた', '圏外',
         'ネットにつながらない', 'つながってる', '繋がってる',
         /are we online/i, /are we offline/i, /am i online/i, /am i offline/i,
@@ -3462,7 +3476,9 @@ export class VoiceCommands {
         '聞き取り停止', '聞くのをやめて', '音声認識を止めて', '音声認識を終了',
         '聞かないで', '聞かない', '聞くなよ',
         /\bmute (the )?mic(rophone)?/i, /mic off/i, /stop listening/i,
-        /turn (off )?(the )?mic(rophone)?( off)?/i],
+        // pass CCLXXIX: 'turn the mic ON' must not hit — require off-context
+        'マイク切って',
+        /turn (off )?(the )?mic(rophone)?( off)?(?! *on\b)/i],
       action: () => {
         this.stop();
         return { action: 'stop' };
@@ -3477,6 +3493,8 @@ export class VoiceCommands {
       patterns: ['マイクをオン', 'マイクをつけて', 'マイクをオンにして',
         'マイクを付けて', '聞き取りを再開', '音声認識を再開', '音声認識を始めて',
         '音声認識を再開して', 'マイクを始めて', 'マイクオン',
+        // pass CCLXXIX
+        'マイクつけて', 'turn the mic on',
         /(?<!the )mic(rophone)? on/i, /unmute (the )?mic/i, /start listening/i,
         /turn on (the )?mic/i, /unmute mic/i],
       action: () => {
@@ -3863,6 +3881,8 @@ export class VoiceCommands {
         'sleep', 'wake', 'wake up', 'lock', 'standby', 'put it to sleep',
         'good night', 'go to sleep', 'wake me up', 'hit the hay', 'turn in',
         'call it a night',
+        // pass CCLXXIX
+        '寝てもいいよ',
         /sleep mode/i, /power (saving|saver|off)/i],
       action: () => {
         this.speak('スリープや電源はヘッドセット本体のボタンで操作してください');
@@ -15478,6 +15498,8 @@ export class VoiceCommands {
         '間違えて閉じた', '間違えて消した', '間違えて閉じちゃった',
         'さっき閉じたやつ', '閉じたばっかり', '間違って閉じた',
         '間違って閉じちゃった', '閉じる前のタブ',
+        // pass CCLXXIX
+        '閉じたタブを復活', '閉じたタブ戻して', 'さっき閉じたやつ戻して', '元に戻してタブを',
         '閉じちゃいました', '閉じてしまいました', '閉じてしまいましたね',
         '閉じてしまったんです', '閉じちゃったんです', 'うっかり閉じた',
         'うっかり閉じちゃった', 'つい閉じた', 'つい閉じちゃった',
@@ -17493,6 +17515,8 @@ export class VoiceCommands {
       // lookaheads keep them on contrast-status instead of toggling
       // (dispatch-verified).
       patterns: [/ハイコントラスト(?!は(?:$|どう|か|今|現在|です)|か(?:$|。|？|です))/, /高コントラスト/,
+        // pass CCLXXIX
+        'コントラスト上げて', 'コントラストを上げて',
         /(?<!is )high contrast(?!.*(?:is (?:on|off|enabled)))\?*/i],
       action: (transcript) => {
         let want;
@@ -17662,6 +17686,9 @@ export class VoiceCommands {
         /字幕(?:を)?(?:出して|見せて|隠して)/, /キャプション(?:を)?(?:出して|見せて|隠して)/,
         /字幕(?:を)?(?:表示|非表示|出す|つける)/, /キャプション(?:を)?(?:表示|非表示|出す)/,
         '字幕あり', '字幕なし', 'キャプションあり', 'キャプションなし',
+        // pass CCLXXIX
+        'キャプションつけて', '字幕つけて', 'キャプションオン', 'キャプションオフ',
+        'hide the captions', 'show the captions',
         /(captions|subtitles) (on|off)/i, /(enable|disable|turn on|turn off) captions/i,
         /show captions/i, /hide captions/i],
       'Toggle captions');
@@ -17739,6 +17766,8 @@ export class VoiceCommands {
         '小さくして', '近くで見せて', '近くで', '近くで読みたい',
         'こっちに来て', 'こっちにきて', '手前にして', '手前に来て',
         '奥にして', '奥に動かして', '奥に寄せて',
+        // pass CCLXXIX
+        'パネル近づけて', '画面近づけて', 'パネル遠ざけて',
         /too (far|close)/i,
         /panel (closer|nearer|further|farther|away|bigger|smaller)/i,
         /(move|bring) (it|the panel) closer/i, /push (it|the panel) (away|back)/i,
@@ -18204,7 +18233,9 @@ export class VoiceCommands {
     });
     this.registerCommand('last-tab', {
       patterns: ['最後のタブ', '最後のタブを見せて', '一番右のタブ', '右端のタブ', '右の端のタブ', /last tab/i, /rightmost tab/i,
-        '最後のやつ', '末尾のやつ', '最後の方のタブ', 'the last one'],
+        '最後のやつ', '末尾のやつ', '最後の方のタブ', 'the last one',
+        // pass CCLXXIX
+        '最後のタブにして'],
       action: () => {
         const tabs = tabManager?.tabs || [];
         if (!tabs.length) {
@@ -19954,6 +19985,8 @@ export class VoiceCommands {
         '画面を暗くして', '暗くなって', 'もっと明るく', 'もっと明るくして',
         /brightness/i, /^brighter$/i, /^dimmer$/i, /is it (dark|bright)/i,
         /make (it|the screen) (brighter|dimmer|darker)/i, /^brighten$/i,
+        // pass CCLXXIX
+        '暗くして画面', '画面暗くして',
         /dim (it|the screen)/i, /darken it/i, /too bright/i, /way too bright/i,
         /^blinding$/i, /(?<!turn out the )lights on/i, /light it up/i],
       action: () => {
@@ -20146,7 +20179,9 @@ export class VoiceCommands {
     // strip's first slot directly (like Vim's g^).
     this.registerCommand('first-tab', {
       patterns: ['最初のタブ', '先頭のタブ', '一番左のタブ', '左端のタブ', '左の端のタブ', /first tab/i, /leftmost tab/i,
-        '最初のやつ', '先頭のやつ', '最初の方のタブ', 'the first one'],
+        '最初のやつ', '先頭のやつ', '最初の方のタブ', 'the first one',
+        // pass CCLXXIX
+        '最初のタブ開いて', '最初のタブにして'],
       action: () => {
         const tabs = tabManager?.tabs || [];
         if (!tabs.length) {
@@ -20228,6 +20263,8 @@ export class VoiceCommands {
         '画面が見えない', '画面はどこ',
         /recenter/i, /center (the )?(view|position|panel)/i,
         /where is the panel/i, /center it/i,
+        // pass CCLXXIX
+        '中心に戻して', '画面を正面に',
         'turn around', 'look behind', 'face the other way', 'turn the other way',
         'look backwards', 'turn around and look'],
       action: () => {
@@ -20392,6 +20429,8 @@ export class VoiceCommands {
         'run it back', 'one more go', 'do it once more',
         'do over', 'do it over', 'encore', 'once again',
         'もっかい', 'もいっかい', 'もういっかい', 'もう一度だけ', 'もう一回だけ',
+        // pass CCLXXIX
+        'もう一回やって',
         'make it so', 'make it happen', 'make it so number one', 'as you were'],
       action: () => {
         const t = this._repeatableTranscript;
