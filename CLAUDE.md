@@ -1721,6 +1721,7 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Last Revision**: 2026-08-18 (Session 74)
 
 ### Session 235
+### Session 234
 
 - ✨ しまえ/みろ命令尾: しまえって・しまえや・しまえってば・しまおうぜ・みろよ・みろって・みなって・みなさいって・みてもいいんじゃない → 実行。
 - ✨ dict方針名詞尾III: のが我が家の方針・のがうちのやり方・のがこの家のルール・のが鉄則だ・のが心得だ・のが信条だ → 実行。
