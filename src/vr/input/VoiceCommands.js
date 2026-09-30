@@ -2023,7 +2023,8 @@ export class VoiceCommands {
         /^in a min$/i, /^in a sec(?:ond)?$/i, /^in a moment$/i, /^later on$/i,
         /^remind me later$/i, /^remind me in/i, /^remind me (?:to|about)\b/i, /^for later$/i,
         /^come back later$/i, /^明日(?!の|は)/, /^tonight$/i, /^later today$/i,
-        /(?:do |leave |finish )?(?:it|this|that|them|all) later$/i],
+        /(?:do |leave |finish )?(?:it|this|that|them|all) later$/i,
+        'later close it'],
       action: () => {
         this.speak('あとでの実行はできません。今すぐなら「閉じて」などと命令してください');
         return { action: 'defer' };
@@ -2717,6 +2718,7 @@ export class VoiceCommands {
         '音量を大きくして', '音を大きくして', 'もう少しだけ大きくして', 'デカくして', 'もうちょっと大きくして', 'もう少し大きくして',
         'あと少し大きく', 'あと少し大きくして', '音量もう少し上げて', '音量あと少し', '音量もうちょい',
         '声を上げて', '声を大きくして', 'ボリュームを上げて',
+        'video louder', 'louder video',
         '音量をあげる', 'ボリュームを上げる', '音量を上げる', '音を上げる', '声を上げる',
         'ボリュームアップ', 'ボリュームを大きく', '音を上げて',
         // pass CCLXXV
@@ -2794,6 +2796,7 @@ export class VoiceCommands {
         '音量を変えて', '音量を変更して', '音量を変更', '音量を上げ下げ',
         /^volume$/i, 'how loud', 'what volume', 'is it loud',
         'how loud is it', 'how much volume', 'how loud is the volume',
+        'hows the volume',
         /current volume/i, /volume (status|level)/i, /what'?s? (?:the )?volume|what is (?:the )?volume/i],
       action: () => {
         const v = this._onVolumeStatus ? this._onVolumeStatus() : null;
@@ -2946,7 +2949,7 @@ export class VoiceCommands {
     // rate directly instead of repeating ±0.25 steps.
     this.registerCommand('speech-rate-set', {
       patterns: [/読み上げ速度を?([0-9.]+)倍/, /読む速度を?([0-9.]+)倍/, /([0-9一二三四五六七八九.]+)倍速/,
-        '半分の速さ', '半分の速度', '倍速で',
+        '半分の速さ', '半分の速度', '倍速で', '倍速で読んで',
         /(speech|talk|reading) (rate|speed) (to )?([0-9.]+)/i,
         // pass CCLXXX: ASR word-numbers ('speech rate two hundred' = 200%)
         /(speech|talk|reading) (rate|speed) (to )?(one|two|three|four|five|six|seven|eight|nine|ten) ?hundred/i],
@@ -4988,7 +4991,7 @@ export class VoiceCommands {
         'さっき見たページ', 'さっき見てたページ', 'もう一個戻って',
         'さっきのサイト', 'さっきのサイトに戻って', 'さっき見たサイト',
         '後戻りして', '逆戻りして', 'ひとつ前に戻って', '前のに戻って',
-        '前に引き返して', '来た道を戻って', 'さかのぼって',
+        '前に引き返して', '来た道を戻って', 'さかのぼって', '戻ってみり',
         // pass CCLXXV: EN return-frames + JA dialect residue
         'go back one', 'back to where i was', 'return to where i was',
         'one step back', 'retreat', 'reverse', 'さっきのとこ',
@@ -5220,6 +5223,13 @@ export class VoiceCommands {
         '閉めて', 'タブを閉めて', 'ページを閉めて', 'このページを閉めて',
         'パネルを閉めて', 'タブを閉める', 'ページを閉める',
         'タブを減らして', 'タブを減らす',
+        '閉じってくれ', '閉じもす', '閉じみる', '閉じてみり',
+        '閉じなはれや',
+        'at your leisure close it', 'no rush close it', 'if you get a moment close it',
+        'do the needful and close it', 'close it if you get a chance',
+        'when ready close it', 'eventually close it', 'close it eventually',
+        'close it someday', 'whenever works close it', 'close it at some point',
+        'time permitting close it',
         'ウインドウを閉じて', '画面を閉じて', 'この画面を閉じて',
         '見てる画面を閉じて', '見ている画面を閉じて',
         'パネルを減らして', 'ウィンドウを減らして', 'パネルを減らす',
@@ -16490,6 +16500,7 @@ export class VoiceCommands {
         '読め', '読み上げろ', '読んでよ',
         '読み上げを開始', '読み上げを開始して', '音読を開始', '読み始めて',
         '音読して', '音読してください', '読み聞かせて', '読み聞かせてくれ',
+        '読んでみり', '読んでてお願い', '読んでいて', 'ひらがなで読んで', 'カタカナで読んで',
         '読み上げてもらえますか', '朗読して', '朗読をお願い', '声で読んで',
         '音声で読んで', '声に出して読んで', '声に出して', '音読みして',
         '読み始めから', '先頭から読んで', '最初の行から読んで',
@@ -17010,6 +17021,7 @@ export class VoiceCommands {
         'すべてのタブを教えて', 'タブを全部読んで', '一覧を読んで',
         'すべてのタブを読んで', '全部のタブ',
         '何が開いてる', '何が開いてますか', '今何が開いてる',
+        'whatre my tabs', 'whatre the tabs', 'howre the tabs', 'whatve i got open',
         '何を開いてる', '開いているもの', '開いてるものは', '開いてるやつ',
         '開いているものは', 'ぜんぶのタブ', 'すべてのタブは',
         '開いてるウィンドウ', '開いているウィンドウ',
@@ -18066,7 +18078,7 @@ export class VoiceCommands {
 
     this.registerCommand('tab-by-name', {
       patterns: [new RegExp('^(?!(?:さっき|最後|最初|前|次|ピン|左|右|何番目|何枚目|何個目|現在|このタブ|秘密|シークレット|プライベート|一番左|一番右' +
-        '|一つ右|一つ左|ひとつ右|ひとつ左|右隣|左隣|隣|どの|今どの|今|最近|使用中|アクティブな|選択中|幾つ|何個|何個か|いくつか|幾つか|違う|真ん中|左側|右側|もっと|全部|全て|すべて|他))((?:(?!(?:この|その|あの)タブ).)+)のタブ(?!を|に|は|のタイトル)'),
+        '|一つ右|一つ左|ひとつ右|ひとつ左|右隣|左隣|隣|どの|今どの|今|最近|使用中|アクティブな|選択中|幾つ|何個|何個か|いくつか|幾つか|違う|真ん中|何枚|何タブ|今何枚|タブ何枚|タブ枚数|左側|右側|もっと|全部|全て|すべて|他))((?:(?!(?:この|その|あの)タブ).)+)のタブ(?!を|に|は|のタイトル)'),
       /^tab (?:named|called) (.+)$/i,
       new RegExp('^switch to (?!the (?:' + EN_NUM + '|[0-9]+)(?:st|nd|rd|th)?\\s+tab)' +
         '(?:the )?(?!next\\b|previous\\b|(?:' + EN_NUM + ')(?:st|nd|rd|th)?\\s+tab\\b|[0-9]+\\b)(.+) tab$', 'i'),
@@ -18147,6 +18159,8 @@ export class VoiceCommands {
         '閉じとるんよ', '閉じとるんだけど', '閉じとるばい', '閉じとるわい',
         'このページについて', 'ページについて', 'ページについて教えて',
         'どのタブか忘れた', 'どのタブだっけ', 'どのタブを見てる', '今どのタブ',
+        'どのタブ見てる', 'アクティブなタブは', 'アクティブはどれ', 'どれが開いてる',
+        'wheres my tab',
         'このページの情報', 'サイト情報', 'このサイトの情報',
         'このサイトについて', 'このタブについて教えて',
         'どんなサイト', 'どんなタブ', 'どんなところ', 'どんなページは',
@@ -18326,6 +18340,7 @@ export class VoiceCommands {
         '静音', 'サイレント', 'サイレントモード', '無音', '無音モード',
         '音なし', '音なしにして', '音を出さないで', '音を出さない', '音を消す', '消音モード',
         'タブのミュート', 'このタブをミュート', 'タブをミュート', 'タブを消音',
+        '動画の音消して',
         'このページをミュート', 'ページをミュート', 'サイトをミュート',
         '全部ミュート', '全体をミュート', '消音して', 'ミュートして',
         '音消して', '声を消して', '声を出さないで', '黙らせて',
@@ -18445,7 +18460,7 @@ export class VoiceCommands {
         'URLを表示', 'アドレスを読んで', 'URLは',
         'このページのURL', 'ページのアドレス', 'このページのアドレス', 'URLを言って',
         '今のページのアドレス', '今のページのURL', 'ページURL', 'アドレスを言って',
-        '今のURL', '現在のURL', 'アドレスは', 'URLは何',
+        '今のURL', '現在のURL', 'アドレスは', 'URLは何', 'wheres the url',
         'アドレス教えて', 'アドレスバー見せて', 'show me the address',
         /(read|say|what is|what's|whats) (the |this )?(url|address)/i,
         /(page|tab) (url|address)/i, /^the (url|address)$/i],
@@ -19270,6 +19285,7 @@ export class VoiceCommands {
         '見つからなかった', '見つからない', 'ヒットしない', '何件見つかった',
         'ヒット数', '見つかった数', 'ヒットは何個',
         '検索結果は何件', '件数は', '検索ヒット数', '検索結果の数',
+        '検索結果何件', '何件あった', 'マッチはいくつ', '検索いくつ',
         /how many (matches|hits)/i],
       action: () => {
         const res = this._onFindStatus ? this._onFindStatus() : null;
@@ -19328,7 +19344,7 @@ export class VoiceCommands {
         // 'skip ahead' is end-anchored so 'skip ahead 4 paragraphs' reaches
         // paragraph-skip-n instead of stepping once.
         'スキップして', '先読みして', '読み飛ばして',
-        '飛ばして', '読み飛ばす', '飛ばす',
+        '飛ばして', '読み飛ばす', '飛ばす', '飛ばして次', 'スキップして次',
         'もう一段落', 'もう一段落読んで', '次の段落を読んで',
         /next\s+paragraph/i, 'next block', 'next para', 'the next block', /skip ahead\s*$/i, /skip (the |this |current |next )?paragraph/i],
       action: () => {
@@ -19884,6 +19900,8 @@ export class VoiceCommands {
         'タブの数', 'ウィンドウの数', 'タブの枚数',
         'タブは何枚', '何タブ', 'タブいくつ', '何個タブ', 'タブはいくつ開いてる',
         'いくつ開いてる', '何個開いてる', '全部で何タブ', 'タブ何個',
+        'タブ何枚', '今何枚', 'タブ枚数', '何タブある', '何タブ開いてる',
+        'タブ全部でいくつ', '何枚のタブ',
         'タブをいくつ開いてる', 'いくつタブを開いてる',
         'タブ数', '開いてる数', '全部で何個', 'どのくらい開いてる',
         '開いてるタブ数', 'タブの個数', 'タブ何個ある', '全部でいくつ',
@@ -19958,6 +19976,7 @@ export class VoiceCommands {
         '検索を消して', '検索を終了', '検索を終了して', 'ハイライトを解除',
         '検索をやめる', '検索をキャンセル', '検索を中止', '検索をキャンセルして',
         'ハイライトを外して', 'ハイライトを取り除いて', '検索をやめて',
+        '検索消して', '検索とめて', 'クリアして検索',
         '強調を消して', '蛍光ペンを消して', '選択を解除', '選択解除',
         '選択をやめて', '選択を解除して',
         /clear (the )?(search|find)/i, /clear highlights?/i],
@@ -20292,7 +20311,7 @@ export class VoiceCommands {
         'お気に入りに追加してる',
         // pass CCLXXVIII
         'is this page bookmarked', 'このページブクマしてる', 'お気に入り登録済み',
-        'ブックマークした', '保存してるか', '保存した',
+        'ブックマークした', '保存してるか', '保存した', 'wheres the bookmark',
         /did i (bookmark|save)( this)?/i, /have i (bookmarked|saved)( this)?/i,
         '保存してる', '保存されてる', 'お気に入りに入れた', /is (this |it )?bookmarked/i,
         /in (the )?bookmarks\?*$/i, /did i bookmark/i,
@@ -20520,6 +20539,7 @@ export class VoiceCommands {
         'run it back', 'one more go', 'do it once more',
         'do over', 'do it over', 'encore', 'once again',
         'もっかい', 'もいっかい', 'もういっかい', 'もう一度だけ', 'もう一回だけ',
+        'もういっぺん', 'もいっぺん',
         // pass CCLXXIX
         'もう一回やって',
         'make it so', 'make it happen', 'make it so number one', 'as you were'],
