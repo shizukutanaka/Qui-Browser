@@ -508,6 +508,11 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**'Googleにして'/'Bingで検索'/'グーグルを使って' のエンジン名短縮形が NO-MATCH**~~ — **Session 139 で実装**: search-engine に `名+にして/を使って/で検索/で調べて` パターン。
 - ~~**'履歴の最初' が goBack を無限ループさせうる**~~ — **Session 139 で修正**: nav-steps の unbounded リクエストを 50 にキャップ（テストで捕捉）。
 - ~~**'検索をやめる'/'検索をキャンセル'/'音声検索'/'ページの末尾'/'フォーカスは'/'今何行目'/'何段落目'/'何見出し目'/'その段落を読んで'/'前の文に戻って'/'もう一行'/'もう一段落'/'もう一文'/'読み込んでいる' 等が未認識**~~ — **Session 139 で実装**: clear-find/web-search/scroll-bottom/where-am-i/line-status/paragraph-status/read-heading/next・prev caret/read-paragraph/nav-steps/loading-status へのエイリアス拡充。
+- ~~**'unmute mic' がマイクを停止する**~~ — **Session 140 で修正**: stop の `/mute mic/` が 'unmute' に誤マッチ → `\bmute` 化 + `mic-on` 新設（`this.start()` + '音声認識を再開します'）。
+- ~~**'unpin'/'unpin all'/'unpin tab 2' が pin-tab トグル/unpin-active に誤配線**~~ — **Session 140 で修正**: pin-tab を `(?<!un)pin` 化、unpin-active を anchored 化し 'unpin all'→unpin-all・'unpin tab N'→tab-pin-n を維持。
+- ~~**'close the tab' が名指し検索で '「the」のタブがありません'**~~ — **Session 140 で修正**: close-tab-by-name の EN lookahead に `the\b` 追加 + close-tab に 'close it'/'close this one' 追加。
+- ~~**'go to the top'/'go to bottom'/'go to the home' が literal ナビゲート**~~ — **Session 140 で修正**: go-to EN capture に `(?!the (top|bottom|home)|top|bottom|home|back)` lookahead + scroll-top/bottom/home に該当形追加。
+- ~~**EN bare 形の未認識群**~~ — **Session 140 で実装**: 'pause'/'resume'/'continue'/'volume'/'louder'/'quieter'/'zoom'/'list all tabs'/'what page is this'/'start reading'/'exit'/'shut down'/'sleep'/'wake'/'lock' 等 + 誠実不在 `scroll-horizontal`/`window-state`。
 
 
 ---

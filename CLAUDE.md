@@ -252,6 +252,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 140: マイク状態/EN 対等原子 — unmute/mic-on 双子・close-the-tab/unpin 方向安全・EN bare 形一括 + 誠実不在クラスタIV
+外部基準: Voice Access 'mic on/off'・Chrome 'close the tab'・NVDA の pause/resume/continue 句・デスクトップ minimize/maximize の欠如応答。
+- 🐛 **'unmute mic' がマイクを停止する実害修正**（実測捕捉）: stop の loose `/mute (the )?mic/` が 'unmute' 内の 'mute' にマッチ → `\bmute` へ修正 + 新規 `mic-on`（'mic on'/'unmute mic'/'start listening'/'turn on the mic'/'音声認識を再開' → `this.start()` + '音声認識を再開します'）。
+- 🐛 **'unpin'/'unpin this'/'unpin the tab' がトグルに流れる実害修正**: pin-tab の toggle regex が pin/unpin を区別しなかった → pin-tab から unpin 分岐を除去し `(?<!un)pin` 化、unpin-active を `/^unpin( (this|it|the tab|tab))?$/i` にアンカー化（'unpin all' は unpin-all、'unpin tab 2' は tab-pin-n 位置指定を維持 — 共存テスト）。
+- 🐛 **'close the tab' が名指し検索する実害修正**: close-tab-by-name の `(?:the )?` 省略形がバックトラックで 'the' を語として捕捉（'「the」のタブがありません'）→ lookahead stoplist に `the\b` 追加 + close-tab に 'close it'/'close this one'/'close the one'。
+- 🐛 **'go to the top'/'go to bottom'/'go to the home' が literal ナビゲート修正**: go-to EN capture に `(?!the (?:top|bottom|home)\b|top\b|bottom\b|home\b|back\b)` lookahead（pattern+action 両面）+ scroll-top/bottom/home に該当 EN 形追加（'go to google' は go-to 維持 — 共存テスト）。
+- ✨ **誠実不在クラスタIV**: `scroll-horizontal`（'scroll left/right'/'横にスクロール' → 縦のみ告知）、`window-state`（'minimize'/'maximize'/'最小化'/'最大化' → パネル距離コマンドへ誘導）。
+- ✨ **EN bare 形一括**（第23弾）: pause-reading `/^pause$/i`/'pause it'、resume-reading `/^resume$/i`/`/^continue$/i`/'continue reading'、read-aloud 'start reading'/'read page'/'read it'、where-am-i 'what page is this'/'what page am i on'/'which page is this'/'what site is this'、tabs-list 'list all tabs'/'show all tabs'/'all tabs'/'my tabs'、volume-up 'louder'/'speak up'/'turn it up'/'crank it up'、volume-down 'quieter'/'turn it down'/'speak softer'/'tone it down'、volume-status `/^volume$/i`/'how loud'/'what volume'、reader-scale-status 'zoom'/'ズーム'、scroll-up/down `/^go up$/i`/`/^go down$/i`、vr-exit `/^exit$/i`/'shut down'/'shutdown'/'close the app'、sleep-mode 'sleep'/'wake'/'wake up'/'lock'/'standby'/'put it to sleep'、home `/^go to the home$/i`/`/^go to (the )?home ?page$/i`。
+- ✅ **テスト +71（git stash で55件赤確認、16件は共存ガード/既存ルート設計上緑）**: Total 4014 tests (114 suites); 0 lint errors（警告 132 = baseline 同一）; build green・FFFD 0件。
+
 ### Session 139: エンジン短縮/コレクション動詞原子 — 一括閉じ句・エンジン名短縮・caret「もう一X」形 + 言い換え句第22弾
 外部基準: Chrome「search with X」エンジン短縮、NVDA の読み上げ caret 進行句、Voice Access の dismiss/cancel 動詞。
 - 🐛 **一括閉じ句が NO-MATCH**（実測捕捉）: close-all-tabs は する/る 語幹のみで 'タブを全部閉じて'/'全タブを閉じて' が未認識 → て/て閉め 形追加。close-other-tabs に 'このタブだけ'/'このタブだけ残す'/'他を全部閉じて'。
