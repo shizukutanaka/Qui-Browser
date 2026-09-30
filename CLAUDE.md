@@ -1720,8 +1720,19 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 237
+### Session 239
 
+- ✨ JA: てさえ/てすら譲歩尾（さえすればいい・すらくれれば・すらいただければ）・てならない促動尾（ならない・ならないでしょう・なりません）・dict爽快評価尾（のが爽快だ・のがすっきりだ・のが心地よい・のが清々しい・のが気分いい・のがさっぱりだ）→ 実行。
+- ✨ negate: 'てばかりではだめ' 限定反復禁止報告 → negate。
+- ✨ EN XLVIII: 'now lets' 前置 + '(lets|id|i|we should|you should|they should) have it closed|shut|gone' 目的格スワップ → 実行（'lets have it closed'/'i want it closed' は既緑）。
+- ✅ tests/have-it-done-atoms.test.js +28（実装前15件赤確認）、計12436全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 238
+- ✨ JA: てごらん残置（ごらんなさい・ごらんよ・ご覧になって・ご覧いただければ・ご覧になりますか）・てこそ強調尾（こそいい・こそすっきりだ・こそ解決だ）・dict妥当名詞尾V（のが妥当だと考えます・のが賢明だと思います・のが正しい選択だ・のが理に適ってる・のが理屈だ・のが理にかなう）→ 実行。
+- ✨ EN XLVII: 'lets be done with it and'・'id like to be done with it'・'consider it done and'・'call it done and'・'mark it done and'・'write it off and'・'chalk it up and' 前置 → 実行。
+- ✅ tests/done-deal-atoms.test.js +28（実装前21件赤確認）、計12408全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 237
 - 誤ルート: brightness `/lights on/` が 'turn out the lights on it'（終了メタファ）を奪取 → `(?<!turn out the )`＋明示スワップ。
 - ✨ JA: てある/ておいた尾（あるべきだ・あるはずなのに・おいたほうがいい・おいたんだけどな・おいたほうが・あると助かる）・てから順序尾（からでいい・からにして・からこそ）・dict時機名詞尾（のが順序だと考えます・のが時機だ・のが潮時だ・のが頃合いだ・のが佳境だ・のが正念場だ）→ 実行。
 - ✨ EN XLVI: 'lets/time to wrap this up and'・'wind this down and'・'call it a day and'・'sign off and' 前置 + 'shut it down for the night'/'put it to bed'/'turn out the lights on it' スワップ → 実行。
