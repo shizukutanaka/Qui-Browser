@@ -5224,12 +5224,31 @@ export class VoiceCommands {
         'パネルを閉めて', 'タブを閉める', 'ページを閉める',
         'タブを減らして', 'タブを減らす',
         '閉じってくれ', '閉じもす', '閉じみる', '閉じてみり',
-        '閉じなはれや',
+        '閉じなはれや', '閉じちゃいなって', '閉じちゃいな',
+        '閉じて来い', '閉じて下されば幸いです',
+        '閉じちゃってもらって', '閉じてもらっておきたい',
+        '閉じておいてくれるかな',
         'at your leisure close it', 'no rush close it', 'if you get a moment close it',
         'do the needful and close it', 'close it if you get a chance',
         'when ready close it', 'eventually close it', 'close it eventually',
         'close it someday', 'whenever works close it', 'close it at some point',
         'time permitting close it',
+        'when convenient close it', 'close it when convenient',
+        'when it suits you close it', 'close it when it suits you',
+        'if you dont mind too much close it', 'if its no bother close it',
+        'no hurry but close it', 'take your time but close it',
+        'whenever youre free close it', 'close it whenever youre free',
+        'when you have a second close it', 'when you have a sec close it',
+        'at some point today close it', 'before i forget close it',
+        'before it slips my mind close it',
+        'while youre thinking about it close it',
+        'while youre still in there close it',
+        'in your own time close it', 'when the mood strikes close it',
+        'the active tab close it', 'close the one im on',
+        'close whatever tab is open', 'close the current one',
+        'shut the current tab', 'kill the current tab',
+        'this page can close', 'this page can go', 'this one can go',
+        'close the one open', 'kill this one off', 'wrap this one up',
         'ウインドウを閉じて', '画面を閉じて', 'この画面を閉じて',
         '見てる画面を閉じて', '見ている画面を閉じて',
         'パネルを減らして', 'ウィンドウを減らして', 'パネルを減らす',
@@ -16651,6 +16670,7 @@ export class VoiceCommands {
         '早く読んで', '速く読んで', '早めに読んで', '早めに読み',
         '読み上げ速度を上げて', '読み上げの速度を上げて', '話す速度を上げて',
         '話すスピードを上げて', '読み上げスピードを上げて', '速読して',
+        '速読で読んで', '速読で読み上げて',
         '読み上げが遅い', '読み上げが遅すぎる', 'ナレーションが遅い',
         'はやくして', 'はやくにして', '速くして', '速度を上げて', '速度あげて', 'スピードを上げて',
         '読み上げが遅い', '読み上げが遅すぎる', '速く読み上げて',
@@ -17020,7 +17040,8 @@ export class VoiceCommands {
         'タブの一覧', 'タブリスト', 'タブ全部', '開いてるのは', '開いてるもの',
         'すべてのタブを教えて', 'タブを全部読んで', '一覧を読んで',
         'すべてのタブを読んで', '全部のタブ',
-        '何が開いてる', '何が開いてますか', '今何が開いてる',
+        '何が開いてる', '何が開いてますか', '今何が開いてる', 'いま何が開いてる',
+        'いま何が開いてますか', 'いま何を見てる', 'いま何を見てますか',
         'whatre my tabs', 'whatre the tabs', 'howre the tabs', 'whatve i got open',
         '何を開いてる', '開いているもの', '開いてるものは', '開いてるやつ',
         '開いているものは', 'ぜんぶのタブ', 'すべてのタブは',
@@ -18078,7 +18099,7 @@ export class VoiceCommands {
 
     this.registerCommand('tab-by-name', {
       patterns: [new RegExp('^(?!(?:さっき|最後|最初|前|次|ピン|左|右|何番目|何枚目|何個目|現在|このタブ|秘密|シークレット|プライベート|一番左|一番右' +
-        '|一つ右|一つ左|ひとつ右|ひとつ左|右隣|左隣|隣|どの|今どの|今|最近|使用中|アクティブな|選択中|幾つ|何個|何個か|いくつか|幾つか|違う|真ん中|何枚|何タブ|今何枚|タブ何枚|タブ枚数|左側|右側|もっと|全部|全て|すべて|他))((?:(?!(?:この|その|あの)タブ).)+)のタブ(?!を|に|は|のタイトル)'),
+        '|一つ右|一つ左|ひとつ右|ひとつ左|右隣|左隣|隣|どの|今どの|今|いま|最近|使用中|アクティブな|選択中|幾つ|何個|何個か|いくつか|幾つか|違う|真ん中|何枚|何タブ|今何枚|タブ何枚|タブ枚数|左側|右側|もっと|全部|全て|すべて|他))((?:(?!(?:この|その|あの)タブ).)+)のタブ(?!を|に|は|のタイトル)'),
       /^tab (?:named|called) (.+)$/i,
       new RegExp('^switch to (?!the (?:' + EN_NUM + '|[0-9]+)(?:st|nd|rd|th)?\\s+tab)' +
         '(?:the )?(?!next\\b|previous\\b|(?:' + EN_NUM + ')(?:st|nd|rd|th)?\\s+tab\\b|[0-9]+\\b)(.+) tab$', 'i'),
@@ -18119,6 +18140,9 @@ export class VoiceCommands {
       patterns: [// pass CCLXXVI: identity/status queries
         'what have i got open', 'tell me about this tab', 'whats the current tab',
         'whats on this tab', 'このタブは何', '今のタブって何',
+        '今のタブ何', '現在のタブ教えて', 'いま何見てる',
+        'アクティブタブ教えて', 'アクティブなタブ教えて',
+        'いまのタブ', '今のタブ',
         'describe what im seeing', 'what do i have open', '今見てるのは',
         'まだ開いてる?', 'まだ開いてる', 'まだあいてる', 'このページ見せて', 'このページ見て', 'ページの内容教えて', '閉じる寸前', '閉じるところです', 'このタブについて', 'このタブは', 'タブの状態', 'ページ情報',
         '閉じてもらったよ', '閉じてもらったんだ', '閉じてくれた',
@@ -19101,7 +19125,8 @@ export class VoiceCommands {
     // parity. readAloud owns the start/nothing-to-read announcements.
     this.registerCommand('read-here', {
       patterns: ['ここから読み上げ', 'ここから読み上げて', 'ここから読んで',
-        'ここを読んで', 'この辺を読んで',
+        'ここを読んで', 'この辺を読んで', 'そこから読んで', 'そこから読み上げて',
+        '今のとこから読んで', '今の場所から読んで', '今いるとこから読んで',
         '続きを読んで', '続きから読んで',
         '残りを読んで', '残り全部読んで', '残りを全部読んで',
         '続きを全部読んで', 'あとの文を読んで',
@@ -19282,6 +19307,8 @@ export class VoiceCommands {
     // find-in-page — searching for the word is a legitimate query.
     this.registerCommand('find-status', {
       patterns: ['何件目', 'ヒットは何件', '何件ヒット',
+        '検索結果いくつ', '検索結果何個', '検索何件', '検索いくつあった',
+        'いくつヒット', '何ヒット', '何箇所ヒット', '何箇所ある',
         '見つからなかった', '見つからない', 'ヒットしない', '何件見つかった',
         'ヒット数', '見つかった数', 'ヒットは何個',
         '検索結果は何件', '件数は', '検索ヒット数', '検索結果の数',
@@ -19492,6 +19519,7 @@ export class VoiceCommands {
     this.registerCommand('read-paragraph', {
       patterns: ['この段落を読み上げ', '現在の段落を読み上げ', '段落を読んで',
         '今の段落を読んで', 'この段落を読み上げて', 'その段落を読んで',
+        'その段落読んで', 'この段落読んで',
         'その段落を読み上げて',
         /read (the )?(current )?paragraph/i],
       action: () => {
@@ -19534,6 +19562,7 @@ export class VoiceCommands {
     this.registerCommand('read-sentence', {
       patterns: ['この文を読んで', 'この文を読み上げ', '文を読んで', '現在の文',
         '今の文を読み直して', 'この文を読み直して', '文を読み直して',
+        'この文読んで', '今の文読んで',
         '今の文', 'この文', '読み上げ中の文', '現在の文章', 'この文章',
         /read (this |the |current )?sentence/i],
       action: () => {
@@ -19902,6 +19931,9 @@ export class VoiceCommands {
         'いくつ開いてる', '何個開いてる', '全部で何タブ', 'タブ何個',
         'タブ何枚', '今何枚', 'タブ枚数', '何タブある', '何タブ開いてる',
         'タブ全部でいくつ', '何枚のタブ',
+        'タブいくつある', 'タブいくつ開いてる', 'タブいくつ開いた',
+        '全部で何枚', '合計何枚', 'タブの数教えて', 'タブ数教えて',
+        '何枚のタブがある', 'タブは何枚ある', 'how many windows',
         'タブをいくつ開いてる', 'いくつタブを開いてる',
         'タブ数', '開いてる数', '全部で何個', 'どのくらい開いてる',
         '開いてるタブ数', 'タブの個数', 'タブ何個ある', '全部でいくつ',
@@ -19977,6 +20009,8 @@ export class VoiceCommands {
         '検索をやめる', '検索をキャンセル', '検索を中止', '検索をキャンセルして',
         'ハイライトを外して', 'ハイライトを取り除いて', '検索をやめて',
         '検索消して', '検索とめて', 'クリアして検索',
+        '検索をリセット', '検索解除して', '検索を終わらせて',
+        '検索終わり', 'サーチ消して', 'サーチを消して',
         '強調を消して', '蛍光ペンを消して', '選択を解除', '選択解除',
         '選択をやめて', '選択を解除して',
         /clear (the )?(search|find)/i, /clear highlights?/i],
