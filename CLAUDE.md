@@ -1720,10 +1720,6 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 273
-### Session 271
-### Session 267
-
 - 🐛 誤ルート: '閉じてほしいものかな'（希望形）が negate の `ものかな?$` にヒット → lookbehind に `ほしい` 追加（'閉じるものか' 否定ピン維持）。
 - ✨ JA: てくるのがいい・くるべきだ・くる方向だ残置。dict好機名詞尾（のが絶好だ/恰好だ/好機だ/機会だ/潮時です/旬だ）→ 実行。
 - ✨ EN LXXXII: 'wed be grateful|appreciate it|we would be grateful|appreciate it|most grateful|ever so grateful if youd' 前置 → 実行。
