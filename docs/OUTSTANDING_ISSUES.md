@@ -1680,6 +1680,7 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 ## R266 skip-list（Session 340）
 - 特になし — 新規候補は全件ルート済み（'close that tab yonder' は位置指示のため close-tab で正当化）
 
+<<<<<<< HEAD
 ## R267 skip-list（Session 341）
 - 特になし — 新規候補は全件ルート済み
 
@@ -1700,6 +1701,15 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - 'close it why keep it'→negate 維持（'why keep it' は存続への反問で negate 収まり）
 - 'close it i repeat'→say-again 維持（'must i repeat close it' の repeat 確立ピンと整合）
 
+||||||| a4d0b49
+=======
+## R267 skip-list（Session 341）
+- 特になし — 新規候補は全件ルート済み
+
+## R268 skip-list（Session 342）
+- 特になし — 新規候補は全件ルート済み
+
+>>>>>>> origin/devin/1790639009-springer-atom-sweep
 ## R261 skip-list（Session 335）
 - `閉じるのはだめ(かな)?` — 「閉じるのはまずい」(close意図) との曖昧対で null 維持
 ## 使い方（次のセッションへ）
