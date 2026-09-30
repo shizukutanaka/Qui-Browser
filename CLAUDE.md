@@ -1720,6 +1720,14 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 207
+
+- ✨ て受益残置XXV: TAIL_TE — もらう方向で/かなと/ことで・もらえますでしょうかね・いただけますことでしょうか/いただければ幸甚(でございます)/いただけましたら幸いに存じます → 実行。
+- ✨ dict残置XVII: FR — ことで/により/とします/にするよ/にしますよ/になります/もあります/もあるよ/ですね/かと・のですがね/のですよね/のも悪くないね/のもありな気がする・んでしょうか/ね/でしょ/んだろう(ね)/んでしょう → 実行。
+- ✨ EN前置詞XVI: 'do you think (you|we) (can|could|might)'（982行正規表現に can|we 拡張）・'say we'・'hows about we'・'why do we not'・'lets go for'・'supposing you could' → 実行。
+- 🐛 教訓再確認: 裸 `do`/`lets`/`how about`/`what say` の前置詞先食い — 長形は先勝ち位置へ移動（ENPRE は位置的最長一致）。
+- ✅ tests/nominal-residue-atoms.test.js +51（実装前30件赤確認）、計11072全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
 ### Session 206
 
 - ✨ てみる/しまう/おく残置: TM + みぃ/みい/みようや/みるわい；TAIL_TE + しまいな/しまうがよい/おくがよい/おくんじゃ/おくのがいい/おいたほうが/おけばよい/おけばいい → 実行。
