@@ -1720,6 +1720,14 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 213
+
+- ✨ 受益尾XXXI: TAIL_TE — くれんのかい/くれんかいな/くれとるんか/くれてもいいんだよ/くれって頼んだろう/くれといったはず/くれだってば/くれという話だ・もらうとするよ/ってことで/ってことか/しかないな/に決まってる/のが筋だ/のが定石/よう頼む/ようお願いします・いただくことになる/ということで/よう頼む/いただきたく(お願い申し上げます|思います)/いただきたいのですが・もらってもいいんで/もらってもよろしいです・ほしいなあと/なんて/ってば/って話/ところなんですが → 実行。
+- ✨ dict残置XXII: FR — ものではある/ものとなってます/わけですわ/わけよ/わけさあ・しかないでしょう/しかないんで/しかないんだよ・ぞって(ば)/んだってよ/んですって/んですかね → 実行。
+- ✨ EN前置詞XXII: 'i beseech you please'・'i hereby petition you to'・'i solemnly request that you'・'i implore you kindly'・'would you be an angel and'/'would you do the honors and' → 実行；語尾 'i beg of you'/'pretty please with sprinkles'/'if it pleases you'/'good sir'/'kind soul'/'you would make my day'/'make me happy'。
+- 🐛 誤ルート3件: negate が '…しかないで' 変体（でしょう→で）を奪取 → `(?<!なら)(?<!しか)ないで`；trouble `(ない|れない)(んだよ|…)$` が 'しかないんだよ'（覚悟宣言）を奪取 → `(?<!しか)`；trouble `はず` が 'といったはず'（伝達依頼）を奪取 → `(?<!いっ)`；ack `/るわけ$/` が 'わけよ' 変体奪取 → FR先勝ちで是正。
+- ✅ tests/relayed-request-atoms.test.js +71（実装前43件赤確認）、計11422全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
 ### Session 212
 
 - ✨ 受益尾XXX（か-particle/いただけ深敬語）: TAIL_TE — くれんまいか/くれんのかね/くれよって/くれりゃそれでいい・もらうことか/もらうんじゃ/もらいたいけど/ものだ・いただいてもよろしいですか/いただけませんことか/いただけますものか/いただけますと幸甚/いただけると(大変)助かります/幸甚に存じます/いただけますなら/幸甚でございます/助かるのですが/いただければと・ほしいばかりに/ばっかり/と願います/と切に願います/のみです/わけです → 実行。
