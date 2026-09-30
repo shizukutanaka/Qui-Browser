@@ -367,11 +367,30 @@ export class VoiceCommands {
     // a stripped variant that matches nothing is simply skipped.
     push(normalized.replace(/(?:よね|なあ|ねえ|よ|ね|な|ぞ|ぜ|わ|とも|さ)[。！？!?]?$/u, ''));
 
+    // Colloquial/dialect suffixes: permissive 'てもいい(かな)'/'ていいかな' →
+    // bare て; volitional 'たい(んだけど)' → て; Kansai 'といて' → て;
+    // 'ちゃって' → 'てしまって'; archaic 'たまえ'/'なさい' → て; question tails
+    // 'かな'/'かしら' and concessive 'けど/んだけど' drop cleanly.
+    push(normalized.replace(/(て|で)も?いい(?:かなー?|か|よ|ね)?[。！？!?]?$/u, '$1'));
+    push(normalized.replace(/たい(?:んだけど|んですが|んだが|んですけど|んです|けど|です)?[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/といて(?:ね|よ|な)?[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ちゃって[。！？!?]?$/u, 'てしまって'));
+    push(normalized.replace(/(?:たまえ|なさい)[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/(?:かなー?|かしら)[。！？!?]?$/u, ''));
+    push(normalized.replace(new RegExp('(?:んだけど|んですけど|んですが|だけど|' +
+      'けれども|けれど|けど)[。！？!?]?$', 'u'), ''));
+    // Discourse/urgency prefixes: 'えっと閉じて'→'閉じて', 'すぐ止めて'→'止めて'.
+    const prefixRe = new RegExp('^(?:今すぐ|すぐさま|すぐに|すぐ|さっそく|早速|ちょっと|' +
+      'ちょいと|とりあえず|とりま|一応|いったん|えっと|えーっと|えーと|あのー|あの|まあ|なんか|ところで)[、\\s]*', 'u');
+    push(normalized.replace(prefixRe, ''));
+
     // EN wrappers: leading 'please', 'can/could/would you (please)', trailing
     // 'please' — applied cumulatively so 'could you please go back' works.
     const en = normalized
       .replace(/^please[,\s]+/i, '')
       .replace(/^(?:can|could|would|will|may) you[,\s]+(?:please[,\s]+)?/i, '')
+      .replace(/^(?:i (?:want|wanna|need)(?: na| to)?|i'?m gonna|let me|let'?s|may i)[,\s]+/i, '')
+      .replace(/^(?:hey|ok|okay|so|now)[,\s]+/i, '')
       .replace(/[,\s]+please[.!?]?$/i, '');
     push(en);
     push(normalized.replace(/^please[,\s]+/i, ''));
@@ -934,7 +953,7 @@ export class VoiceCommands {
 
     // Navigation commands
     this.registerCommand('navigate', {
-      patterns: ['進む', '次へ', 'すすむ', '次に進んで', /進む|進め(?!る|な|ま)/,
+      patterns: ['進む', '次へ', 'すすむ', '次に進んで', /(?<!どうやって)進む|進め(?!る|な|ま)/,
         '進んで', '進みたい', '次のページに進んで', '一つ進んで', 'ひとつ進んで',
         'forward', /go forward/i],
       action: () => {
@@ -947,7 +966,7 @@ export class VoiceCommands {
 
     this.registerCommand('back', {
       patterns: ['戻る', '前へ', 'もどる',
-        /(?<!先頭に)(?<!一番上に)(?<!トップに)(?<!モードに)(?:戻る|戻れ(?!る|な|ま))/,
+        /(?<!先頭に)(?<!一番上に)(?<!トップに)(?<!モードに)(?<!どうやって)(?:戻る|戻れ(?!る|な|ま))/,
         '戻って', '戻ってきて', '戻りたい', '一つ戻って', 'ひとつ戻って',
         '前のページに戻って', 'さっきのページ', 'さっきのページに戻って',
         '一つ前に戻って', 'もっと戻って', 'もっと前に戻って',
@@ -1334,7 +1353,10 @@ export class VoiceCommands {
         'コマンド一覧を読んで', 'ヘルプを読んで', '聞き方を教えて', '音声ガイド',
         '使い方は', '何ができますか', 'コマンド一覧',
         '教えて', '教えてほしい',
+        'どうすればいい', 'どうすれば', 'なんとかして',
+        /^どうやって/,
         /^help( me)?$/i,
+        /^how (do|can|to) i/i,
         /read commands/i],
       action: () => {
         const phrases = Array.from(this.commands.values())
@@ -1793,6 +1815,21 @@ export class VoiceCommands {
         return { action: 'media-search' };
       },
       description: 'Explain there is no image/video search mode'
+    });
+
+    // ack — 'ありがとう'/'わかった'/'got it' are social acknowledgements, not
+    // commands: answer politely instead of the 認識できませんでした error.
+    // Thanks get どういたしまして; plain confirmations get 承知しました.
+    this.registerCommand('ack', {
+      patterns: ['ありがとう', 'ありがとうございます', 'ありがと', 'さんきゅー', 'サンキュー',
+        'わかった', 'わかりました', '了解', 'りょうかい', 'OK', 'オーケー', 'おけ',
+        'thank you', 'thanks', 'thank you very much', 'got it', 'understood', 'roger'],
+      action: (t) => {
+        const thanks = /ありがと|さんきゅ|サンキュ|thank/i.test(t);
+        this.speak(thanks ? 'どういたしまして' : '承知しました');
+        return { action: 'ack' };
+      },
+      description: 'Acknowledge thanks/confirmation'
     });
   }
 
@@ -2479,7 +2516,7 @@ export class VoiceCommands {
     // actually moved (controller faceB/faceA parity); a static
     // confirmationText would claim '戻ります' even at the earliest entry.
     this.registerCommand('navigate', {
-      patterns: ['進む', '次へ', 'すすむ', '次に進んで', /進む|進め(?!る|な|ま)/,
+      patterns: ['進む', '次へ', 'すすむ', '次に進んで', /(?<!どうやって)進む|進め(?!る|な|ま)/,
         '進んで', '進みたい', '次のページに進んで', '一つ進んで', 'ひとつ進んで',
         'forward', /go forward/i],
       action: () => {
@@ -2492,7 +2529,7 @@ export class VoiceCommands {
 
     this.registerCommand('back', {
       patterns: ['戻る', '前へ', 'もどる',
-        /(?<!先頭に)(?<!一番上に)(?<!トップに)(?<!モードに)(?:戻る|戻れ(?!る|な|ま))/,
+        /(?<!先頭に)(?<!一番上に)(?<!トップに)(?<!モードに)(?<!どうやって)(?:戻る|戻れ(?!る|な|ま))/,
         '戻って', '戻ってきて', '戻りたい', '一つ戻って', 'ひとつ戻って',
         '前のページに戻って', 'さっきのページ', 'さっきのページに戻って',
         '一つ前に戻って', 'もっと戻って', 'もっと前に戻って',
@@ -2670,7 +2707,7 @@ export class VoiceCommands {
         'パネルを閉めて', 'タブを閉める', 'ページを閉める',
         'タブを減らして', 'タブを減らす',
         '閉じろ', '消えろ', 'とじろ', '閉じてしまって',
-        'close it', 'close this one', 'close the one',
+        'close it', 'close this one', 'close the one', 'close',
         /close\s+(?:this\s+|the\s+)?tab\b(?!\s*\d)/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -6322,7 +6359,12 @@ export class VoiceCommands {
       patterns: [/ないで(ください|ね|よ|ー)?$/, /やめてお(?:いて|く|きましょう)/,
         /やめといて/, /やめとく/, /しなくて(?:も)?いい/, /なくていい/,
         /do(?:n't| not) (?:do )?(?:that|it)/i, /^never ?mind$/i, /cancel that/i,
-        /^forget it$/i],
+        /^forget it$/i,
+        '違う', 'そうじゃない', 'そうじゃなくて', '間違えた', '間違い', 'ちがう', '違います',
+        'ええよ', 'もういい', 'いいよ', 'いいから', 'もういいから', '結構です', 'もう結構',
+        '大丈夫です', 'もう大丈夫', 'いらない', 'もういらない', 'ほっといて', '放っといて',
+        'そのままで', 'そのまま', 'そのままでいい',
+        /keep it/i, /leave it(?: be| alone)?/i, /as you were/i],
       action: () => {
         this.speak('承知しました。実行しません');
         return { action: 'negate' };
