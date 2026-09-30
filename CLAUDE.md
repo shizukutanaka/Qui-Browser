@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 247
+### Session 248
 
+- ✨ JA: てくれ・てかい方言残置（くれの・くれど・くれし・かいの）・dict決意名詞尾（のが決意だ・覚悟だ・腹だ・肝心だ・要だ・核心だ）→ 実行。
+- ✨ EN LVII: 'on my honor'・'i give you my word'・'scouts honor'・'cross my heart and hope to die'・'may god strike me down'・'on my mothers grave'・'as god is my witness' 前置 → 実行。
+- ✅ tests/honor-oath-atoms.test.js +25（実装前17件赤確認）、計12667全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 247
 - ✨ JA: ておくようが・てもらい残置（おくようがないと・もらいなさい・もらうがよい）・dict始末名詞尾（のが始末だ・決着だ・落ちだ・収まりだ・一段落だ・仕納めだ）→ 実行。
 - ✨ EN LVI: 'pretty please with sugar on top'・'i implore/beseech thee'・'i importune/supplicate you to' 前置 → 実行。
 - ✅ tests/implore-atoms.test.js +25（実装前15件赤確認）、計12642全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
