@@ -1737,6 +1737,7 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - R284 fix: `閉じんでな`→negate（'閉じな' close literal の variant 残置が開放依頼を横取りしていた — raw literal 化で先勝ち固定）。`take it out back`→close-tab（'back' で reopen に誤ルートしていた慣用句）。
 - R284 note: `閉じんなってば` は既存 close literal 維持（方言命令 vs 禁止で曖昧 — 変更は別途判断）。
 - R285 pin: `flush it`/`hang it up`→null 維持（granular 確立: 曖昧）。`閉じてんで`→describe 不採用 — `_politeVariants` の てみ→んで 変換が 閉じてみ* close ピン21形を横取りしたため（variant 残置衝突は describe 側に限定）。
+- R286 pin: `write it off`→null 維持（granular 確立: 経理 euphemism 曖昧）。`open fire on it`→go-to 誤ルートを close 修正（'open' keyword 先勝ち → リテラル化で先勝ち固定）。`閉じるべきかと思う`→help ピン維持。
 
 ## 使い方（次のセッションへ）
 
