@@ -1586,6 +1586,20 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - EN: `scram` / `get lost` / `sick of this tab` / `tired of this tab` — 感情表現 or 罵倒、処分意図不明
 - JA: `閉じとくよ/ね/わ` — 話者宣言（"自分で閉じる" とも取れる）→ とく尾としてルート化済みだが実行可否は観察枠
 
+## R244 skip-list（Session 318）
+- `its done here` — 「自分はここで終わり」寄りの曖昧宣言、tab-close と vr-exit の中間で観察枠（null 維持）
+- `do it then` — 先行コンテキスト依存の曖昧命令（null 維持）
+- `close out (the|this) tab` — 'close up X' と同族の名指し形 → close-tab-by-name ピンで維持
+- `閉じるのが正解` — 確立 help ピン維持（'正解でしょう' は dict で close-tab に分岐済み）
+
+## R245 skip-list（Session 319）
+- `handle this`/`deal with this`/`sort this out`/`address this`/`fix this` — 'this' が曖昧目的語（'…it' 族は ack/trouble ピン済み）→ null 維持
+- `do something about|with it`, `something needs to happen to this tab` — 漠然要請で閉じ意図不明瞭 → null
+- `閉じれるかな` — 能力wonder形、依頼と質問の中間 → null 観察枠
+- `閉じてばかりでは`, `閉じるばかり` — 習慣批判で命令ではない → null
+- `閉じるのが理にかないます` — 語内に `ない` を含み negate 生ヒット → negate ピン（実害なし・記録のみ）
+- `begone (tab)` — R242 archaic-address ピン維持（`begone from my sight` は close-tab で分岐済み）
+
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。
