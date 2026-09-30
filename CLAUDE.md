@@ -2848,6 +2848,13 @@ permission/capability questions (てもいいでしょうか / られますか)�
 - ✅ **テスト +170（実装前実行で140件赤確認、内26件は共存ガードの設計上緑）**: Total 6918 tests (144 suites); 0 lint errors（警告 137 = baseline 同一）; build green; FFFD 0件。
 
 ### Session 313: Voice atoms CXCIII — 方向処分句動詞 + スラング vocative + JA 方言依頼残置 + dict 名詞尾XXXII。EN: directional disposal（down/away/out with this/the tab・out with it/this・through/finished with this/(the tab)・over and done with it）・wrap/pack/end 系（wrap the tab up・pack it up/away・do it/the tab in・tear/rip/pull it down・put an end to it/this・put/lay it to rest・retire it/the tab・put it out of its misery）・slang discourse 前置（bro/sis/fam/fams/dawg/cuz/tbh/ngl/lowkey/highkey/deadass/ong/fr fr/fr — ENPRE の |bruh|dude|be a champ and| 交互に併入）。JA: しもた/しもうた/しもて（近畿完了）・とこなあ/とこうな（南日本意向+否定型→stem-な 誤爆を (?<!とこ|どこ) lookbehind で回避）・とか(や)・ってのはどう・たらええのに・た方がええ・ましょうぜ・ますかね・かなあ・なよー・なよっと・やぁ。dict 名詞尾XXXII（最適解/好判断/良案/名案/上策/妙案/早道/近道/得策/策）。確立ピン維持: 'wrap it up'/'wrap this up'→stop-everything・'shut X down'→vr-exit・'put it to sleep'→sleep-mode・'のが正解'→help・'んといて'→negate・sick/tired/fed-up・なんて・下策ではない は意図スキップ。
+### Session 328: sill atom sweep — EN immediacy/mock-polite + JA shimai/しかない/kure III/quotative rebukes
+外部基準: EN immediacy adverbs (promptly/forthwith/this instant), mock-polite sarcasm ("would it kill you to", "does it hurt to"); JA てしまえ 残置, しかない/ほかない/仕方 inevitability, てくれ III (ませ/まし/でしょうか/へんか), 引用非難 (ろと言っただろう 系)。
+- ✨ **EN**: immediacy（the moment you can・promptly・directly・shortly・presently）；mock-polite（does it hurt to・is it that difficult|so hard to・could you maybe just・please pretty please・sugar on top）。
+- ✨ **JA**: しまえ残置（てしまえぞ|な・てしまいたい）；必然（るしかないじゃないか・るほかないよ・るほかしかない・るより仕方がない|仕方ない・るほか仕方がない → 'て' — 'るほかないよ' negate 誤爆を close-tab literal で先勝ち解消）；くれIII（てくれないでしょうか|てくれませんでしょうか|てくれまへんか|てくれるかいな → 'て'）；引用非難（ろと言っただろう|ろって言っただろう|ろといったでしょ|ろといったのに|ろと言っているでしょう|ろと何度も言った|ろって何回も言った → 'て'）。
+- 🔄 **ピン維持**: '閉じてもらえないでしょうか'/'てくれへんかな'/'てくれませんこと'/'てくれんかの|ね' 既緑踏襲。
+- ✅ tests/sill-atom-sweep.test.js +73（実装前 ~30件赤確認）、計16359全緑・lint 0エラー/警告136=baseline・build green・FFFD 0件。
+
 ### Session 327: lintel atom sweep — EN particle-verb/causative residue + JA masu-particles/てあげ/permission/決定
 外部基準: EN phrasal verbs (seal/button/zip), make/have/get/let causatives; JA ます+終助詞 (からね/とも/けどね/し/よぞ), すませ/ませ dialect imperatives, てあげ/てやり giving-benefactives, ても構わない/ていいと思う consent, ことに決めた decision reports.
 - ✨ **EN**: particle-verb 残置（close it back|shut・seal it off|up・button it up・zip it closed）；causative（make the tab close|it go・get it to close|the tab closed・let it close|be closed）。

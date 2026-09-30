@@ -1168,6 +1168,25 @@ export class VoiceCommands {
     push(normalized.replace(/ると決めました[。！？!?]?$/u, 'て'));
     push(normalized.replace(/ると決めたんだ[。！？!?]?$/u, 'て'));
     push(normalized.replace(/ると決めたのです[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てしまえぞ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てしまえな[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てしまいたい[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るしかないじゃないか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るほかしかない[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るより仕方がない[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るより仕方ない[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るほか仕方がない[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てくれないでしょうか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てくれませんでしょうか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てくれまへんか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てくれるかいな[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろと言っただろう[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろって言っただろう[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろといったでしょ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろといったのに[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろと言っているでしょう[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろと何度も言った[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろって何回も言った[。！？!?]?$/u, 'て'));
     push(normalized.replace(/(て|で)(?:あげて|あげ(?:る|ます)[ねよわか]?|くれる|くださる|くださいます)[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)(?:くれ|くださ)ちゃう[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)もら(?:う|える|った|います|えます|ってもいい|っていい)[。！？!?]?$/u, '$1'));
@@ -4914,6 +4933,12 @@ export class VoiceCommands {
         'seal it off', 'seal it up', 'button it up', 'zip it closed',
         'make the tab close', 'make it go', 'get it to close',
         'get the tab closed', 'let it close', 'let it be closed',
+        'close it the moment you can', 'close it promptly',
+        'close it directly', 'close it shortly', 'close it presently',
+        'does it hurt to close it', 'is it that difficult to close it',
+        'is it so hard to close it', 'could you maybe just close it',
+        'please pretty please close it', 'sugar on top close it',
+        '閉じるほかないよ',
         'just a click close it', 'one click close it',
         'one tap close it', 'a single click close it',
         'you best close it', 'you better just close it',
