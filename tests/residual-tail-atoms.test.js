@@ -246,3 +246,115 @@ describe('共存（raw 優先・既存ルート維持）', () => {
   KEY('閉じるらしい', null);             // hearsay — not a request
   KEY('閉じくさい', null);               // adjective — not a request
 });
+
+// ===== R115 (Session 189): residual tail & judgment-frame atoms =====
+// て敬語残置VII / ても許可残置 / 不能依頼質問 / dict 条件残置 / 判定残置 /
+// べき質問→help / EN modal-we・possibility・wonder・gotta-way・possible-for-you.
+
+describe('て敬語残置VII（くださいますかな/まいか・もらおう系）', () => {
+  KEY('閉じてくださいますかな', 'close-tab');
+  KEY('閉じてくださいますね', 'close-tab');
+  KEY('閉じてくださいまいか', 'close-tab');  // negate 奪取から実行へ
+  KEY('戻ってくださいますかな', 'back');
+  KEY('読んでくださいますね', 'read-aloud');
+  KEY('戻ってくださいまいか', 'back');
+  KEY('閉じてもらおう', 'close-tab');
+  KEY('閉じてもらいましょう', 'close-tab');
+  KEY('閉じてもらうか', 'close-tab');
+  KEY('戻ってもらおう', 'back');
+  KEY('読んでもらいましょう', 'read-aloud');
+  KEY('戻ってもらうか', 'back');
+});
+
+describe('ても許可残置（もいいっすか・ちゃってもいい）', () => {
+  KEY('閉じてもいいっすか', 'close-tab');
+  KEY('閉じてもええですか', 'close-tab');
+  KEY('戻ってもいいっすか', 'back');
+  KEY('読んでもええですか', 'read-aloud');
+  KEY('閉じちゃってもいいですか', 'close-tab');
+  KEY('閉じちゃってもよいですか', 'close-tab');
+  KEY('閉じちゃってもいいっすか', 'close-tab');
+  KEY('閉じちゃってもええですか', 'close-tab');
+  KEY('戻っちゃってもいいですか', 'back');
+  KEY('読んじゃってもいいですか', 'read-aloud');
+});
+
+describe('不能依頼質問（られませんか→て）', () => {
+  KEY('閉じられませんかね', 'close-tab');
+  KEY('閉じられませんかな', 'close-tab');
+  KEY('閉じられませんか', 'close-tab');
+  KEY('戻られませんかね', 'back');   // godan+られ融合: 戻り→戻って
+  KEY('戻られませんか', 'back');
+  KEY('読めませんかね', 'read-aloud'); // 読め→E_TE→読んで
+  KEY('読めませんか', 'read-aloud');
+});
+
+describe('dict 条件残置・判定残置', () => {
+  KEY('閉じるなら今', 'close-tab');
+  KEY('閉じるならここ', 'close-tab');
+  KEY('閉じるんなら', 'close-tab');
+  KEY('閉じるんであれば', 'close-tab');
+  KEY('閉じるのであれば早めに', 'close-tab');
+  KEY('戻るなら今', 'back');
+  KEY('戻るんなら', 'back');
+  KEY('読むんであれば', 'read-aloud');
+  KEY('閉じたほうがいいかもしれない', 'close-tab');
+  KEY('戻ったほうがいいかもしれない', 'back');
+  KEY('読んだほうがいいかもしれない', 'read-aloud');
+  KEY('閉じるほうがいいかもしれない', 'close-tab');
+});
+
+describe('べき質問→help（判断質問・非実行）', () => {
+  KEY('閉じるべきかな', 'help');
+  KEY('閉じるべきですかね', 'help');
+  KEY('閉じるべきでしょうか', 'help');
+  KEY('戻るべきですかね', 'help');   // 戻る regex に べ lookahead 追加
+  KEY('読むべきかな', 'help');
+});
+
+describe('EN modal-we / possibility / wonder frames', () => {
+  KEY('should we close it', 'close-tab');
+  KEY('ought we close it', 'close-tab');
+  KEY('might we close it', 'close-tab');
+  KEY('would we close it', 'close-tab');
+  KEY('should we go back', 'back');
+  KEY('might we read it', 'read-aloud');
+  KEY('would you possibly close it', 'close-tab');
+  KEY('might you possibly close it', 'close-tab');
+  KEY('would you possibly go back', 'back');
+  KEY('might you possibly read it', 'read-aloud');
+  KEY('i wonder if you could close it', 'close-tab');
+  KEY('i wonder if youd close it', 'close-tab');
+  KEY("i wonder if you'd close it", 'close-tab');
+  KEY('wondering if you could close it', 'close-tab');
+  KEY('i wonder if you could go back', 'back');
+  KEY('wondering if you could read it', 'read-aloud');
+  KEY('i wonder if youd mind closing it', 'close-tab');
+});
+
+describe('EN gotta-way / possible-for-you frames', () => {
+  KEY('theres gotta be a way to close it', 'close-tab');
+  KEY("there's gotta be a way to close it", 'close-tab');
+  KEY('theres gotta be a way to go back', 'back');
+  KEY("there's gotta be a way to read it", 'read-aloud');
+  KEY('is it possible for you to close it', 'close-tab');
+  KEY('would it be possible for you to close it', 'close-tab');
+  KEY('is it possible for you to go back', 'back');
+  KEY('would it be possible for you to read it', 'read-aloud');
+  KEY('is there any way to close it', 'help');   // capability → help
+  KEY('is there any way to go back', 'help');
+});
+
+describe('R115 回帰不変条件', () => {
+  KEY('first tab', 'first-tab');
+  KEY('tab 3', 'tab-select');
+  KEY('it reopened', 'reopen-tab');
+  KEY('i want my money back', null);
+  KEY('閉じるべきではないか', 'negate');
+  KEY('閉じるべきかと思います', 'help');
+  KEY('is it possible to close it', 'help');
+  KEY('it would help a lot', 'scoped-help');
+  KEY('あとで閉じて', 'defer');
+  KEY('元に戻して', 'reopen-tab');
+  KEY('あとどのくらい', 'remaining-time');
+});
