@@ -653,7 +653,8 @@ export class VoiceCommands {
     // register BEFORE navigate/back below (their loose /進//戻/ patterns own
     // the question phrases otherwise — verified by dispatch check).
     this.registerCommand('back-status', {
-      patterns: ['戻れますか', '戻れる', 'can we go back', 'can i go back',
+      patterns: ['戻れますか', '戻れる', '戻ることができますか', 'もっと戻れる',
+        '前に戻れますか', 'can we go back', 'can i go back',
         /can (we|i) go back/i],
       action: () => {
         const p = this._tabManager?.getActiveTab?.();
@@ -664,7 +665,8 @@ export class VoiceCommands {
       description: 'Announce whether back is possible'
     });
     this.registerCommand('forward-status', {
-      patterns: ['進めますか', '進める', 'can we go forward', 'can i go forward',
+      patterns: ['進めますか', '進める', '進むことができますか', '前に進めますか',
+        'can we go forward', 'can i go forward',
         /can (we|i) go forward/i],
       action: () => {
         const p = this._tabManager?.getActiveTab?.();
@@ -673,6 +675,21 @@ export class VoiceCommands {
         return { action: 'forward-status', can };
       },
       description: 'Announce whether forward is possible'
+    });
+
+    // Home — Chrome's Home button. There is no homepage URL: the new-tab
+    // surface (top sites) is home, so it opens a fresh tab like the button's
+    // 'open in new tab' variant. Hoisted before `back`: its /戻[るれ]/ regex
+    // owns 'ホームに戻る'.
+    this.registerCommand('home', {
+      patterns: ['ホームに戻る', 'ホームへ', 'ホーム', 'ホームページ',
+        /^go (to )?home$/i, /^home( page)?$/i],
+      action: () => {
+        const p = this._tabManager?.newTab?.();
+        this.speak(p ? 'ホームに戻りました' : 'タブをこれ以上開けません');
+        return { action: 'home', opened: !!p };
+      },
+      description: 'Open the new-tab home surface'
     });
 
     // Navigation commands
@@ -1770,7 +1787,9 @@ export class VoiceCommands {
       // 'リロード'/'reload'/'reload the page' are aliases — the EN pattern is
       // end-anchored so 'reload tab 2' still reaches reload-tab-n first.
       patterns: ['更新', '再読み込み', 'リフレッシュ', 'こうしん', 'リロード',
-        /reload(\s+the\s+page)?$/i],
+        'ページを更新', '更新して', 'ページを更新して',
+        /reload(\s+(the|this)\s+page)?$/i, /^refresh(\s+the\s+page)?$/i,
+        /^refresh\s+page$/i],
       action: () => {
         tabManager?.getActiveTab?.()?.reload?.();
         return { action: 'refresh' };
@@ -2019,6 +2038,7 @@ export class VoiceCommands {
     // phrases avoid 'を開く' — that suffix already belongs to go-to.
     this.registerCommand('private-new-tab', {
       patterns: ['プライベートタブ', 'シークレットタブ', 'プライベートな新しいタブ',
+        '新しいプライベートタブ', 'プライベートタブを開いて', '新しいシークレットタブ',
         /new (private|incognito) tab/i],
       action: () => {
         const panel = tabManager?.newPrivateTab?.();
@@ -2047,7 +2067,8 @@ export class VoiceCommands {
     // surface in VR, so top/bottom jump commands target it directly.
     this.registerCommand('scroll-top', {
       patterns: ['先頭へ', '最初に戻る', 'ページの先頭', '一番上', '一番上へ',
-        'ページの先頭へ', /scroll (to )?top/i, /top of (the )?page/i],
+        'ページの先頭へ', '最初のページ',
+        /scroll (to )?top/i, /top of (the )?page/i, /^first page$/i],
       action: () => {
         tabManager?.getActiveTab?.()?.scrollToTop?.();
         return { action: 'scroll-top' };
@@ -2058,7 +2079,8 @@ export class VoiceCommands {
 
     this.registerCommand('scroll-bottom', {
       patterns: ['末尾へ', '最後まで', 'ページの最後', '一番下', '一番下へ',
-        'ページの最後へ', /scroll (to )?bottom/i, /end of (the )?page/i],
+        'ページの最後へ', '最後のページ',
+        /scroll (to )?bottom/i, /end of (the )?page/i, /^last page$/i],
       action: () => {
         tabManager?.getActiveTab?.()?.scrollToBottom?.();
         return { action: 'scroll-bottom' };
@@ -2070,7 +2092,8 @@ export class VoiceCommands {
     // Page-wise jumps — the reader arrows already implement the Page Up/Down
     // atom on the canvas; these give hands-free users the same jump.
     this.registerCommand('next-page', {
-      patterns: ['次のページ', 'ページダウン', '下のページ', /next\s+page/i, /page\s+down/i],
+      patterns: ['次のページ', '次のページへ', '次ページ', 'ページダウン', '下のページ',
+        /next\s+page/i, /page\s+down/i],
       action: () => {
         tabManager?.getActiveTab?.()?.scrollContentPage?.(1);
         return { action: 'next-page' };
@@ -2080,7 +2103,8 @@ export class VoiceCommands {
     });
 
     this.registerCommand('prev-page', {
-      patterns: ['前のページ', 'ページアップ', '上のページ', /previous\s+page|prev\s+page|page\s+up/i],
+      patterns: ['前のページ', '前のページへ', '前ページ', 'ページアップ', '上のページ',
+        /previous\s+page|prev\s+page|page\s+up/i],
       action: () => {
         tabManager?.getActiveTab?.()?.scrollContentPage?.(-1);
         return { action: 'prev-page' };
@@ -2173,7 +2197,9 @@ export class VoiceCommands {
     // dialog: speak every heading so the user hears the article's shape.
     this.registerCommand('toc', {
       patterns: ['目次', '目次を読み上げ', '見出し一覧', '章立て',
-        /table of contents/i, /read (the )?(contents|toc|outline)/i],
+        '見出しを全部読んで', '全見出し', 'すべての見出し', '章一覧', '目次を読んで',
+        /table of contents/i, /read (the )?(contents|toc|outline)/i,
+        /read (all )?(the )?headings/i, /chapter list/i],
       action: () => {
         const toc = tabManager?.getActiveTab?.()?.getReaderToc?.() || [];
         if (!toc.length) {
@@ -2307,8 +2333,9 @@ export class VoiceCommands {
 
     this.registerCommand('where-am-i', {
       patterns: ['どこ', 'どこにいる', '今どこ', '現在地', '現在のページ', 'このページは', '今どこにいる',
-        'ここは', 'ここはどこ',
-        /where\s+am\s+i/i, /what(?:'s| is) (?:this|the) (?:page|site)/i, /what is here/i],
+        'ここは', 'ここはどこ', 'フォーカスはどこ', 'どこにフォーカス',
+        /where\s+am\s+i/i, /what(?:'s| is) (?:this|the) (?:page|site)/i, /what is here/i,
+        /what has focus/i, /focused element/i],
       action: () => {
         const tab = tabManager?.getActiveTab?.();
         this.speak(tab
@@ -2403,8 +2430,9 @@ export class VoiceCommands {
     this.registerCommand('bookmark-page', {
       patterns: [
         'このページをブックマーク', 'ブックマークに追加', 'ブックマークする',
-        'ブックマークして', 'ページを保存', /bookmark (this|this page|the page|page)/i,
-        /add (this|page) (to )?bookmarks?/i
+        'ブックマークして', 'ページを保存', 'ページを保存して', 'このページを保存して',
+        /bookmark (this|this page|the page|page)/i,
+        /add (this|page) (to )?bookmarks?/i, /save (this|the) page/i
       ],
       action: () => {
         if (onBookmarkPage) {
@@ -3704,7 +3732,8 @@ export class VoiceCommands {
     // Paragraph navigation — NVDA/JAWS Ctrl+Down/Ctrl+Up parity. Same
     // wrap-and-announce shape as next-heading.
     this.registerCommand('next-paragraph', {
-      patterns: ['次の段落', '段落を進め', /next\s+paragraph/i],
+      patterns: ['次の段落', '段落を進め', '読み上げをスキップ', '次をスキップ',
+        /next\s+paragraph/i, /skip ahead/i],
       action: () => {
         const r = this._onParagraphStep ? this._onParagraphStep(1) : null;
         this.speak(r ? `${r.index}番目の段落（全${r.total}）` : '段落がありません');
@@ -3998,7 +4027,9 @@ export class VoiceCommands {
     // ('describe page'): title + heading/paragraph/char counts in one line.
     this.registerCommand('article-summary', {
       patterns: ['この記事について', '記事の概要', '記事の情報',
-        /describe (the )?(page|article)/i, /page info|article info/i],
+        '要約して', 'このページを要約', 'ページを要約して', '概要は', '記事を要約',
+        /describe (the )?(page|article)/i, /page info|article info/i,
+        /summari[sz]e/i, /sum (it|this) up/i],
       action: () => {
         const s = this._onArticleSummary ? this._onArticleSummary() : null;
         if (!s) {
@@ -4242,8 +4273,10 @@ export class VoiceCommands {
     // share sheet, or copies it when the API is missing (hook decides).
     this.registerCommand('share-page', {
       patterns: ['共有して', 'このページを共有', 'このページを共有して',
-        'ページを共有', 'ページを共有して', /^share( this page| it)?$/i,
-        /share (the )?(page|url|link)/i],
+        'ページを共有', 'ページを共有して', 'ツイートして', 'メールで送って',
+        'リンクを送って', 'SNSで共有',
+        /^share( this page| it)?$/i, /share (the )?(page|url|link)/i,
+        /tweet (this|it)/i, /email (this|it|the link)/i, /share (on|via) \w+/i],
       action: () => {
         const p = this._onShare
           ? Promise.resolve(this._onShare())
@@ -4252,6 +4285,29 @@ export class VoiceCommands {
         return { action: 'share-page' };
       },
       description: 'Share the active page (Web Share or clipboard)'
+    });
+
+    // Chrome's translate bubble — navigates to the Google Translate wrapper
+    // for the current URL (the only translate surface a web app can reach).
+    this.registerCommand('translate-page', {
+      patterns: ['翻訳して', 'このページを翻訳', 'このページを翻訳して',
+        'ページを翻訳', 'ページを翻訳して', '英語に翻訳', '日本語に翻訳',
+        '中国語に翻訳', /translate (this |the )?page/i, /translate (it|this)/i,
+        /translate to (english|japanese|chinese)/i],
+      action: (transcript) => {
+        const url = tabManager?.getActiveTab?.()?.currentUrl;
+        if (!url) {
+          this.speak('ページを開いていません');
+          return { action: 'translate-page', translated: false };
+        }
+        const tl = /英語|english/i.test(transcript) ? 'en'
+          : /中国語|chinese/i.test(transcript) ? 'zh-CN' : 'ja';
+        onGoTo?.('https://translate.google.com/translate?sl=auto' +
+          `&tl=${tl}&u=${encodeURIComponent(url)}`);
+        this.speak('翻訳ページを開きます');
+        return { action: 'translate-page', tl };
+      },
+      description: 'Translate the page via Google Translate'
     });
 
     this.registerCommand('read-clipboard', {
@@ -4324,7 +4380,8 @@ export class VoiceCommands {
     // so the tabManager closure is enough — no extra _onX wiring.
     this.registerCommand('url-input', {
       patterns: ['アドレスバー', 'URLを入力して', 'アドレスを入力',
-        'URLを打って', /address bar/i, /enter (a |the )?(url|address)/i],
+        'URLを打って', '検索バー', '検索フィールド',
+        /address bar/i, /search bar/i, /enter (a |the )?(url|address)/i],
       action: () => {
         const p = tabManager?.getActiveTab?.();
         if (!p?.onUrlInputRequested) {

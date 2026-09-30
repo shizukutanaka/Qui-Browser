@@ -252,6 +252,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 121: ホーム/翻訳原子 + 質問形誤ルート修正 — '戻ることができますか' がナビゲートを実行していた実害 + 言い換え句第4弾
+外部基準: Chrome Home ボタン（新規タブ面=ホーム）、Chrome 翻訳バブル（Google Translate ラッパー）、NVDA/Chrome の question-form は status に答える規律。
+- 🐛 **質問形がナビゲートを実行する誤ルート修正**: '戻ることができますか'/'もっと戻れる'/'前に戻れますか' が back の `/戻[るれ]/` に所有され goBack を実行、'進むことができますか'/'前に進めますか' が navigate の `/進[むめ]/` に所有され goForward を実行（実測捕捉）→ back-status/forward-status に追加し非呼出を断言。'can i go back/forward' は既に status だったが JA 敬体形が抜けていた。
+- ✨ **home**（Chrome Home ボタン）: 'ホームに戻る'/'ホーム'/'go home'/'home page' → `newTab()` で新規タブ面をホームとして開く。back の `/戻[るれ]/` が 'ホームに戻る' を所有するため hoisted 登録。タブ上限は 'タブをこれ以上開けません'。'戻る' 単体は back を維持（共存テスト）。
+- ✨ **translate-page**（Chrome 翻訳バブル準拠）: '翻訳して'/'このページを翻訳'/'translate this page' → `onGoTo('https://translate.google.com/translate?sl=auto&tl='+tl+'&u='+enc(url))`。'英語に翻訳'→tl=en、'中国語に翻訳'→tl=zh-CN、それ以外 tl=ja。URL無しは 'ページを開いていません'。
+- ✨ **エイリアス拡充（第4弾）**: private-new-tab へ '新しいプライベートタブ'/'プライベートタブを開いて'、next/prev-page へ '次のページへ'/'前のページへ'、scroll-top/bottom へ '最初のページ'/'最後のページ'/'/^first|last page$/'、refresh へ 'ページを更新'/'更新して'/'refresh page'/'reload this page'（refresh に EN が皆無だった）、bookmark-page へ 'ページを保存して'/'save this page'（'セッションを保存' は save-session を維持）、article-summary へ '要約して'/'summarize'、toc へ '見出しを全部読んで'/'章一覧'/'read all headings'、where-am-i へ 'フォーカスはどこ'/'what has focus'、share-page へ 'ツイートして'/'メールで送って'/'リンクを送って'/'tweet this'/'email this'、next-paragraph へ '読み上げをスキップ'/'skip ahead'、url-input へ '検索バー'/'search bar'。
+- ✅ **テスト +46（git stash で実装前に43件赤確認 — 3件は共存ガードの設計上緑）**: Total 2446 tests (95 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
 ### Session 120: ピーク/共有/エイリアス原子 — 隣タブ非破壊告知・Web Share 音声経路 + 言い換え句第3弾
 外部基準: screen-reader の "what's next" 非破壊 peek、Web Share API（navigator.share → clipboard フォールバック）、主要コマンドの自然言語バリエーション。
 - ✨ **peek-tab**（隣タブを切り替えずにタイトル告知）: '次のタブを読んで'/'次のタブは'/'前のタブを読んで'/'read next tab'/'what's the next tab' → `(i±1+len)%len` wrap で `タブN: タイトル`、1枚以下は '他のタブはありません'。**衝突を実測捕捉**: next-tab の loose `/next\s+tab/i` が 'read next tab' を所有して切替してしまう → hoisted 登録（`this._tabManager` 遅延バインド）。'next tab' そのものは切替を維持（共存テスト）。
