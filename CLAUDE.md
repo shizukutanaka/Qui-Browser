@@ -1721,6 +1721,8 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Last Revision**: 2026-08-18 (Session 74)
 
 ### Session 263
+### Session 262
+### Session 260
 
 - ✨ JA: ておくのも残置（おくのも手かも・おくのもありかと・おくのもいいかもしれん）・dict必須名詞尾（のが必須だ/です・必要だ/です・必然だ・不可欠だ）→ 実行（'ていただくという形で/いただくようお願いする' は既ルート緑）。
 - ✨ EN LXXII: 'ill thank you kindly if you' 前置 + 'thank you|thanks kindly for closing it'・'thanking you in advance for closing it' スワップ → 実行。
