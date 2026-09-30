@@ -2862,6 +2862,7 @@ permission/capability questions (てもいいでしょうか / られますか)�
 - 🔄 **ピン維持**: 'keep it up'→resume-reading・'ないといけないんだよ'→trouble（確立）。
 - ✅ tests/crown-atom-sweep.test.js +71（実装前 ~45件赤確認）、計16945全緑・lint 0エラー/警告136=baseline・build green・FFFD 0件。
 
+||||||| 041ec40
 ### Session 335: keystone atom sweep — EN desire/do-the-thing + JA kure-masu II/youka II/noha/chau
 外部基準: EN desire states ("i want it gone|off|out"), do-the-thing idioms ("just do it", "make it so", "get it done"); JA くれますか II (んでしょうか), ようか volitionals II (なあ|しらね|のう|ねえ), のは evaluations, ちゃう residue.
 - ✨ **EN**: desire（want it away|off|out・need it gone already）；do-thing（just do it・do it・do the thing・make it happen・get it done・do what needs doing・make it so・you know what to do・like you mean it）。
