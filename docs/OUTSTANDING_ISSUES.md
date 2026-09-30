@@ -1729,6 +1729,10 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 
 - R282 skip: 'go pound sand' は go-to（/go / 先頭一致・登録順 go-to < negate）が先勝ち — negate literal 追加無効、拒絶意図だが navigate 誤ルート継続。'into next week'/'kick it into next week' は date ピン維持（時間読み）。
 
+- R283 skip: 'take care of it' は ack・'im done here' は vr-exit が登録順先勝ち — close 向け裸形追加は誤ルートのため不採用（'take care of that|the tab' / 'done here' / 'we are done here' は close-tab 登録済み）。
+- R283 skip: '閉じとる*' 族（とるがよ|ばい|わい|ぞよ|っちゃ）— 九州進行「閉じておる」報告にも命令にも読める曖昧形 → null 維持（'閉じとるで'→describe ピン整合のため）。
+- R283 pin: '閉じとるけんね'→negate・'閉じなきゃいけないんだよ'→trouble・'閉じないといけないことになってる'→negate — 確立ピン維持。
+
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。
