@@ -1722,6 +1722,22 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 
 ### Session 295
 
+- ✨ JA: てもらうと残置VI（助かります/ありがたいです/嬉しいです）・dict急所名詞尾XVIII（のが急所という見解です 等6形）→ 実行。
+- ✨ EN CVIII: 'i would be much|so|deeply|truly|most|ever obliged to' 前置（自発 obliged-to 枠）→ 実行。
+- ✅ tests/obliged-to-atoms.test.js +24（実装前15件赤確認）、計13904全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 298
+- 🐛 誤ルート: '閉じるのが急所と見受けられます'（宣言行）が help 誤ルート → `られますか?` に `見受け` lookbehind 追加。
+- ✨ JA: くださいますように・てもらい残置（幸いです/助かります/と幸甚です）・dict急所名詞尾XVII（のが急所と思われます 等6形）→ 実行。
+- ✨ EN CVII: 'id be most happy|glad|delighted|pleased|willing|ready to' 前置 → 実行。
+- ✅ tests/id-most-atoms.test.js +24（実装前16件赤確認）、計13880全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 297
+- ✨ JA: てくださるなら残置（幸いです/助かります/ありがたいです）・dict急所名詞尾XVI（のが急所かと心得ております 等6形）→ 実行。
+- ✨ EN CVI: 'i would be most happy|glad|delighted|pleased|willing|ready to' 前置 → 実行。
+- ✅ tests/most-happy-atoms.test.js +24（実装前15件赤確認）、計13856全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 296
 - ✨ JA: てくださるよう残置（お願いします/ようにお願いします）・dict急所名詞尾XV（のが急所と考え上げます 等6形）→ 実行。
 - ✨ EN CV: 'id be ever so happy|glad|delighted|pleased|willing|ready to' 前置 → 実行。
 - ✅ tests/ever-so-happy-atoms.test.js +24（実装前14件赤確認）、計13832全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
