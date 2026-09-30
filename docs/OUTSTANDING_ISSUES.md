@@ -137,6 +137,20 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice 'why dontcha close it'/"whyn't you"/'i command/order you to'/'i hereby request/ask that you'/'the move is to'/'best move is'/'be an angel and' が NO-MATCH~~ — **Session 199 で実装**（ENPRE VIII）
 - ~~voice 'close it if you could possibly'/'please sir'/"if it's not too much trouble"/"if it isn't too much to ask"/'closing it is the way to go'/'closing it would be the move' が NO-MATCH~~ — **Session 199 で実装**（EN語尾）
 - ~~voice 'デカくして'/'小さめにして'/'読み上げ止めて'/'どこ読んでる' が NO-MATCH~~ — **Session 199 で実装**（リテラル）
+- ~~voice '閉じてもらうよう頼む/閉じるんですって' の伝達依頼・ん-particle 残置が NO-MATCH~~ — **Session 213 で実装**
+- ~~voice 'i beseech you please'/'would you do the honors and'/'make me happy' のEN依頼枠・語尾が NO-MATCH~~ — **Session 213 で実装**
+- ~~voice '閉じてくれんまいか/いただけますものか' の受益・強願望形が誤ルート/NO-MATCH~~ — **Session 212 で実装**
+- ~~voice '閉じるんぞ/んけ/んやぞ' の関西ん-particle 尾が NO-MATCH~~ — **Session 212 で実装**
+- ~~voice 'i humbly request that you'/'i enjoin you to'/'you know you want to' のEN厳格依頼・語尾が NO-MATCH~~ — **Session 212 で実装**
+- ~~voice '閉じられないかな/閉じられてもいい' の受け身依頼形が NO-MATCH~~ — **Session 211 で実装**
+- ~~voice '閉じなきゃいけませんね/ねばならぬ' の義務残置が NO-MATCH~~ — **Session 211 で実装**
+- ~~voice 'i must ask that you close it'/'do you care to close it' のEN依頼前置が NO-MATCH~~ — **Session 211 で実装**
+- ~~voice '閉じるほうが筋/がベター/ことは必須' の評価名詞系が NO-MATCH~~ — **Session 210 で実装**（FR XX ほうが/こと評価）
+- ~~voice 'i insist/urge/petition you to'・'may/could i have you' が NO-MATCH/help 誤ルート~~ — **Session 210 で実装**（ENPRE XIX + help lookahead `have you`）
+- ~~voice 'close it pretty please with a cherry on top'/'on your own time' が NO-MATCH~~ — **Session 210 で実装**（EN接尾 XIX）
+- ~~voice '閉じてくれようか/くれるさ'/'もらうべく/のみ'/'おいていただきます' の受益残置が NO-MATCH~~ — **Session 209 で実装**（TAIL_TE XXVII）
+- ~~voice '閉じなさんし/なさいまし'/'閉じぃ' の命令残置が NO-MATCH~~ — **Session 209 で実装**（なさい方言 + 母音伸ばしリテラル）
+- ~~voice '閉じると言ったはず' が trouble 誤ルート・'i call upon you to' が device-apps 誤ルート~~ — **Session 209 で解消**（`(?<!言っ)` + `call upon` 除外）
 - ~~voice '閉じてくれちゃったら/ちゃおう'/'もらうに限る/べきかな/しかない'/'いただくに限る'/'もいいかと(存じます)' の受益残置が NO-MATCH~~ — **Session 208 で実装**（TAIL_TE XXVI）
 - ~~voice '閉じるままにして/ついでに/がてら/際に/時点で/ようにしといて' の dict 残置が NO-MATCH~~ — **Session 208 で実装**（FR XVIII）
 - ~~voice 'i demand/require you to'/'provided/providing/assuming'/'on the condition that'/'in exchange for' が NO-MATCH~~ — **Session 208 で実装**（ENPRE XVII）
