@@ -252,6 +252,64 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 136: 敬体リトライ原子 — JA 敬語尾/ます形・EN please/can-you のバリアント探索 + 言い換え句第19弾
+外部基準: 日本語音声 UI の敬体カバー（Voice Access 系は request 語尾を正規化）、godan ます→て 変換表、スマートスピーカーの 'please' 除去。
+- ✨ **敬体リトライ層**（`_politeVariants`）: `processCommand` が生フレーズの first-match を試し、NO-MATCH 時のみ variant 群（て/で尾 + ください/頂戴/くれ/もらえ/いただけ 剥がし → ます→て godan 変換 → です/でしょう 剥がし → EN please/can-you 剥がし）を順次再マッチ。生優先で既存ルーティング不変、マッチした variant を action へ渡すので capture group も正しい。`lastCommand.transcript` は生 transcript を保持。
+- 🐛 **'help me please' 誤答修正**（実測捕捉）: scoped-help の EN capture が 'me' をトピック化して '「me」のコマンドはありません' → `(?!me\b)` lookahead で help 本体へ透過 + `(?:with|about)` 任意化 + 末尾 'please' 許容。
+- 🐛 **'メニューを開いてください' が go-to で literal ナビゲート**（実測捕捉）: go-to の `を開` lookahead に タブ|メニュー|設定|オプション|環境設定|キーボード|パネル|履歴|ブックマーク|お気に入り を追加し settings-toggle/tab-search 系へ透過。
+- ✨ **エイリアス第19弾**: new-tab へ 'タブを開いて'/'新しいタブを開いて'/'open a new tab'/'add a tab'、close-tab へ '閉めて' 系、close-all-tabs へ '全部閉めて'、stop-everything へ 'キャンセル'/'中止して'/'cancel'、read-aloud へ '読んで'、pause-reading へ '待って'、say-again へ '聞いて/聞かせて'、tabs-list へ '見せて'/'一覧'、help へ '教えて'/'help me'、scroll へ 'scroll down/up'、back へ 'back'/'go back'、dismiss-notify へ '消して'、pin-tab へ '固定して'、refresh へ 'リロードして'、bookmark-page へ '保存して' 等。
+- ✅ **テスト +107（git stash で95件赤確認）**: Total 3724 tests (110 suites); 0 lint errors（警告 132 = baseline 同一）; build green・FFFD 0件。
+
+### Session 135: タブ検索/通知読み上げ原子 — tab-search・read-notify・pin-list + 誠実不在クラスタ + 言い換え句第18弾
+外部基準: Chrome 'Search tabs'（タブ検索パネル）、通知の読み上げ双子（NVDA notification history）、Chrome pinned-tab 一覧、Omnibox のコンテンツ意図検索。
+- 🐛 **'タブを検索して'/'Xのタブを探して'/'find tab X' の誤ルート修正**（実測捕捉）: web-search が 'タブ' を web 検索、find-in-page がフレーズをページ内検索していた → `tab-search` を find-in-page 前に登録。bare 形は 'タブの名前を言ってください' プロンプト、'Xのタブを探して/検索'・'タブの中でXを探して'・'find the X tab' は title+url 部分一致で setActive。
+- ✨ **read-notify**（dismiss-notify の読み上げ双子）: '最新の通知'/'通知を読んで'/'通知を見せて'/'read the notification' → 新フック `onReadNotify`（VRApp は `CaptionSystem.lastLine()` — 新設 getter）。空キュー/未配線は '通知はありません'。
+- ✨ **pin-list**（pin-count の読み上げ双子 — Chrome にはピン留めの音声面がない）: 'ピン留め一覧'/'ピンの一覧'/'list pinned' → タイトル列挙。pin-select の loose `/pinned tab/i` が 'read the pinned tabs'/'pinned tabs' を奪っていたため `/^pinned tab$/i` に限定（bare 選択は維持、列挙意図は pin-list へ）。
+- ✨ **誠実不在クラスタ**（NO-MATCH は句失敗か機能欠如か区別できないため明示応答）: `reader-mode`（'リーダー表示'→'記事は常にリーダー表示で開きます'）、`dark-mode`（'ダークモード'→ハイコントラストへの誘導）、`brightness`（'明るくして'→本体設定への誘導）、`print`/`screenshot`（'印刷して'/'スクリーンショット'→不在応答）、`sort-tabs`（'タブを並び替えて'→'N番目に移動して' への誘導）。
+- 🐛 **'字幕を見せて'/'出して' がブラインドトグルで ON 要求が OFF に反転する実害修正**: `onOff()` が 見せて/出して を undefined（トグル）扱いしていた → on 分岐に追加（'字幕を消して'→OFF は維持）。
+- 🐛 **'メニューを開いて'/'メニュー' の literal ナビゲート修正**（実測捕捉）: settings-toggle に 'メニュー'/'メニューを開いて'/'設定を表示して' 等追加（settings=メニュー面）。
+- ✨ **web-search 'を見せて'/'を見たい' 形**: 'ニュースを見せて'/'写真が見たい'/'地図を見せて' → web 検索。タブ/履歴/ブックマーク/設定/通知の '見せて' は先行登録が維持（共存テスト）。
+- ✨ **zoom-status エイリアス**（reader-scale-status）: 'ズームレベルは'/'ズームは何倍'/'what zoom level'。**tabs-list** 'タブを見せて'/'タブ一覧を見せて'。
+- ✅ **テスト +119（git stash で114件赤確認、5件は共存ガード設計上緑）**: Total 3617 tests (109 suites); 0 lint errors（警告 132 = baseline 同一）; build green; FFFD バイトスキャン 0 件（VRApp/CaptionSystem の各1件は既存の文字説明コメント）。
+
+### Session 134: 序数移動/時間原子 — move-tab-to-n・session-time・about・dismiss-notify + 言い換え句第17弾
+外部基準: Voice Access 'move to position N'、デジタルウェルビーイングの 'screen time'（ヘッドセットは OS 時計を隠す）、Chrome About ページ、通知 '×' の手動消去。
+- ✨ **move-tab-to-n**（go-to の `/に移動/` catch-all が '2番目に移動して' を literal ナビゲートしていた実害 — 実測捕捉→先行登録）: 'N番目に移動して/動かして/して'（数字+漢数字）/'move tab to position N' → `moveTab(active, n-1-active)`、同位置は 'すでにN番目です'、範囲外は誠実拒否。
+- ✨ **session-time**（'screen time' 準拠）: 'どれくらい使ってる'/'起動してから'/'使用時間'/'経過時間'/'how long have i been' → コンストラクタの `_startedAt` から '起動してから約N分です'（1分未満も誠実応答）。
+- ✨ **about**: 'バージョンは'/'ブラウザの名前'/'what browser' → 'このブラウザはQui-Browserです'（バージョン文字列はこの層に来ないため製品名のみを誠実応答）。
+- ✨ **dismiss-notify**（通知 '×' 準拠）: '通知を消して'/'トーストを消して'/'ダイアログを閉じて'/'dismiss the notification' → 新フック `onDismissNotify`（VRApp は `captionSystem.clear()`）。フック無しは '表示は自動で消えます' と誠実応答。
+- ✨ **history-search / bookmark-search の bare 形プロンプト**: '履歴を検索して'/'ブックマークを検索して' が空文字列を検索して 'は履歴にありません' と誤答 → '履歴で検索する語を言ってください' プロンプト + '…をXを検索' の term 形を追加。
+- ✨ **エイリアス第17弾**: move-tab-start/end 'に移動して'/'に送って' 形（'先頭に送って'/'一番右に移動して' 等）、move-tab-left/right 'タブを左/右に移動して'/'送って'/'ずらして'、help '操作方法'/'できること'/'コマンドを教えて'/'音声ガイド'/'聞き方を教えて' 等11句、panel-distance '近づけて'/'遠ざけて'/'もっと近く'/'大きく見せて'/'小さく見せて'（方向は近づ/遠ざ/大きく/小さくで判定）、loading-status '読み込み終わった'/'更新中ですか'、video-stop '曲を止めて'/'音楽を止めて'/'メディアを止めて'、mute-toggle 'このタブをミュート'/'サイトをミュート'/'全部ミュート'/'消音して'、say-last-transcript 'なんて言った' 系、say-again '復唱して'/'読み直して'、spell-word 'スペル'、read-word '発音して'、clear-find '強調を消して'/'選択を解除'、copy-article '全部コピー'/'ページ全体をコピー'/'copy all'、remaining-time '残り時間'。
+- ✅ **テスト +90（git stash で89件赤確認、1件は共存ガード設計上緑）**: Total 3498 tests (108 suites); 0 lint errors（警告 132 = baseline 同一）; build green; FFFD バイトスキャン 0 件（VRApp の1件は既存の文字説明コメント）。
+
+### Session 133: 序数クローズ/ピン原子 — close-tab-ordinal・pin-active・unpin-all・private-mode-off + 質問形誤ルート修正群 + 言い換え句第16弾
+外部基準: Chrome タブコンテキストメニューの序数操作、Voice Access 'pin this' の一方向 pin（ピン留め済みタブへ 'ピンを付けて' が外すのは嘘）、'exit private mode' の終了双子、NVDA の状態質問形。
+- ✨ **close-tab-ordinal**（close-tab-by-name の前に登録）: 'N番目のタブを閉じて'（数字+漢数字）/'最初のタブを閉じて'/'最後のタブを閉じて'/'close the first|last tab' → `closeTab(n-1)`、範囲外は 'タブNはありません'、ピン留めは拒否メッセージ。**実測捕捉**: tab-select-ordinal の `/([一二三四五六七八九])番目のタブ/` が 'N番目のタブを閉じて' を奪って切替していた → `(?!を閉じ)` で透過。close-tab-by-name の JA stoplist に `[^の]*番目`、EN lookahead に `first\b|last\b` を両 pattern と action 再マッチ側へ追加。
+- ✨ **pin-active / unpin-all**: 'ピンを付けて'/'ピンを立てて'/'pin it' → ピン留め済みなら 'すでにピン留めされています'（togglePin を呼ばない一方向 pin — pin-tab のトグルではピン済みが外れる嘘を解消）。'ピンを全部外して'/'unpin all' → ピン留めタブ全件 togglePin、0件は誠実応答。unpin-active に 'ピンを解除'/'ピン留めを解除' 追加。
+- ✨ **private-mode-off**（終了の誠実双子）: 'プライベートモードを終了'/'通常モードに戻る'/'exit private mode' → `_privateMode` が真なら onTogglePrivateMode、偽なら 'プライベートモードはオフです'。**実測捕捉2件**: private-mode の EN regex が 'exit private mode' を所有してトグルしていた → `(?<!exit )` lookbehind；'通常モードに戻る' が back の `/戻[るれ]/` に吸収され履歴戻りを実行していた → `(?<!モードに)` lookbehind（registerDefaultCommands と connectBrowser の両コピー）。
+- 🐛 **質問形がトグルを実行する実害修正**: 'ハイコントラストか'/'ハイコントラストですか'/'is high contrast on' がトグル実行 → トグル regex に `か(?:$|。|？|です)`/`は…です` 除外と `is (on|off|enabled)` 除外を追加、contrast-status へ質問形を登録（非呼出を断言）。
+- 🐛 **'中央に移動' が 0% ジャンプの実害修正**: percent-jump の中点検出が '半分|真ん中|中間' のみで '中央' が抜け 0% へ飛んでいた → `中央` 追加（onReaderPercent(50) を断言）。
+- ✨ **エイリアス第16弾**（約55ペア）: tab-status 'いくつ開いてる'/'タブ何個'、toc '目次一覧'/'アウトライン'/'ページ構造'/'目次を読み上げて'、find-next/prev '次のマッチ'/'前のヒットへ'/'マッチを進めて'、find-status '検索結果は何件'、read-word 'この漢字'/'ふりがな'/'字を読んで'、read-line '行を読んで'、stop/resume-reading 'ナレーションを止めて'/'読書を再開'、line-status 'どこまで読んでた'、read-here 'つづきから'、scroll-down/up 'もっと下'/'さらに上'/'ぐっと下'/'一気に上'、captions-toggle '字幕をオン/オフ'/'キャプションをオンにして'、describe-tab '画面を説明して'/'何が見える'/'サイト名'、article-summary 'ページの概要'、read-url '今のURL'/'アドレスは'、next/prev-heading '次の章'/'前の項目'、unbookmark 'お気に入りを削除'、clear-history '履歴を消して'/'履歴をリセット'、bookmark-count 'ブックマークいくつ'、history-count '履歴いくつ'、reader-scale-status 'フォントサイズ'/'文字サイズ'、privacy-status 'シークレットですか'/'プライベートモードですか'。
+- ✅ **テスト +114（git stash で111件赤確認、3件は共存ガード設計上緑）**: Total 3408 tests (107 suites); 0 lint errors（警告 132 = baseline 同一）; build green; FFFD バイトスキャン 0 件。edge-find-atoms の 'ピンを付けて'/'立てて' 期待を pin-tab→pin-active へ更新（一方向 pin が正しい意味論）。
+
+### Session 132: 閉じたタブ/ブックマーク全開放原子 — closed-list・open-all-bookmarks・find-open 誤ルート修正 + 言い換え句第15弾
+外部基準: Chrome 履歴「最近閉じたタブ」、"open all bookmarks" コンテキストメニュー、Voice Access の音声再生要求（say-again 系）、NVDA の読み直し句。
+- ✨ **closed-list**（`TabManager.closedTabs()` 新設 — LIFO スタックの読み取り専用双子、private タブはスタック非記録のため表示もされない）: '閉じたタブの一覧'/'最近閉じたタブ'/'さっき閉じたタブは何'/'何個閉じた'/'closed tabs' → 'N個のタブを閉じました。最近から: url…'（3件cap）、0件は誠実応答。読み上げはスタックを消費しない（reopen と共存テスト）。
+- ✨ **open-all-bookmarks**（Chrome "open all bookmarks" 準拠）: 'お気に入りをすべて開いて'/'ブックマークを全部開いて'/'open all bookmarks' → `onBookmarkList` を走査し `newTab` で cap まで開放、残りは '上限で残りN件は開けません' と誠実告知。go-to の 'を開いて' catch-all より前に登録。
+- 🐛 **'を開いて' 系誤ルート2件修正**（プローブ実測 — go-to が literal ナビゲート）: 'ブックマーク一覧を開いて' → bookmarks-open へ、'ページ内検索を開いて'/'検索を開いて'/'検索バーを開いて'/'検索モード' → find-in-page の bare プロンプト '検索する語を言ってください' へ。onGoTo 非呼出を断言。
+- 🐛 **reopen-tab の 'て'形欠落修正**: '閉じたタブを開き直して'/'開き直して'/'さっき閉じたタブを開いて' が NO-MATCH → 追加（'開き直す' 形のみ存在した）。
+- ✨ **エイリアス第15弾**: close-other-tabs 'このタブだけ残して'/'このタブ以外を閉じて'/'残りのタブを閉じて'、bookmark-page 'しおりを挟んで'/'栞を挟んで'、stop-reading '読み上げをやめる/やめて'/'読むのをやめて'、recenter '正面に戻して'/'向きをリセット'/'カメラをリセット'/'視点をリセット'、speech '早口で'/'もっと早く'/'もっとゆっくり'/'もう少しゆっくり'、read-here '残りを読んで'/'ここを読んで'/'この辺を読んで'、read-sentence '今の文を読み直して'、trouble '目を休めたい'/'暗い'/'見えない'、vr-exit '全画面を閉じて'、clear-find 'ハイライトを外して'/'検索をやめて'、close-tab 'このページを閉じて'、bookmarks 'ブックマークを閉じて'、next/prev-page '…を読んで'、say-again '繰り返して'/'もう一度お願い'/'聞き取れなかった'、reader-size-up '大きくして'/'文字が見にくい'。
+- 🐛 **奪取回帰2件を捕捉・修正**: 'ブックマーク一覧' bare形が bookmarks-list を奪取 → bare形は読み上げ側維持で 'を開いて' 形のみ bookmarks-open へ。'何と言った' が say-last-transcript を奪取 → say-again 側から除去（transcript エコーは別物）。close-tab-by-name の stoplist に '残り' を追加（'残りのタブを閉じて' が「残り」名指しに誤答する実害を捕捉）。
+- ✅ **テスト +94（git stash で91件赤確認、3件は共存ガード設計上緑）**: Total 3294 tests (106 suites); 0 lint errors（警告 132 = baseline 同一）; build green; FFFD バイトスキャン 0 件。
+
+### Session 131: 履歴深さ/多段ナビ原子 — nav-steps（Nページ戻る/進む + 履歴先頭）・history-depth 質問修正 + 言い換え句第14弾
+外部基準: Chrome の Alt+← 連打・履歴メニュー「先頭へ」、JAWS "how far back"、Voice Access の質問/コマンド分離。
+- 🐛 **'あと何ページ戻れる/進める' がナビゲートを実行する実害修正**: back の `/戻[るれ]/`・navigate の `/進[むめ]/` が質問形を所有して goBack/goForward を実行（プローブ実測）→ `history-depth` を両者より前に登録（back-status の位置ルール）— `p.historyIdx` / `p.history.length-1-idx` から残量を告知しナビゲートしない（非呼出を断言）。
+- 🐛 **'最初まで戻る'/'履歴の最初に戻る' が1歩だけ戻る誤動作修正**: back の `/戻[るれ]/` が '…に戻る' 語尾を所有 → `nav-steps` を registerDefaultCommands 内 back/navigate/home より前に配置（connectBrowser 登録では Map キー位置が負ける — 実測）、`this._tabManager` 遅延バインド使用。
+- ✨ **nav-steps**: 'Nページ/つ/回 戻って・戻る・戻り'（数字+漢数字二〜九 — 一は back の単歩維持）+ 進 twin + '一番最初に/まで戻る・戻って'/'履歴の最初まで/に戻る・戻って'/'最初のページに戻る・戻って' + EN 'back/forward N pages'/'back to the start/beginning' → パネル `goBack`/`goForward` をループし 'Nページ戻り/進みました'、不足分は '（これ以上戻れ/進めません）'、0 は誠実応答。'最初のタブに戻る'/'一つ戻って' は back 維持（共存テスト）。
+- ✨ **エイリアス第14弾**: clear-find '検索を閉じて/消して/終了'/'検索バーを閉じて'/'ハイライトを解除'、close-all-tabs 'タブを全部閉じる'/'全部のタブを閉じる' 等、close-tab 'パネルを閉じて/消して'/'ウィンドウを閉じる'、vr-exit '終了'/'アプリを閉じて/終了して'/'ブラウザを閉じて/閉じる'、caption-size '字幕を大きくして/小さくして'/'キャプションサイズを…'、history-list '閲覧履歴'/'ブラウザ履歴'/'ウェブ履歴'/'検索履歴'、find-query '最後の検索'/'前に検索した言葉'、trouble 休憩/気分訴え（'休憩したい'/'気持ち悪い'/'めまいがする'/'目眩がする'）、back 'もっと戻って'/'さっき見たページ'/'もう一個戻って'。
+- ✅ **テスト +84（git stash で83件赤確認 — 1件は共存ガード設計上緑）**: Total 3203 tests (105 suites); 0 lint errors（警告 132 = baseline 同一）; build green; FFFD バイトスキャン 0 件。
+
 ### Session 130: 端移動/掃除原子 — move-tab-start/end・bulk クローズ3種・find-again + 言い換え句第13弾
 外部基準: Chrome の「タブを先頭/末尾へ」（長タブリストの端移動）、"Close duplicate tabs" 拡張機能、Voice Access "find again"、Firefox Close Unpinned Tabs。
 - 🐛 **'右端/左端/先頭/最後に移動' 誤ナビゲート修正**: go-to の `/に移動/` catch-all が句を所有しリテラルナビゲート（プローブ実測）→ `move-tab-start`/`move-tab-end` を go-to より前に登録。TabManager に `moveTabToStart(index)`/`moveTabToEnd(index)` を追加 — pinned タブは pinned クラスタ内端（`pinnedCount-1` / `pinnedCount`）に留め、非 pinned は 0/末尾へ（moveTab の境界規則を継承）。

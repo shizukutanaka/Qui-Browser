@@ -710,6 +710,16 @@ export class TabManager {
   }
 
   /**
+   * Recently closed URLs, most recent first (the stack itself is
+   * oldest-first so reopen pops LIFO). Private/blank tabs never enter the
+   * stack, so nothing incognito is reported here either.
+   * @returns {string[]}
+   */
+  closedTabs() {
+    return [...this._closedStack].reverse();
+  }
+
+  /**
    * Turn private mode on/off for subsequently opened tabs (incognito-window
    * semantics: existing tabs keep the flag they were created with). Redraws
    * the strip so the PRIVATE chip appears/disappears immediately.

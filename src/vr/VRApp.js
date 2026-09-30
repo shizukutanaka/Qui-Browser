@@ -3412,6 +3412,15 @@ export class VRApp {
               return '共有できません';
             }
           },
+          // '通知を消して' — toasts auto-dismiss, so the manual twin clears
+          // the caption queue (the part a voice user actually hears linger).
+          onDismissNotify: () => {
+            this.captionSystem?.clear?.();
+            return true;
+          },
+          // '最新の通知' — readout twin; the caption queue still holds the
+          // newest toast text after the visual card has faded.
+          onReadNotify: () => this.captionSystem?.lastLine?.() || null,
           // Quest hold-button parity — return the rig to the origin.
           onRecenter: () => {
             if (!this.playerRig) {
