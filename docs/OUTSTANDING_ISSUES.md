@@ -133,6 +133,10 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 エラーではなく、明示的にオフにしたユーザーの選択は永続値が勝つ。**戻すのは1行**だが、
 戻す者は上記4条件のどれが再発したかを言えること（`tests/vr-app-wiring.test.js` がこの既定を固定）。
 
+- ~~voice '閉じてくれんですか'/'閉じてくれたまえ'/'閉じてもらってもいいですかね'/'閉じなさいって'/'閉じなってば'/'閉じるものね'/'閉じるわけです' が NO-MATCH~~ — **Session 199 で実装**（TAIL_TE XVII + 命令残置 + FR IX）
+- ~~voice 'why dontcha close it'/"whyn't you"/'i command/order you to'/'i hereby request/ask that you'/'the move is to'/'best move is'/'be an angel and' が NO-MATCH~~ — **Session 199 で実装**（ENPRE VIII）
+- ~~voice 'close it if you could possibly'/'please sir'/"if it's not too much trouble"/"if it isn't too much to ask"/'closing it is the way to go'/'closing it would be the move' が NO-MATCH~~ — **Session 199 で実装**（EN語尾）
+- ~~voice 'デカくして'/'小さめにして'/'読み上げ止めて'/'どこ読んでる' が NO-MATCH~~ — **Session 199 で実装**（リテラル）
 - ~~voice '閉じてくれないかしら'/'閉じてもらいましょうよ'/'閉じてくれればそれでいい'/'閉じてやるぞ'/'閉じてくれうるか' の受益残置が NO-MATCH~~ — **Session 198 で実装**（TAIL_TE XVI）
 - ~~voice '閉じちゃいなさいよ'/'閉じちゃうのも悪くない'/'閉じちゃってもかまわない'/'閉じとくといい'/'閉じとかないと' のちゃ/とく残置が NO-MATCH~~ — **Session 198 で実装**
 - ~~voice '閉じるのが一番だよ'/'閉じるのが得策だ'/'閉じることでいい'/'閉じるならOK'/'閉じたらよろしいでしょうか'/'閉じたらいいですよ' が NO-MATCH~~ — **Session 198 で実装**（FR VIII + たら残置）
