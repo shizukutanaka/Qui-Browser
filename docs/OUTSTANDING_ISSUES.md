@@ -1600,6 +1600,19 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - `閉じるのが理にかないます` — 語内に `ない` を含み negate 生ヒット → negate ピン（実害なし・記録のみ）
 - `begone (tab)` — R242 archaic-address ピン維持（`begone from my sight` は close-tab で分岐済み）
 
+## R246 skip-list（Session 320）
+- `閉じていない`/`閉じてない(ですけど|のに|んです|んですけど|ですよ)`/`まだ|ずっと閉じてない`/`閉じてもない` — 平叙状態報告で閉じ意図が曖昧 → null ピン（んだけど系は未了訴え→trouble 一貫）
+- `閉じてないんですよ` — 変種経路で negate に落ちる誤ルート（`てない` 内の `ない`）→ 低実害のため記録のみ
+- `閉じるべきだったはず` — はず-complaint 系統に合流して trouble
+- `開きっぱなし` 族・`閉じ残したまま` — 状態報告→describe-tab ピン（'開きっぱなし' の既存ルートに統合）
+
+## R247 skip-list（Session 321）
+- `do i have to spell it out close it`/`do i look like im joking close it`/`shall i repeat myself close it` — 疑問前置が help 生ヒットで先勝ち（登録順）。interrogative 規則に合わせ help ピン
+- `must i repeat close it` — `repeat` 語ヒットで say-again（実害小・記録）
+- `close it or else what` — "or else what" は挑発返しで命令確度が揺れる → null
+- `閉じないんか` — ない系で negate（'閉じないのかよ'系は reproach→trouble で分岐済み）
+- `閉じっぱでいい` — 「閉じたままで良い」/「閉じなくて良い」両読み → null
+
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。

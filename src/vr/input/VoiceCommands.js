@@ -978,6 +978,52 @@ export class VoiceCommands {
     push(normalized.replace(/さえしてくれれば[。！？!?]?$/u, 'て'));
     push(normalized.replace(/てさえくれれば[。！？!?]?$/u, 'て'));
     push(normalized.replace(/てくれさえすれば[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るべきだったのに[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るべきだったんだけど[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/なければならなかった[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ないといけなかった[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/なくちゃいけなかった[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/なくてはいけなかった[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る必要があった[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るの忘れてました[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るの忘れていた[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのを忘れていました[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ること忘れてた[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/残してた[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/残してました[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ずに残った[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろといったんだ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろって言ってんだよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろって言ったろ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろと申しております[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろと命じます[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろを命じる[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろって何回言う[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろと再三言った[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/なさいよね[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る気ある[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る気はある[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るつもりある[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るつもりはあるの[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのかよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ちゃおうかしら[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ちゃいますか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ちゃうよね[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るかね[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ようかしら[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ちゃうかしらね[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てとお願いしてる[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てと頼んでる[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てと頼んでます[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てと言ったのに[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てと言っている[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てと何度も言った[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てと再三お願い[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るの忘れそう[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/忘れそうだった[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/忘れてしまった[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るの忘れちゃいました[。！？!?]?$/u, 'て'));
+
     push(normalized.replace(/(て|で)(?:あげて|あげ(?:る|ます)[ねよわか]?|くれる|くださる|くださいます)[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)(?:くれ|くださ)ちゃう[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)もら(?:う|える|った|います|えます|ってもいい|っていい)[。！？!?]?$/u, '$1'));
@@ -1186,7 +1232,7 @@ export class VoiceCommands {
         'you (?:could|can|would|might|may) (?:probably|conceivably|potentially|certainly|surely|perhaps|possibly)|' +
         'you (?:could|can|might|may) (?:always|just as well|just at least|just|as well|at least)|' +
         '(?:might|may) as well|perhaps|maybe|possibly|surely|certainly|conceivably|probably|potentially|' +
-        'to|kindly|' +
+        'to start with|to begin with|to|kindly|' +
         'be a (?:sweetheart|darling|love|saint|gem|champion|hero|dearie|peach|sport)(?: and)?|' +
         'be so good (?:as to|and)|be (?:good|nice) enough to|' +
         'be (?:sweet|lovely|wonderful|awesome|amazing) and|' +
@@ -1273,7 +1319,8 @@ export class VoiceCommands {
         'while you(?:\'?re| are) at it|since you(?:\'?re| are) (?:here|there|at it)|when you get (?:a|the) (?:sec|second|minute|chance|moment)|' +
         'if you have a (?:sec|second|minute|moment|chance)|if it\'?s not too much trouble|' +
         'before (?:you go|i (?:leave|go))|whenever you (?:can|get a chance)|at your (?:earliest )?convenience|no rush but|' +
-        'go ahead and|feel free to|do us both a favor and|grant me the favor and|confer upon me the favor and|do yourself a favor and|do yourselves a favor and|do us a favour and|do me a favour and|do yourself a favour and|do yourselves a favour and|you could do worse than|cant hurt to|wont hurt to|it cant hurt to|no harm in|no reason not to|theres no reason not to|least you can do is|least you could do is|the least you could do is|you could at least|you might at least|could at least|at least|i pray you will|i pray youll|pray|prithee|wouldst thou|dost thou|wilt thou|when youve got a sec|when youre free|next time you get a chance|the next chance you get|whenever you feel like it|when you have a moment|once youre done|after youre done|as soon as you can|first chance you get|once you get a sec|if you ask me|if you want my opinion|if i were you id|were i you id|what id do is|herere what id do|hurry up and|quit stalling and|stop messing around and|stop dilly dallying and|how about you|hows about you|what about|how bout you|how boutcha|whaddya say|what say you|suppose you could|suppose youd|think you could|think you can|you think you could|be my guest|have at it|by all means|for the love of god|for gods sake|for petes sake|for crying out loud|oh for fucks sake|for fucks sake|god damn|jesus christ|holy hell|jeez|gah|ugh|omg|wtf|fucking|damn it|dammit|whenever youre ready|sometime today|so then|ok ok|okay okay|alright alright|well then|well now|now now|now listen|look here|see here|there there|oh and|oh also|and another thing|in fact|on second thought|one more thing|by the way|btw|like for real|no lie|dead serious|straight up|i mean it|i kid you not|believe me|trust me|i promise|promise|good looks|say less|no kidding|bet|word|legit|y\'?all|you all|excuse me but|pardon me but|excuse me|pardon me|beg your pardon|ahem|psst|heads up|check it|hear me out|come now|frankly|honestly|also|ya wanna|you wanna|do|oh|well|say|listen|look|alright|thanks|' +
+        'go ahead and|feel free to|do us both a favor and|grant me the favor and|confer upon me the favor and|do yourself a favor and|do yourselves a favor and|do us a favour and|do me a favour and|do yourself a favour and|do yourselves a favour and|you could do worse than|cant hurt to|wont hurt to|it cant hurt to|no harm in|no reason not to|theres no reason not to|least you can do is|least you could do is|the least you could do is|you could at least|you might at least|could at least|at least|i pray you will|i pray youll|pray|prithee|wouldst thou|dost thou|wilt thou|when youve got a sec|when youre free|next time you get a chance|the next chance you get|whenever you feel like it|when you have a moment|once youre done|after youre done|as soon as you can|first chance you get|once you get a sec|if you ask me|if you want my opinion|if i were you id|were i you id|what id do is|herere what id do|before you do anything|before anything|first things first|first order of business|the first order of business|starting off|kicking off|opening move|hurry up and|quit stalling and|stop messing around and|stop dilly dallying and|how about you|hows about you|what about|how bout you|how boutcha|whaddya say|what say you|suppose you could|suppose youd|think you could|think you can|you think you could|be my guest|have at it|by all means|for the love of god|for gods sake|for petes sake|for crying out loud|oh for fucks sake|for fucks sake|god damn|jesus christ|holy hell|jeez|gah|ugh|omg|wtf|fucking|damn it|dammit|whenever youre ready|sometime today|so then|ok ok|okay okay|alright alright|well then|well now|now now|now listen|look here|see here|there there|oh and|oh also|and another thing|in fact|on second thought|one more thing|by the way|btw|like for real|no lie|dead serious|straight up|i mean it|i kid you not|believe me|trust me|i promise|promise|good looks|say less|no kidding|bet|word|legit|y\'?all|you all|excuse me but|pardon me but|excuse me|pardon me|beg your pardon|ahem|psst|heads up|check it|hear me out|come now|frankly|honestly|also|ya wanna|you wanna|do|oh|well|say|listen|look|alright|thanks|' +
+
         'anyways?|by the way|btw|yes please|see if you can|see about|try|' +
         'have a go at|get to|up and|might i trouble you to|be a lamb and|' +
         'have the goodness to|be a dear and|i beg you to|' +
@@ -2553,7 +2600,8 @@ export class VoiceCommands {
         'how do you use this', 'how does this thing work',
         /^how (?:might|may|would|could|should) i\b/i,
         /べきか(?:どうか)?[。！？!?]?$/, /(?<!く)られるか?[。！？!?]?$/,
-        /(?<!く|考え|見受け)られますか?[。！？!?]?$/, /(?<!く)られることができますか?[。！？!?]?$/, /(?<!く|おか)れますか[。！？!?]?$/,
+        /(?<!く|考え|見受け)られますか?[。！？!?]?$/,
+        /(?:られ|れ)るのか[。！？!?]?$/, /(?<!く)られることができますか?[。！？!?]?$/, /(?<!く|おか)れますか[。！？!?]?$/,
         /^is it possible to/i,
         'どうすればいい', 'どうすれば', 'なんとかして',
         '使い方がわからない', '操作方法がわからない', 'やり方がわからない',
@@ -2967,6 +3015,11 @@ export class VoiceCommands {
         '勝手に閉じた', '勝手に動いた', '開けない', 'タブが開けない',
         "i'm stuck", 'im stuck', 'i am stuck', 'something is wrong', 'it froze', 'it crashed',
         /did it fail/i, /did it (crash|freeze)/i,
+        'it refuses to close', 'it keeps reopening',
+        'it keeps coming back up', 'it just wont die',
+        'it wont go away', 'this wont go away', 'it wont die',
+        'this wont close', 'this just wont close',
+        '閉じないのかよ', '閉じないわけ', '閉じへんのか', '閉じへんわけ',
         '何も見えない', '真っ白', '画面が白い', '映らない', '固まる', '落ちた',
         'クラッシュした', 'クラッシュ', '画面が落ちた', 'アプリが落ちた',
         '耳が痛い', '酔った', '気分が悪い', '目が疲れた', '滑らかじゃない',
@@ -4637,7 +4690,45 @@ export class VoiceCommands {
         'away with you tab', 'out of my sight tab', 'out with this tab',
         'remove it from my sight', 'get it out of my sight',
         'handle the tab', 'handle this tab',
+        'that tab needs closing', 'that tab wants closing', 'it wants closing',
+        'it wants to be closed', 'it has to be closed', 'it ought to be closed',
+        'it should already be closed', 'it was supposed to be closed',
+        'it was meant to be closed', 'it was supposed to go away',
+        'it wasnt supposed to stay', 'it was never meant to stay',
+        'it outstayed its welcome', 'the tab outstayed its welcome',
+        'it overstayed its welcome', 'this overstayed its welcome',
+        'as far as im concerned its closed', 'as far as im concerned its gone',
+        'consider it closed', 'consider it shut', 'consider it gone',
+        'lets consider it closed', 'consider that tab done',
+        'as good as closed', 'for all intents and purposes its closed',
+        'its been open too long', 'its been up too long',
+        'its lingered too long', 'it stayed too long',
+        'its time it went', 'its time it was closed',
+        'its time for it to go', 'its time for it to be gone',
+        'about time it went', 'its about time it went',
+        'high time it was closed', 'high time it went',
+        'what part of close it dont you get',
+        'how hard is it to close it',
+        'how many times do i have to say close it',
+        'do i have to spell it out close it',
+        'is it really that hard to close it',
+        'do i look like im joking close it',
+        'am i asking too much close it', 'was i unclear close it',
+        'did i stutter close it', 'do you need it in writing close it',
+        'want me to say it again close it',
+        'this is your last chance close it', 'last warning close it',
+        'final warning close it', 'close it or else',
+        'close it or so help me', 'close it or ill do it myself',
+        'close it or were done', 'close it or i swear',
+        'close it and thats final', 'close it and thats that',
+        'close it period', 'close it end of story',
+        'close it end of discussion', 'close it no ifs ands or buts',
+        'close it no arguments', 'close it no debate',
+        'close it no questions', 'close it dont argue',
+        'close it dont fight me on this',
+        'close it and dont make me ask again',
         'deal with the tab', 'deal with this tab',
+
         'タブの閉鎖を願います', '閉鎖を願います', '廃棄してください', '破棄してください',
         '閉じる操作をして', '閉じるアクションを', '閉じる手続きを', '閉じる操作を願います',
         'it needs closing', 'it needs to be closed', 'this tab needs to go',
@@ -6547,6 +6638,9 @@ export class VoiceCommands {
         'これは何', 'これは何のページ', '何これ', 'このページは何',
         'tell me the title', 'show me the page', '見て', 'みて', '見せて',
         '閉じっぱなし', '開きっぱなし', 'つけっぱなし', 'check that out', 'check it out',
+        '開きっぱなしだ', '開きっぱなしだった', '開きっぱなしだったのに',
+        '開いたままだった', '開いたまま残ってた', '開きっぱなしのまま',
+
         'ご覧になりますか', 'ご覧になります', 'ご覧になりたい', 'ご覧くださいました',
         'can you see this', 'can you see it', '開けっぱなし',
         'ご覧ください', 'ご覧くださいませ', 'ご覧くださいますか', 'ご覧いただけますか',
@@ -9083,6 +9177,12 @@ export class VoiceCommands {
         'nevermind that', 'scratch it', 'scratch that one', 'nix that', 'nix it',
         'maybe later', 'another time', 'not right now', 'hold off', 'hold that',
         'wait on it', 'sit tight', 'stand down', 'i changed my mind',
+        'i changed my mind close it', 'hold on close it',
+        'close it wait no', 'close it never mind', 'close it hold on',
+        'close it i changed my mind', 'close it scratch that',
+        'close it that was a joke', 'close it just kidding',
+        'scratch that close it', 'that was a joke close it',
+        'just kidding close it', '閉じるなよ絶対',
         'change of plans', 'forget this', 'think about it later',
         'もうやだ', 'いやだ', 'やだ', '嫌だ', 'もういいのか', 'もういいかな',
         /んと(?:いて|く|きましょう|いてね)[。！？!?]?$/u,
