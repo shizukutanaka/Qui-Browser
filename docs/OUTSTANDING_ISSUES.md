@@ -1733,6 +1733,10 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - R283 skip: '閉じとる*' 族（とるがよ|ばい|わい|ぞよ|っちゃ）— 九州進行「閉じておる」報告にも命令にも読める曖昧形 → null 維持（'閉じとるで'→describe ピン整合のため）。
 - R283 pin: '閉じとるけんね'→negate・'閉じなきゃいけないんだよ'→trouble・'閉じないといけないことになってる'→negate — 確立ピン維持。
 
+- R284 pin: `閉じてくれないの`→null 維持（springer 確立: 反報 vs 依頼で曖昧）。`scrub it`/`wreck it`/`crush it`→null 維持 — タブ明示形のみ登録。
+- R284 fix: `閉じんでな`→negate（'閉じな' close literal の variant 残置が開放依頼を横取りしていた — raw literal 化で先勝ち固定）。`take it out back`→close-tab（'back' で reopen に誤ルートしていた慣用句）。
+- R284 note: `閉じんなってば` は既存 close literal 維持（方言命令 vs 禁止で曖昧 — 変更は別途判断）。
+
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。
