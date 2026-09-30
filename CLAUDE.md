@@ -2848,6 +2848,13 @@ permission/capability questions (てもいいでしょうか / られますか)�
 - ✅ **テスト +170（実装前実行で140件赤確認、内26件は共存ガードの設計上緑）**: Total 6918 tests (144 suites); 0 lint errors（警告 137 = baseline 同一）; build green; FFFD 0件。
 
 ### Session 313: Voice atoms CXCIII — 方向処分句動詞 + スラング vocative + JA 方言依頼残置 + dict 名詞尾XXXII。EN: directional disposal（down/away/out with this/the tab・out with it/this・through/finished with this/(the tab)・over and done with it）・wrap/pack/end 系（wrap the tab up・pack it up/away・do it/the tab in・tear/rip/pull it down・put an end to it/this・put/lay it to rest・retire it/the tab・put it out of its misery）・slang discourse 前置（bro/sis/fam/fams/dawg/cuz/tbh/ngl/lowkey/highkey/deadass/ong/fr fr/fr — ENPRE の |bruh|dude|be a champ and| 交互に併入）。JA: しもた/しもうた/しもて（近畿完了）・とこなあ/とこうな（南日本意向+否定型→stem-な 誤爆を (?<!とこ|どこ) lookbehind で回避）・とか(や)・ってのはどう・たらええのに・た方がええ・ましょうぜ・ますかね・かなあ・なよー・なよっと・やぁ。dict 名詞尾XXXII（最適解/好判断/良案/名案/上策/妙案/早道/近道/得策/策）。確立ピン維持: 'wrap it up'/'wrap this up'→stop-everything・'shut X down'→vr-exit・'put it to sleep'→sleep-mode・'のが正解'→help・'んといて'→negate・sick/tired/fed-up・なんて・下策ではない は意図スキップ。
+### Session 330: beam atom sweep — EN go-on permissives/hedged reports + JA potential imperatives/ba-yoi/morau III/ro-tails
+外部基準: EN go-on permissives ("go on close it", "knock yourself out"), hedged reports ("i reckon|figure|imagine|bet you could"); JA 可能命令 (れろ|れや|れんなよ|れらんか), ばよい 残置 (宜しい|善い|好い|可也), てもろて/てもらう III, ろ命令語尾 (ろてな|ろはよ|ろじゃ 系)。
+- ✨ **EN**: go-on 許容（go on close it・go ahead close it・go on then・knock yourself out・be at liberty|leisure）；hedged 報告（i reckon|figure|imagine|bet you could|can・assuming you close it）。
+- ✨ **JA**: 可能命令（れろ|れや|れんなよ|れらんないか|れらんか|れりゃいい(のに|じゃん|んだけど|わ) → 'て'）；ばよい残置（ればよいのです|のよ|わ|です|ではないか|だろう・宜しい|善い|好い|可也・いいものを|いいものだ|いいんですよ → 'て'）；てもろて/てもらうIII（てもろても|てもろた|てもらうと|てもらうのであれば → 'て' — 'てもらえそうな' negate 誤爆を literal で解消）；ろ語尾（ろてな|ろて|ろっての|ろよな|ろはよ|ろはよう|ろじゃい|ろじゃ|ろって言ってんでしょ → 'て'）。
+- 🔄 **ピン維持**: 'help yourself close it'→scoped-help（登録順の確立規則・scoped help 意味も妥当）；'閉じないろ'→negate（変形ない命令）。
+- ✅ tests/beam-atom-sweep.test.js +79（実装前 ~50件赤確認）、計16517全緑・lint 0エラー/警告136=baseline・build green・FFFD 0件。
+
 ### Session 329: joist atom sweep — EN convenience/delegation + JA opportunity/てみる/emphatic-not-done
 外部基準: EN since/while convenience tails, see-to-it delegation, dont-leave (close intent); JA 機会/折り/潮時/好機 nouns, てみる residue, だけでも/せめて, すらいない emphatic-not-done.
 - ✨ **EN**: convenience 尾（since youre there|at it・while youre there|in there・as you go・on your way out・as you please）；see-to-it 委任（see to it that it|the tab closes・see that|make sure|ensure|be sure it|the tab closes）；dont-leave close 意図（dont leave it open|dont let it stay open — negate 先取りを literal で解消）。
