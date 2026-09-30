@@ -3494,6 +3494,9 @@ export class VoiceCommands {
         /[てで]ばっかり(?:だ|です|なん|なんだ|なの)?[。！？!?]?$/, /はずがまだ/, /はずなのにまだ/,
         /閉じ(?:た|てある|ている)と思っ?(?:た|てた|ていた)(?:けど|のに)?[。！？!?]?$/,
         '閉じそびれた', '閉じそびれたよ', '閉じ残した', '閉じてなかった', '閉じてないまま', '閉じてないままだ',
+        // pass CCLXXIII: failed-expectation reports
+        'nothing happened', 'you still didnt close it',
+        '閉じてたのに', '閉じてるはず', '閉じてるはずだ', '閉じてないの',
         '勝手に閉じる', '勝手に閉じられた', '自動で閉じた', '急に閉じた',
         'いきなり閉じた', '勝手に消えた', '勝手に閉じてきた', 'it crashed again',
         'really slow', 'super slow', 'pretty slow', 'very slow', 'way slow',
@@ -5671,6 +5674,12 @@ export class VoiceCommands {
         'pal close it', 'chief close it', 'boss close it', 'sport close it', 'champ close it',
         'おい閉じろ', 'おい閉じて', 'こら閉じろ', 'こら閉じて', 'やあ閉じて', 'よう閉じて', 'よお閉じて',
         '閉じ忘れてる', '閉じ忘れてるよ', '閉じるのを忘れてる', '閉じるの忘れてる',
+        // pass CCLXXIII: imperative-reiteration rebukes + vocative/urgency frames
+        'told you to close it', 'asked you to close it', 'been asking you',
+        'supposed to be closed', 'should already be closed', 'close it whenever youre ready',
+        'man close it', 'fellas close it', 'folks close it',
+        '頼んだのに', '言ったのに', 'ついさっき言った', 'さっき言った通り',
+        '閉じてよ早く', '閉じろよお前', '閉じろよぉ', '閉じてよおい', '至急閉じろ',
         // pass CCLXVIII: demand/court-order frames (i {want,need,demand,order,command,decree,require,expect} OBJ {closed,gone,dead,...}; court/bench verdicts; stands condemned; outlawed/recalled declaratives)
         'i command it closed', 'i command it dead', 'i command it destroyed', 'i command it discarded',
         'i command it eliminated', 'i command it ended', 'i command it erased', 'i command it finished',
@@ -17337,6 +17346,7 @@ export class VoiceCommands {
     // site names — both are passed through via lookaheads.
     const goToJp = new RegExp(
       '^(?!(?:前回|セッション|閉じた))' +
+        '(?!.*(?:ここ|そこ|あそこ)にい)' +
         '(?!.*(?:タブ|メニュー|設定|オプション|環境設定|キーボード|パネル|履歴|ブックマーク|お気に入り|チュートリアル|ガイド|ヘルプ|使い方|読み上げ|音読|プロフィール|アカウント|パスワード|ファイラー|エクスプローラー|ファイルマネージャ|タスクマネージャ|ゴミ箱|ごみ箱|デスクトップ|スタートメニュー|タスクバー)を開)' +
         '(.+)(?:を開く?|に(?:行く|行って|いって|移動(?:する)?)|へ(?:行く|行って|いって))'
     );
@@ -18007,6 +18017,13 @@ export class VoiceCommands {
         'i see its still open', 'i see its open', 'its open i see',
         'you left it open', 'you left the tab open', 'left it open again',
         '開きっぱなしのままだ', '開きっぱなしのままだった',
+        // pass CCLXXIII: still-present reports + interrogative status queries
+        'its still here', 'its still sitting there', 'its still up there', 'its not gone',
+        'it hasnt gone away', 'it didnt go away', 'how is it still open',
+        'wont it close', 'didnt it close', 'did you not close it',
+        'did you close it or not', 'did you close it yet',
+        'なんで開いてる', 'なんでまだ開いてる', 'いつ閉じるの', '開いたままだ',
+        'おいまだか', 'まだ残ってる', 'まだいる', 'まだある', 'まだここにいる', 'まだそこにいる',
         'it hasnt been closed yet', 'it has not been closed yet','it remains open', 'its yet to be closed', 'it is yet to be closed','the tab remains open',
         'the tab is still there', 'why is it still there', 'it keeps coming back',
         'was it open', 'is it gone', 'its back', 'it came back',
