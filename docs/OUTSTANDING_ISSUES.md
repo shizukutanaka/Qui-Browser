@@ -137,6 +137,29 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice 'why dontcha close it'/"whyn't you"/'i command/order you to'/'i hereby request/ask that you'/'the move is to'/'best move is'/'be an angel and' が NO-MATCH~~ — **Session 199 で実装**（ENPRE VIII）
 - ~~voice 'close it if you could possibly'/'please sir'/"if it's not too much trouble"/"if it isn't too much to ask"/'closing it is the way to go'/'closing it would be the move' が NO-MATCH~~ — **Session 199 で実装**（EN語尾）
 - ~~voice 'デカくして'/'小さめにして'/'読み上げ止めて'/'どこ読んでる' が NO-MATCH~~ — **Session 199 で実装**（リテラル）
+- ~~voice '閉じておくべきかと思います/おくしかないかも' のておく報告・決断尾が NO-MATCH~~
+- ~~voice '閉じる目的です/ための指示です' の目的・理由名詞尾が NO-MATCH~~
+- ~~voice 'id be ever so grateful/id owe you big time' の感謝・恩義条件枠が NO-MATCH~~
+- ~~voice '閉じてくださいませませ/くださいなさい' のください命令句残置が NO-MATCH~~
+- ~~voice '閉じるのが効率的だ/賢いやり方' の効率・利得名詞尾が NO-MATCH~~
+- ~~voice 'do me the service of/oblige me with a closing' の厚意・恩恵前置枠が NO-MATCH~~
+- ~~voice '閉じておけ/おけよ' のておけ命令が裸 おけ 否定パターンで negate 誤ルート~~
+- ~~voice 'お閉じいたします/お閉じお願いします' のお+ます語幹謙譲命令が NO-MATCH~~
+- ~~voice 'at the earliest opportunity/next chance you get' の機会時前置枠が NO-MATCH~~
+- ~~voice '閉じてきてくれ/きなさい' のてきて方向命令が NO-MATCH~~
+- ~~voice '閉じる意向です/つもりで進める' の意図・方針名詞尾が NO-MATCH（進めるは navigate 誤ルート）~~
+- ~~voice 'if it is within your power/if that works for you' の能力・都合前置枠が NO-MATCH~~
+- ~~voice '閉じる段取りで/手はずで' の手配・段取尾が NO-MATCH~~
+- ~~voice 'if you see fit/should you feel so inclined' の適意・意向前置枠が NO-MATCH~~
+- ~~voice '閉じてしまうことを勧める/しまうことにしようか' のてしまう判定尾が NO-MATCH~~
+- ~~voice '閉じるのが当然だ/お作法だ' の慣習名詞尾が NO-MATCH~~
+- ~~voice 'it is your job to/it is high time you' の義務・時宜名詞枠が NO-MATCH~~
+- ~~voice '閉じていただけぬものか' が拒否修辞として negate 誤ルート~~
+- ~~voice '閉じてもらっております/もらうことになります' のてもらう謙譲残置が NO-MATCH~~
+- ~~voice 'out of the kindness of your heart/indulge me by' の厚意前置枠が NO-MATCH~~
+- ~~voice '閉じてくれるかなあ/くれればそれで足りる' のくれ推量・仮定尾が NO-MATCH~~
+- ~~voice '閉じておいてもらえば/おかせてくれ' のておく受益・許可残置が NO-MATCH~~
+- ~~voice 'im assuming you can/god willing, close it' の推量・希求前置枠が NO-MATCH~~
 - ~~voice '閉じてくれと頼みたい/くれそうですか' のくれ引用・期待尾が NO-MATCH~~
 - ~~voice '閉じるように頼んでる' のよう言ってる進行依頼が NO-MATCH~~
 - ~~voice 'any way you could/in case you can close it' の可能性前置枠が NO-MATCH~~
