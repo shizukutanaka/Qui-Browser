@@ -365,7 +365,7 @@ export class VoiceCommands {
     // Sentence-final particles (口語/方言): '閉じてよ' → '閉じて',
     // '読んでね' → '読んで', '待ってな' → '待って'. Terminal-only strip —
     // a stripped variant that matches nothing is simply skipped.
-    push(normalized.replace(/(?:よね|なあ|ねえ|よ|ね|な|ぞ|ぜ|わ|とも|さ)[。！？!?]?$/u, ''));
+    push(normalized.replace(/(?:よね|なあ|ねえ|よ|ね|(?<![うくぐすつぬぶむる])な|ぞ|ぜ|わ|とも|さ)[。！？!?]?$/u, ''));
 
     // Colloquial/dialect suffixes: permissive 'てもいい(かな)'/'ていいかな' →
     // bare て; volitional 'たい(んだけど)' → て; Kansai 'といて' → て;
@@ -385,6 +385,7 @@ export class VoiceCommands {
       'あの|まあ|なんか|ところで|もう一度|もう一回|もういちど)[、\\s]*', 'u');
     push(normalized.replace(prefixRe, ''));
 
+||||||| acf361d
     // EN wrappers: leading 'please', 'can/could/would you (please)', trailing
     // 'please' — applied cumulatively so 'could you please go back' works.
     const en = normalized
@@ -3051,6 +3052,7 @@ export class VoiceCommands {
         '早口で', 'もっと早く', '早口にして',
         '早くしろ', '速くしろ', 'もっと早くしろ',
         'さっきより早く', 'さっきより速く', '今より早く', '今より速く',
+||||||| acf361d
         /speak faster|talk faster/i, /speed up (speech|reading|talk)/i,
         /speed up (the )?reading/i,
         /increase (speech|talk|reading) (rate|speed)/i, /read faster/i],
