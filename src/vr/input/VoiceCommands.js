@@ -2080,6 +2080,8 @@ export class VoiceCommands {
         '通知設定', '設定を変更', '設定を変えて',
         'open the menu', 'show menu', /^menu$/i,
         'open up settings', 'bring up the settings', 'bring up settings', 'open settings',
+        // pass CCLXXVIII
+        '設定開いて',
         /open\s+settings/i, /close\s+settings/i, /show\s+settings/i,
         /^settings$/i, /open (my |the )?settings/i, /settings please/i,
         /^options$/i, /^preferences$/i],
@@ -2912,6 +2914,8 @@ export class VoiceCommands {
         '字を小さく', '字を小さくして', '文字を小さめに', '字を小さめに',
         // pass CCLXXVII
         'ちょっと小さく', '文字ちょっと小さく',
+        // pass CCLXXVIII
+        '縮小してズーム',
         'フォントを小さく', 'フォントサイズを下げて', '文字サイズを下げて',
         'ズームアウトして', 'ページを縮小', '文字を縮小',
         '縮小',
@@ -3775,6 +3779,7 @@ export class VoiceCommands {
         'ファイルをダウンロード', 'ファイルを保存',
         'ダウンロード履歴', 'ダウンロードしたファイル', 'ダウンロード一覧',
         /^downloads?$/i, /download (this|it|the file)/i, /^upload/i,
+        'このページをダウンロード',
         /(export|import)( my)? bookmarks?/i, /open (my |the )?downloads/i,
         'エクスポートして', 'インポートして', '履歴をエクスポート',
         'ブックマークをエクスポート', 'ブックマークをインポート',
@@ -5156,6 +5161,9 @@ export class VoiceCommands {
         'open up a tab', 'open up new tab', 'open a new tab', 'open a tab',
         '新しいページを開いて', '新しいページを開けて', '新しいページを開く',
         '新しいタブをもう一つ', '新しいタブをもう一個', 'もう一個新しいタブ',
+        // pass CCLXXVIII
+        '新しいタブ開いて', 'open a fresh tab', 'fresh tab please',
+        'タブ開いてちょ', 'もう一枚タブ',
         'open a new tab', 'open new tab', 'add a tab', 'create a tab',
         'make a tab', 'another tab', 'one more tab',
         'another window', 'one more window', 'open another window',
@@ -16876,6 +16884,8 @@ export class VoiceCommands {
       patterns: ['履歴を開いて', '履歴を見て', '履歴を表示', '履歴を見せて',
         '読んだ履歴', '読書履歴', '閲覧した履歴', '訪れたページ',
         '閲覧履歴を見せて', '履歴はどこ', '履歴はどこにある',
+        // pass CCLXXVIII
+        '履歴見せて', '閲覧履歴を開いて',
         /open\s+(?:the\s+)?history/i, /show\s+(?:the\s+)?history/i,
         /^history$/i, /my history/i, /browsing history/i,
         /pull up (the )?history/i, /show me (?:the )?history/i],
@@ -17038,6 +17048,8 @@ export class VoiceCommands {
         'close the rest', 'close everything else', 'close all but this',
         'close all except this', 'keep just this one', 'close the others',
         'close other tabs', 'close all the rest',
+        // pass CCLXXVIII
+        '他のタブ全部閉じて', 'close all the other ones', 'これ以外閉じて',
         'except this one', 'all but this one', 'all but this tab', 'all but one',
         'close all but one', 'close everything except this one', 'close everything but this',
         'このタブ以外', 'このタブ以外のタブ', 'これ以外のタブ', 'これだけ残して',
@@ -17128,6 +17140,8 @@ export class VoiceCommands {
         'このタブを複製', 'このタブを複製して', '同じタブを開いて',
         '同じタブをもう一つ開いて', 'もう一つ同じのを開いて', '同じのをもう一つ',
         'もうひとつ開いて', 'もう一つ開いて',
+        // pass CCLXXVIII
+        'このタブ複製して', 'dup this tab', 'このタブもう一枚',
         /duplicate (this )?tab/i, /^duplicate$/i, /open (a |another )?copy/i,
         'clone it', 'clone this tab', 'copy this tab', 'duplicate this page', /open a duplicate/i],
       action: () => {
@@ -17145,16 +17159,20 @@ export class VoiceCommands {
         'このページをブックマーク', 'ブックマークに追加', 'ブックマークする',
         'ブックマークして', 'ページを保存', 'ページを保存して', 'このページを保存して',
         'お気に入りに追加', 'お気に入り登録', 'お気に入りに登録',
+        // pass CCLXXVIII
+        'ブクマして', 'このページをブクマ', 'ブックマーク登録', 'ブクマ登録して',
+        'favorite this page', '後で読むために保存', 'お気に入り追加', 'お気に入りにして',
+        'add to my bookmarks',
         'しおりを挟んで', '栞を挟んで', 'しおりを挟む',
         '後で読む', 'あとで読む', 'あとで読み直す', 'あとで読み返す', '読書リストに追加',
         '保存して', 'ブックマークに保存', '保存しておいて',
-        /(?<!did i )bookmark (this|this page|the page|page)/i,
+        /(?<!did i )(?<!un)bookmark (this|this page|the page|page)/i,
         /add (?:this |the )?(?:page |tab |it )?(?:to )?(?:bookmarks?|favo?rites)/i,
         /save (?:this |the |it )?(?:page |tab )?(?:to )?(?:the )?(?:bookmarks?|favo?rites)/i,
         'このページをブックマークして', 'ブックマークに追加して', 'ブックマークに登録して',
         /save (this|the) page/i,
         /add (this |it )?to (the )?reading list/i, /save (this |it )?for later/i,
-        /^save it$/i, /bookmark it/i, /remember (this|that|this page)/i,
+        /^save it$/i, /(?<!un)bookmark it/i, /remember (this|that|this page)/i,
         /stash (it|this)/i, /keep this page/i, /save this for later/i,
         /remember (this |the )?page/i, /dont lose (this|it)/i
       ],
@@ -17193,6 +17211,8 @@ export class VoiceCommands {
         '保存した記事', '保存ページ', '読みたいリスト', 'リーディングリスト',
         '後で読むリスト', 'ウォッチリスト', '保存したページ', '保存したもの',
         '保存済み', 'お気に入りの記事', 'ブックマークした記事',
+        // pass CCLXXVIII
+        'ブックマーク見せて', 'ブクマ開いて',
         /open (the )?bookmarks/i, /show (the )?bookmarks/i,
         /bring up (the )?bookmarks/i, /open bookmarks/i,
         /^bookmarks$/i, /^favorites$/i, /my (bookmarks|favorites)/i],
@@ -17974,7 +17994,7 @@ export class VoiceCommands {
 
     this.registerCommand('tab-by-name', {
       patterns: [new RegExp('^(?!(?:さっき|最後|最初|前|次|ピン|左|右|何番目|何枚目|何個目|現在|このタブ|秘密|シークレット|プライベート|一番左|一番右' +
-        '|一つ右|一つ左|ひとつ右|ひとつ左|右隣|左隣|隣|どの|今どの|今|最近|使用中|アクティブな|選択中|幾つ|何個|何個か|いくつか|幾つか|違う|真ん中|左側|右側|もっと))((?:(?!(?:この|その|あの)タブ).)+)のタブ(?!を|に|は|のタイトル)'),
+        '|一つ右|一つ左|ひとつ右|ひとつ左|右隣|左隣|隣|どの|今どの|今|最近|使用中|アクティブな|選択中|幾つ|何個|何個か|いくつか|幾つか|違う|真ん中|左側|右側|もっと|全部|全て|すべて|他))((?:(?!(?:この|その|あの)タブ).)+)のタブ(?!を|に|は|のタイトル)'),
       /^tab (?:named|called) (.+)$/i,
       new RegExp('^switch to (?!the (?:' + EN_NUM + '|[0-9]+)(?:st|nd|rd|th)?\\s+tab)' +
         '(?:the )?(?!next\\b|previous\\b|(?:' + EN_NUM + ')(?:st|nd|rd|th)?\\s+tab\\b|[0-9]+\\b)(.+) tab$', 'i'),
@@ -18378,6 +18398,8 @@ export class VoiceCommands {
         '全部閉じてほしい', '全部消して', '全部消えて', 'みんな閉じて', 'すべて閉じて',
         '全て閉じて', '全部閉じて', 'タブを全部閉じる', '全部のタブを閉じる',
         '全部タブを閉じて', 'タブを全て閉じて', '全部のタブを消して',
+        // pass CCLXXVIII
+        '全部のタブ閉じて', 'タブ全部消して',
         '全部閉めて', 'すべて閉めて', '全部のタブを閉めて', '全て閉める',
         'タブを全部閉じて', '全タブを閉じて', '全タブ閉じて', '全タブ閉じ', '全タブを閉じる',
         '全タブ閉じる', 'タブ全部閉じて', 'タブをすべて閉じて',
@@ -18490,6 +18512,8 @@ export class VoiceCommands {
     listCmd('bookmarks-list', 'ブックマーク', this._onBookmarkList,
       ['ブックマーク一覧', 'ブックマークを読み上げ', 'ブックマークを読んで',
         'お気に入りを読んで', 'お気に入り一覧を読んで',
+        // pass CCLXXVIII
+        'ブックマーク読み上げて', 'ブックマーク何がある',
         /list\s+(my\s+)?bookmarks/i],
       'Read the bookmark list');
     listCmd('history-list', '履歴', this._onHistoryList,
@@ -18905,6 +18929,8 @@ export class VoiceCommands {
         'さっきのサイトは', '前に見たサイト', '最後に見たのは',
         '一番最後に見たページ',
         '前に来たことある', '来たことある', '前に見たことある',
+        // pass CCLXXVIII
+        'さっきのページ何だっけ',
         /latest history/i, /most recent (page|history|visit)/i,
         /when did i visit/i, /did i visit/i, /have i been here/i,
         /was i here before/i, /have i been here before/i, /did i (read|see) this( already| before)?/i],
@@ -19941,6 +19967,8 @@ export class VoiceCommands {
     this.registerCommand('print', {
       patterns: ['印刷して', 'プリントして', '印刷', 'プリント',
         'このページを印刷', '印刷したい', 'プリントしたい',
+        // pass CCLXXVIII
+        'これ印刷して',
         'PDFに保存', 'PDFで保存', 'PDFとして保存', 'PDFを保存', 'PDFで出力',
         /print/i, /save (as |to )?pdf/i, /export (as |to )?pdf/i],
       action: () => {
@@ -20141,6 +20169,8 @@ export class VoiceCommands {
         'ブックマークしたか', 'お気に入りに入ってる', 'お気に入り済み', 'ブックマーク済み',
         'お気に入り登録してる', 'お気に入りに登録した', 'ブックマークに追加した',
         'お気に入りに追加してる',
+        // pass CCLXXVIII
+        'is this page bookmarked', 'このページブクマしてる', 'お気に入り登録済み',
         'ブックマークした', '保存してるか', '保存した',
         /did i (bookmark|save)( this)?/i, /have i (bookmarked|saved)( this)?/i,
         '保存してる', '保存されてる', 'お気に入りに入れた', /is (this |it )?bookmarked/i,
@@ -20386,7 +20416,9 @@ export class VoiceCommands {
         'お気に入りを削除', 'お気に入りを削除して', 'お気に入りから削除して',
         'お気に入りから削除', 'ブックマークから削除', 'お気に入りを消して',
         'ブックマークを消す', 'お気に入りから外して',
-        /remove (this |the )?bookmark/i, /unbookmark/i],
+        /remove (this |the )?bookmark/i, /unbookmark/i,
+        // pass CCLXXVIII
+        'ブックマーク解除して', 'お気に入り解除', 'ブクマを外して', 'unbookmark this'],
       action: () => {
         const active = tabManager?.getActiveTab?.();
         if (!active) {
