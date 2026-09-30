@@ -2710,6 +2710,8 @@ export class VoiceCommands {
         '声を上げて', '声を大きくして', 'ボリュームを上げて',
         '音量をあげる', 'ボリュームを上げる', '音量を上げる', '音を上げる', '声を上げる',
         'ボリュームアップ', 'ボリュームを大きく', '音を上げて',
+        // pass CCLXXV
+        'turn it up a notch', 'ボリューム上げて',
         'louder', 'speak up', 'turn it up', 'crank it up', 'bump it up',
         'turn up the volume', 'pump it up', 'make it louder',
         'more volume', 'up the volume', 'raise the volume', 'much louder',
@@ -2887,7 +2889,7 @@ export class VoiceCommands {
         'フォントを大きくして', 'フォントを拡大', 'フォントサイズを上げる',
         '文字が小さい', '字が小さい', '読みやすくして', '見やすくして', '読みやすく', '見やすく', '文字が読めない', '読みにくい',
         '文字が見にくい', '字が見にくい', '字が見えにくい', '大きくして',
-        '字が見えない', '字を大きく', '字を大きくして', 'ズームアップ',
+        '字が見えない', '字を大きく', '字を大きくして', 'ズームアップ', 'ちょっと大きく',
         /larger (article|reader) text/i, /bigger (article|reader) text/i,
         /^too small$/i, /^make it bigger$/i, /text is too small/i, /make (the )?text bigger/i,
         'bigger please', 'larger text', 'bigger text', /^(bigger|larger|enlarge)$/i,
@@ -4767,7 +4769,8 @@ export class VoiceCommands {
     // pin-active — unpin-active's one-direction twin: 'ピンして' always
     // pins, never accidentally unpins (pin-tab toggles).
     this.registerCommand('pin-active', {
-      patterns: ['ピンして', 'ピン留めして', 'ピンを付けて', 'ピンを付ける',
+      patterns: ['keep this one around', 'pin it down', 'このタブ固定',
+        'ピンして', 'ピン留めして', 'ピンを付けて', 'ピンを付ける',
         'ピンを付けてください', 'ピンを立てて', /^pin it$/i, /^pin this$/i],
       action: () => {
         const tabs = tabManager?.tabs || [];
@@ -4933,6 +4936,9 @@ export class VoiceCommands {
         'さっきのサイト', 'さっきのサイトに戻って', 'さっき見たサイト',
         '後戻りして', '逆戻りして', 'ひとつ前に戻って', '前のに戻って',
         '前に引き返して', '来た道を戻って', 'さかのぼって',
+        // pass CCLXXV: EN return-frames + JA dialect residue
+        'go back one', 'back to where i was', 'return to where i was',
+        'one step back', 'retreat', 'reverse', 'さっきのとこ',
         '一回戻って', 'どんどん戻って', 'ずっと戻って', '先に戻って',
         '前に戻って', '後ろへ', '後ろに戻って',
         'back', 'go back', 'backward', 'go backwards', 'step back',
@@ -15392,7 +15398,10 @@ export class VoiceCommands {
         /^swap tabs$/i, /^(the )?other tab$/i, /^(the )?other one$/i, 'タブを切り替え', 'タブ切り替え',
         'タブを変えて', '違うタブ', 'タブを切り替えて',
         'the tab next to this one', 'the one after this', 'the one after this one',
-        'the one on the right', 'the tab to the right'],
+        'the one on the right', 'the tab to the right',
+        // pass CCLXXV: directional/deictic + JA colloquial forms
+        'tab over', 'next one please', 'switch to the next', 'cycle forward',
+        'となりのタブ', '次のタブいって', '次いこ', 'つぎのやつ', 'その次のやつ'],
       action: () => {
         tabManager?.nextTab?.();
         return { action: 'next-tab' };
@@ -15407,7 +15416,7 @@ export class VoiceCommands {
         '左側のタブ', 'もっと左のタブ', '左側のタブに',
         /previous\s+tab|prev\s+tab/i, /left\s+tab/i,
         'the tab before this', 'the one before this', 'the one on the left',
-        'the tab to the left'],
+        'the tab to the left', 'the one before', '前のタブもどって'],
       action: () => {
         tabManager?.prevTab?.();
         return { action: 'prev-tab' };
@@ -16401,6 +16410,8 @@ export class VoiceCommands {
         '音声で読んで', '声に出して読んで', '声に出して', '音読みして',
         '読み始めから', '先頭から読んで', '最初の行から読んで',
         '冒頭から読んで', 'もう一度読んで', 'も一回読んで', '再び読んで',
+        // pass CCLXXV
+        'speak it', 'narrate this', 'よみあげて', '音読お願い',
         '再度読んで', 'もう一回読み直して', '読み直してほしい', 'read it at your own pace', 'keep reading it to me', 'finish reading it',
         'もう一回最初から', '最初からやり直し',
         'そのページを読んで', '記事を読んで', '文章を読んで', 'テキストを読んで',
@@ -18163,6 +18174,8 @@ export class VoiceCommands {
         'このページをミュート', 'ページをミュート', 'サイトをミュート',
         '全部ミュート', '全体をミュート', '消音して', 'ミュートして',
         '音消して', '声を消して', '声を出さないで', '黙らせて',
+        // pass CCLXXV: explicit audio-intent forms
+        'make it quiet', 'ミュートにして', '消音にして', 'うるさいから消して',
         '音を切って', '音を切る', 'ミュート解除して', 'ミュートを外して',
         /be quiet/i, /shut up/i, /be silent/i, /^(quiet|silence)( please)?$/i,
         '静かにお願い', '静かにお願いします', '静かにお願いね',
