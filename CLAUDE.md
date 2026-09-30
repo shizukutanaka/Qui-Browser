@@ -1721,6 +1721,7 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Last Revision**: 2026-08-18 (Session 74)
 
 ### Session 260
+### Session 258
 
 - ✨ JA: てちゃって/てじゃって残置（ちゃってね・ちゃってよ・じゃって・じゃってよ — CHA 層に併合）・てくれ方言残置（くれぞ・くれわ・くれが）・dict心がけ名詞尾（のが心がけだ・心掛けだ・心得です・心持ちだ・気構えだ・覚悟です）→ 実行。
 - ✨ EN LXIX: 'while|since youre in there'・'as long as youre at it' 前置 → 実行。
@@ -1746,7 +1747,7 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 - ✨ EN LXV: 'out of respect for me'・'out of deference to me'・'out of courtesy to me'・'as a courtesy to me'・'in deference to my wishes'・'in consideration of me' 前置 → 実行。
 - ✅ tests/deference-atoms.test.js +24（実装前18件赤確認）、計12869全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
 
-### Session 255
+### Session 254
 - 🐛 先食い: ENPRE 裸 `do`（filler語クラス）が 'do us both a favor and' を先食い → 長形を同行の `do` 前方に配置して最長一致。
 - ✨ JA: しまえば・てまえ残置（しまえばいいよ・しまえば良いではないか・しまったらどうですかね・てまえよ）・dict仕事名詞尾（のが済ませ物だ・仕事だ・用だ・用事だ・仕事です・頼みだ）→ 実行。
 - ✨ EN LXIV: 'do us both a favor and'・'grant/confer upon me the favor and' 前置 → 実行。
