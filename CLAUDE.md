@@ -1720,8 +1720,18 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 289
+### Session 291
 
+- ✨ JA: dict急所名詞尾X（のが急所と存じ上げます 等6形）→ 実行。
+- ✨ EN C: 'if you would be so good|so kind enough|good enough|kind enough|gracious enough|sweet enough as to' 前置 → 実行。
+- ✅ tests/kind-enough-atoms.test.js +24（実装前12件赤確認）、計13712全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 290
+- ✨ JA: てくださいましたら残置II（嬉しいです/助かります/と存じます）・dict急所名詞尾IX（のが急所なわけです 等6形）→ 実行。
+- ✨ EN XCIX: 'i would not mind|object if|to you' 同意枠 + 'not mind it if youd' 前置 + 'not be opposed|averse to you closing' スワップ → 実行。
+- ✅ tests/not-mind-atoms.test.js +24（実装前15件赤確認）、計13688全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 289
 - ✨ JA: てくださったら残置（幸いです/助かります/と思います）・dict急所名詞尾VIII（のが急所かと存じます 等6形）→ 実行。
 - ✨ EN XCVIII: 'i would prefer|appreciate it if youd' 前置 + 'prefer|appreciate if|that you closed|close it' スワップ → 実行。
 - ✅ tests/prefer-appreciate-atoms.test.js +24（実装前15件赤確認）、計13664全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
