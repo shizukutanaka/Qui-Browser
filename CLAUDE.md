@@ -1720,7 +1720,7 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 252
+### Session 248
 
 - 🐛 誤ルート2件: '閉じておくよう進める' → navigate（変体 '…よう進め' が `進め` にヒット → `(?<!よう)` 追加、2箇所）；'閉じてはいかがなものか' → negate（`ものか` に `いかがな` lookbehind 追加）。
 - ✨ JA: ておくよう方向尾（おくよう進める・おく方向で・おく形で）・てはいかが残置（はいかがか・はいかがなものか・はどうかしらね）・dict初手名詞尾（のが初手だ・一の手だ・先手だ・第一歩だ・入口だ・取っ掛かりだ）→ 実行。
