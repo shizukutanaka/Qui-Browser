@@ -1722,6 +1722,9 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 
 ### Session 236
 
+### Session 235
+### Session 234
+
 - 誤ルート3件: describe の `(閉じる|…)ところ/` が '閉じるところを見たい'（観察依頼）を奪取 → `(?!を)` で除外（'閉じるところです'→describe ピン維持）；trouble の `/can't close/`・リテラル 'cant close it' が 'bet you cant/wager you cant' 挑発依頼を奪取 → `(?<!bet you )(?<!wager you )`；web-search `を見たい` が 'ところを見たい' を奪取 → `(?<!ところ)`。
 - ✨ JA: ところ観察依頼尾（見たい/みていただきたい/拝見したい/ご覧になりたい/ご覧に入れたい）・所存です・ていく/てくる方向尾（いくべきだ/いく方向で/いくしかない/いくことにする/くるべき/くるんだ）→ 実行。
 - ✨ EN XLV: 'id dare say'・'bet/wager you cant' 挑発枠・'the last thing before bed'/'last order of business'/'final thing on the agenda is to' 前置 + 'closing it is the last order of business' スワップ → 実行。
