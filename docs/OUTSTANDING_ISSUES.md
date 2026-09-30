@@ -149,6 +149,18 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice '閉じてゆくべき/ゆけばいい' のてゆく方言尾が NO-MATCH~~
 - ~~voice '閉じてしまったようです/ところです' の完了報告尾が NO-MATCH~~
 - ~~voice '閉じるのがワークフローだ/標準だ' の手順名詞尾が NO-MATCH~~
+- ~~voice '閉じてくださいませね/ほしくてな' のくださいゃ・ほしくて残置が NO-MATCH~~
+- ~~voice '閉じるのが理だ/判明だ' の理名詞尾が NO-MATCH~~
+- ~~voice 'herewith/i bid you' の正式指令枠が NO-MATCH~~
+- ~~voice '閉じておいてね/てやってよ' のおいたら・やって残置が NO-MATCH~~
+- ~~voice '閉じるのが手段だ/手立てだ' の手段名詞尾が NO-MATCH~~
+- ~~voice 'out of deference to me' の敬意枠残置が NO-MATCH~~
+- ~~voice '閉じてしまえばいいよ/てまえよ' のしまえば・まえ残置が NO-MATCH~~
+- ~~voice '閉じるのが仕事だ/頼みだ' の仕事名詞尾が NO-MATCH~~
+- ~~voice 'do us both a favor and' が裸 'do' に先食いされていた~~
+- ~~voice '閉じておくんだよ/くれるんじゃないか' のおくのだ・くれるんじゃ残置が NO-MATCH~~
+- ~~voice '閉じるのが処置だ/処方だ' の処置名詞尾が NO-MATCH~~
+- ~~voice 'be a peach/sport and' の呼びかけ懇願残置が NO-MATCH~~
 - ~~voice '閉じておけば安心/てあるはずです' のおけば・てある残置が NO-MATCH~~
 - ~~voice '閉じるのが結論だ/真髄だ' の解名詞尾が NO-MATCH~~
 - ~~voice 'for pitys sake/for christs sake' の嘆願枠残置が NO-MATCH~~
@@ -160,6 +172,7 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice 'final answer/case closed' の評決枠が NO-MATCH~~
 - ~~voice '閉じてみるべし/くれんよ' のてみる・くれん残置が NO-MATCH~~
 - ~~voice '閉じるのが本命だ/最有力だ' の本命名詞尾が NO-MATCH~~
+
 - ~~voice '閉じてなって/とくべき' のてな・てとく残置が NO-MATCH~~
 - ~~voice '閉じるのが王道だ/基本だ' の常套名詞尾が NO-MATCH~~
 - ~~voice 'carpe diem/strike while the iron is hot' の今こそ枠が NO-MATCH~~
