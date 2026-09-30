@@ -2848,6 +2848,13 @@ permission/capability questions (てもいいでしょうか / られますか)�
 - ✅ **テスト +170（実装前実行で140件赤確認、内26件は共存ガードの設計上緑）**: Total 6918 tests (144 suites); 0 lint errors（警告 137 = baseline 同一）; build green; FFFD 0件。
 
 ### Session 313: Voice atoms CXCIII — 方向処分句動詞 + スラング vocative + JA 方言依頼残置 + dict 名詞尾XXXII。EN: directional disposal（down/away/out with this/the tab・out with it/this・through/finished with this/(the tab)・over and done with it）・wrap/pack/end 系（wrap the tab up・pack it up/away・do it/the tab in・tear/rip/pull it down・put an end to it/this・put/lay it to rest・retire it/the tab・put it out of its misery）・slang discourse 前置（bro/sis/fam/fams/dawg/cuz/tbh/ngl/lowkey/highkey/deadass/ong/fr fr/fr — ENPRE の |bruh|dude|be a champ and| 交互に併入）。JA: しもた/しもうた/しもて（近畿完了）・とこなあ/とこうな（南日本意向+否定型→stem-な 誤爆を (?<!とこ|どこ) lookbehind で回避）・とか(や)・ってのはどう・たらええのに・た方がええ・ましょうぜ・ますかね・かなあ・なよー・なよっと・やぁ。dict 名詞尾XXXII（最適解/好判断/良案/名案/上策/妙案/早道/近道/得策/策）。確立ピン維持: 'wrap it up'/'wrap this up'→stop-everything・'shut X down'→vr-exit・'put it to sleep'→sleep-mode・'のが正解'→help・'んといて'→negate・sick/tired/fed-up・なんて・下策ではない は意図スキップ。
+### Session 327: lintel atom sweep — EN particle-verb/causative residue + JA masu-particles/てあげ/permission/決定
+外部基準: EN phrasal verbs (seal/button/zip), make/have/get/let causatives; JA ます+終助詞 (からね/とも/けどね/し/よぞ), すませ/ませ dialect imperatives, てあげ/てやり giving-benefactives, ても構わない/ていいと思う consent, ことに決めた decision reports.
+- ✨ **EN**: particle-verb 残置（close it back|shut・seal it off|up・button it up・zip it closed）；causative（make the tab close|it go・get it to close|the tab closed・let it close|be closed）。
+- ✨ **JA**: ます終助詞（ましょうわ|ますからね|とも|けどね|し|よぞ → 'て'）；方言ませ（すませ(て)|しませ|やして → 'て'）；与益（てあげたら|ちゃう|たい|るつもり・てやる|やります|やるよ|やったら|やっちゃう → 'て'）；許容（ていいと思うよ|ていいとこ(ろ)|たっていいじゃん|ても悪くない → 'て'）；決定（ることに決めたよ|決定した|ると決めたよ|決定した|決めました|決めたんだ|決めたのです → 'て'）。
+- 🔄 **ピン維持**: 'let it go'/'leave it gone'→negate（確立）；'shut the thing down'→null（tab/app スコープ曖昧・ISSUES記録）。
+- ✅ tests/lintel-atom-sweep.test.js +89（実装前 ~55件赤確認）、計16286全緑・lint 0エラー/警告136=baseline・build green・FFFD 0件。
+
 ### Session 326: column atom sweep — EN polite-final tails + JA can-statements/plan nouns/benefactive III
 外部基準: polite-final requests ("close it if you may", "close it before long"), JA 可能声明 (ることができる), 計画名詞 (手筈/段取り/見込み/目算/心算), 未然形勧誘 (ようではないか), 受益III (くださるなら), 破約報告 (約束だった)。
 - ✨ **EN**: polite-final 尾（close it if you may|when you may|soonish|before long）；prefer/out-of-here（id prefer it|that closed・i want it out of here）。
