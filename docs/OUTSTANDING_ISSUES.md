@@ -188,6 +188,12 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice '閉じるのが枢要だ/枢機だ' の枢要名詞尾が NO-MATCH~~
 - ~~voice '閉じてくれんかの/くれんじゃないか' のくれん残置が NO-MATCH~~
 - ~~voice '閉じるのが大本だ/土台だ' の大本名詞尾が NO-MATCH~~
+- ~~voice '閉じてちゃいなよ/ちゃおうかな' のちゃい残置が NO-MATCH~~
+- ~~voice '閉じるのが礎だ/大黒柱だ' の礎名詞尾が NO-MATCH~~
+- ~~voice '閉じてくれませんものか' が negate 誤ルート~~
+- ~~voice '閉じるのが急所ですか/勘所だね' の急所名詞尾IIが NO-MATCH~~
+- ~~voice 'would|might you be inclined|willing to' の意向枠が NO-MATCH~~
+- ~~voice 'i wonder if you would mind|i am wondering if you could' の wondering 変体が NO-MATCH~~
 - ~~voice 'may i implore|request you to' の懇願枠が NO-MATCH~~
 - ~~voice 'would you be so sweet|lovely|gracious as to' の丁寧枠が NO-MATCH~~
 - ~~voice 'i would ask of you|urge you to' の懇願枠が NO-MATCH~~
