@@ -5660,6 +5660,12 @@ export class VoiceCommands {
         '閉じろといった', '閉じろって言ったのに', '閉じろと言ったのに', '閉じよと言ったのに',
         '閉じてと頼んだのに', '閉じてと言ったのに', '閉じなさいと言ったのに',
         '閉じるつもりだった', '閉じるつもりだったよ', '閉じるつもりだったのに', '閉じるつもりだったんだ',
+        // pass CCLXXI: concessive/imperative-reiteration frames
+        'close it i dont care', 'yeah close it', 'close it why not', 'close it if you must',
+        'i did say close it', 'close it like i said', 'as i said close it', 'final time close it',
+        '言った通り閉じろ', '言う通りに閉じろ', '言ったように閉じろ', '言う通り閉じて',
+        '頼んだ通り閉じろ', '注文通り閉じろ', '言われた通りに閉じろ',
+        'もういいから閉じろ', 'ええから閉じなさい', 'もういいから閉じなさい',
         // pass CCLXVIII: demand/court-order frames (i {want,need,demand,order,command,decree,require,expect} OBJ {closed,gone,dead,...}; court/bench verdicts; stands condemned; outlawed/recalled declaratives)
         'i command it closed', 'i command it dead', 'i command it destroyed', 'i command it discarded',
         'i command it eliminated', 'i command it ended', 'i command it erased', 'i command it finished',
