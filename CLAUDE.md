@@ -1720,6 +1720,16 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 189
+- ラウンド115: 残余語尾・判定枠原子層（tests/residual-tail-atoms.test.js へ追記、+84件 / 実装前69件赤）
+  - JA て敬語残置VII: TAIL_TE に `くださいますかな|くださいますね|くださいまいか|くださいまい|もらおう|もらいましょう|もらうか|もいいっすか|もええですか`（'くださいまいか' は variant 順で negate の `/まい$/` より TAIL_TE 先勝ちで実行化）
+  - JA ても許可・ちゃっても: `ちゃっても(いい|よい|ええ)(っすか|ですか|か)?→て` / `じゃっても…→で` push
+  - JA 不能依頼質問: `られませんか(ね|な)?→て`（一段）+ 五段融合 `Xられませんか→stemTe(Xり)`（'戻られませんか'→戻って）+ え段 `Xませんか→E_TE`（'読めませんか'→読んで）
+  - JA dict 条件・判定残置: FR `なら今|ならここ|んなら|んであれば|のであれば早めに|のなら今|ほうがいいかもしれない`
+  - JA べき質問→help: `/べき(かな|ですかね|でしょうか|かね)$/`（判断質問=非実行）+ 誤実行修正: back の `戻る(?!な|まい)` に `べ` 追加（'戻るべきですかね' が生実行していた）
+  - EN: chain1 に `should we|ought we|might we|would we|would/might you possibly|i wonder if you('d|d| could)|wondering if you('d|d| could)|there's gotta be a way to|is it possible for you to|would it be possible for you to` + help `/^is there (?:any )?way to/`（'is there a way to' 統合）
+  - 教訓: function-scope const（E_TE ~459）は参照行より前必須—429行配置で TDZ 障害→移動で解消。tests/residual-tail-atoms.test.js は R96 由来の既存ファイル—新規writeで既存170件を潰さないこと
+
 ### Session 188
 - ラウンド114: 意向報告・残余フレーム原子層（tests/intent-report-atoms.test.js、+123件 / 実装前100件赤）
   - JA ては依頼枠: TAIL_TE に `はもらえませんか|はいただけませんか|はどうでしょう|はいかがでしょうか|はいかがですか`
