@@ -1720,8 +1720,15 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 233
+### Session 234
 
+- ✨ てもらう疑問尾残置: もらえるんでしょうか・もらえますでしょうかね・もらえぬものでしょうか・もらえますかいな/かしら・もらえんのかな → 実行。
+- ✨ ておく報告/決断尾: おくのがいいと思います・おくに越したことはない・おくべきかと思います・おくしかないかも・おきさえすれば・おきゃあいい → 実行（'おくべきかと思います' は宣言=実行、裸 'おくべきか' は質問として help 維持）。
+- ✨ dict目的/理由名詞尾II: 目的です・理由です・ためのものです・ためなんです・という趣旨です・ための指示です → 実行。
+- ✨ EN XLIII: 'for the love of pete'/'for cryin out loud'・'id be ever so grateful if you'・'much obliged if youd'・'id be forever in your debt if you'・'id owe you big time if youd?'・'you would earn my gratitude if youd?' 前置 → 実行。
+- ✅ tests/gratitude-debt-atoms.test.js +36（実装前19件赤確認）、計12287全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 233
 - ✨ てください命令句残置: くださいませませ・くださいますの・くださいますようにと・くださいなさい・くださいなね → 実行。
 - ✨ なさい系方言残置: なさんな・なされい → stemTe 追加（'閉じないでちょうだい/いただきたい' は do-not 依頼で negate ピン維持）。
 - ✨ dict効率/利得名詞尾: のが効率的だ・ほうが効率的・のが合理的だ・のが賢いやり方・のがスマートだ・のが得だ → 実行。
