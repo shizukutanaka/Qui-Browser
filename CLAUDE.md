@@ -1720,7 +1720,7 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 253
+### Session 248
 
 - ✨ JA: ておけば・てある残置（おけば大丈夫・おけば安心・あるはずです・あるべきだった・あるところです）・dict解名詞尾（のが結論だ・答えだ・解答だ・解だ・至極だ・真髄だ）→ 実行。
 - ✨ EN LXII: 'for the love of mike'・'for christs sake'・'for pitys sake' 前置 → 実行（gods/heavens/goodness sake は既ルート緑）。
