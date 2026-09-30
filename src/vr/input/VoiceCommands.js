@@ -3449,6 +3449,7 @@ export class VoiceCommands {
         'オンラインか確認', '接続状態教えて',
         'つながらない', '繋がらない', 'ネットが切れた', '圏外',
         'ネットにつながらない', 'つながってる', '繋がってる',
+        'オフラインになった', '接続切れた', '接続が切れた', '繋がらなくなった',
         /are we online/i, /are we offline/i, /am i online/i, /am i offline/i,
         /are we connected/i, /is the internet working/i, /online status/i, /internet status/i,
         /wi-?fi/i],
@@ -3531,6 +3532,7 @@ export class VoiceCommands {
         '真っ暗だ', '真っ黒', '画面が真っ暗', '真っ暗です',
         '反応が遅い', '重たい', 'もたつく', '反応が悪い', '動作がもたつく',
         'kinda slow', 'kinda laggy', 'a bit slow', 'little slow', 'bit laggy',
+        '再生されない', '動画見れない', '動画が見れない', 'ビデオ見れない',
         /(?<!言っ|いっ)[ただ]はず(?:だった|なのに|のに)?[。！？!?]?$/, 'it crashed on me',
         /と思ったのに[。！？!?]?$/, /てもまだ.*ない[。！？!?]?$/, /どころか[。！？!?]?$/,
         /[てで]ばっかり(?:だ|です|なん|なんだ|なの)?[。！？!?]?$/, /はずがまだ/, /はずなのにまだ/,
@@ -3614,7 +3616,7 @@ export class VoiceCommands {
         'son of a gun', 'dagnabbit', 'for crying out loud',
         /(?<!bet you )(?<!wager you )can'?t (?:close|open|read|go|find|load|play|stop|scroll|see|reach|get|turn)/i,
         /won'?t (?:close|open|load|play|work|respond|let me|start|stop|read|move)/i,
-        /(?:it|this) won'?t(?! ?(?:you|cha))/i, /(?<!bet you )(?<!wager you )cant close it/, 'wont close', 'wont load',
+        /(?:it|this) won'?t(?! ?(?:you|cha|ya))/i, /(?<!bet you )(?<!wager you )cant close it/, 'wont close', 'wont load',
         '閉じないんだが', '閉じないんだよ', '閉じないから', '開かないんですが',
         '消えないんだが', '止まらないんだが', '進まないんだが', '進めないんだが',
         'ffs', /^ffs[.!?]?$/i,
@@ -3668,6 +3670,7 @@ export class VoiceCommands {
       patterns: ['聞こえない', '聞こえません', 'よく聞こえない', '音が出ない',
         '音が小さい', '音が聞こえない', '声が聞こえない', '音量が小さい',
         '声が出ない', '音がしない', '無音になった', '何も聞こえない',
+        '音聞こえない', '音がきこえない',
         '聞こえにくい', '聞きにくい',
         /can'?t hear/i, /^no sound/i, /cant hear/i],
       action: () => {
@@ -5022,7 +5025,8 @@ export class VoiceCommands {
         'give it a refresh', 'do a refresh', 'refresh it for me', 'fresh copy',
         'get a fresh copy', 'pull a fresh copy', 'リロード頼む', 'リロードだ',
         'reload this for me', 'reload it again', 'one more refresh', 'fresh load',
-        'load it fresh',
+        'load it fresh', '再読込して', 'ページリロード',
+        'タブをリロード', 'タブをリロードして', 'リロードしてページ',
         /(?<!did |has |is |it )reload(\s+(the|this)\s+page)?$/i,
         /^refresh(\s+the\s+page)?$/i,
         /^refresh\s+page$/i, /^restart(\s+the)?\s+(browser|page)$/i],
@@ -5228,6 +5232,20 @@ export class VoiceCommands {
         '閉じて来い', '閉じて下されば幸いです',
         '閉じちゃってもらって', '閉じてもらっておきたい',
         '閉じておいてくれるかな',
+        '閉じれませんか', '閉じてもらいましょうか', '閉じまへんか',
+        '閉じてくんない', '閉じてくんね', '閉じてくんま',
+        '閉じてくんまし', '閉じてくんかい', '閉じてくんなはれ',
+        '閉じてくんなまし',
+        're-close it', 'reclose it', 'close it should ya',
+        'close it may i ask', 'for the umpteenth time close it',
+        'how many more times close it', 'once and for all close it',
+        'permanently close it',
+        'close it definitely', 'close it absolutely',
+        'positively close it', 'for sure close it',
+        'no doubt close it', 'obviously close it',
+        'clearly close it', 'evidently close it', 'apparently close it',
+        'close it wont ya', 'close it for sure',
+        '閉じてくんない？', '閉じてくんね？',
         'at your leisure close it', 'no rush close it', 'if you get a moment close it',
         'do the needful and close it', 'close it if you get a chance',
         'when ready close it', 'eventually close it', 'close it eventually',
@@ -17149,7 +17167,8 @@ export class VoiceCommands {
     this.registerCommand('close-tabs-right', {
       patterns: ['右のタブを閉じて', '右側のタブを閉じて', /close\s+tabs?\s+to\s+the\s+right/i,
         // pass CCLXXX
-        '右側のタブ全部閉じて', 'close the tabs to the right', 'これより右のタブ閉じて', 'これ以降のタブ閉じて'],
+        '右側のタブ全部閉じて', 'close the tabs to the right', 'これより右のタブ閉じて', 'これ以降のタブ閉じて',
+        '右のタブ閉じて', '右にあるタブ閉じて'],
       action: () => {
         tabManager?.closeTabsToRight?.();
         return { action: 'close-tabs-right' };
@@ -17164,7 +17183,7 @@ export class VoiceCommands {
     this.registerCommand('close-tabs-left', {
       patterns: ['左側のタブを閉じて', '左のタブを閉じて', '左側を閉じて',
         // pass CCLXXX
-        '左側のタブ全部閉じて',
+        '左側のタブ全部閉じて', '左のタブ閉じて', '左にあるタブ閉じて',
         /close\s+tabs?\s+to\s+the\s+left/i, /close\s+tabs?\s+on\s+the\s+left/i],
       action: () => {
         tabManager?.closeTabsToLeft?.();
@@ -17180,7 +17199,8 @@ export class VoiceCommands {
       patterns: ['重複タブを閉じて', '重複したタブを閉じて', '同じタブを閉じて',
         '同じページを閉じて', '重複を閉じて', '重複タブを消して',
         // pass CCLXXX
-        '重複タブ閉じて', '同じタブは閉じて',
+        '重複タブ閉じて', '同じタブは閉じて', '同じタブ閉じて',
+        'かぶってるタブ閉じて', 'かぶってるタブを閉じて',
         /close duplicate tabs/i, /close duplicated tabs/i],
       action: () => {
         const n = tabManager?.closeDuplicateTabs?.() ?? 0;
@@ -17197,7 +17217,8 @@ export class VoiceCommands {
         'ピンしていないタブを閉じて', 'ピン留めしていないタブを閉じて', '固定していないタブを閉じて',
         '固定以外を閉じて', /close unpinned tabs/i, /close (all )?unpinned/i,
         // pass CCLXXX
-        'ピン留めしてないの閉じて'],
+        'ピン留めしてないの閉じて', 'ピンしてないの閉じて',
+        'ピンしてないタブ閉じて', 'ピン留めされてないタブ閉じて'],
       action: () => {
         const n = tabManager?.closeUnpinnedTabs?.() ?? 0;
         this.speak(n ? `${n}個のタブを閉じました` : 'ピン留め以外のタブはありません');
@@ -17232,6 +17253,8 @@ export class VoiceCommands {
         'もうひとつ開いて', 'もう一つ開いて',
         // pass CCLXXVIII
         'このタブ複製して', 'dup this tab', 'このタブもう一枚',
+        'もう一枚同じの', '同じタブもう一枚', 'このタブコピー',
+        'タブコピーして', 'このタブコピーして',
         /duplicate (this )?tab/i, /^duplicate$/i, /open (a |another )?copy/i,
         'clone it', 'clone this tab', 'copy this tab', 'duplicate this page', /open a duplicate/i],
       action: () => {
