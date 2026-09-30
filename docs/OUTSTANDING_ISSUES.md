@@ -1738,6 +1738,7 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - R284 note: `閉じんなってば` は既存 close literal 維持（方言命令 vs 禁止で曖昧 — 変更は別途判断）。
 - R285 pin: `flush it`/`hang it up`→null 維持（granular 確立: 曖昧）。`閉じてんで`→describe 不採用 — `_politeVariants` の てみ→んで 変換が 閉じてみ* close ピン21形を横取りしたため（variant 残置衝突は describe 側に限定）。
 - R286 pin: `write it off`→null 維持（granular 確立: 経理 euphemism 曖昧）。`open fire on it`→go-to 誤ルートを close 修正（'open' keyword 先勝ち → リテラル化で先勝ち固定）。`閉じるべきかと思う`→help ピン維持。
+- R312: `/version/` regex が 'aversion' に誤爆→`(?<!a)` lookbehind修正・`/call \w+/` が 'uncall' に誤爆→`(?<!un)` 修正・`unbookmark*`/`unpin*` は実義のため不採用・JA `ものか`/`もんだ`/`からな` ピン維持。
 - R311: `overturn this page *`→next-page / `開くべきではなかった*を`→go-to / `消えてほしい*`→dismiss-notify / `the call *`→device-apps ピン維持(phone意図)・`close out this tab`→close-tab-by-name ピン・`undo it*`→reopen-tab 維持。
 - R310: `opening it was *`→go-to / `it opened by-*`→go-to / `間違いのタブだ*`→tab-by-name / `クリックしてしまった`→input-methods / `見てしまった`→describe-tab 誤ルートを close リテラル化・`i meant the other tab`→next-tab は正ルート維持・JA `はずだった`→trouble ピン。
 - R309: `let it find no mercy *`→find-in-page 誤ルート56件を close リテラル化・JA `〜するな`→negate ピン維持。
