@@ -1720,8 +1720,86 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 245
+### Session 260
+### Session 258
 
+- ✨ JA: てちゃって/てじゃって残置（ちゃってね・ちゃってよ・じゃって・じゃってよ — CHA 層に併合）・てくれ方言残置（くれぞ・くれわ・くれが）・dict心がけ名詞尾（のが心がけだ・心掛けだ・心得です・心持ちだ・気構えだ・覚悟です）→ 実行。
+- ✨ EN LXIX: 'while|since youre in there'・'as long as youre at it' 前置 → 実行。
+- ✅ tests/while-in-there-atoms.test.js +25（実装前15件赤確認）、計12968全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 259
+- ✨ JA: ておくんや関西残置（おくんや・おくんやで・おくんですから）・dict手筈名詞尾（のが手はずです・手筈だ・筋書きだ・手順書だ・決まりごとだ・決まりだ）→ 実行。
+- ✨ EN LXVIII: 'when you get a free moment|second' 前置 → 実行（'when you get a moment/second/minute/chance' は既ルート緑）。
+- ✅ tests/free-moment-atoms.test.js +24（実装前11件赤確認）、計12943全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 258
+- ✨ JA: てみるわ・てもろうて残置（みるわよ・みるわね・みたらどうかね・みたらどうかなあ・もろうてええか）・dict件名詞尾（のが件だ・件です・件につき・話だ・話です・お話だ）→ 実行。
+- ✨ EN LXVII: 'id be much obliged|in your debt|most grateful if youd'・'youd have my gratitude if youd'・'id thank you kindly|take it kindly if youd' 前置 → 実行。
+- ✅ tests/gratitude-if-atoms.test.js +25（実装前17件赤確認）、計12919全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 257
+- ✨ JA: てくださいゃ・てほしくて残置（くださいましょうか・くださいませね・くださいなし・ほしくてね・ほしくてな・ほしくてならないのです）・dict理名詞尾（のが理だ・理義だ・筋目だ・良識だ・判明だ）→ 実行。
+- ✨ EN LXVI: 'herewith'/'hereby'・'i hereby instruct/direct you to'・'i instruct/direct you to'・'i bid you' 前置 → 実行。
+- ✅ tests/hereby-atoms.test.js +25（実装前18件赤確認）、計12894全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 256
+- ✨ JA: ておいたら・ておいて・てやって残置（おいたらどうですかね・おいたらば・おいてね・おいといて・やってよ・やっておいて）・dict手段名詞尾（のがやりようだ・手段だ・方策だ・やり口だ・作法です・手立てだ）→ 実行。
+- ✨ EN LXV: 'out of respect for me'・'out of deference to me'・'out of courtesy to me'・'as a courtesy to me'・'in deference to my wishes'・'in consideration of me' 前置 → 実行。
+- ✅ tests/deference-atoms.test.js +24（実装前18件赤確認）、計12869全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 254
+- 🐛 先食い: ENPRE 裸 `do`（filler語クラス）が 'do us both a favor and' を先食い → 長形を同行の `do` 前方に配置して最長一致。
+- ✨ JA: しまえば・てまえ残置（しまえばいいよ・しまえば良いではないか・しまったらどうですかね・てまえよ）・dict仕事名詞尾（のが済ませ物だ・仕事だ・用だ・用事だ・仕事です・頼みだ）→ 実行。
+- ✨ EN LXIV: 'do us both a favor and'・'grant/confer upon me the favor and' 前置 → 実行。
+- ✅ tests/do-us-both-atoms.test.js +25（実装前13件赤確認）、計12845全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 254
+- ✨ JA: ておくのだ・てくれるんじゃ残置（おくんだよ・おくのです・おくというのが・くれるんじゃないか・くれるんじゃないの）・dict処置名詞尾（のが措置だ・処置だ・処分だ・対処だ・処置です・処方だ）→ 実行。
+- ✨ EN LXIII: 'be a peach/sport' を vocative-beg 枠に併合 → 実行。
+- ✅ tests/be-a-peach-atoms.test.js +25（実装前13件赤確認）、計12820全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 253
+- ✨ JA: ておけば・てある残置（おけば大丈夫・おけば安心・あるはずです・あるべきだった・あるところです）・dict解名詞尾（のが結論だ・答えだ・解答だ・解だ・至極だ・真髄だ）→ 実行。
+- ✨ EN LXII: 'for the love of mike'・'for christs sake'・'for pitys sake' 前置 → 実行（gods/heavens/goodness sake は既ルート緑）。
+- ✅ tests/for-pitys-sake-atoms.test.js +26（実装前14件赤確認）、計12795全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 252
+- 🐛 誤ルート2件: '閉じておくよう進める' → navigate（変体 '…よう進め' が `進め` にヒット → `(?<!よう)` 追加、2箇所）；'閉じてはいかがなものか' → negate（`ものか` に `いかがな` lookbehind 追加）。
+- ✨ JA: ておくよう方向尾（おくよう進める・おく方向で・おく形で）・てはいかが残置（はいかがか・はいかがなものか・はどうかしらね）・dict初手名詞尾（のが初手だ・一の手だ・先手だ・第一歩だ・入口だ・取っ掛かりだ）→ 実行。
+- ✨ EN LXI: 'do us the service of'・'bless/grace me by'（oblige 枠に併合）・'give me the pleasure of it being closed' スワップ → 実行。
+- ✅ tests/first-move-atoms.test.js +25（実装前16件赤確認）、計12769全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 251
+- ✨ JA: ておく確定残置（おく算段だ・おく手だ・おく方向だ・おくが吉）・てみろ方言（みろう・みなされ）・dict秘策名詞尾（のが秘策だ・奥の手だ・切り札だ・とっておきだ・虎の子だ・隠し玉だ）→ 実行。
+- ✨ EN LX: 'final answer:'・'the verdict is in'・'case closed'・'decision made'・'mums the word'・'say no more' 前置 → 実行（final answer:? でコロン許容）。
+- ✅ tests/verdict-atoms.test.js +26（実装前19件赤確認）、計12744全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 250
+- ✨ JA: てみる・てくれん残置（みればどう・みるといいよ・みるのが吉・みるべし・くれんな・くれんよ）・dict本命名詞尾（のが本命だ・大本命だ・本命視だ・第一候補だ・本命筋だ・最有力だ）→ 実行。
+- ℹ️ EN LIX 'why not/what say/how about' 提案枠は既ルートで全緑（変更なし）。
+- ✅ tests/frontrunner-atoms.test.js +26（実装前12件赤確認）、計12718全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 249
+- ✨ JA: てな・てとく残置（なって・なってば・なさいまし・なさるがよい・とくべき・といてある）・dict常套名詞尾（のが定番だ・お決まりだ・王道だ・正攻法だ・基本だ）→ 実行。
+- ✨ EN LVIII: 'if ever there was a time'・'theres no time like the present'・'strike while the iron is hot'・'carpe diem'・'seize the day' 前置 → 実行。
+- ✅ tests/carpe-diem-atoms.test.js +25（実装前18件赤確認）、計12692全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 248
+- ✨ JA: てくれ・てかい方言残置（くれの・くれど・くれし・かいの）・dict決意名詞尾（のが決意だ・覚悟だ・腹だ・肝心だ・要だ・核心だ）→ 実行。
+- ✨ EN LVII: 'on my honor'・'i give you my word'・'scouts honor'・'cross my heart and hope to die'・'may god strike me down'・'on my mothers grave'・'as god is my witness' 前置 → 実行。
+- ✅ tests/honor-oath-atoms.test.js +25（実装前17件赤確認）、計12667全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 247
+- ✨ JA: ておくようが・てもらい残置（おくようがないと・もらいなさい・もらうがよい）・dict始末名詞尾（のが始末だ・決着だ・落ちだ・収まりだ・一段落だ・仕納めだ）→ 実行。
+- ✨ EN LVI: 'pretty please with sugar on top'・'i implore/beseech thee'・'i importune/supplicate you to' 前置 → 実行。
+- ✅ tests/implore-atoms.test.js +25（実装前15件赤確認）、計12642全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 246
+- ✨ JA: てよろしい・てねば残置（よろしいです・よろしいぞ・ねばならん・ねばいかん）・dict急務名詞尾（のが急務だ・要務だ・喫緊だ・先決だ・焦眉だ・火急だ）→ 実行。
+- ✨ EN LV: 'word to the wise'・'trust me on this'・'take my word for it'・'believe you me'・'mark my words'・'cross my heart'・'swear to god' 前置 → 実行。
+- ✅ tests/trust-oath-atoms.test.js +25（実装前17件赤確認）、計12617全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 245
 - ✨ JA: てある・てもらう残置（あるのがいい・あるといい・もらうもん・もらうわけ・もらうのが筋）・dict契機名詞尾（のが合図だ・契機だ・きっかけだ・節目だ・境目だ・区切りだ）→ 実行。
 - ✨ EN LIV: 'pretend i said'・'imagine i asked you to'・'indulge me'・'do me proud'・'make my day' 前置 → 実行。
 - 🐛 先食い: 裸 'indulge me' が oblige枠 'indulge me by/and' を先食い → `(?! (?:by|and))` lookahead で最長一致（回帰1件→緑）。
