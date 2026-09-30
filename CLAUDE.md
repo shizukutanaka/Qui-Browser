@@ -2848,6 +2848,13 @@ permission/capability questions (てもいいでしょうか / られますか)�
 - ✅ **テスト +170（実装前実行で140件赤確認、内26件は共存ガードの設計上緑）**: Total 6918 tests (144 suites); 0 lint errors（警告 137 = baseline 同一）; build green; FFFD 0件。
 
 ### Session 313: Voice atoms CXCIII — 方向処分句動詞 + スラング vocative + JA 方言依頼残置 + dict 名詞尾XXXII。EN: directional disposal（down/away/out with this/the tab・out with it/this・through/finished with this/(the tab)・over and done with it）・wrap/pack/end 系（wrap the tab up・pack it up/away・do it/the tab in・tear/rip/pull it down・put an end to it/this・put/lay it to rest・retire it/the tab・put it out of its misery）・slang discourse 前置（bro/sis/fam/fams/dawg/cuz/tbh/ngl/lowkey/highkey/deadass/ong/fr fr/fr — ENPRE の |bruh|dude|be a champ and| 交互に併入）。JA: しもた/しもうた/しもて（近畿完了）・とこなあ/とこうな（南日本意向+否定型→stem-な 誤爆を (?<!とこ|どこ) lookbehind で回避）・とか(や)・ってのはどう・たらええのに・た方がええ・ましょうぜ・ますかね・かなあ・なよー・なよっと・やぁ。dict 名詞尾XXXII（最適解/好判断/良案/名案/上策/妙案/早道/近道/得策/策）。確立ピン維持: 'wrap it up'/'wrap this up'→stop-everything・'shut X down'→vr-exit・'put it to sleep'→sleep-mode・'のが正解'→help・'んといて'→negate・sick/tired/fed-up・なんて・下策ではない は意図スキップ。
+### Session 332: girder atom sweep — EN time-nudges/before-urgency + JA te-oku III/kara-shi/zo-emphasis/mai
+外部基準: EN time nudges ("its about/high time", "now or never"), before-urgency ("close it before it crashes"); JA ておく III (べき/なさい/ましょうよ), から/し reason tails, ぞ emphasis particles, まい not-to reports.
+- ✨ **EN**: time-nudge（isnt it time to close it|it closed|it went・its about time( it closed|to close it)・its high time it closed・time it closed|went|goes・nows|now is the time to close it・the time has come|is now・(its )?now or never）；before-urgency（before it loads|its too late|you go|i lose it|we leave|i forget|it crashes|it eats my ram|it wastes more time|i change my mind）。
+- ✨ **JA**: ておくIII（ておいた方がいい|ておくほうがいい|べき(だ|です)?|ておきなさい(よ|ね)?|なされ|やす|ましょうよ|ますよ → 'て'）；から/し（るからね|るんだし|るからいい(よ)?|てくれから|てくれんだから → 'て'）；ぞ強意（るぞね|ぞよ|ぞえ|のぞ|んだぞい|ぜい|ぜよ|ちゃうぞ(い)?|るわよぞ → 'て'）；まい決意→negate（るまいと思った — まいと思う|思っている は既 negate 踏襲）。
+- 🔄 **ピン維持**: '閉じるかどうかだよね|決めよう|閉じるか閉じないかだ'→null（審議）；'閉じるかどうするか|べきか閉じないべきか|閉じるか閉じるまいか'→help（AかBか確立）。
+- ✅ tests/girder-atom-sweep.test.js +76（実装前 ~55件赤確認）、計16668全緑・lint 0エラー/警告136=baseline・build green・FFFD 0件。
+
 ### Session 331: strut atom sweep — EN suggestions/duration II + JA te-oku/tamae/choudai/te-yo
 外部基準: EN what-if/why-dont suggestions, duration II (its been open long enough, overstayed); JA ておく 残置, たまえ/方言命令 (たまへ|やがった|やすぞ|んちゃい), ちょうだい 残置, てよ/てよき。
 - ✨ **EN**: suggestion II（shouldnt we close it・dont you think we should|you should close it — negate 先取りを literal で解消）；duration II（its been open|up long enough・sitting there|open・ages|open for ages|around too long・overstayed its welcome・time it closed）。

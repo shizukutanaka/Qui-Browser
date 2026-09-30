@@ -1268,6 +1268,34 @@ export class VoiceCommands {
     push(normalized.replace(/てよきかな[。！？!?]?$/u, 'て'));
     push(normalized.replace(/てよきな[。！？!?]?$/u, 'て'));
     push(normalized.replace(/てよき[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ておいた方がいい[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ておくほうがいい[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ておくべきです[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ておくべきだ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ておくべき[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ておきなさいよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ておきなさいね[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ておきなさい[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ておきなされ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ておきやす[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ておきましょうよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ておきますよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るからね[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るんだし[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るからいいよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るからいい[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てくれから[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てくれんだから[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るぞね[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るぞよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るぞえ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのぞ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るんだぞい[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るぜい[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るぜよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ちゃうぞい[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ちゃうぞ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るわよぞ[。！？!?]?$/u, 'て'));
     push(normalized.replace(/(て|で)(?:あげて|あげ(?:る|ます)[ねよわか]?|くれる|くださる|くださいます)[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)(?:くれ|くださ)ちゃう[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)もら(?:う|える|った|います|えます|ってもいい|っていい)[。！？!?]?$/u, '$1'));
@@ -5041,6 +5069,19 @@ export class VoiceCommands {
         'its been ages', 'its been ages open', 'its been open for ages',
         'its been around too long', 'its overstayed its welcome',
         'its time it closed', 'shouldnt we close it',
+        'isnt it time to close it', 'isnt it time it closed',
+        'isnt it time it went', 'its about time it closed',
+        'its about time to close it', 'its high time it closed',
+        'time it closed', 'time it went', 'time it goes',
+        'nows the time to close it', 'now is the time to close it',
+        'the time has come to close it', 'the time is now close it',
+        'its now or never close it', 'now or never close it',
+        'close it before it loads', 'close it before its too late',
+        'close it before you go', 'close it before i lose it',
+        'close it before we leave', 'close it before i forget',
+        'close it before it crashes', 'close it before it eats my ram',
+        'close it before it wastes more time',
+        'close it before i change my mind',
         'dont you think we should close it',
         'dont you think you should close it',
         '閉じてもらえそうな',
@@ -9521,7 +9562,7 @@ export class VoiceCommands {
         'close it i changed my mind', 'close it scratch that',
         'close it that was a joke', 'close it just kidding',
         'scratch that close it', 'that was a joke close it',
-        'just kidding close it', '閉じるなよ絶対',
+        'just kidding close it', '閉じるなよ絶対', '閉じるまいと思った',
         '閉じないままおく', '閉じないでおく',
         '閉じずにいる', '閉じずにいるつもり',
         'change of plans', 'forget this', 'think about it later',
