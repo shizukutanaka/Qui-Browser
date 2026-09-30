@@ -1720,6 +1720,116 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 208
+
+- ✨ 受益尾XXVI・て許可残置: TAIL_TE — くれよかった/くれちゃったら/くれちゃうか/くれちゃおう・もらいとう/もらうとか/もらうに限る/もらうべきかな/もらうしかない/もらうほかない・いただくに限る/べきかと/以外ない/ほかない・もよろしいかと/もいいかと(思う|んではないかと|存じます) → 実行。
+- ✨ dict残置XVIII: FR — ままにして/ままで/ついでに/がてら/ながらに/とともに/と同時に/のと一緒に/際に(は)/時点で/段階で/ようにできる/ようにやって/ようにしといて/ようになさって/ようになって/ようにしてもらって → 実行。
+- ✨ EN前置詞XVII: 'i hereby order/demand/require you (to)'・'im requiring/ordering you to'・'as long as you are at it'・'provided/providing you'・'assuming you can'・'on the condition that you'・'so long as you'・'in exchange/return for'・'for the sake of it' → 実行。
+- 🐛 誤ルート2件消化: help `/べき(?:かな|…)$/` が 'てもらうべきかな' 奪取 → `(?<![てで](?:もらう|いただく|くれ))べき` lookbehind で保全；ENPRE 裸 `if you would` が 'if you would be so good' 先食い → 前置化。
+- ✅ tests/manner-frame-atoms.test.js +58（実装前46件赤確認）、計11130全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 207
+
+- ✨ て受益残置XXV: TAIL_TE — もらう方向で/かなと/ことで・もらえますでしょうかね・いただけますことでしょうか/いただければ幸甚(でございます)/いただけましたら幸いに存じます → 実行。
+- ✨ dict残置XVII: FR — ことで/により/とします/にするよ/にしますよ/になります/もあります/もあるよ/ですね/かと・のですがね/のですよね/のも悪くないね/のもありな気がする・んでしょうか/ね/でしょ/んだろう(ね)/んでしょう → 実行。
+- ✨ EN前置詞XVI: 'do you think (you|we) (can|could|might)'（982行正規表現に can|we 拡張）・'say we'・'hows about we'・'why do we not'・'lets go for'・'supposing you could' → 実行。
+- 🐛 教訓再確認: 裸 `do`/`lets`/`how about`/`what say` の前置詞先食い — 長形は先勝ち位置へ移動（ENPRE は位置的最長一致）。
+- ✅ tests/nominal-residue-atoms.test.js +51（実装前30件赤確認）、計11072全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 206
+
+- ✨ てみる/しまう/おく残置: TM + みぃ/みい/みようや/みるわい；TAIL_TE + しまいな/しまうがよい/おくがよい/おくんじゃ/おくのがいい/おいたほうが/おけばよい/おけばいい → 実行。
+- ✨ とく/ちゃ残置II: とけば(いい)/ときな/ときんしゃい→て；ちゃいな/ちゃうといい/ちゃうべき/ちゃうがよろしい → 実行。
+- ✨ dict残置XVI: FR — ものだな/ものですが/んだってさ/のわよ/のわさ/んすよ/んすね/んすけど/んすが/がいいと思う/がよいと思う/がよろしいかと/がいいのでは + わけね/わけさ/わけだ（ack `/るわけ$/` 誤ルート解消 — FR 剥がしが variant 先勝ち）→ 実行。
+- ✨ EN前置詞XV: 'here is a thought'/'here's an idea/a thought/what you do'/'what if we'/'imagine we'/'picture|envision it'/'the goal|aim|objective is to'/'mission|objective|goal'/'step one|first step'/'your job|task is to'/'task'/'the ask (here) is'/'the request is' → 実行。
+- 🐛 教訓再確認: 裸 `first` が 'first step' 先食い → 前置化（最長一致）。
+- 📌 '閉じるところです/かな/だが' は describe-tab 既存意味論（"about to close" 報告）をピン維持 — 実行化せず。
+- ✅ tests/teoku-residue-atoms.test.js +64（実装前52件赤確認）、計11021全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 205
+
+- ✨ 受益尾XXIII・て強調残置: TAIL_TE — くれよな/くれよわ・くれんかい/くれんけ/くれんね・もらおうかな/かね・くださいませんかい/かなあ → 実行。
+- ✨ dict残置XV: FR — ってさ/とかさあ/とかなんとか・んではないか/んじゃないかと/かなあ/だろうか・んですかね/んですけれど・のでよろしいか/よいか/構いませんか/いいのですが・のもいいかもね/のもありかも・べきと思います → 実行。
+- ✨ EN前置詞XIV: 'i think/believe/feel (like) you should|could'・'it seems like/seems like'・'figure/figured/reckon you can|could'・'guessing/bet/suspect/trust you can'・'clearly you can'・'you probably should/ought to'（裸 `you` より前置必須）・'might/may as well' → 実行。
+- 📌 '閉じるべきかと思う' → help にピン（判断質問・非実行）。
+- ✅ tests/report-frame-atoms.test.js +66（実装前42件赤確認）、計10957全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 204
+
+- ✨ 敬語/受益尾XXII: TAIL_TE — くださいましょう/くださいませんこと/くださいませか/くださいますかねえ・くれませんかなあ/くれませんことね・もらえませんこと/もらえますかなあ/もらえませんかねえ・いただけませんかね/かな・いただけますかなあ/ませんこと・いただきたいんですが/たく存じます/たいです・いただけますと幸いでございます/と大変幸いです → 実行。
+- ✨ dict残置XIV: FR — んだよねえ/んだからね/のだよ/のですよ/のですが/んですがね・ものですわ/ものねえ/ものだから/ものかしら/ものと思う/ものと存じます・べきところです/べきなのでは → 実行。
+- ✨ 意向・ます形残置: VOL 尾 + かなと/かね/か（'閉じようか' shall-I）→ 実行；FR + 'ましょうよ/ましょうねえ/ましょ' → dict→て。
+- ✨ EN前置詞XIII: 'i would appreciate (it) if you could/you'・'i appreciate it if you'・'i would be thankful/obliged if you could'・'i beg/beseech/entreat/implore of|you to'・'pray tell'・'there is a thought'・'as a favor/courtesy/kindness'・'do us a favor' → 実行。
+- 🐛 教訓2件再確認: ENPRE 裸 `pray` が 'pray tell' 先食い → 長形前置（最長一致）；JA push 経路は語尾剥がし再適用なし。
+- ✅ tests/keigo-coda-atoms.test.js +57（実装前33件赤確認）、計10891全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 203
+
+- ✨ 受益尾XXI・て許可残置: TAIL_TE — くれませんな/よ・くれますかなあ・もらうわよ/の/がな・もらいたいわ/が・くださいねえ/よね/なあ/くださいませよ・いいんだよ/いいわけ/いいんよ/いいのさ・よかったかな・くれるの/が → 実行。
+- ✨ dict残置XIII: FR — もん/もんだ/もんね・んだからさ・んだわ・んですよね・しかないわ・とかさ → 実行。
+- ✨ 命令残置II: '閉じよって'（(.)よって→て 変体）・'閉じい' リテラル → close-tab。
+- ✨ EN前置詞XII: 'mind'（ENPRE 化で語尾剥がし同一パス化）・'we should/could/ought to'・'i suggest/recommend/propose (you)' + 語尾 'for me plz'/'real quick'/'real fast'/'works (for me)'。
+- 🐛 教訓: 残体 push ルールを `stemTe()` で包むと既に て/で 付与済みの形へ二重適用される（'閉じてて'）→ 裸 `push` で十分。'mind' を ENPRE に置くと mind-strip の push 展開経路が語尾剥がしを受けられる（同一パイプラインパスで動作）— push 経路では残体への再適用が無いことの再確認。
+- ✅ tests/coda-request-atoms.test.js +39（実装前31件赤確認）、計10834全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 202
+
+- ✨ 受益尾XX: TAIL_TE — 九州/名古屋系 'くれんけん'/'くれんさい'/'もらおか'/'もらいましょ'/'おくんなまし' + 裸 'ては'（'閉じては'→'閉じて'）→ 実行。
+- ✨ dict判定XII: FR — 'のが常道'/'が吉'/'んだから'/'ので(ー)'/'んす'/'がいいさ'/'ことを所望'/'ことを希望'/'ことを要請' → 実行。
+- ✨ 意向提案II: VOL 尾 + 'よ'/'ぞ'/'かい' → '閉じようよ'/'閉じようぞ'/'閉じようかい' → 実行。
+- ✨ てみる/ちゃ残置: TM + 'みよ'/'みようよ'；'ちゃってよ'/'じゃってよ' → て/で。
+- ✨ EN前置詞XI: 'can/could/will/would ya'（くだけた you）、'be a pal/friend and'、'it needs a closing'/'it requires'/'the tab requires'、'the tab is still open'/"it's still open" → 実行；swap 動詞 + pop/slide（'pop it closed'）；語尾 'when you get a sec/moment'/'before anything else'/'first thing'/'that second'。
+- 🐛 回帰消化: FR `ので` が '閉じたいので' を '閉じたい' に縮約して '閉じたって'→describe-tab 奪取を誘発 → `(?<!たい)ので` で保全。ENPRE 内 `'…|it'?s still open'` の裸 `'` が文字列を早期終了 → `it\'?s` に escape（文字列構築 regex の escape 規則再確認）。
+- ✅ tests/dialect-request-atoms.test.js +39（実装前30件赤確認）、計10795全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 201
+
+- ✨ 受益尾XIX: TAIL_TE — '閉じてくれるのかな'/'くれませんこと'/'くれるはず'/'くれるべき'/'やってもらおうじゃないか'/'もらおうかね'/'もらうとするか' + 九州・博多系 'もらうけん'/'もらうばい'/'もらうちゃ'/'くれたる' + 'くださいますように'/'くれてもいいじゃん'/'くださるまいか' → 実行。
+- ✨ dict判定XI: FR — 'のが順当'/'のが適切か'/'ほうが無難だ'/'ほうが手っ取り早い'/'しかないじゃん'/'のも賢い'/'のも吉'/'ことに限る'/'と決まっている'/'が道理'/'が順序'/'に決まってる'/'一択'/'ましょうね'/'しかあるまい' → 実行。
+- ✨ 命令残置: '閉じておしまい'/'閉じてしまえと'（TAIL_TE）+ '閉じーや'/'閉じや'（関西命令 literal）→ close-tab。
+- ✨ させて・たら残置: SE_TAIL + 'いただきたいんです'/'くれんか'；たら + 'どうかね'/'どうなの'/'いいと思うよ'/'いいと思うんだ'/'と思います' → 実行。
+- ✨ EN前置詞X: 'can/could/will you just'、'do yourself(s) a favor and'、'get on it'/'hop to it'、"i'm asking/telling/begging you to"、受動 'needs/has/should/ought to be closed'/'needs to get'、'the tab wants/could use'/'could do with' → 実行；語尾 'please and thank you'/'for pete's/goodness' sake'/'for crying out loud'；裸過去分詞 'closed'/'shut'/'opened' → 命令形解決。
+- 🐛 誤ルート是正: '閉じてくださるまいか'/'閉じるしかあるまい'/'閉じておしまい' が negate `/まい$/` 奪取 → lookbehind に かある/くださる/おし 追加（'ほかある' は 'かある' に包含）。help の `^do (you|they)` が 'do yourself…' を先食い → `\b` 追加。
+- 🐛 回帰消化: ENPRE 裸 'do' が 'do yourself a favor and X' を先食い → 長形前置（最長一致）。'do you mind/think… closing it' は依頼枠 → close-tab ピン（help ではない — probe 実測で訂正）。
+- ✅ tests/request-frame-atoms.test.js +61（実装前43件赤確認）、計10757全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 200
+
+- ✨ 受益尾XVIII: TAIL_TE — '閉じてくれんのか'/'もらうよ'/'もらっときたい'/'くださいなよ'/'くだされよ'/'やってもらおうか'/'てこそ'/'いいんちゃう(関西)'/'ええん(と)?ちゃう' → 実行。
+- ✨ dict判定X: FR — '閉じるのも一手だ'/'のも選択肢の一つだ'/'べきところだ'/'ほうが楽(だ)' → 実行；'閉じたほうが早くない' は た→て / だ→で 変換規則追加。
+- ✨ させて残置: SE_TAIL に 'もらうよ'/'くれますように' 追加 → '閉じさせてもらうよ'/'くれますように' → 実行。
+- ✨ お/ご敬語: 尾に 'なさいませ' 追加 → 'お閉じなさいませ' → 実行。
+- ✨ 前置詞: JA prefix に 'さえ'/'なあ' 追加 → 'さえ閉じればいい'/'なあ、閉じて' → 実行。
+- ✨ EN前置詞IX: 'would it be asking too much to'/'am i asking too much to'/'too much to ask you to'/'just this once'/'one time'/'see to (it that you|it that)'/'see that it gets'/'ensure it gets'/'make sure'/"you're gonna"/'you shall'/'the tab needs'/'it should get'/'this wants' → 実行；語尾 'just this once' 追加。
+- ✨ EN主語スワップ: 'it closes' → 'close it'（closes→close マップ追加）。
+- 🐛 誤ルート是正: 'would it be asking too much to X' が help 誤ルート → help の `would it be` lookahead に `asking` 除外を追加して実行化。
+- 🐛 回帰消化: 裸 `you` 前置詞追加で 'you ought to close it' を奪取 → `you oughta|you ought to` を裸 `you` より前置で解消（ENPRE 最長一致ルール再確認）。
+- ✨ リテラル: '閉じてばかり(だと)'/'閉じちゃうばっかり'→trouble、'まだ開いてる'→describe-tab、'なあ聞いて'→say-again。
+- ✅ tests/command-frame-atoms.test.js +46（実装前41件赤確認）、計10695全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 199
+
+- ✨ 受益尾XVII: TAIL_TE — '閉じてくれんですか'（ん縮約）/'くれたまえ(よ)'（たまえ命令調）/'もらって(も)いいですかね' → 実行。
+- ✨ 命令残置: '閉じなさいって'/'閉じなさいってば'/'閉じなってば'（関西 なって+ば）→ stemTe でて形化。
+- ✨ dict coda残置: FR IX — '閉じるものね'/'ものですね'/'わけです'/'わけなんです' → 実行（'わけです' は ack 誤ルートから実行化へ是正 — 意図表明）。
+- ✨ EN前置詞VIII: 'why dontcha'/"whyn't you"/'i command/order you to'/'i hereby request/ask that you'/'the move is to'/'best move is'/'be an angel and' → 実行。
+- ✨ EN語尾: 'if you could possibly'/'please sir'/"if it's not too much trouble"/"if it isn't too much to ask"/'is the way to go'/'would be the move' → 実行（'closing it is the way to go' は語尾剥がし→GERUND_STEM→'close it'）。
+- ✨ リテラル: 'デカくして'→volume-up、'小さめにして'→volume-down、'読み上げ止めて'→stop-reading、'どこ読んでる'→reader-progress。
+- 🐛 回帰消化: '閉じな' は関西命令形（閉じなさい縮約）→ close-tab 維持をピン（negate ではない）。正規表現リテラル内 `\'` は no-useless-escape エラー → 裸 `'` に修正。
+- ✅ tests/formal-command-atoms.test.js +38（実装前31件赤確認）、計10649全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 198
+
+- ✨ 受益尾XVI: TAIL_TE — '閉じてくれないかしら'（かしら フェミニン依頼）/'閉じてもらいましょうよ'/'閉じてくれればそれでいい'/'閉じてやるぞ'/'閉じてくれうるか' → 実行。
+- ✨ ちゃ残置III: '閉じちゃいなさいよ'（ちゃいなさい命令）・'閉じちゃうのも悪くない'・'閉じちゃってもかまわない' → て（じゃ列→で）。
+- ✨ とく残置III: '閉じとくといい'/'閉じとかないと'/'読んどかないと'（とかないと=ておかないと 義務形）→ て/で。
+- ✨ dict判定残置: FR VIII — '閉じるのが一番だよ'/'のが得策だ'/'のが良い選択だ'/'ことでいい'/'ならOK' → 実行。
+- ✨ たら残置: '閉じたらよろしいでしょうか'/'閉じたらいいですよ' → て形。
+- ✨ EN前置詞VII: 'if you don't mind X-ing'/'would you terribly mind'/"i'd be much obliged if you"/'i would hate to ask but'/'not to impose but'/'sorry to bother but'/'pardon me but'/'forgive me for asking but'/"i'll/i'd thank you to"/'it would do no harm to'/"there's no harm in"/'one option is to' → 実行。語尾 'is an option'/'thank you kindly'/'would you mind awfully' 追加。
+- 🐛 教訓: ENPRE の裸 `i'?ll` ブランチが 'i'll thank you to X' を先食い → 長い 'i'?ll thank you to' は裸形より**前置配置**が必須（最長一致ルール再確認）。
+- ✨ リテラル: 'タブ畳んで'→close-tab、'声をもっと小さく'→volume-down、'最高ですね'→ack。'読みかけ'→resume-reading ピン（前ラウンド確認）。
+- ✅ tests/politeness-residue-atoms.test.js +42（実装前37件赤確認）、計10611全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
 ### Session 197
 
 - ✨ 受益尾XV: TAIL_TE — '閉じてくれますの/くださるかな'、'閉じてほしいんだよね/のよ/ところです'、'閉じてもらいたいんだ/ところ'、'閉じてもらえると助かる/ありがたい'、'閉じてくれてもいいんです/かまいません'、'閉じてもらっちゃおう/つもり/予定'、'閉じておきたいところ/おくことにする/おきましょうかね' → 実行。
