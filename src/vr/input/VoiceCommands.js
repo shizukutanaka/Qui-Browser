@@ -4052,6 +4052,10 @@ export class VoiceCommands {
         'has it finished', 'has it saved', 'has it stopped',
         'did it pause', 'did it resume', 'did it restart',
         'did it reload', 'did it refresh', 'did it launch',
+        // pass CCLXXVI
+        'are you doing it', 'doing it yet', 'did it go through',
+        'できてる', 'やってくれてる', 'まだやってる', '処理中',
+        'うまくいったか',
         'できた', 'できたか', 'できました', 'まだか', 'まだかな', 'まだなの',
         'まだですか', 'まだ終わらない', 'まだ終わらないの',
         '何してる', '何やってる', '何してるの', '何をしてる'],
@@ -4097,6 +4101,7 @@ export class VoiceCommands {
         '御意', 'よろしい', 'そうだ', 'そうだよ', 'そうなの', 'そうなんですね',
         'そのとおり', 'その通り', 'ほんそれ', 'ほんまそれ', 'まさに', '正に',
         'そうそう', 'うんうん', 'へえ', 'ほう', 'さすが', 'やった', 'いい感じ',
+        'うまくいった', '成功した',
         'いいじゃん', 'あざます', 'あざっす', 'どうもありがとう', 'めっちゃありがとう',
         'im good', 'im good thanks', 'im fine', 'im fine thanks',
         'im okay', 'im okay thanks', 'im alright', 'all good',
@@ -4914,6 +4919,10 @@ export class VoiceCommands {
         'forward', /go forward(?! \d)/i, /forward (a|one|the) page/i,
         'お進みなさい',
         'head forward', 'go on forward',
+        // pass CCLXXVI
+        'one step forward', 'advance', 'advance one', 'press forward',
+        'move ahead', 'march forward', 'push forward', 'move onward', 'onward',
+        'proceed', '次進んで',
         /one page forward/i],
       action: () => {
         const moved = tabManager?.getActiveTab?.()?.goForward?.() || false;
@@ -4939,6 +4948,7 @@ export class VoiceCommands {
         // pass CCLXXV: EN return-frames + JA dialect residue
         'go back one', 'back to where i was', 'return to where i was',
         'one step back', 'retreat', 'reverse', 'さっきのとこ',
+        'さっきのとこ見て', 'さっきのとこに戻って',
         '一回戻って', 'どんどん戻って', 'ずっと戻って', '先に戻って',
         '前に戻って', '後ろへ', '後ろに戻って',
         'back', 'go back', 'backward', 'go backwards', 'step back',
@@ -4961,6 +4971,11 @@ export class VoiceCommands {
         '再起動して', 'ブラウザを再起動', '再起動', 'ブラウザを再起動して',
         'ページを再読み込み', '読み込み直して', 'もう一度読み込んで',
         'リフレッシュして', '再読み込みして', 'リロードして',
+        // pass CCLXXVI
+        'give it a refresh', 'do a refresh', 'refresh it for me', 'fresh copy',
+        'get a fresh copy', 'pull a fresh copy', 'リロード頼む', 'リロードだ',
+        'reload this for me', 'reload it again', 'one more refresh', 'fresh load',
+        'load it fresh',
         /(?<!did |has |is |it )reload(\s+(the|this)\s+page)?$/i,
         /^refresh(\s+the\s+page)?$/i,
         /^refresh\s+page$/i, /^restart(\s+the)?\s+(browser|page)$/i],
@@ -5038,6 +5053,10 @@ export class VoiceCommands {
         '次にめくって', 'ページをめくる', 'めくる',
         'keep scrolling', 'もうちょい下', 'もうちょい下へ', 'ぐいっと下',
         'もっと下に', '下に行って', '下に向かって',
+        // pass CCLXXVI
+        'scroll it down', '下に進んで', '下のほうへ', '下げてスクロール',
+        'slide it down', 'move it down', 'down a bit more', 'a bit further down',
+        'keep going down', 'more down', '下を読んで',
         '少しスクロール', 'ちょっとスクロール', 'もっと下', 'さらに下',
         'ぐっと下', '一気に下', 'もっと下へ', 'さらに下へ',
         'もうちょっと下', 'もうちょっと下へ', 'ちょっとだけ下',
@@ -5068,6 +5087,10 @@ export class VoiceCommands {
         'move up', 'up a bit', 'go up a bit', 'もうちょい上', 'もうちょい上へ', 'ぐいっと上',
         'ページを上へ', 'ページを上に', '上にスクロールして',
         'もっと上に', '上に行って', '上に向かって',
+        // pass CCLXXVI
+        'scroll it up', '上に戻ってスクロール', '上のほうへ', 'back up a bit',
+        'move it up', 'slide it up', 'up a bit more', 'a bit further up',
+        '上を見て', 'more up', 'up a little', 'もう少し上のほう',
         'scroll on up', 'keep scrolling up',
         'one line up', 'a line up', 'line up', 'up one line',
         /scroll up/i, /scroll upwards?/i, /^go up$/i,
@@ -16324,7 +16347,9 @@ export class VoiceCommands {
         /scroll (to( the)? )?top/i, /top of (the )?page/i, /^first page$/i, /^jump to (the )?top$/i,
         /^go to (the )?top$/i, /^all the way (up|to the top)$/i,
         /^(?:scroll )?way up$/i, /^scroll all the way up$/i, /^to the top$/i, /go back up/i, /scroll back up/i,
-        /^top$/i],
+        /^top$/i,
+        // pass CCLXXVI
+        'page top', '一番上まで', '端まで上げて', 'hit the top', 'very top', '天井まで'],
       action: () => {
         tabManager?.getActiveTab?.()?.scrollToTop?.();
         return { action: 'scroll-top' };
@@ -16346,7 +16371,9 @@ export class VoiceCommands {
         /^all the way (down|to the bottom)$/i, /^(?:scroll )?way down$/i,
         /^scroll all the way down$/i, /^to the bottom$/i, /^bottom$/i,
         'bottom of the page', 'the bottom of the page', 'bottom of this page',
-        '最後まで行って', '最後まで行け', '末尾に行って', '末尾に行け'],
+        '最後まで行って', '最後まで行け', '末尾に行って', '末尾に行け',
+        // pass CCLXXVI
+        'page bottom', '一番下までいって', 'hit the bottom', 'very bottom', 'どん底まで'],
       action: () => {
         tabManager?.getActiveTab?.()?.scrollToBottom?.();
         return { action: 'scroll-bottom' };
@@ -16522,7 +16549,7 @@ export class VoiceCommands {
         'as you were', 'press on', 'keep moving', 'keep on going',
         'keep on reading', 'keep it moving', 'keep it coming', 'continue as is',
         'このまま読んで', 'そのまま読んで', 'このまま続けて', 'そのまま続けて',
-        'そのまま読み続けて', 'このまま読み続けて',
+        'そのまま読み続けて', 'このまま読み続けて', 'そのまま進んで',
         'where was i', 'lost my place', 'losing my place', 'i lost my place',
         'lost my spot', 'pick it back up',
         'press on', 'move along', 'carry on with it', 'continue on',
@@ -17955,7 +17982,11 @@ export class VoiceCommands {
     // describe-tab — the richer sibling of title/tab-status: index, title,
     // load state, privacy and pin flags in one line.
     this.registerCommand('describe-tab', {
-      patterns: ['まだ開いてる?', 'まだ開いてる', 'まだあいてる', 'このページ見せて', 'このページ見て', 'ページの内容教えて', '閉じる寸前', '閉じるところです', 'このタブについて', 'このタブは', 'タブの状態', 'ページ情報',
+      patterns: [// pass CCLXXVI: identity/status queries
+        'what have i got open', 'tell me about this tab', 'whats the current tab',
+        'whats on this tab', 'このタブは何', '今のタブって何',
+        'describe what im seeing', 'what do i have open', '今見てるのは',
+        'まだ開いてる?', 'まだ開いてる', 'まだあいてる', 'このページ見せて', 'このページ見て', 'ページの内容教えて', '閉じる寸前', '閉じるところです', 'このタブについて', 'このタブは', 'タブの状態', 'ページ情報',
         '閉じてもらったよ', '閉じてもらったんだ', '閉じてくれた',
         '閉じてくれたよ', '閉じてくれたんだ', '閉じてくれてありがとう',
         '閉じてるのに', '閉じてるから', '閉じてるんで', '閉じてるんだ',
