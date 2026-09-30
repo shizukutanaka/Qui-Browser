@@ -149,6 +149,48 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice '閉じてゆくべき/ゆけばいい' のてゆく方言尾が NO-MATCH~~
 - ~~voice '閉じてしまったようです/ところです' の完了報告尾が NO-MATCH~~
 - ~~voice '閉じるのがワークフローだ/標準だ' の手順名詞尾が NO-MATCH~~
+- ~~voice '閉じるのが進め方だ' の navigate 誤ルート~~
+- ~~voice '閉じてもいいかしらね' のもいいか残置が NO-MATCH~~
+- ~~voice '閉じるのが流儀だ/進め方だ' の流儀名詞尾が NO-MATCH~~
+- ~~voice '閉じてくださいよお' の長音残置が NO-MATCH~~
+- ~~voice '閉じてしまおうぞ/ね' のしまおう残置が NO-MATCH~~
+- ~~voice '閉じるのが任意だ/裁量だ/お任せだ' の裁量名詞尾が NO-MATCH~~
+- ~~voice '閉じておくのを忘れた' の忘れ報告が NO-MATCH（実行化）~~
+- ~~voice '閉じておくと良かった' のおくと良かった尾が NO-MATCH~~
+- ~~voice '閉じるのが礼式だ/義理だ' の礼式名詞尾が NO-MATCH~~
+- ~~voice '閉じてくれませんかねえ' のくれません残置が NO-MATCH~~
+- ~~voice '閉じておくのが吉だ/上策だ' のおく+名詞複合尾が NO-MATCH~~
+- ~~voice '閉じるのが気遣いだ/親切だ' の配慮名詞尾が NO-MATCH~~
+- ~~voice '閉じてみるのがいいかも' のみる判断尾が NO-MATCH~~
+- ~~voice '閉じるのが信念だ/譲れない線だ' の信念名詞尾が NO-MATCH~~
+- ~~voice '閉じてしまうのが最善/得策' のしまう判断尾が NO-MATCH~~
+- ~~voice '閉じるのが恒例だ/しきたりだ' の慣習名詞尾が NO-MATCH~~
+- ~~voice '閉じておくに限ります' のおく限り尾が NO-MATCH~~
+- ~~voice '閉じるのが本道だ/真っ当だ' の正道名詞尾が NO-MATCH~~
+- ~~voice '閉じておけば大丈夫です/正解だ' のおけば安心尾が NO-MATCH~~
+- ~~voice '閉じるのが体面だ/面目だ' の体面名詞尾が NO-MATCH~~
+- ~~voice '閉じてほしいものかな' の negate 誤ルート~~
+- ~~voice '閉じてくるべきだ' のくる方向尾が NO-MATCH~~
+- ~~voice '閉じるのが好機だ/旬だ' の好機名詞尾が NO-MATCH~~
+- ~~voice 'wed be grateful if youd' の複数感謝枠が NO-MATCH~~
+- ~~voice 'id really appreciate it if youd' の感謝依頼枠が NO-MATCH~~
+- ~~voice 'how say you|what do ya say we' の提案枠が NO-MATCH~~
+- ~~voice 'id be grateful|thankful if youd' の感謝条件枠が NO-MATCH~~
+- ~~voice 'could i trouble you for a close' の依頼枠が NO-MATCH~~
+- ~~voice 'would you be sweet enough to' の形容詞依頼枠が NO-MATCH~~
+- ~~voice '閉じるのが利益だ/好都合だ' の利益名詞尾が NO-MATCH~~
+- ~~voice 'id be honored|thrilled if youd' の形容詞条件枠が NO-MATCH~~
+- ~~voice 'if you could bring yourself to' の自己条件枠が NO-MATCH~~
+- ~~voice 'if youd be a dear/pal and' の条件呼びかけ枠が NO-MATCH~~
+- ~~voice '閉じておくのも手かも/ありかと' のおくのも残置が NO-MATCH~~
+- ~~voice '閉じるのが必須だ/不可欠だ' の必須名詞尾が NO-MATCH~~
+- ~~voice 'thank you kindly for closing it' の先感謝スワップが NO-MATCH~~
+- ~~voice '閉じてくれればと思う/願う' のくれればと残置が NO-MATCH~~
+- ~~voice '閉じるのが手際だ/手っ取り早い' の手際名詞尾が NO-MATCH~~
+- ~~voice 'im begging you,/im down on my knees' の懇願裸形が NO-MATCH~~
+- ~~voice '閉じておくしかないんだ/あげるのが筋だ' のおくしか・あげる残置が NO-MATCH~~
+- ~~voice '閉じるのが選択肢だ/分岐点だ' の選択名詞尾が NO-MATCH~~
+- ~~voice 'the sooner the better/no time to lose' の急迫枠が NO-MATCH~~
 - ~~voice '閉じちゃってね/じゃって' のちゃって・じゃって残置が NO-MATCH~~
 - ~~voice '閉じてくれぞ/くれわ' のくれ方言残置が NO-MATCH~~
 - ~~voice '閉じるのが心がけだ/覚悟です' の心がけ名詞尾が NO-MATCH~~
