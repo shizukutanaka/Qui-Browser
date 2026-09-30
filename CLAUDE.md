@@ -252,6 +252,44 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 127: 距離/可読性原子 — settings-status 数値/列挙値拡張・motion-sensitivity 方向 setter・panel-distance 訴え句・fullscreen エイリアス + 言い換え句第10弾
+外部基準: Voice Access クエリ形の数値設定への拡張、Chrome fullscreen/immersive の文言、VoiceOver rotor の端選択、訴え形→直接的な修正アクション。
+- ✨ **settings-status を数値/列挙値へ拡張**: KEYMAP エントリを `[regex, key, label?, {unit|map}]` に一般化 — 'パネルの距離'/'panel distance' → 'パネル距離 Xメートルです'（windowDistance）、'モーション感度は'/'motion sensitivity' → 'モーション感度は標準です'（プリセット JA 写像）。
+- ✨ **`motion-sensitivity`（comfort-preset の方向双子）**: 'モーション感度を上げて/下げて/標準に' → `_onSettingToggle('motionSensitivity', sensitive|tolerant|moderate)`。**実測捕捉**: settings-status の loose `/motion sensitivity/` が 'motion sensitivity up' を先取り → `^…\??$` アンカーで透過。
+- 🐛 **panel-distance の方向反転訴え句**: 'パネルが遠い'/'遠すぎる'/'too far' → 近づける、'パネルが近い'/'近すぎる'/'too close' → 遠ざける（'近い' を nearer 判定から除外する除外集合を追加 — 訴え形は現在値への苦情）。
+- 🐛 **'一番左のタブ'/'一番右のタブ' 誤答修正**: tab-by-name '「一番左」のタブがありません' → stoplist + first-tab/last-tab へ '一番左/一番右のタブ'、'左端/右端のタブ'、leftmost/rightmost。
+- ✨ **fullscreen/immersive エイリアス**: vr-enter へ '全画面'/'フルスクリーン(にして|モード)'/immersive mode/fullscreen、vr-exit へ '全画面をやめて'/'フルスクリーン解除'/exit fullscreen（`(?<!exit )full ?screen` lookbehind で enter 側が exit を横取りしないよう分離）。
+- ✨ **エイリアス拡充（第10弾）**: reader-size 訴え句 '文字が小さい'/'読みにくい'/'フォントを大きくして' 等、keyboard 'キーボードを出して/閉じて/しまって'、tabs-list 'タブ一覧を読んで'/'開いてるタブ'、read-url 'このページのURL'/'ページのアドレス'、copy-url 'このページのリンク'、trouble '見えにくい'/'見にくい'。
+- ✅ **テスト +75（git stash で実装前に73件赤確認 — 2件は既存 'パネルを遠くして/近くして' の設計上緑）**: Total 2775 tests (101 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+- 注: 'パネルサイズ'/'読書モード'/'ダウンロード'/'タブはどこ' は backing surface 不在のため未実装（誠実未認識）。
+
+### Session 126: 設定状態/接続原子 — settings-status 読み取り専用双子・connection-status・曜日告知 + 言い換え句第9弾
+外部基準: Voice Access 'is X on' のクエリ形（質問は状態を変えない）、Chrome 'シークレットモード' の文言、MDN NetworkInformation（effectiveType/downlink）。
+- ✨ **`settings-status`（toggleCmd 系の誠実クエリ双子）**: '字幕はオン'/'キャプションついてる'/'視線選択はオン'/'are captions on'/'is snap turn on' 等 → 新規読み取り専用フック `_onSettingStatus`（VRApp `onSettingStatus` = `this.settings[key]` の不変 getter）で 'Xはオンです/オフです' を応答。**実測捕捉**: EN 質問形 'are captions on'/'is snap turn on' は toggleCmd の `/captions? (on|off)/`・`/snap turn (on|off)/` が先に所有して質問がトグル実行されていた → toggleCmd 群より前に登録（JA は toggle が 'を+動詞' 要求のため衝突なし、非呼出を共存テストで断言）。
+- ✨ **`connection-status`**: '回線速度'/'通信速度'/'ネットの速度'/'connection speed' → `navigator.connection` の effectiveType+downlink で '接続状態: 4G、約8.5Mbpsです'、API 無しは '通信情報を取得できません' の誠実経路。
+- 🐛 **'秘密のタブ'/'シークレットモード' の誤答修正**: tab-by-name が '「秘密」のタブがありません' と誤答（実測捕捉）→ stoplist に 秘密|シークレット|プライベート を追加し private-new-tab へ '秘密のタブ'/'シークレットのタブ'/'プライベートのタブ'/'シークレットモード(で開いて)' を追加（'ニュースのタブ' の名指し選択は維持、共存テスト）。
+- ✨ **date に曜日告知**: '今何曜日'/'何曜日'/'曜日は'/'what day' → '今日はX月Y日（Z曜日）です'（従来の日付句も曜日付きに拡張、旧 assertion を曜日込みに更新）。
+- ✨ **エイリアス拡充（第9弾）**: language-switch '英語で読んで'/'日本語で読んで'/'読み上げ言語を英語/日本語'、captions-toggle 'キャプションを出して/見せて'/'字幕を出して'、help '困った'/'わからない'/'ヘルプミー'/'使い方を教えて'、reopen-tab 'もとに戻して'/'取り消し'/'取り消して'、top-sites 'スタートページ'/'よく見るサイト'/'おすすめサイト'/'よく行くサイト'、clear-history '閲覧履歴を全部消して'/'履歴を全部消して/消す'、trouble 'ネットが遅い'。
+- ✅ **テスト +65（git stash で実装前に59件赤確認 — 6件は既存ルート共存ガードの設計上緑）**: Total 2700 tests (100 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+- 注: 'ハンドトラッキング'/'キャッシュを消して'/'Cookieを消して'/'ホームURL設定'/'男性の声' は backing surface 不在または誠実応答できないため未実装（誠実未認識）。
+
+### Session 125: 検索/快適原子 — find-in-page 引用符 strip・スコープ句、VR出入り・エコー・快適訴えの自然句 + 言い換え句第8弾
+外部基準: Chrome 'find in page X' のスコープ形、Voice Access 'quiet' 準拠の消音句、NVDA 誠実ガイダンス（快適性訴え→音声回復導線）。
+- 🐛 **'「テスト」を探して' が引用符込みで検索される実害修正**: 抽出語が「テスト」のまま渡り必ず '見つかりませんでした'（実測捕捉）→ 先末尾 `「」『』"''` を strip。'ページ内で「X」を検索'/'ページ内をXで検索' 未認識も `/ページ内[をで](.+?)[をで]検索/` で解消（'バナナを検索して' は web-search 維持の共存テスト）。
+- ✨ **VR 出入り・エコー句**: vr-enter へ 'VRを始める'/'没入モード'/'VRモードで' 等6句、vr-exit へ 'VRを終了'/'VRを出る' 等、say-again へ 'もう一回言って'/'今の行をもう一度'、say-last-transcript へ '何を言った'/'何を聞き取った'/'今何を言った'。
+- ✨ **エイリアス拡充（第8弾）**: read-heading '見出しを読み上げて'、next/prev-heading '次/前のセクション'、next-paragraph 'スキップして'/'読み飛ばして'、prev-sentence 'さっきの文'、mute-toggle '静かにして'/'無音にして'、volume-down 'うるさい'/'音が大きい'、unbookmark 'お気に入りから消して'、trouble へ '耳が痛い'/'酔った'/'気分が悪い'/'目が疲れた'/'滑らかじゃない'/'ヘッドセットが暑い'。
+- ✅ **テスト +41（git stash で実装前に39件赤確認 — 2件は既存ルート共存ガードの設計上緑）**: Total 2635 tests (99 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+- 注: 'リンク一覧'/'印刷'/'PDF保存'/'フォント変更'/'輝度' は backing surface 不在のため今回も未実装（誠実未認識）。
+
+### Session 124: スクロール/音声トラブル原子 — '先頭に戻る'・'オプションを開いて' の誤ルート修正、reset-zoom 双子、audio-trouble + 言い換え句第7弾
+外部基準: Chrome Ctrl+0 reset-zoom、Chrome 'scroll to top' 句、Voice Access の options 起動句、NVDA 系の誠実エラー告知。
+- 🐛 **'先頭に戻る'/'一番上に戻る'/'トップに戻る' が goBack を実行する実害修正**: back の `/戻[るれ]/` が 'Xに戻る' 句を所有（実測捕捉 — '先頭に戻る' でタブ内履歴が戻る）→ `(?<!先頭に)(?<!一番上に)(?<!トップに)` lookbehind で透過し scroll-top へ7句追加（'戻る' 単体は goBack 維持、相互に非呼出を断言）。
+- 🐛 **'オプションを開いて' が literal ナビゲートされる実害修正**: go-to の `を開` catch-all 所有（実測捕捉）→ settings-toggle へ 'オプション'/'設定画面'/'環境設定'/'プリファレンス'/'options'/'preferences' を追加（登録順が先行するため勝つ、onGoTo 非呼出を断言）。
+- 🐛 **'reset text size' がステータス告知に誤ルート**: reader-scale-status の `/text size/i` 所有（実測捕捉）→ Chrome Ctrl+0 準拠 `reader-scale-reset`（status getter + delta hook で 1.0 へ一発リセット）を先行登録。
+- ✨ **`audio-trouble`**: '聞こえない'/'音が出ない'/"can't hear"/'no sound' → trouble の視覚導線に対する聴覚双子（音量確認・ミュート解除・聞き直しの3導線を発話）。
+- ✨ **エイリアス拡充（第7弾）**: find-in-page へ 'ページ内を検索'/'この中から検索'/'探して'/'検索して'（検索語プロンプト）、scroll へ 'ちょっと上/下'・'少し上/下へ'・'もう少し上/下'、read-aloud へ 'このページを読み上げて'/'最初から読み上げて'/'もう一回読んで'、trouble へ '遅い'/'重い'/'カクカクする'/'フリーズした'/'固まった'、battery-status へ '電池残量'/'残量は'/'電源は'。
+- ✅ **テスト +61（git stash で実装前に60件赤確認 — 1件は既存ルート共存ガードの設計上緑）**: Total 2594 tests (98 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
 ### Session 123: 左閉じ/序数原子 — close-tabs-left 双子・JA序数タブ選択・'半分の音量' + 言い換え句第6弾
 外部基準: Chrome close-tabs-to-the-right の左対称双子、Voice Access の序数選択（'一番目のタブ'）、Chrome 'new tab'/'close window' の自然句、numeric volume の 'half' 特例。
 - 🐛 **'左のタブを閉じて' が名指し検索に誤ルートする実害修正**: close-tab-by-name の JA stoplist は '右' だけ除外で '左' 未除外（非対称バグ、実測捕捉）→ 左|左側 を追加 + 新規 `close-tabs-left` が先行所有（'左側のタブを閉じて'/'close tabs to the left'）。
