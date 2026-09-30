@@ -2642,6 +2642,7 @@ export class VoiceCommands {
     this.registerCommand('vr-exit', {
       patterns: ['VR終了', 'VRやめる', '通常モード', 'ブラウザを終了', 'アプリを終了',
         '終了して', 'VRを終了', 'VRをやめる', 'VRを終わる', 'VRを出る',
+        'ヘッドセット切って', 'vr終わる',
         '終了', 'アプリを閉じて', 'ブラウザを閉じて', 'ブラウザを終了して',
         'アプリを終了して', 'アプリを閉じる', 'ブラウザを閉じる',
         '全画面をやめて', 'フルスクリーンをやめて', '全画面解除', 'フルスクリーン解除',
@@ -2898,6 +2899,7 @@ export class VoiceCommands {
         'フォントを大きく', 'フォントサイズを上げて', '文字サイズを上げて',
         'ズームインして', '文字を拡大', 'ページを拡大', 'ページを大きく',
         '拡大', 'ページを拡大して', 'ページを拡大してほしい',
+        'もっと拡大', '画面を拡大',
         'フォントを大きくして', 'フォントを拡大', 'フォントサイズを上げる',
         '文字が小さい', '字が小さい', '読みやすくして', '見やすくして', '読みやすく', '見やすく', '文字が読めない', '読みにくい',
         '文字が見にくい', '字が見にくい', '字が見えにくい', '大きくして',
@@ -2924,7 +2926,7 @@ export class VoiceCommands {
         '縮小してズーム',
         'フォントを小さく', 'フォントサイズを下げて', '文字サイズを下げて',
         'ズームアウトして', 'ページを縮小', '文字を縮小',
-        '縮小',
+        '縮小', 'もっと縮小',
         'フォントを小さくして', 'フォントを縮小', 'フォントサイズを下げる',
         'too big', 'make it smaller', /text is too big/i, /make (the )?text smaller/i,
         '文字が大きい', '字が大きい',
@@ -3032,7 +3034,7 @@ export class VoiceCommands {
     // working without a browser connection (synthesis only).
     this.registerCommand('select-voice', {
       patterns: ['声を変えて', '読み上げ音声を変えて', '声を変える',
-        '音声を変えて', '別の声', '別の声にして', '違う声にして',
+        '音声を変えて', '別の声', '別の声にして', '違う声にして', '声変えて',
         '別の声で', '女性の声で', '男性の声で', '高い声で', '低い声で',
         '別の声に変更', '声を変えてほしい',
         '男の声で', '女の声で', '男性の声', '女性の声', '女の声にして', '男の声にして',
@@ -3054,7 +3056,7 @@ export class VoiceCommands {
     // voice-list — select-voice's list twin (NVDA voice list parity): hear
     // the available voices without cycling through them blindly.
     this.registerCommand('voice-list', {
-      patterns: ['声一覧', '声の一覧', '利用可能な声',
+      patterns: ['声一覧', '声の一覧', '利用可能な声', '音声一覧',
         /voice list|list voices|available voices/i],
       action: () => {
         const voices = this.synthesis?.getVoices?.() || [];
@@ -3356,7 +3358,7 @@ export class VoiceCommands {
     this.registerCommand('wake-word-status', {
       patterns: ['ウェイクワードは', 'ウェイクワードの状態',
         // pass CCLXXIX
-        'ウェイクワード教えて',
+        'ウェイクワード教えて', 'ウェイクワード変えて',
         /wake word(?! (on|off))/i],
       action: () => {
         const on = !!this.settings.requireWakeWord;
@@ -3373,7 +3375,7 @@ export class VoiceCommands {
       patterns: ['ズームをリセット', 'ズームリセット', '拡大を戻して', '拡大を元に戻して',
         '文字サイズを元に戻して', '文字サイズをリセット', 'フォントサイズを元に戻して',
         'フォントサイズをリセット', '元の大きさに戻して', '画面を元に戻して', '表示を元に戻して',
-        /reset (the |my )?(zoom|text size|font size)/i, /zoom reset/i,
+        /reset (the |my )?(zoom|text size|font size)/i, /zoom reset/i, 'リセットズーム',
         /^unzoom$/i, /^dezoom$/i, /zoom back/i, /zoom (back )?to normal/i, /zoom normal/i,
         /back to normal size/i],
       action: () => {
@@ -3802,6 +3804,9 @@ export class VoiceCommands {
       patterns: ['ダウンロードして', 'ダウンロードしたい', 'ダウンロードはどこ',
         'ダウンロード', 'アップロードして', 'アップロード',
         'ファイルをダウンロード', 'ファイルを保存',
+        // pass CCLXXXI
+        'ページをダウンロード', 'ページ保存して', '保存してダウンロード',
+        'このファイルをダウンロード',
         'ダウンロード履歴', 'ダウンロードしたファイル', 'ダウンロード一覧',
         /^downloads?$/i, /download (this|it|the file)/i, /^upload/i,
         'このページをダウンロード',
@@ -3903,6 +3908,7 @@ export class VoiceCommands {
     this.registerCommand('scroll-horizontal', {
       patterns: ['左にスクロール', '右にスクロール', '左へスクロール', '右へスクロール',
         '横にスクロール', '横スクロール',
+        '右にスクロールして', '左にスクロールして', 'scroll sideways',
         /scroll (left|right)/i, /scroll horizontally/i],
       action: () => {
         this.speak('左右のスクロールはできません。「上」「下」または「3行下」で縦に動けます');
@@ -16536,6 +16542,7 @@ export class VoiceCommands {
     this.registerCommand('stop-reading', {
       patterns: ['読み上げを止めて', '読み上げ停止', '読み上げ中止', '読み上げ止めて',
         '読み上げをやめる', '読み上げをやめて', '読むのをやめて',
+        '読み上げストップ', '読むの止めてくれ',
         '声を止めて', '声を止めろ', '喋るのをやめて', '喋るな', '黙って',
         '読み上げを止める', '読み上げを終了',
         'おしゃべりを止めて', '喋らないで', 'しゃべらないで', 'しゃべるな',
@@ -17077,6 +17084,7 @@ export class VoiceCommands {
     this.registerCommand('close-other-tabs', {
       patterns: ['他のタブを閉じて', '他のタブを閉じる',
         '他のタブを全部閉じて', 'ほかのタブを全部閉じて',
+        '他のは閉じていいよ', '残りは全部閉じて',
         'このタブだけ残して', 'このタブだけを残して',
         'このタブ以外を閉じて', 'このタブ以外を全部閉じて',
         'このタブ以外のタブを閉じて', 'このタブ以外をすべて閉じて',
@@ -17316,6 +17324,7 @@ export class VoiceCommands {
     this.registerCommand('keyboard', {
       patterns: ['キーボード', 'キーボードを開く', 'キーボードを閉じる',
         'キーボードを出して', 'キーボードを閉じて', 'キーボードを表示',
+        'キーボード出して', 'キーボード見せて', 'キーボードを開いて',
         'キーボードを出す', 'キーボードをしまって', 'キーボードを隠して',
         'キーボードをしまう', 'キーボードを収納',
         /show keyboard/i, /hide keyboard/i, /^keyboard$/i],
@@ -17925,6 +17934,7 @@ export class VoiceCommands {
     // empty tab is a no-op rather than an error.
     this.registerCommand('reload-all', {
       patterns: ['すべて再読み込み', '全部再読み込み', 'すべてのタブを再読み込み',
+        '全部リロード', '全タブ更新', 'すべて更新して',
         'reload em all', 'reload all of them', 'refresh them all',
         'refresh all of them', 'refresh every tab', 'reload every tab',
         /reload all( tabs)?/i],
@@ -18012,6 +18022,7 @@ export class VoiceCommands {
       patterns: ['どのタブが音出てる', '音が出てるタブ', '音が出ているタブ',
         '音が鳴ってるタブ', '音が鳴っているタブ', 'どのタブが鳴ってる',
         '音がなるタブ', 'うるさいタブ', 'どこから音が出てる',
+        '音が出てるのはどれ',
         'mute them all', 'mute every tab', 'mute the other tabs', 'silence all tabs',
         new RegExp('mute (?:the )?(?:' + EN_NUM + '|[0-9]+)(?:st|nd|rd|th)? tab', 'i'),
         new RegExp('(?:un)?mute (?:the )?tab (?:number )?(?:' + EN_NUM + '|[0-9]+)', 'i'),
@@ -18026,6 +18037,7 @@ export class VoiceCommands {
     });
     this.registerCommand('tab-meta', {
       patterns: ['誰が書いた', '著者は誰', '作者は誰', '書いたのは誰',
+        'このタブの情報', 'タブの詳細',
         'この記事の著者', '著者を教えて', '作者を教えて',
         '何年の記事', 'いつの記事', 'いつ書かれた', 'いつ公開された',
         '公開日は', '公開日を教えて', '記事の日付', 'いつのニュース',
@@ -18434,6 +18446,7 @@ export class VoiceCommands {
         'このページのURL', 'ページのアドレス', 'このページのアドレス', 'URLを言って',
         '今のページのアドレス', '今のページのURL', 'ページURL', 'アドレスを言って',
         '今のURL', '現在のURL', 'アドレスは', 'URLは何',
+        'アドレス教えて', 'アドレスバー見せて', 'show me the address',
         /(read|say|what is|what's|whats) (the |this )?(url|address)/i,
         /(page|tab) (url|address)/i, /^the (url|address)$/i],
       action: () => {
@@ -18648,6 +18661,7 @@ export class VoiceCommands {
     // secure'/'このページは安全ですか' answers from the scheme, honestly.
     this.registerCommand('security-status', {
       patterns: ['このページは安全ですか', '安全かどうか', '安全ですか', 'httpsか',
+        'このサイト安全', '安全かどうか教えて', 'is this site safe', 'httpsか確認',
         '証明書は', '証明書はどう', 'HTTPSですか', '安全なサイトですか',
         'セキュリティ状態', '危険なサイト', 'セキュアですか',
         '危険ですか', '危ないですか', '暗号化されてる', '暗号化されている',
@@ -18766,6 +18780,7 @@ export class VoiceCommands {
     // heading TEXT itself (NVDA 'read current heading' parity).
     this.registerCommand('read-heading', {
       patterns: ['この見出しを読み上げ', '見出しを読んで', '見出しは何',
+        'この見出し読んで',
         '見出しを読み上げて', '見出しを読み上げ', '何見出し目', '見出し番号は',
         '今は何番目の見出し',
         /read (the |current |this )?heading/i, /what('s| is) the heading/i],
@@ -19057,6 +19072,7 @@ export class VoiceCommands {
     // Copy the page title — copy-url's pair for the share surface.
     this.registerCommand('copy-title', {
       patterns: ['タイトルをコピー', 'ページ名をコピー',
+        'タイトルコピー', 'コピータイトル', '名前をコピー', 'ページのタイトルをコピー',
         /copy\s+(the\s+)?(page\s+)?title/i],
       action: () => {
         const title = this._onCopyTitle ? this._onCopyTitle() : null;
@@ -19293,7 +19309,7 @@ export class VoiceCommands {
     // parity (say-again reads the caption, this reads the article).
     this.registerCommand('read-line', {
       patterns: ['この行を読んで', '今の行を読んで', '現在の行を読み上げ',
-        '行を読んで', '今の行を読み上げて', '今の行を読み上げ',
+        '行を読んで', '今の行を読み上げて', '今の行を読み上げ', '一行読んで',
         /read (the )?(current )?line/i],
       action: () => {
         const line = this._onReadLine ? this._onReadLine() : null;
@@ -19442,6 +19458,7 @@ export class VoiceCommands {
         '記事の長さ', 'このページの長さ', 'どのくらいの長さ',
         'どれくらいの長さ', '記事の長さは',
         '文字数は', 'あと何文字', '残りの文字数', '残り何文字', '文字数を教えて',
+        '文字数教えて',
         '単語数', '何単語', '全部で何文字',
         /character count/i, /word count/i, /how many (words|characters)/i],
       action: () => {
@@ -19567,6 +19584,7 @@ export class VoiceCommands {
     this.registerCommand('spell-word', {
       patterns: ['この単語をスペル', 'スペル読み', 'つづり', 'スペルで読んで',
         'スペルを教えて', 'スペル', 'スペルは', 'つづりを教えて',
+        'スペル教えて', 'spell that word', 'この単語をスペルして',
         'どう綴る', '綴りを教えて', '綴りは', 'つづりは',
         /spell (this |the )?word/i, /spell it/i, /^spell (that|this)$/i,
         /how (is it|do you spell) (spelled|it)/i, /how is .* spelled/i],
@@ -19665,6 +19683,7 @@ export class VoiceCommands {
       patterns: ['この記事について', '記事の概要', '記事の情報',
         '要約して', 'このページを要約', 'ページを要約して', '概要は', '記事を要約',
         'ページの概要', '概要を教えて', '概要は何', 'このページの概要',
+        '記事を要約して', 'この記事の要約',
         'ここに書いてあること', 'ここに何が書いてある', '何が書かれてる',
         '何が書いてある', '内容を教えて', 'ページの内容を教えて',
         /describe (the )?(page|article)/i, /page info|article info/i,
@@ -19748,7 +19767,8 @@ export class VoiceCommands {
     });
     // sensitivity-status — the query twin (up/down mutate; this reports).
     this.registerCommand('sensitivity-status', {
-      patterns: ['感度は', '認識感度は', /sensitivity( status)?$/i],
+      patterns: ['感度は', '認識感度は', '感度今どのくらい', '感度どのくらい',
+        /sensitivity( status)?$/i],
       action: () => {
         this.speak(`認識感度は${this.settings.sensitivity}です`);
         return { action: 'sensitivity-status', value: this.settings.sensitivity };
@@ -19763,6 +19783,7 @@ export class VoiceCommands {
       // 'ハイコントラスト…'/'high contrast…' belong to the high-contrast
       // toggle (registered earlier), so the query keeps disambiguated forms.
       patterns: ['コントラストは', 'ハイコントラストは', 'ハイコントラストはどう',
+        'コントラスト今',
         'ハイコントラストか', 'ハイコントラストは今', 'ハイコントラストですか',
         'ハイコントラストかどうか', 'コントラストモードは',
         /ハイコントラストは(?:どう|か|今|現在)/,
@@ -19920,6 +19941,7 @@ export class VoiceCommands {
         'この場所に戻って', 'さっきの場所に戻って', '前の場所に戻って',
         '元の場所に戻って', 'さっきの位置に戻って',
         'さっきのところ', 'さっきのところに戻って',
+        '前の位置に戻って', '読んでたとこに戻って',
         /jump\s+back/i, /previous (spot|position)/i],
       action: () => {
         const moved = this._onJumpBack ? this._onJumpBack() : false;
@@ -19953,6 +19975,7 @@ export class VoiceCommands {
     // without it the honest answer is that they expire on their own.
     this.registerCommand('dismiss-notify', {
       patterns: ['通知を消して', '通知を閉じて', '通知を消去', 'トーストを消して',
+        '通知消して',
         'メッセージを消して', 'メッセージを閉じて', 'ダイアログを閉じて',
         '警告を消して', '表示を消して', '通知はいい', '通知を全部消して',
         '消して', '消えて', '消してほしい',
@@ -19972,6 +19995,7 @@ export class VoiceCommands {
     // heard a chime can ask what it said after the toast expired.
     this.registerCommand('read-notify', {
       patterns: ['通知を読んで', '通知を読み上げて', '最新の通知', '最近の通知',
+        '通知読んで', '通知を教えて',
         '最後の通知', '何を通知した', '通知は何', '通知の内容', '今の通知',
         '通知を見せて', '通知を表示して', '通知を確認',
         '通知はある', '通知がある', '通知がきた', '通知きた', '新しい通知',
@@ -19995,6 +20019,7 @@ export class VoiceCommands {
     this.registerCommand('reader-mode', {
       patterns: ['リーダー表示', 'リーダーモード', 'リーダーモードにして',
         'リーダー表示にして', 'シンプルな表示', '簡易表示', '簡易表示にして',
+        'リーダーにして', 'リーダーモードで', '読書モードにして',
         'リーダーを閉じて', 'リーダーを終了', 'リーダーをやめて',
         'リーダー表示を解除', '元のページに戻して', '元の表示に戻して',
         '元の表示に戻る', '元に戻す',
@@ -20010,7 +20035,7 @@ export class VoiceCommands {
     // instead of pretending.
     this.registerCommand('dark-mode', {
       patterns: ['ダークモード', 'ダークモードにして', 'ダークモードをオン',
-        'ナイトモード', '夜モード', '暗いテーマ',
+        'ナイトモード', '夜モード', '暗いテーマ', '暗いテーマにして',
         '背景を暗く', '目に優しく', '目に優しいモード', 'ブルーライト',
         'ブルーライトカット', '夜用モード', 'ダークテーマ',
         /dark mode/i, /night mode/i, /dark theme/i, /turn on dark/i, /lights out/i,
@@ -20050,6 +20075,7 @@ export class VoiceCommands {
         // pass CCLXXVIII
         'これ印刷して',
         'PDFに保存', 'PDFで保存', 'PDFとして保存', 'PDFを保存', 'PDFで出力',
+        'pdfにして', 'プリンターに送って',
         /print/i, /save (as |to )?pdf/i, /export (as |to )?pdf/i],
       action: () => {
         this.speak('このブラウザでは印刷できません');
@@ -20184,7 +20210,8 @@ export class VoiceCommands {
         '中国語に翻訳', /translate (this |the )?page/i, /translate (it|this)/i,
         /translate to (english|japanese|chinese)/i,
         'この文を翻訳して', '英語に訳して', '日本語に訳して',
-        '中国語に訳して', '文章を翻訳', '文章を翻訳して', '訳して', '翻訳'],
+        '中国語に訳して', '文章を翻訳', '文章を翻訳して', '訳して', '翻訳',
+        '日本語に翻訳して'],
       action: (transcript) => {
         const url = tabManager?.getActiveTab?.()?.currentUrl;
         if (!url) {
@@ -20442,6 +20469,7 @@ export class VoiceCommands {
         '英語に切り替え', '英語で', '英語で読んで', '日本語で読んで',
         '読み上げ言語を英語', '読み上げ言語を日本語', '英語で読み上げて', '日本語で読み上げて',
         '言語を変えて', '言語を切り替えて', 'change language', /change (the )?language/i,
+        'switch language', '言語変えて', '英語モードにして',
         /switch to (english|japanese)/i,
         /speak english/i],
       action: (transcript) => {
