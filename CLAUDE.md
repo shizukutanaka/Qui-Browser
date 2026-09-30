@@ -252,6 +252,17 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 122: 索引ピーク/マイク誤ルート原子 — 'タブNを読んで' の切替誤害・'マイクをミュート' の音量誤害・セッション消去・ストレージ・トラブル導線 + 言い換え句第5弾
+外部基準: screen-reader indexed peek（NVDA オブジェクトナビ）、Voice Access 'mic off'（認識停止は音量と別物）、Chrome undo/Ctrl+Shift+T・'close window'・restore pages の消去双子、Firefox about:storage（navigator.storage.estimate）、voice-only ユーザーの回復導線。
+- 🐛 **'タブNを読んで' が切り替えを実行する実害修正**: tab-select の `/タブ(\d+)/` が索引告知句を所有 → `peek-tab-n`（'タブNを読んで'/'タブNは何'/'read tab N' → 非破壊に `タブN: タイトル`、範囲外は 'タブNはありません'）を hoisted 登録。'タブ1' 単体は切替を維持（共存テスト）。
+- 🐛 **'マイクをミュート' が masterVolume をミュート/'mute other tabs' が active をミュートする実害修正**: mute-toggle の `/(un)?mute/i` が両方を所有 → mic 停止は `stop`（音声認識停止=Voice Access mic-off 準拠）へ 'マイクをミュート'/'マイクオフ'/'mute the mic'/'stop listening' 等を追加し、mute-toggle を lookahead で 'other tabs'/'the mic' 系へ素通し。'mute other tabs' は per-tab surface 不在で誠実未認識。
+- 🐛 **'前回のタブを開いて' が literal ナビゲートされる実害修正**: go-to JA catch-all の `を開` 部分一致が '前回のタブ' をサイト名としてナビゲート → lookahead（前回|セッション|閉じた）で透過 + restore-session へ '前回のタブを開いて'/'最後のセッション' 等、reopen-tab へ '元に戻して'/'取り消して'/'閉じたタブを開いて'/'undo' 系を追加（reopen 登録順が先行）。
+- ✨ **clear-session**（save-session の消去双子 — Chrome restore pages 準拠）: 'セッションを消して'/'clear session' → `onSessionClear` フック、VRApp は loadTabSession 有無を誠実判定 → saveTabSession(null)。
+- ✨ **storage-status**（Firefox about:storage の音声面）: 'ストレージ'/'容量は'/'storage' → navigator.storage.estimate() → '約N MB使用中（上限M MB）'、API無しは誠実告知（async .then speak）。
+- ✨ **trouble**（voice-only 回復導線）: '反応しない'/'真っ暗'/'画面が見えない'/'not responding' → '音声は動作中です。「リセンター」で正面に戻せます。「ヘルプ」でコマンド一覧を聞けます'。
+- ✨ **エイリアス拡充（第5弾）**: vr-exit へ 'ブラウザを終了'/'quit'/'exit the app'、close-tab へ 'ウィンドウを閉じて'/'close window'、bookmark-page へ 'お気に入りに追加'/'add to favorites'、bookmarks へ 'お気に入りを見せて'、unbookmark へ 'ブックマークから消して'、speech-faster/slower へ '早く/ゆっくり読んで'・'read faster/slower'、select-voice へ '別の声'、voice-name へ '声は何'/'音声エンジン'、say-again へ 'もう一回聞いて'/'listen again'、reading-time へ '読書時間'、online-status へ 'Wi-Fiは'/'wifi'、battery-status へ '充電中ですか'/'charging'、reader-size へ 'フォントを大きく/小さく'、reader-progress へ 'スクロール位置'/'今どのあたり'、refresh へ '再起動して'/'restart the page'。
+- ✅ **テスト +53（git stash で実装前に50件赤確認 — 3件は共存ガードの設計上緑）**: Total 2499 tests (96 suites); 0 lint errors（警告 134 = baseline 同一）; build green。
+
 ### Session 121: ホーム/翻訳原子 + 質問形誤ルート修正 — '戻ることができますか' がナビゲートを実行していた実害 + 言い換え句第4弾
 外部基準: Chrome Home ボタン（新規タブ面=ホーム）、Chrome 翻訳バブル（Google Translate ラッパー）、NVDA/Chrome の question-form は status に答える規律。
 - 🐛 **質問形がナビゲートを実行する誤ルート修正**: '戻ることができますか'/'もっと戻れる'/'前に戻れますか' が back の `/戻[るれ]/` に所有され goBack を実行、'進むことができますか'/'前に進めますか' が navigate の `/進[むめ]/` に所有され goForward を実行（実測捕捉）→ back-status/forward-status に追加し非呼出を断言。'can i go back/forward' は既に status だったが JA 敬体形が抜けていた。
