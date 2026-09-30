@@ -617,7 +617,6 @@ export class VoiceCommands {
       'のがいい|のはどう|のがよい|' +
       'ぞい|ぞ|ぜ|ねん|ねえ|なあ|' +
       'のか|こと|ように|んだよ|んやで';
-      'ぞい|ぞ|ぜ|ねん|ねえ|なあ';
     const QC = normalized.match(new RegExp(
       '^(.{1,10}?[うつるくぐすぬぶむきぎしちにみびい])(?:' + QC_TAIL + ')[。！？!?]?$', 'u'));
     if (QC) {
@@ -628,7 +627,6 @@ export class VoiceCommands {
       '|いただけないか|いただきたい|いただきます|いただけますか|ください|ほしい' +
       '|もらいます|もらうね|もらうわ|' +
       '|いただければ|いただけたら|いただくね|いただくよ|いただけるかな)';
-      '|いただければ|いただけたら)';
     push(normalized.replace(new RegExp('させて' + SE_TAIL + '[。！？!?]?$', 'u'), 'て'));
     push(normalized.replace(new RegExp('([まらわかがさたなばぱ])せて' + SE_TAIL + '[。！？!?]?$', 'u'),
       (m, ch) => A_SE_TE[ch] || ch));
@@ -5559,7 +5557,6 @@ export class VoiceCommands {
       'paint\\b|solitaire\\b|minesweeper\\b|disk\\b|activity\\b|device\\b|' +
       'recycle\\b|files\\b|registry\\b|regedit\\b|scheduler\\b|services\\b)' +
       '(?!.*\\s(?:windows?|downloads?|devtools|dev tools)$)(.+?)\\b(?<!\\btab)$', 'i');
-      'trash\\b|spotlight\\b|dock\\b|launchpad\\b|live\\b)' +
     this.registerCommand('go-to', {
       patterns: [goToJp, goToEn],
       action: (transcript) => {
