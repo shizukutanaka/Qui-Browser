@@ -1721,6 +1721,7 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Last Revision**: 2026-08-18 (Session 74)
 
 ### Session 262
+### Session 260
 
 - ✨ JA: てくれればと残置（くれればと思う・くれればと願う）・dict手際名詞尾（のが要領だ・手際だ・簡潔だ・簡明だ・手っ取り早い）→ 実行。
 - ✨ EN LXXI: 'im begging/pleading/imploring/entreating/beseaching you'・'im down on my knees' 前置 → 実行（'begging/pleading you to' 既存枠を lookahead で防衛）。
