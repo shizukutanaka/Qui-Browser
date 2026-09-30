@@ -1720,7 +1720,7 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 255
+### Session 248
 
 - 🐛 先食い: ENPRE 裸 `do`（filler語クラス）が 'do us both a favor and' を先食い → 長形を同行の `do` 前方に配置して最長一致。
 - ✨ JA: しまえば・てまえ残置（しまえばいいよ・しまえば良いではないか・しまったらどうですかね・てまえよ）・dict仕事名詞尾（のが済ませ物だ・仕事だ・用だ・用事だ・仕事です・頼みだ）→ 実行。
