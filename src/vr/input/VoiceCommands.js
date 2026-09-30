@@ -1909,6 +1909,7 @@ export class VoiceCommands {
     push(normalized.replace(/^(?:shut|close) it down(?: for the night)?[.!?]?$/i, 'close it'));
     push(normalized.replace(/^put it to bed[.!?]?$/i, 'close it'));
     push(normalized.replace(/^turn out the lights on it[.!?]?$/i, 'close it'));
+    push(normalized.replace(/^turn off the lights on it[.!?]?$/i, 'close it'));
     push(normalized.replace(/^(?:lets|id|i|we should|we could|you should|they should) have it (?:closed|shut|gone|down)[.!?]?$/i, 'close it'));
     push(normalized.replace(/^pull the plug on it[.!?]?$/i, 'close it'));
     push(normalized.replace(/^(?:shut|close) the book on it[.!?]?$/i, 'close it'));
@@ -5310,6 +5311,40 @@ export class VoiceCommands {
         'when ready close it', 'eventually close it', 'close it eventually',
         'close it someday', 'whenever works close it', 'close it at some point',
         'time permitting close it',
+        // pass CCLXXXVIII: EN military/schoolhouse dismissal + closing-time
+        // idioms; JA お暇/解散/本締め/畳み frames
+        'dismissed close it', 'you are dismissed close it',
+        'class is over close it', 'meeting adjourned close it',
+        'the meeting is adjourned close it', 'stand down close it',
+        'at ease close it', 'retreat close it', 'fall out close it',
+        'lights off close it', 'curtains close it', 'shutters close it',
+        'roll up the sidewalks close it', 'last orders close it',
+        'drinks up close it', 'closing time close it', 'wrap party close it',
+        'strike the set close it', 'house lights close it',
+        'the fat lady sang close it', 'show over close it',
+        'credits rolled close it', 'episode over close it',
+        'session expired close it', 'party is over close it',
+        'kick everyone out close it', 'empty the room close it',
+        'shut the place down', 'shut down the shop',
+        'raid over close it', 'mission complete close it',
+        'debrief done close it', 'dismiss the troops close it',
+        'go home now close it', 'everyone out close it',
+        'out you go close it', 'get out close it',
+        '消えてしまえ', '消えてしまえよ',
+        'お暇だ', 'お暇にして', 'お暇にする', 'お暇をとる', '暇をとる',
+        'ご免いただく', 'ご免で', '暇いただき', '失礼する', '席を外す',
+        '席を立つ', '撤去する',
+        '本締めだ', '本締めにして', '本締めにする', '締めにして',
+        'おしまいにしよう', '解散する', '解散にする', '解散しよう',
+        '退散する', '退散しよう', '閉廷にする', '閉廷する', '閉廷とする',
+        '終演にする', '終演する', '閉幕にする', '閉幕する', '閉幕とする',
+        '幕を降ろす', '打ち上げにする', '納会だ', '納会にする', '納会とする',
+        '切り上げる', '切り上げて', '切り上げだ', '切り上げにする',
+        '畳みにする', 'お仕舞いにする', '打ち切りにする', '仕舞いにする',
+        '閉じろ閉じろ', '閉じちゃえ閉じちゃえ', 'もう消せ', '消えろ消えろ',
+        'お役御免にする', '御免だ',
+        '任務終了', '任務終わり', '任務を終える', '作戦終了', '作戦終わり',
+        '訓練終了',
         'when convenient close it', 'close it when convenient',
         'when it suits you close it', 'close it when it suits you',
         'if you dont mind too much close it', 'if its no bother close it',
@@ -20196,7 +20231,7 @@ export class VoiceCommands {
         // pass CCLXXIX
         '暗くして画面', '画面暗くして',
         /dim (it|the screen)/i, /darken it/i, /too bright/i, /way too bright/i,
-        /^blinding$/i, /(?<!turn out the )lights on/i, /light it up/i],
+        /^blinding$/i, /(?<!turn (?:off|out) the )lights on/i, /light it up/i],
       action: () => {
         this.speak('明るさはヘッドセット本体の設定で変更してください');
         return { action: 'brightness' };
