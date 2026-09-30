@@ -252,6 +252,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 150: キャレット粒度原子 — 行/文/単語/文字端句の誤ルート修正 + caret-edge 誠実不在 + 漢数字行目
+外部基準: NVDA Home/End・Ctrl+Home/End の端ジャンプ句、Voice Access 'character by character'/'word by word' の粒度指定。
+- 🐛 **'行頭に戻る'/'一文字戻る'/'単語を戻る'/'頭に戻る' が1ページ戻る実害修正**（実測捕捉）: back の `/戻る|戻れ/` 素朴 regex がキャレット移動句を所有 → lookbehind へ (?<!一文字)(?<!ひと文字)(?<!一単語)(?<!ひと単語)(?<!単語を)(?<!行頭に)(?<!頭に)(?<!一つ)(?<!ひとつ)(?<!頭まで) を追加（registerDefaultCommands + connectBrowser 両コピー）。'一つ戻る'/'ひとつ戻る' は back の bare リテラルでページ戻りを維持。navigate の 進む にも同系 lookbehind（'一文字進む' がページ forward していた）。
+- ✨ **caret-edge 誠実不在原子**: 行頭/行末/行の先頭/行の最後/文頭/文末/文の先頭/段落の先頭/段落の終わり/単語の先頭/語頭/語尾/最初の文字/最後の文字/最初の単語/最後の単語/'beginning of line'/'end of line'/'word by word'/'character by character'/'caret to start' → '行や文の端へのジャンプはありません。「一文字戻る」「次の単語」で細かく動けます'。
+- ✨ **文字・単語ステッパー拡張**: prev-char '一文字戻る'/'一文字前'/'ひと文字戻る'/'文字を一つ戻る'、next-char '一文字進んで'/'ひと文字'/'次の文字へ'/'一文字ずつ進んで'、prev-word '単語を戻る'/'前の単語へ'/'一単語戻る'、next-word '単語を進んで'/'次の単語へ'/'単語単位'/'語を飛ばす'/'一単語進んで'。
+- ✨ **漢数字行目 + 端句**: reader-goto-line の行目 capture を漢数字対応（KANJI map、'一行目'/'五行目'）、last-line '最終行'/'最後の行目'、scroll-top '頭に戻る'/'先頭に飛んで'/'頭まで戻る'/'トップに飛んで'、scroll-bottom '末尾に飛んで'/'末端まで'/'末端に飛んで'/'最後まで飛んで'、spell-word 'spell that'/'spell this'。'30行目'→reader-goto-line 維持の共存テスト（read-line-n は 'N行目を読んで' 形のみ）。
+- ✅ **テスト +85（git stash で76件赤確認、9件は共存ガードの設計上緑）**: Total 4862 tests (124 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
 ### Session 149: 履歴/再開原子 — 履歴 bare 形・他アプリ履歴誠実不在・データ消去句・読みかけ/読了句
 外部基準: Chrome 'clear browsing data' のデータ種別、Kindle 読了位置復帰、OS アシスタントの履歴問い合わせ。
 - ✨ **履歴 bare/日付形**: clear-history に '履歴消して'/'履歴を消去して'/'履歴を削除して'/'履歴をクリアして'（regex は 消去|削除|クリア|消す のみで '消して' 欠落）、history-list に '最近の履歴'/'昨日の履歴'/'今日の履歴'/'履歴を一覧'/'履歴を確認'、history-latest に 'いつ見た'/'いつ見たっけ'/'さっきのページは'/'さっきのサイトは'/'前に見たサイト'/'最後に見たのは'。'履歴を見て'→history、'さっき見たページ'→back 維持（共存テスト）。
