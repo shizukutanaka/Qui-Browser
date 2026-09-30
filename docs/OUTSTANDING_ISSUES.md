@@ -190,6 +190,7 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice 'id be grateful|thankful if youd' の感謝条件枠が NO-MATCH~~
 - ~~voice 'could i trouble you for a close' の依頼枠が NO-MATCH~~
 - ~~voice 'would you be sweet enough to' の形容詞依頼枠が NO-MATCH~~
+
 - ~~voice '閉じるのが利益だ/好都合だ' の利益名詞尾が NO-MATCH~~
 - ~~voice 'id be honored|thrilled if youd' の形容詞条件枠が NO-MATCH~~
 - ~~voice 'if you could bring yourself to' の自己条件枠が NO-MATCH~~

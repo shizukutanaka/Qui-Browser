@@ -1720,9 +1720,18 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+<<<<<<< HEAD
 ### Session 277
 ### Session 273
+||||||| 0030bba
+### Session 267
+=======
+### Session 273
+### Session 271
+### Session 267
+>>>>>>> origin/devin/1790598474-be-a-pal-atoms
 
+<<<<<<< HEAD
 - ✨ JA: てくれません残置（くれませんだろうか/かねええ/でしょうかな）・dict要旨名詞尾（のが要旨だ/趣旨だ/主眼だ/本旨だ/旨趣だ/神髄ですね）→ 実行。
 - ✨ EN LXXXVI: 'id be ever so obliged|most obliged|deeply obliged|so obliged|truly obliged if youd' 前置 → 実行（'id be much obliged if youd' は既ルート緑）。
 - ✅ tests/be-obliged-atoms.test.js +24（実装前14件赤確認）、計13376全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
@@ -1774,6 +1783,40 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 - ✅ tests/sweet-enough-atoms.test.js +24（実装前13件赤確認）、計13160全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
 
 ### Session 267
+||||||| 0030bba
+=======
+- 🐛 誤ルート: '閉じてほしいものかな'（希望形）が negate の `ものかな?$` にヒット → lookbehind に `ほしい` 追加（'閉じるものか' 否定ピン維持）。
+- ✨ JA: てくるのがいい・くるべきだ・くる方向だ残置。dict好機名詞尾（のが絶好だ/恰好だ/好機だ/機会だ/潮時です/旬だ）→ 実行。
+- ✨ EN LXXXII: 'wed be grateful|appreciate it|we would be grateful|appreciate it|most grateful|ever so grateful if youd' 前置 → 実行。
+- ✅ tests/wed-be-grateful-atoms.test.js +24（実装前16件赤確認）、計13280全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 272
+- ✨ JA: ておけば大丈夫です・おけば間違いない・おけば正解だ残置。dict体面名詞尾（のが格だ/格式だ/体だ/体面だ/面目だ/意地だ）→ 実行。
+- ✨ EN LXXXI: 'id (really |truly |surely )?appreciate it if youd' 前置 → 実行（if you would|could は既ルート緑）。
+- ✅ tests/appreciate-it-atoms.test.js +24（実装前13件赤確認）、計13256全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 271
+- ✨ JA: ておくに限ります・おくのが得になる・おくべきですか残置。dict本道名詞尾（のが源流だ/本筋です/本道だ/正道だ/真っ当だ）→ 実行。
+- ✨ EN LXXX: 'how say you'・'what do ya say we' 前置 → 実行（what say we/say we/whaddya say we は既ルート緑）。
+- ✅ tests/say-we-atoms.test.js +24（実装前10件赤確認）、計13232全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 270
+- ✨ JA: てしまうのが最善・しまうのが得策残置。dict恒例名詞尾（のが恒例だ/習わしだ/慣習です/しきたりだ/お約束だ/仕来りだ）→ 実行。
+- ✨ EN LXXIX: 'id be grateful|thankful|appreciative|so grateful|mighty grateful|real grateful if youd' 前置 → 実行。
+- ✅ tests/id-be-grateful-atoms.test.js +24（実装前14件赤確認）、計13208全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 269
+- ✨ JA: てみたほうがいいかも・みるのがいいかも・みるのもいいかも残置。dict信念名詞尾（のが信念だ/信条です/主義だ/宗旨だ/所信だ/譲れない線だ）→ 実行。
+- ✨ EN LXXVIII: 'could i trouble you for a' 前置 → 実行（trouble you to 系は既ルート緑）。
+- ✅ tests/trouble-you-atoms.test.js +24（実装前10件赤確認）、計13184全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 268
+- ✨ JA: ておくのが吉だ・おくのが得だ・おくのが上策だ残置。dict配慮名詞尾（のが気遣いだ/配慮だ/心配りだ/思いやりだ/優しさだ/親切だ）→ 実行。
+- ✨ EN LXXVII: 'would you be gracious|sweet|nice|lovely enough to' 前置 → 実行（kind|good enough は既ルート緑）。
+- ✅ tests/sweet-enough-atoms.test.js +24（実装前13件赤確認）、計13160全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 267
+>>>>>>> origin/devin/1790598474-be-a-pal-atoms
 - ✨ JA: てくれませんかねえ・くれませんの残置。dict利益名詞尾（のが利益だ/便宜だ/便益だ/徳だ/好都合だ）→ 実行。'is it possible to X it' は help ピン確立済みのため維持。
 - ✅ tests/is-it-possible-atoms.test.js +24（実装前8件赤確認）、計13136全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
 
