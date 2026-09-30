@@ -3497,6 +3497,8 @@ export class VoiceCommands {
         // pass CCLXXIII: failed-expectation reports
         'nothing happened', 'you still didnt close it',
         '閉じてたのに', '閉じてるはず', '閉じてるはずだ', '閉じてないの',
+        // pass CCLXXIV: thought-closed reports
+        'thought it was closed', 'thought itd be closed', 'i figured it closed', '閉じておいたのに',
         '勝手に閉じる', '勝手に閉じられた', '自動で閉じた', '急に閉じた',
         'いきなり閉じた', '勝手に消えた', '勝手に閉じてきた', 'it crashed again',
         'really slow', 'super slow', 'pretty slow', 'very slow', 'way slow',
@@ -4103,6 +4105,7 @@ export class VoiceCommands {
         'sort it out', 'sort that out', 'take care of it', 'take care of that',
         'deal with it', 'deal with that', 'handle it', 'handle that',
         'leave it with me', 'leave it to me', 'on it boss',
+        'doing it now', 'getting to it',
         'lovely', 'impressive', 'yikes', 'oof', 'dang', 'darn', 'shoot', 'gah',
         /[てで]よかった(?:よ|ね|な|わ)?[。！？!?]?$/u,
         'whatever you say', 'if you say so', 'just saying', 'just sayin', 'fyi',
@@ -5680,6 +5683,17 @@ export class VoiceCommands {
         'man close it', 'fellas close it', 'folks close it',
         '頼んだのに', '言ったのに', 'ついさっき言った', 'さっき言った通り',
         '閉じてよ早く', '閉じろよお前', '閉じろよぉ', '閉じてよおい', '至急閉じろ',
+        // pass CCLXXIV: violated-expectation + certainty/plea/vocative imperatives
+        'it shouldve been closed', 'it should have been closed', 'shouldve been closed already',
+        'see it closed', 'it better be closed', 'it better close', 'itd better be closed',
+        'wanna see it closed', 'close it for good this time',
+        'force it to close', 'force close it', 'hard close it',
+        'きちんと閉じて', '確かに閉じて', '必ず閉じて', '確実に閉じろ',
+        '必ず閉じるように', '確実に閉じるんだ', '絶対閉じろ', '絶対に閉じて',
+        '閉じなよお前', '閉じてくれよおい', '閉じてねぇ',
+        '頼むよ閉じて', 'お願いだから閉じて', 'お願いだよ閉じろ',
+        'そろそろ閉じろ', 'そろそろ閉じて', 'もう閉じろ', 'もう閉じていい',
+        '今度こそ閉じろ', '今度こそ閉じて', '閉じちゃっていいから',
         // pass CCLXVIII: demand/court-order frames (i {want,need,demand,order,command,decree,require,expect} OBJ {closed,gone,dead,...}; court/bench verdicts; stands condemned; outlawed/recalled declaratives)
         'i command it closed', 'i command it dead', 'i command it destroyed', 'i command it discarded',
         'i command it eliminated', 'i command it ended', 'i command it erased', 'i command it finished',
@@ -18024,6 +18038,10 @@ export class VoiceCommands {
         'did you close it or not', 'did you close it yet',
         'なんで開いてる', 'なんでまだ開いてる', 'いつ閉じるの', '開いたままだ',
         'おいまだか', 'まだ残ってる', 'まだいる', 'まだある', 'まだここにいる', 'まだそこにいる',
+        // pass CCLXXIV: verification queries (status check, no execute)
+        'confirm it closed', 'double check its closed', 'verify its closed',
+        'check if its closed', 'see if it closed', 'see if its closed',
+        'has it closed yet', 'is it finally closed',
         'it hasnt been closed yet', 'it has not been closed yet','it remains open', 'its yet to be closed', 'it is yet to be closed','the tab remains open',
         'the tab is still there', 'why is it still there', 'it keeps coming back',
         'was it open', 'is it gone', 'its back', 'it came back',
