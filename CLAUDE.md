@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 261
+### Session 262
 
+- ✨ JA: てくれればと残置（くれればと思う・くれればと願う）・dict手際名詞尾（のが要領だ・手際だ・簡潔だ・簡明だ・手っ取り早い）→ 実行。
+- ✨ EN LXXI: 'im begging/pleading/imploring/entreating/beseaching you'・'im down on my knees' 前置 → 実行（'begging/pleading you to' 既存枠を lookahead で防衛）。
+- ✅ tests/down-on-knees-atoms.test.js +24（実装前13件赤確認）、計13016全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 261
 - ✨ JA: ておくしか・てあげる残置（おくしかないんだ/です/んですが・あげるのがいい・あげるのが筋だ・あげるのが妥当だ）・dict選択名詞尾（のが選択肢だ・岐路だ・分かれ目だ・分岐点だ・選択だ・選びだ）→ 実行。
 - ✨ EN LXX: 'the sooner the better'・'no time to lose'・'not a moment too soon'・'quick as you can' 前置 → 実行。
 - ✅ tests/sooner-the-better-atoms.test.js +24（実装前18件赤確認）、計12992全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
