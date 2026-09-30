@@ -500,6 +500,27 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**'Nつ先の段落'/'skip ahead N paragraphs' の counted 段落ナビが未認識**~~ — **Session 137 で実装**: `paragraph-skip-n` が `_onParagraphStep(±N)`。next-paragraph の loose `/skip ahead/` は `/skip ahead\s*$/` にアンカー。
 - ~~**'音声入力'/'ジェスチャー'/'フォントを変えて'/'キャッシュを消して'/'ダウンロード'/'スリープして'/'設定をリセット' が NO-MATCH**~~ — **Session 137 で実装**: `input-methods`/`text-style`/`privacy-clean`/`download`/`sleep-mode`/`settings-reset` 誠実不在原子（各々実在の代替へ誘導）。
 - ~~**'3行下に'/'おしゃべりを止めて'/'静音'/'明るすぎる'/'背景を暗く'/'このタブをもう一つ'/'タブを減らして'/'押せない' 等が未認識**~~ — **Session 137 で実装**: reader-scroll-lines 'N行下/上'、stop-reading/mute-toggle/brightness/dark-mode/duplicate-tab/close-tab/trouble/article-summary/print/share-page へのエイリアス拡充。
+- ~~**'右のタブに移動'/'右隣のタブ'/'一つ右のタブ' が literal ナビゲートまたは名指し誤答**~~ — **Session 138 で修正**: next-tab/prev-tab に位置句追加、tab-by-name stoplist に位置語を追加。'タブNに移動'/'タブのN番目' は open-tab-n へ。
+- ~~**'メモして'/'タイマー'/'メールを開いて'/'音楽を再生'/'テレビを見て' 等のデバイスアプリ句が NO-MATCH または literal ナビゲート**~~ — **Session 138 で実装**: `device-apps` 誠実不在原子（go-to 前に登録）。
+- ~~**'画像検索'/'動画を検索' が語そのものの検索または NO-MATCH**~~ — **Session 138 で実装**: `media-search` 誠実不在原子（専用モード欠如を応答）。
+- ~~**'早すぎる'/'ゆっくり言って'/'聞き取れない'/'音が小さすぎる'/'声を小さく'/'うるさすぎる'/'あと何分で読み終わる'/'ページ数は'/'さっきの記事'/'通知はある'/'女性の声で'/'タブを並べて' 等が未認識**~~ — **Session 138 で実装**: speech-slower/faster、volume-up/down、remaining-time、reader-progress、history/history-latest、sort-tabs、read-notify、select-voice へのエイリアス拡充。
+- ~~**'タブを全部閉じて'/'全タブを閉じて'/'このタブだけ'/'他を全部閉じて' が NO-MATCH**~~ — **Session 139 で修正**: close-all-tabs に て/閉め 形、close-other-tabs に 'だけ' 形追加。
+- ~~**'Googleにして'/'Bingで検索'/'グーグルを使って' のエンジン名短縮形が NO-MATCH**~~ — **Session 139 で実装**: search-engine に `名+にして/を使って/で検索/で調べて` パターン。
+- ~~**'履歴の最初' が goBack を無限ループさせうる**~~ — **Session 139 で修正**: nav-steps の unbounded リクエストを 50 にキャップ（テストで捕捉）。
+- ~~**'検索をやめる'/'検索をキャンセル'/'音声検索'/'ページの末尾'/'フォーカスは'/'今何行目'/'何段落目'/'何見出し目'/'その段落を読んで'/'前の文に戻って'/'もう一行'/'もう一段落'/'もう一文'/'読み込んでいる' 等が未認識**~~ — **Session 139 で実装**: clear-find/web-search/scroll-bottom/where-am-i/line-status/paragraph-status/read-heading/next・prev caret/read-paragraph/nav-steps/loading-status へのエイリアス拡充。
+- ~~**'unmute mic' がマイクを停止する**~~ — **Session 140 で修正**: stop の `/mute mic/` が 'unmute' に誤マッチ → `\bmute` 化 + `mic-on` 新設（`this.start()` + '音声認識を再開します'）。
+- ~~**'unpin'/'unpin all'/'unpin tab 2' が pin-tab トグル/unpin-active に誤配線**~~ — **Session 140 で修正**: pin-tab を `(?<!un)pin` 化、unpin-active を anchored 化し 'unpin all'→unpin-all・'unpin tab N'→tab-pin-n を維持。
+- ~~**'close the tab' が名指し検索で '「the」のタブがありません'**~~ — **Session 140 で修正**: close-tab-by-name の EN lookahead に `the\b` 追加 + close-tab に 'close it'/'close this one' 追加。
+- ~~**'go to the top'/'go to bottom'/'go to the home' が literal ナビゲート**~~ — **Session 140 で修正**: go-to EN capture に `(?!the (top|bottom|home)|top|bottom|home|back)` lookahead + scroll-top/bottom/home に該当形追加。
+- ~~**EN bare 形の未認識群**~~ — **Session 140 で実装**: 'pause'/'resume'/'continue'/'volume'/'louder'/'quieter'/'zoom'/'list all tabs'/'what page is this'/'start reading'/'exit'/'shut down'/'sleep'/'wake'/'lock' 等 + 誠実不在 `scroll-horizontal`/`window-state`。
+- ~~**'閉じてよ'/'進んでね'/'教えてな' 系の文末終助詞が全コマンドで NO-MATCH**~~ — **Session 141 で修正**: `_politeVariants` に終助詞ストリップ層を追加（よ/ね/な/ぞ/ぜ/わ/とも/さ/よね/なあ/ねえ + 句読点）。
+- ~~**'閉じろ'/'読め'/'黙れ'/'早くしろ'/'遅くしろ'/'静かにしろ'/'音消して'/'字幕消して' の命令形・を助詞なし形が未認識**~~ — **Session 141 で実装**: close-tab/read-aloud/speech-faster/slower/stop-reading/volume-down/mute-toggle/captions-toggle への語幹・口語形追加。
+- ~~**'閉じないで'/'やめておいて'/'しなくていい'/'never mind' の否定要求が '認識できません'**~~ — **Session 141 で実装**: `negate` 誠実無操作原子（全コマンド最後に登録、'承知しました。実行しません'）。'読まないで'→stop-reading・'聞かないで'→stop の共存を保証。
+- ~~**'何が開いてる'/'どこだっけ'/'どんなサイト'/'聞かないで' 等の口語問い合わせ形が未認識**~~ — **Session 141 で実装**: tabs-list/where-am-i/describe-tab/stop へのエイリアス拡充。
+- ~~**'どうやって戻る'/'どうやって進む' の how 質問がナビゲートを実行**~~ — **Session 142 で修正**: back/navigate regex に `(?<!どうやって)` lookbehind（両コピー）+ help へ `/どうやって/`・'どうすればいい'/'how do i' 追加。
+- ~~**'ありがとう'/'わかった'/'OK'/'got it' の社交応答が認識エラー**~~ — **Session 142 で実装**: `ack` 原子（ありがとう系→'どういたしまして'、確認系→'承知しました'）。
+- ~~**'違う'/'間違えた'/'もういい'/'結構です'/'ほっといて'/'leave it' の訂正・辞退が認識エラー**~~ — **Session 142 で実装**: `negate` に訂正・辞退句を拡充（'承知しました。実行しません'）。
+- ~~**'閉じてもいい'/'閉じたいんだけど'/'閉じちゃって'/'閉じといて'/'閉じたまえ'/'えっと閉じて'/'何が開いてるかな'/'i wanna go back' 等の口語・談話形が未認識**~~ — **Session 142 で実装**: `_politeVariants` に許可・願望・関西'といて'・'ちゃって'・'たまえ'・'かな'/'けど'尾・談話前置詞・EN casual wrapper を追加 + close-tab 'close' bare 形。
 
 
 ---
