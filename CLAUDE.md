@@ -1720,6 +1720,23 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 205
+
+- ✨ 受益尾XXIII・て強調残置: TAIL_TE — くれよな/くれよわ・くれんかい/くれんけ/くれんね・もらおうかな/かね・くださいませんかい/かなあ → 実行。
+- ✨ dict残置XV: FR — ってさ/とかさあ/とかなんとか・んではないか/んじゃないかと/かなあ/だろうか・んですかね/んですけれど・のでよろしいか/よいか/構いませんか/いいのですが・のもいいかもね/のもありかも・べきと思います → 実行。
+- ✨ EN前置詞XIV: 'i think/believe/feel (like) you should|could'・'it seems like/seems like'・'figure/figured/reckon you can|could'・'guessing/bet/suspect/trust you can'・'clearly you can'・'you probably should/ought to'（裸 `you` より前置必須）・'might/may as well' → 実行。
+- 📌 '閉じるべきかと思う' → help にピン（判断質問・非実行）。
+- ✅ tests/report-frame-atoms.test.js +66（実装前42件赤確認）、計10957全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 204
+
+- ✨ 敬語/受益尾XXII: TAIL_TE — くださいましょう/くださいませんこと/くださいませか/くださいますかねえ・くれませんかなあ/くれませんことね・もらえませんこと/もらえますかなあ/もらえませんかねえ・いただけませんかね/かな・いただけますかなあ/ませんこと・いただきたいんですが/たく存じます/たいです・いただけますと幸いでございます/と大変幸いです → 実行。
+- ✨ dict残置XIV: FR — んだよねえ/んだからね/のだよ/のですよ/のですが/んですがね・ものですわ/ものねえ/ものだから/ものかしら/ものと思う/ものと存じます・べきところです/べきなのでは → 実行。
+- ✨ 意向・ます形残置: VOL 尾 + かなと/かね/か（'閉じようか' shall-I）→ 実行；FR + 'ましょうよ/ましょうねえ/ましょ' → dict→て。
+- ✨ EN前置詞XIII: 'i would appreciate (it) if you could/you'・'i appreciate it if you'・'i would be thankful/obliged if you could'・'i beg/beseech/entreat/implore of|you to'・'pray tell'・'there is a thought'・'as a favor/courtesy/kindness'・'do us a favor' → 実行。
+- 🐛 教訓2件再確認: ENPRE 裸 `pray` が 'pray tell' 先食い → 長形前置（最長一致）；JA push 経路は語尾剥がし再適用なし。
+- ✅ tests/keigo-coda-atoms.test.js +57（実装前33件赤確認）、計10891全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
 ### Session 203
 
 - ✨ 受益尾XXI・て許可残置: TAIL_TE — くれませんな/よ・くれますかなあ・もらうわよ/の/がな・もらいたいわ/が・くださいねえ/よね/なあ/くださいませよ・いいんだよ/いいわけ/いいんよ/いいのさ・よかったかな・くれるの/が → 実行。
