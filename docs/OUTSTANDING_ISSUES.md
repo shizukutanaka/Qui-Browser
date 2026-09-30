@@ -172,12 +172,25 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice '閉じてほしいものかな' の negate 誤ルート~~
 - ~~voice '閉じてくるべきだ' のくる方向尾が NO-MATCH~~
 - ~~voice '閉じるのが好機だ/旬だ' の好機名詞尾が NO-MATCH~~
+- ~~voice '閉じておくわけです' のおく断定尾が NO-MATCH~~
+- ~~voice '閉じるのが矜持だ/誇りだ' の矜持名詞尾が NO-MATCH~~
+- ~~voice '閉じてもらいますね' のもらいます残置が NO-MATCH~~
+- ~~voice '閉じてくるしかない' のくる残置が NO-MATCH~~
+- ~~voice '閉じるのが極意だ/骨子だ' の極意名詞尾が NO-MATCH~~
+- ~~voice '閉じるのが勘所だ/狙い目だ' の勘所名詞尾が NO-MATCH~~
+- ~~voice '閉じてくれませんだろうか' のくれません残置が NO-MATCH~~
+- ~~voice '閉じるのが要旨だ/旨趣だ' の要旨名詞尾が NO-MATCH~~
+- ~~voice 'id be most|ever so obliged if youd' の obliged 変体が NO-MATCH~~
+- ~~voice 'would you do me the courtesy|honor of' の名誉枠が NO-MATCH~~
+- ~~voice 'i would be most grateful if youd' の長形感謝枠が NO-MATCH~~
+- ~~voice 'id be indebted|eternally grateful if youd' の重感謝枠が NO-MATCH~~
 - ~~voice 'wed be grateful if youd' の複数感謝枠が NO-MATCH~~
 - ~~voice 'id really appreciate it if youd' の感謝依頼枠が NO-MATCH~~
 - ~~voice 'how say you|what do ya say we' の提案枠が NO-MATCH~~
 - ~~voice 'id be grateful|thankful if youd' の感謝条件枠が NO-MATCH~~
 - ~~voice 'could i trouble you for a close' の依頼枠が NO-MATCH~~
 - ~~voice 'would you be sweet enough to' の形容詞依頼枠が NO-MATCH~~
+
 - ~~voice '閉じるのが利益だ/好都合だ' の利益名詞尾が NO-MATCH~~
 - ~~voice 'id be honored|thrilled if youd' の形容詞条件枠が NO-MATCH~~
 - ~~voice 'if you could bring yourself to' の自己条件枠が NO-MATCH~~
@@ -224,7 +237,6 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice 'final answer/case closed' の評決枠が NO-MATCH~~
 - ~~voice '閉じてみるべし/くれんよ' のてみる・くれん残置が NO-MATCH~~
 - ~~voice '閉じるのが本命だ/最有力だ' の本命名詞尾が NO-MATCH~~
-
 - ~~voice '閉じてなって/とくべき' のてな・てとく残置が NO-MATCH~~
 - ~~voice '閉じるのが王道だ/基本だ' の常套名詞尾が NO-MATCH~~
 - ~~voice 'carpe diem/strike while the iron is hot' の今こそ枠が NO-MATCH~~
