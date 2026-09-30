@@ -1721,6 +1721,7 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Last Revision**: 2026-08-18 (Session 74)
 
 ### Session 281
+### Session 280
 
 - ✨ JA: てくれん残置（くれんかの/くれんじゃないか）・dict大本名詞尾（のが大本だ/本元だ/根幹です/本筋ですね/基盤だ/土台だ）→ 実行。
 - ✨ EN XC: 'may i implore|request you to' を ask/trouble-you-to 枠へ併合 → 実行（'may|might i ask|trouble you to' は既ルート緑）。
