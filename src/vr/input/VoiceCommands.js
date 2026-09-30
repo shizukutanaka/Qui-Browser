@@ -2558,7 +2558,7 @@ export class VoiceCommands {
     // Navigation commands
     this.registerCommand('navigate', {
       patterns: ['進む', '次へ', 'すすむ', '次に進んで',
-        /(?<!(?:どうやって|一文字|ひと文字|一単語|ひと単語))進む(?!な)|(?<!読み|上げを|行を|よう)進め(?!る|な|ま|ら|方)/,
+        /(?<!(?:どうやって|一文字|ひと文字|一単語|ひと単語))進む(?!な)|(?<!読み|上げを|行を|よう|段落を|文を|見出しを|文字を)進め(?!る|な|ま|ら|方)/,
         '進んで', '進みたい', '次のページに進んで', '一つ進んで', 'ひとつ進んで',
         '先に進んで', '先へ進んで', '先に進む', '先へ進む', '先に進みたい',
         'forward', /go forward(?! \d)/i, /forward (a|one|the) page/i,
@@ -2943,18 +2943,25 @@ export class VoiceCommands {
     // (NVDA rate step vs. value setting): '読み上げ速度2倍' lands the
     // rate directly instead of repeating ±0.25 steps.
     this.registerCommand('speech-rate-set', {
-      patterns: [/読み上げ速度([0-9.]+)倍/, /([0-9一二三四五六七八九.]+)倍速/,
+      patterns: [/読み上げ速度を?([0-9.]+)倍/, /読む速度を?([0-9.]+)倍/, /([0-9一二三四五六七八九.]+)倍速/,
         '半分の速さ', '半分の速度', '倍速で',
-        /(speech|talk|reading) (rate|speed) (to )?([0-9.]+)/i],
+        /(speech|talk|reading) (rate|speed) (to )?([0-9.]+)/i,
+        // pass CCLXXX: ASR word-numbers ('speech rate two hundred' = 200%)
+        /(speech|talk|reading) (rate|speed) (to )?(one|two|three|four|five|six|seven|eight|nine|ten) ?hundred/i],
       action: (transcript) => {
         // JA multiplier idioms: '2倍速' lands directly; kanji numerals and
         // '半分の速さ' are folded to their decimal equivalent.
         const KANJI = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
         const km = transcript.match(/([一二三四五六七八九])倍速/);
         const m = transcript.match(/[0-9.]+/);
+        const WH = { one: 100, two: 200, three: 300, four: 400, five: 500,
+          six: 600, seven: 700, eight: 800, nine: 900, ten: 1000 };
+        const wh = transcript.match(/(one|two|three|four|five|six|seven|eight|nine|ten) ?hundred/i);
         const rate = /半分/.test(transcript)
           ? this.setSpeechRate(0.5)
-          : km
+          : wh
+            ? this.setSpeechRate(WH[wh[1].toLowerCase()] / 100)
+            : km
             ? this.setSpeechRate(KANJI[km[1]])
             : /倍速/.test(transcript) && !m
               ? this.setSpeechRate(2)
@@ -4944,7 +4951,7 @@ export class VoiceCommands {
     // confirmationText would claim '戻ります' even at the earliest entry.
     this.registerCommand('navigate', {
       patterns: ['進む', '次へ', 'すすむ', '次に進んで',
-        /(?<!(?:どうやって|一文字|ひと文字|一単語|ひと単語))進む(?!な)|(?<!読み|上げを|行を|よう)進め(?!る|な|ま|ら|方)/,
+        /(?<!(?:どうやって|一文字|ひと文字|一単語|ひと単語))進む(?!な)|(?<!読み|上げを|行を|よう|段落を|文を|見出しを|文字を)進め(?!る|な|ま|ら|方)/,
         '進んで', '進みたい', '次のページに進んで', '一つ進んで', 'ひとつ進んで',
         '先に進んで', '先へ進んで', '先に進む', '先へ進む', '先に進みたい',
         'forward', /go forward(?! \d)/i, /forward (a|one|the) page/i,
@@ -16323,6 +16330,8 @@ export class VoiceCommands {
       patterns: ['プライベートタブ', 'シークレットタブ', 'プライベートな新しいタブ',
         '新しいプライベートタブ', 'プライベートタブを開いて', '新しいシークレットタブ',
         '秘密のタブ', 'シークレットのタブ', 'プライベートのタブ', 'シークレットモード', 'シークレットモードで開いて',
+        // pass CCLXXX
+        'プライベートタブ開いて', 'private tab please', 'incognito tab please', 'シークレットウィンドウ',
         /new (private|incognito) tab/i,
         'private window', 'new private window', 'open a private window',
         'incognito window', 'new incognito window', 'open incognito window'],
@@ -16699,6 +16708,8 @@ export class VoiceCommands {
         'ページ構造', '構造を教えて', 'このページの構成', 'コンテンツ一覧',
         'ヘッダー一覧', '目次を読み上げて', '目次を教えて', 'ページの目次',
         '目次はどこ', '目次はどこにある', 'アウトラインは', '目次は',
+        // pass CCLXXX
+        '見出しリスト', '見出しを一覧して', 'どんな見出しがある',
         /table of contents/i, /read (the )?(contents|toc|outline)/i,
         /read (all )?(the )?headings/i, /chapter list/i],
       action: () => {
@@ -16865,7 +16876,9 @@ export class VoiceCommands {
     this.registerCommand('next-heading', {
       patterns: ['次の見出し', '見出しへ', '次の見出しを読んで', '次のセクション',
         '次の章', '次のチャプター', '次の項目',
-        /next\s+heading/i],
+        /next\s+heading/i,
+        // pass CCLXXX
+        '見出しを進めて', 'heading forward', '次の見出しに進んで', '次見出し'],
       action: () => {
         const r = tabManager?.getActiveTab?.()?.nextHeading?.(1) || null;
         this.speak(r ? `${r.index}番目の見出し（全${r.total}）` : '見出しがありません');
@@ -16876,7 +16889,9 @@ export class VoiceCommands {
 
     this.registerCommand('prev-heading', {
       patterns: ['前の見出し', '前のセクション', '前の章', '前のチャプター',
-        '前の項目', /prev(?:ious)?\s+heading/i],
+        '前の項目', /prev(?:ious)?\s+heading/i,
+        // pass CCLXXX
+        '見出しを戻して', 'back a heading'],
       action: () => {
         const r = tabManager?.getActiveTab?.()?.prevHeading?.() || null;
         this.speak(r ? `${r.index}番目の見出し（全${r.total}）` : '見出しがありません');
@@ -16891,6 +16906,8 @@ export class VoiceCommands {
       patterns: ['URLをコピー', 'リンクをコピー', 'アドレスをコピー',
         'このページのリンク', 'ページのリンク', 'ページのリンクをコピー',
         'コピーして', 'ページをコピー', 'このページをコピー',
+        // pass CCLXXX
+        'urlコピーして', 'このページのアドレスコピー', 'copy this link',
         /copy\s+(the\s+)?(url|link|address)/i],
       action: () => {
         const url = onCopyUrl ? onCopyUrl() : null;
@@ -17089,7 +17106,9 @@ export class VoiceCommands {
     });
 
     this.registerCommand('close-tabs-right', {
-      patterns: ['右のタブを閉じて', '右側のタブを閉じて', /close\s+tabs?\s+to\s+the\s+right/i],
+      patterns: ['右のタブを閉じて', '右側のタブを閉じて', /close\s+tabs?\s+to\s+the\s+right/i,
+        // pass CCLXXX
+        '右側のタブ全部閉じて', 'close the tabs to the right', 'これより右のタブ閉じて', 'これ以降のタブ閉じて'],
       action: () => {
         tabManager?.closeTabsToRight?.();
         return { action: 'close-tabs-right' };
@@ -17103,6 +17122,8 @@ export class VoiceCommands {
     // tab literally named '左'.
     this.registerCommand('close-tabs-left', {
       patterns: ['左側のタブを閉じて', '左のタブを閉じて', '左側を閉じて',
+        // pass CCLXXX
+        '左側のタブ全部閉じて',
         /close\s+tabs?\s+to\s+the\s+left/i, /close\s+tabs?\s+on\s+the\s+left/i],
       action: () => {
         tabManager?.closeTabsToLeft?.();
@@ -17117,6 +17138,8 @@ export class VoiceCommands {
     this.registerCommand('close-duplicate-tabs', {
       patterns: ['重複タブを閉じて', '重複したタブを閉じて', '同じタブを閉じて',
         '同じページを閉じて', '重複を閉じて', '重複タブを消して',
+        // pass CCLXXX
+        '重複タブ閉じて', '同じタブは閉じて',
         /close duplicate tabs/i, /close duplicated tabs/i],
       action: () => {
         const n = tabManager?.closeDuplicateTabs?.() ?? 0;
@@ -17131,7 +17154,9 @@ export class VoiceCommands {
     this.registerCommand('close-unpinned-tabs', {
       patterns: ['ピン留め以外を閉じて', 'ピン以外を閉じて', 'ピン留め以外のタブを閉じて',
         'ピンしていないタブを閉じて', 'ピン留めしていないタブを閉じて', '固定していないタブを閉じて',
-        '固定以外を閉じて', /close unpinned tabs/i, /close (all )?unpinned/i],
+        '固定以外を閉じて', /close unpinned tabs/i, /close (all )?unpinned/i,
+        // pass CCLXXX
+        'ピン留めしてないの閉じて'],
       action: () => {
         const n = tabManager?.closeUnpinnedTabs?.() ?? 0;
         this.speak(n ? `${n}個のタブを閉じました` : 'ピン留め以外のタブはありません');
@@ -17145,6 +17170,8 @@ export class VoiceCommands {
       patterns: ['通常タブを全部閉じて', '通常のタブを閉じて', '通常タブを閉じて',
         'プライベート以外を閉じて', 'プライベート以外のタブを閉じて',
         'プライベートタブ以外を閉じて',
+        // pass CCLXXX
+        '普通のタブだけ閉じて',
         /close (all )?(normal|non-?private) tabs/i],
       action: () => {
         const n = tabManager?.closeNormalTabs?.() ?? 0;
@@ -17583,6 +17610,8 @@ export class VoiceCommands {
       patterns: ['セッションを復元', '前のセッションを復元',
         '前回のタブを開いて', '前回のセッション', '前回のセッションを開いて',
         '最後のセッション', '前回のタブ',
+        // pass CCLXXX
+        'セッション復元して',
         /restore (my )?(session|previous session|last session)/i],
       action: () => {
         const n = this._onRestoreSession ? this._onRestoreSession() : 0;
@@ -17716,6 +17745,8 @@ export class VoiceCommands {
     // cycles forward; a named preset lands directly (JA aliases included).
     this.registerCommand('comfort-preset', {
       patterns: [/コンフォート/, /comfort (preset|mode)/i,
+        // pass CCLXXX
+        '動きに弱いので快適設定に', '快適モードにして',
         /comfort (to |preset to |mode to )?(sensitive|moderate|tolerant|disabled|off)/i],
       action: (transcript) => {
         const PRESETS = {
@@ -18677,6 +18708,8 @@ export class VoiceCommands {
         'リンクのURLをコピー', 'リンク先をコピー',
         '全部選択して', 'すべて選択して', 'テキストを選択', 'テキストをコピー',
         '選択してコピー', '部分をコピー',
+        // pass CCLXXX
+        '選択をコピー',
         /copy (the |this )?selection/i, /copy this part/i,
         /^select all$/i, /select (the )?(all|page|text|paragraph)/i,
         /copy (the |this )?page/i, /copy (the )?text/i],
@@ -19008,6 +19041,8 @@ export class VoiceCommands {
     // heading-count — headings-left's total twin.
     this.registerCommand('heading-count', {
       patterns: ['見出しの数', '見出しは何個', '見出しがいくつ',
+        // pass CCLXXX
+        '見出し何個',
         /how many headings/i, /heading count/i],
       action: () => {
         const h = tabManager?.getActiveTab?.()?.headingHere?.() || null;
@@ -19272,6 +19307,8 @@ export class VoiceCommands {
     // wrap-and-announce shape as next-heading.
     this.registerCommand('next-paragraph', {
       patterns: ['次の段落', '段落を進め', '読み上げをスキップ', '次をスキップ',
+        // pass CCLXXX
+        '段落を進めて', 'paragraph forward',
         // 'skip ahead' is end-anchored so 'skip ahead 4 paragraphs' reaches
         // paragraph-skip-n instead of stepping once.
         'スキップして', '先読みして', '読み飛ばして',
@@ -19437,7 +19474,9 @@ export class VoiceCommands {
     // spoken whole); the scroll follows the line holding its start.
     this.registerCommand('next-sentence', {
       patterns: ['次の文', '文を次へ', '一文進め', 'もう一文',
-        'もう一文読んで', '一文進んで', /next sentence/i],
+        'もう一文読んで', '一文進んで', /next sentence/i,
+        // pass CCLXXX
+        '文を進めて'],
       action: () => {
         const r = this._onSentenceStep ? this._onSentenceStep(1) : null;
         this.speak(r ? r.sentence : 'これ以上進めません');
@@ -19489,7 +19528,9 @@ export class VoiceCommands {
     this.registerCommand('next-char', {
       patterns: ['次の文字', '文字を次へ', /next char(?:acter)?/i,
         '一文字進んで', '一文字進む', '一文字次', 'ひと文字', 'ひと文字進んで',
-        '次の文字へ', '次の文字に', '一文字ずつ進んで', '次の一文字'],
+        '次の文字へ', '次の文字に', '一文字ずつ進んで', '次の一文字',
+        // pass CCLXXX
+        '文字を進めて'],
       action: () => {
         const r = this._onCharStep ? this._onCharStep(1) : null;
         this.speak(r ? r.char : 'これ以上進めません');
@@ -19694,7 +19735,9 @@ export class VoiceCommands {
       return rounded;
     };
     this.registerCommand('sensitivity-up', {
-      patterns: ['感度を上げて', '感度を高く', /sensitivity up|raise sensitivity|increase sensitivity/i],
+      patterns: ['感度を上げて', '感度を高く', /sensitivity up|raise sensitivity|increase sensitivity/i,
+        // pass CCLXXX
+        '感度上げて'],
       action: () => ({ action: 'sensitivity-up', value: sensStep(1, '上げ') }),
       description: 'Raise recognition sensitivity'
     });
@@ -19748,6 +19791,8 @@ export class VoiceCommands {
     // serializeSession) for the next boot's restore-session.
     this.registerCommand('save-session', {
       patterns: ['セッションを保存', 'セッション保存', 'タブを保存して',
+        // pass CCLXXX
+        'save my session',
         /save (the )?session/i],
       action: () => {
         const n = this._onSessionSave ? this._onSessionSave() : 0;
@@ -19761,6 +19806,8 @@ export class VoiceCommands {
     this.registerCommand('clear-session', {
       patterns: ['セッションを消して', 'セッションを消去', 'セッションを削除',
         '保存したセッションを消して',
+        // pass CCLXXX
+        'セッション消して',
         /clear (the |saved )?session/i, /delete (the )?session/i],
       action: () => {
         const ok = this._onSessionClear ? this._onSessionClear() : false;
@@ -20016,6 +20063,8 @@ export class VoiceCommands {
         'スクショを撮って', '画面を撮影', '画面を撮影して',
         'スクショ取って', 'スクショとって', 'キャプチャして', 'キャプチャ取って',
         'キャプチャを取って', '画面をキャプチャして',
+        // pass CCLXXX
+        'スクリーンショットして', 'cap the screen',
         /screenshot/i, /take a (screenshot|picture|photo)/i,
         /capture the screen/i, /capture (this|it|the page)/i, /screen capture/i],
       action: () => {
@@ -20033,6 +20082,8 @@ export class VoiceCommands {
         'open devtools', 'developer tools', 'inspect it',
         'ソースを見る', 'ソースを表示', 'ソースコードを見る', 'ページのソース',
         'デベロッパーツール', '開発者ツール', '要素を検証', '検証ツール', '開発者モードにして', '開発者モード',
+        // pass CCLXXX
+        'インスペクタ開いて', 'コンソール開いて',
         /dev ?tools/i, /inspect (element|the page|this)/i],
       action: () => {
         this.speak('開発者ツールはこのブラウザにありません。ページの表示と操作のみできます');
@@ -20087,6 +20138,8 @@ export class VoiceCommands {
     this.registerCommand('paste-go', {
       patterns: ['ペーストして開く', '貼り付けて開く', 'ペーストして移動',
         'ペーストして', 'ペーストして開いて', '貼り付けて',
+        // pass CCLXXX
+        '貼り付けて移動',
         /paste and (go|open|navigate)/i, /paste it/i, /paste (the )?clipboard/i],
       action: () => {
         const p = this._onPasteGo
@@ -20109,6 +20162,8 @@ export class VoiceCommands {
         'ページを送って', 'このページを送って', '友達に送って', '友達に共有',
         'リンクを共有', 'シェアして', 'シェアする',
         'リンクを送って', 'SNSで共有', '送って', '送ってください',
+        // pass CCLXXX
+        'send this page',
         /^share( this page| it)?$/i, /share (the )?(page|url|link)/i,
         /tweet (this|it)/i, /email (this|it|the link)/i, /share (on|via) \w+/i],
       action: () => {
@@ -20150,7 +20205,9 @@ export class VoiceCommands {
       patterns: ['クリップボードを読み上げ', 'クリップボードを読んで',
         '何をコピーした', 'コピーした内容', 'コピーしたもの', 'コピー内容',
         'コピーしたものは', 'コピーしたものを読んで',
-        /read (the )?clipboard/i, /what('s| is) (in|on) (the )?clipboard/i],
+        /read (the )?clipboard/i, /what('s| is) (in|on) (the )?clipboard/i,
+        // pass CCLXXX
+        'whats on my clipboard'],
       action: () => {
         const p = this._onReadClipboard
           ? Promise.resolve(this._onReadClipboard())
@@ -20166,7 +20223,9 @@ export class VoiceCommands {
     // belongs to private-mode's /incognito/i which is registered earlier.
     this.registerCommand('close-private-tabs', {
       patterns: ['プライベートタブを閉じて', 'プライベートタブをすべて閉じて',
-        'シークレットタブを閉じて', /close (all )?private tabs/i],
+        'シークレットタブを閉じて', /close (all )?private tabs/i,
+        // pass CCLXXX
+        'プライベートタブ全部閉じて', 'close the private tabs'],
       action: () => {
         const n = tabManager?.closePrivateTabs?.() ?? 0;
         this.speak(n ? `${n}個のプライベートタブを閉じました` : 'プライベートタブがありません');
@@ -20285,7 +20344,7 @@ export class VoiceCommands {
         '再生中', '再生してる', '再生していますか', '再生中ですか',
         '何を再生中', '何が再生中',
         /what('?s| is) playing/i, /is (it|anything|something) playing/i, /is it recording/i,
-        /anything playing/i, /something playing/i, /what'?s on/i,
+        /anything playing/i, /something playing/i, /what'?s on(?! my clipboard)/i,
         /video (position|time)/i, /how far (in|through)/i],
       action: () => {
         const st = this._onVideoStatus ? this._onVideoStatus() : null;
@@ -20351,7 +20410,9 @@ export class VoiceCommands {
     this.registerCommand('next-word', {
       patterns: ['次の単語', '次の言葉', '単語を次へ', /next word/i,
         '単語を進んで', '次の単語へ', '次の単語に', '単語単位で進んで',
-        '語を飛ばす', '単語を飛ばす', '一単語進んで', '単語単位'],
+        '語を飛ばす', '単語を飛ばす', '一単語進んで', '単語単位',
+        // pass CCLXXX
+        'word forward'],
       action: () => {
         const r = tabManager?.getActiveTab?.()?.nextWord?.(1);
         this.speak(r ? r.word : 'これ以上進めません');
@@ -20362,7 +20423,9 @@ export class VoiceCommands {
     this.registerCommand('prev-word', {
       patterns: ['前の単語', '前の言葉', '単語を前へ', /previous word/i,
         '単語を戻る', '単語を戻って', '前の単語へ', '前の単語に',
-        '単語を一つ戻る', '一単語戻る', '一単語前'],
+        '単語を一つ戻る', '一単語戻る', '一単語前',
+        // pass CCLXXX
+        'word back'],
       action: () => {
         const r = tabManager?.getActiveTab?.()?.nextWord?.(-1);
         this.speak(r ? r.word : 'これ以上戻れません');
