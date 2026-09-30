@@ -252,6 +252,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 158: 音量読戻/再読原子 — '今の音量を教えて' web-search 流出修正 + 読み直しを read-aloud へ + 迷子/褒め句
+外部基準: Chrome Ctrl+Shift+U や Voice Access の音量クエリ、スクリーンリーダーの re-read コマンド、会話型 UI の acknowledgement/compliment 応答。
+- 🐛 **'今の音量を教えて' が web-search で '音量' を検索** → volume-status に '今の音量を教えて'/'音量を確認'/'声の大きさ'/'音量を変えて' 追加（bare 変更要求を volume-set へ流すと missing digit が 0 に coerce されるため status で現量提示）。
+- 🐛 **'読み直して'/'頭から読み直して' が say-again の発話リプレイのみ** → read-aloud へ（「ページを読み返す」意図）。既存テスト2件の stale assertion を更新。
+- 🐛 **'左側のタブ'/'もっと左のタブ'/'真ん中のタブ' が by-name タイトル誤検索** → prev/next-tab に 側/もっと 形 + stoplist に 真ん中|左側|右側|もっと。
+- ✨ **ack 褒め句分岐**: 'すごい'/'いいね'/'最高'/'awesome'/'great' → 'ありがとうございます'、'thank you so much'/'助かった' → 'どういたしまして'。
+- ✨ **web-search 話題・裸動詞形**: '天気は'/'気温は'/'ニュースを聞かせて'/'ニュースがある'（term=capture）+ '調べて'/'検索させて'/'google で検索して'（非 capture → term プロンプト）。
+- ✨ **エイリアス第38弾**: help 'わからん'/'どうする'/'使い方教えて'、read-aloud '読みたい'/'読んでほしい'、first/last-tab '最初のやつ'/'最後のやつ'、text-style '文字を変えて'、reader-size-up '読みやすくして'、trouble '眠い'/'頭痛い'/'めまい'/'ふらつく'。
+- ✅ **テスト +85（git stash で74件赤確認、残りは共存ガードの設計上緑）**: Total 5508 tests (132 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
 ### Session 157: 相対日付/参照句原子 — reopen/close 参照句の誤ルート修正 + heading-level 誠実原子 + date 相対日付計算
 外部基準: Chrome 'reopen closed tab' の Ctrl+Shift+T・macOS 'bring back'、Voice Access 'switch tabs'、カレンダー系質問（'what's tomorrow'）への回答義務。
 - 🐛 **参照句の誤ルート3系**（実測捕捉）: 'reopen my last tab'→last-tab 切替（reopen-tab を /reopen(?!.*\ball\b).*\btab\b/ 化して先取）、'close the tab i just closed'→close-tab がアクティブタブ閉鎖（i\b lookahead で reopen-tab へ）、'今のタブを閉じて'→close-tab-by-name の term 誤検索（stoplist に 今|幾つ|何個|違う → close-tab/tab-status/next-tab へ）。
