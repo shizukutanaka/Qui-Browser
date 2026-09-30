@@ -1721,6 +1721,7 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Last Revision**: 2026-08-18 (Session 74)
 
 ### Session 288
+### Session 287
 
 - 🐛 意味修正: 'i would hate for you to close it'（婉曲拒否）を negate へ — 完全一致文字列では句中一致しないため `/i?['’]?d? ?(?:would )?hate for (?:you|ya) to/i` 正規表現で判定。
 - ✨ JA: ておきたいのです残置・dict急所名詞尾VII（のが急所だと思うんです）→ 実行。
