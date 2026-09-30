@@ -1720,8 +1720,19 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 260
 ### Session 258
 
+- ✨ JA: てちゃって/てじゃって残置（ちゃってね・ちゃってよ・じゃって・じゃってよ — CHA 層に併合）・てくれ方言残置（くれぞ・くれわ・くれが）・dict心がけ名詞尾（のが心がけだ・心掛けだ・心得です・心持ちだ・気構えだ・覚悟です）→ 実行。
+- ✨ EN LXIX: 'while|since youre in there'・'as long as youre at it' 前置 → 実行。
+- ✅ tests/while-in-there-atoms.test.js +25（実装前15件赤確認）、計12968全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 259
+- ✨ JA: ておくんや関西残置（おくんや・おくんやで・おくんですから）・dict手筈名詞尾（のが手はずです・手筈だ・筋書きだ・手順書だ・決まりごとだ・決まりだ）→ 実行。
+- ✨ EN LXVIII: 'when you get a free moment|second' 前置 → 実行（'when you get a moment/second/minute/chance' は既ルート緑）。
+- ✅ tests/free-moment-atoms.test.js +24（実装前11件赤確認）、計12943全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 258
 - ✨ JA: てみるわ・てもろうて残置（みるわよ・みるわね・みたらどうかね・みたらどうかなあ・もろうてええか）・dict件名詞尾（のが件だ・件です・件につき・話だ・話です・お話だ）→ 実行。
 - ✨ EN LXVII: 'id be much obliged|in your debt|most grateful if youd'・'youd have my gratitude if youd'・'id thank you kindly|take it kindly if youd' 前置 → 実行。
 - ✅ tests/gratitude-if-atoms.test.js +25（実装前17件赤確認）、計12919全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
