@@ -1721,6 +1721,7 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Last Revision**: 2026-08-18 (Session 74)
 
 ### Session 271
+### Session 267
 
 - ✨ JA: ておくに限ります・おくのが得になる・おくべきですか残置。dict本道名詞尾（のが源流だ/本筋です/本道だ/正道だ/真っ当だ）→ 実行。
 - ✨ EN LXXX: 'how say you'・'what do ya say we' 前置 → 実行（what say we/say we/whaddya say we は既ルート緑）。
