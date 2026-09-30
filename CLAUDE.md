@@ -252,6 +252,16 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 160: 語尾変化原子 — ~てみる/~ちゃう/~てもらう リトライ層拡張 + 裸副詞・命令・懇願句
+外部基準: 日本語口語の語尾変化（~てみる/~ちゃう/~てもらう）、EN bare adverbs、ロボット型命令形。
+- ✨ **`_politeVariants` 語尾層II**: `(て|で)みる`→て、`てしまう`→て、`ちゃう|じゃう`→て、`てあげて`/`てもらう`→て。raw フレーズ優先でゼロ回帰設計 — '閉じちゃった'/'消えちゃった'（reopen-tab の事故報告リテラル）を共存テストで維持。
+- ✨ **裸副詞**: '早く'/'速く'→speech-faster、'遅く'/'ゆっくりめ'→speech-slower、'ボリューム'→volume-status。
+- ✨ **命令形**: '止めろ'/'やめろ'/'止めなさい'→stop-everything、'探せ'→find-in-page、'調べろ'→web-search（プロンプト）。
+- ✨ **懇願句→help**: 'お願い'/'頼む'/'please do'/'pls help'/'help me out'。
+- ✨ **EN 疑問句**: 'where are we'/'whats this site'→where-am-i、'who is this'/'when was this'→tab-meta（'who made this'→about 維持）、'what does this say'→read-aloud。
+- ✨ **その他**: negate '置いといて'/'このまま'、scroll 'もうちょい上/下'/'keep scrolling'、line-status 'どこ読んでた'、read-here '続きは'/'次の部分'、remaining-time 'あと少し'、share-page '送って'。
+- ✅ **テスト +78（git stash で67件赤確認、残りは共存ガードの設計上緑）**: Total 5660 tests (134 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
 ### Session 159: 状態質問/反応原子 — 進行疑問句・working-status 新設・能力疑問句・会話反応
 外部基準: 音声 UI の状態確認句（'are you speaking'/'is it working'）、スクリーンリーダー系 'what's playing'、会話型 UI の相槌応答。
 - ✨ **working-status 誠実原子**: 'is it working'/'is it on'/'is it done'/'did it work'/'did it stop'/'動いてる'/'止まってる'/'固まってる' → '音声認識は動作中です。「ヘルプ」でコマンド一覧を聞けます'（'is it frozen' は trouble が先行所有）。

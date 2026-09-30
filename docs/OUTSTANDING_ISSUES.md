@@ -970,6 +970,11 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - ~~**'any notifications'/'any tabs open' が未認識**~~ — **Session 159 で実装**: read-notify/tab-status へ EN 存在疑問形。
 - ~~**反応句が未認識**（'なるほど'/'へー'/'本当ですか'/'まじか'/'確かに'）~~ — **Session 159 で実装**: ack へ追加（承知しました）。
 - その他 fill: read-aloud '読んでくれる'/'読んでおいて'、speaking-status '喋ってる'、bookmark-status 'ブックマークに追加した'。
+- ~~**~てみる/~てしまう/~ちゃう/~てあげて/~てもらう の動詞語尾が全コマンド未認識**~~ — **Session 160 で実装**: `_politeVariants` に語尾層追加（てみる→て、てしまう→て、ちゃう/じゃう→て、てあげて/てもらう→て）。'戻ってみる'→back、'読んであげて'→read-aloud、'閉じちゃう'→close-tab（'閉じちゃった'/'消えちゃった' は reopen-tab の raw リテラルが先行）。
+- ~~**'where are we'/'whats this site'/'who is this'/'when was this'/'what does this say' が未認識**~~ — **Session 160 で実装**: where-am-i/tab-meta/read-aloud へ（'who made this' は about 所有 — 共存テスト）。
+- ~~**'お願い'/'頼む'/'please do'/'pls help'/'help me out' が未認識**~~ — **Session 160 で実装**: help へ。
+- ~~**bare '早く'/'遅く'/'ボリューム'、命令形 '止めろ'/'探せ'/'調べろ'、'置いといて' が未認識**~~ — **Session 160 で実装**: speech-faster/slower、volume-status、stop-everything、find-in-page、web-search（→プロンプト）、negate へ。
+- その他 fill: scroll 'もうちょい上/下'/'keep scrolling'、line-status 'どこ読んでた'、read-here '続きは'/'次の部分'、remaining-time 'あと少し'、share-page '送って'（'送っちゃって' は語尾層経由）。
 
 ---
 

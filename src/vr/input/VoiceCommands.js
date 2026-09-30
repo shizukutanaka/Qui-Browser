@@ -374,6 +374,14 @@ export class VoiceCommands {
     push(normalized.replace(/(て|で)も?いい(?:かなー?|か|よ|ね)?[。！？!?]?$/u, '$1'));
     push(normalized.replace(/たい(?:んだけど|んですが|んだが|んですけど|んです|けど|です)?[。！？!?]?$/u, 'て'));
     push(normalized.replace(/といて(?:ね|よ|な)?[。！？!?]?$/u, 'て'));
+    // Trial/complete/humble request suffixes: '読んでみる'→'読んで',
+    // '閉じてしまう'→'閉じて', '閉じちゃう'→'閉じて', '読んであげて'→'読んで',
+    // '読んでもらえる'→'読んで'. Raw phrase still wins first — variants retry.
+    push(normalized.replace(/(て|で)み(?:る|た|よう|ます|ましょう)?[。！？!?]?$/u, '$1'));
+    push(normalized.replace(/(て|で)しま(?:う|った|います|いました)?[。！？!?]?$/u, '$1'));
+    push(normalized.replace(/(?:ちゃ|じゃ)(?:う|った|って|います)[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/(て|で)(?:あげて|あげる|あげます|くれる|くださる|くださいます)[。！？!?]?$/u, '$1'));
+    push(normalized.replace(/(て|で)もら(?:う|える|った|います|えます|ってもいい|っていい)[。！？!?]?$/u, '$1'));
     push(normalized.replace(/ちゃって[。！？!?]?$/u, 'てしまって'));
     push(normalized.replace(/(?:たまえ|なさい)[。！？!?]?$/u, 'て'));
     push(normalized.replace(/(?:かなー?|かしら)[。！？!?]?$/u, ''));
@@ -1131,6 +1139,7 @@ export class VoiceCommands {
     this.registerCommand('volume-status', {
       patterns: ['音量は', '今の音量', '音量を教えて', '音量いくつ', '音量はいくつ',
         '今の音量を教えて', '音量を確認して', '音量を確認', '声の大きさ', '音量はどのくらい',
+        'ボリューム',
         '音量を変えて', '音量を変更して', '音量を変更', '音量を上げ下げ',
         /^volume$/i, 'how loud', 'what volume',
         /current volume/i, /volume (status|level)/i, /what('s| is)? (the )?volume/i],
@@ -1422,6 +1431,7 @@ export class VoiceCommands {
         'わからん', '使い方がわからん', '使い方教えて', 'どうするの', 'これどうする',
         '操作がわからない', 'どうする', 'どうすればいいの', '何をすればいい',
         'できる', 'できない', 'できますか', '可能ですか', '対応してる', '対応してない',
+        'お願い', 'おねがい', '頼む', '頼みます', 'please do', 'pls help', 'help me out',
         '対応してますか', 'できません', 'これできる',
         /what can i do/i, /what do i say/i, /how does this work/i, /^can i /i,
         /what should i say/i, /how do i use/i,
@@ -2996,6 +3006,7 @@ export class VoiceCommands {
         'ちょっと下', 'ちょっと下へ', '少し下', '少し下へ', 'もう少し下',
         'スクロール', 'スクロールして', 'ページをめくって', 'めくって',
         '次にめくって', 'ページをめくる', 'めくる',
+        'keep scrolling', 'もうちょい下', 'もうちょい下へ', 'ぐいっと下',
         'もっと下に', '下に行って', '下に向かって',
         '少しスクロール', 'ちょっとスクロール', 'もっと下', 'さらに下',
         'ぐっと下', '一気に下', 'もっと下へ', 'さらに下へ',
@@ -3018,7 +3029,7 @@ export class VoiceCommands {
         'もっと上', 'さらに上', 'ぐっと上', '一気に上', 'もっと上へ', 'さらに上へ',
         'もうちょっと上', 'もうちょっと上へ', 'ちょっとだけ上',
         '少しだけ上', 'ちょびっと上', 'もう少しだけ上', 'ごく少し上',
-        'move up', 'up a bit', 'go up a bit',
+        'move up', 'up a bit', 'go up a bit', 'もうちょい上', 'もうちょい上へ', 'ぐいっと上',
         'もっと上に', '上に行って', '上に向かって',
         /scroll up/i, /scroll upwards?/i, /^go up$/i,
         /scroll up (a )?little( bit)?/i, /a little bit up/i],
@@ -3391,6 +3402,7 @@ export class VoiceCommands {
         /^read (all|everything|it all)$/i, /from the (top|beginning|start)/i,
         /listen\s+to\s+(this|the)\s+(page|article)/i,
         'start reading', 'read page', /^read (the )?page$/i,
+        /what does (this|it) say/i, /what'?s it say/i,
         /^read it$/i, /^start reading$/i
       ],
       action: () => {
@@ -3471,7 +3483,7 @@ export class VoiceCommands {
         '読み上げが遅い', '読み上げが遅すぎる', 'ナレーションが遅い',
         '読み上げが遅い', '読み上げが遅すぎる', '速く読み上げて',
         '読むのが遅い', '読むのが遅すぎる',
-        '早口で', 'もっと早く', '早口にして',
+        '早口で', 'もっと早く', '早口にして', '早く', '速く',
         '早くしろ', '速くしろ', 'もっと早くしろ',
         'さっきより早く', 'さっきより速く', '今より早く', '今より速く',
         '急いで', '早くして', '速くして', 'さっさと', '急いで読んで',
@@ -3498,6 +3510,7 @@ export class VoiceCommands {
         '早すぎる', '早すぎ', 'ゆっくり言って', 'ゆっくり話して',
         'もっとゆっくり', 'もっとゆっくり話して', '聞き取れない', '聞き取りにくい',
         '読み上げが速い', '読み上げが速すぎる', '聞き取りやすくして',
+        '遅く', 'ゆっくりめ',
         'はっきり読んで', 'ゆっくり読み上げて', 'ゆっくりめに読んで',
         'もっとゆっくり', 'もう少しゆっくり', 'ゆっくりめに',
         'ゆっくりと', '丁寧に', '丁寧に読んで', 'はっきりと', 'はっきり言って',
@@ -3639,7 +3652,7 @@ export class VoiceCommands {
       // for multiword queries like 'find first aid'. The '…を開いて' forms
       // were literal-navigating via go-to's catch-all (probe-verified);
       // they land in the bare/no-term branch, which asks for a query.
-      patterns: ['ページ内検索', 'ページ内を検索', 'ページ内で検索',
+      patterns: ['ページ内検索', 'ページ内を検索', 'ページ内で検索', '探せ', '探してみて',
         'ページ内検索を開いて', 'ページ内検索を開く', '検索を開いて',
         '検索を開く', '検索バーを開いて', '検索バーを開く', '検索バーを出して',
         '検索を始めて', '検索をはじめて', '検索モード',
@@ -3765,7 +3778,8 @@ export class VoiceCommands {
         /which tab am i on/i, /which tab is (this|open)/i,
         /what has focus/i, /focused element/i,
         'what page is this', 'what page am i on', 'which page is this',
-        'what site is this', 'which site is this'],
+        'what site is this', 'which site is this',
+        /where are we/i, /where is this/i, /whats? (this|the) (site|page|tab)/i],
       action: () => {
         const tab = tabManager?.getActiveTab?.();
         this.speak(tab
@@ -4682,7 +4696,8 @@ export class VoiceCommands {
         '何年の記事', 'いつの記事', 'いつ書かれた', 'いつ公開された',
         '公開日は', '公開日を教えて', '記事の日付', 'いつのニュース',
         /who (wrote|wrote this|is the author)/i, /written by/i,
-        /how old is this/i, /when was this (written|published|posted)/i],
+        /how old is this/i, /when was this (written|published|posted)/i,
+        /who is this/i, /who made (this|it)/i, /when was this/i, /when was it/i],
       action: () => {
         this.speak('記事の著者や公開日は読み取れません。「このタブについて」でタイトルとURLを読み上げます');
         return { action: 'tab-meta' };
@@ -5125,7 +5140,7 @@ export class VoiceCommands {
         'やめさせて', '全部やめて', '止めさせて',
         /^cancel( that| it)?$/i,
         /stop everything/i, /stop all/i, /cancel all/i, /cancel everything/i,
-        '全部キャンセル', 'すべてキャンセル', '全てキャンセル', '全てやめて'],
+        '全部キャンセル', 'すべてキャンセル', '全てキャンセル', '全てやめて', '止めろ', 'やめろ', '止めなさい'],
       action: () => {
         const speaking = !!this.synthesis?.speaking || !!this.synthesis?.pending;
         if (this.synthesis?.cancel) {
@@ -5559,6 +5574,7 @@ export class VoiceCommands {
         '残りを読んで', '残り全部読んで', '残りを全部読んで',
         '続きを全部読んで', 'あとの文を読んで',
         'つづきから', 'つづきから読んで', '途中から読んで', 'つづきを読んで',
+        '続きは', 'つづきは', '残りは', '次の部分', '次の部分を読んで', 'あとは',
         '途中から', '途中から読み上げて', '途中から読み上げ',
         '最後まで読んで', 'あと全部読んで', '残り全部', 'あとを読んで',
         'この先を読んで', '続きをすべて読んで',
@@ -5674,6 +5690,7 @@ export class VoiceCommands {
         'あと何分で読み終わる', '読み終わりまで', 'あと何分で終わる', '残りの時間',
         'あとどのくらいで終わる',
         'あとどのくらい読む', '何分残ってる', 'あと何分くらい', '残りは何分',
+        'あと少し', 'あとちょっと', 'もう少しで終わる', 'あと少しで終わる',
         /how much longer/i, /time left/i, /minutes left/i],
       action: () => {
         const mins = this._onRemainingTime ? this._onRemainingTime() : null;
@@ -6280,7 +6297,7 @@ export class VoiceCommands {
         '読み上げ中の行', '読み上げ中の場所', '現在位置', '今の位置',
         '読み上げ中', '読み上げの位置',
         '全部で何行', 'この記事は何行', '総行数', '行数は', '何行ある',
-        '読んでいたところ', 'どこまで読んでた', '読み上げ位置に戻って',
+        '読んでいたところ', 'どこまで読んでた', '読み上げ位置に戻って', 'どこ読んでた', '何読んでた', 'どこを読んでた',
         '今何行目', '現在の行', '行番号は', '今の行は', '現在の行番号', '今は何行目',
         '今の行', '読んでるところ', '今読んでるところ',
         /line (number|position)/i],
@@ -6542,7 +6559,7 @@ export class VoiceCommands {
         '共有したい', 'シェアしたい',
         'ページを送って', 'このページを送って', '友達に送って', '友達に共有',
         'リンクを共有', 'シェアして', 'シェアする',
-        'リンクを送って', 'SNSで共有',
+        'リンクを送って', 'SNSで共有', '送って', '送ってください',
         /^share( this page| it)?$/i, /share (the )?(page|url|link)/i,
         /tweet (this|it)/i, /email (this|it|the link)/i, /share (on|via) \w+/i],
       action: () => {
@@ -7003,7 +7020,7 @@ export class VoiceCommands {
         /^(今日の天気|明日の天気|今週の天気|天気は|天気|気温は|気温|湿度は|湿度|雨降る|最新ニュース|ニュースがある|ニュース読んで|ニュースを聞かせて|ニュース検索|ニュース|面白い記事|おすすめの記事|記事を読みたい)$/,
         // Bare lookup verbs & engine-scoped forms carry no term — the action
         // prompts ('検索語がありません') instead of searching for the verb itself.
-        /^(調べて|調べたい|調べもの|検索させて|調べてほしい)$/,
+        /^(調べて|調べたい|調べもの|検索させて|調べてほしい|調べろ|調べなさい)$/,
         /^(google|グーグル)\s*で検索/, /で検索してほしい/,
         /search (?:the web |web )?for (.+)/i,
         /web search (?:for )?(.+)/i,
@@ -7088,6 +7105,7 @@ export class VoiceCommands {
         'ええよ', 'もういい', 'いいよ', 'いいから', 'もういいから', '結構です', 'もう結構',
         '大丈夫です', 'もう大丈夫', 'いらない', 'もういらない', 'ほっといて', '放っといて',
         'そのままで', 'そのまま', 'そのままでいい',
+        '置いといて', '置いとく', '置いておいて', '置いておく', 'このまま', 'このままで',
         /keep it/i, /leave it(?: be| alone)?/i, /as you were/i],
       action: () => {
         this.speak('承知しました。実行しません');
