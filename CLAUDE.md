@@ -252,6 +252,55 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 158: 音量読戻/再読原子 — '今の音量を教えて' web-search 流出修正 + 読み直しを read-aloud へ + 迷子/褒め句
+外部基準: Chrome Ctrl+Shift+U や Voice Access の音量クエリ、スクリーンリーダーの re-read コマンド、会話型 UI の acknowledgement/compliment 応答。
+- 🐛 **'今の音量を教えて' が web-search で '音量' を検索** → volume-status に '今の音量を教えて'/'音量を確認'/'声の大きさ'/'音量を変えて' 追加（bare 変更要求を volume-set へ流すと missing digit が 0 に coerce されるため status で現量提示）。
+- 🐛 **'読み直して'/'頭から読み直して' が say-again の発話リプレイのみ** → read-aloud へ（「ページを読み返す」意図）。既存テスト2件の stale assertion を更新。
+- 🐛 **'左側のタブ'/'もっと左のタブ'/'真ん中のタブ' が by-name タイトル誤検索** → prev/next-tab に 側/もっと 形 + stoplist に 真ん中|左側|右側|もっと。
+- ✨ **ack 褒め句分岐**: 'すごい'/'いいね'/'最高'/'awesome'/'great' → 'ありがとうございます'、'thank you so much'/'助かった' → 'どういたしまして'。
+- ✨ **web-search 話題・裸動詞形**: '天気は'/'気温は'/'ニュースを聞かせて'/'ニュースがある'（term=capture）+ '調べて'/'検索させて'/'google で検索して'（非 capture → term プロンプト）。
+- ✨ **エイリアス第38弾**: help 'わからん'/'どうする'/'使い方教えて'、read-aloud '読みたい'/'読んでほしい'、first/last-tab '最初のやつ'/'最後のやつ'、text-style '文字を変えて'、reader-size-up '読みやすくして'、trouble '眠い'/'頭痛い'/'めまい'/'ふらつく'。
+- ✅ **テスト +85（git stash で74件赤確認、残りは共存ガードの設計上緑）**: Total 5508 tests (132 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
+### Session 157: 相対日付/参照句原子 — reopen/close 参照句の誤ルート修正 + heading-level 誠実原子 + date 相対日付計算
+外部基準: Chrome 'reopen closed tab' の Ctrl+Shift+T・macOS 'bring back'、Voice Access 'switch tabs'、カレンダー系質問（'what's tomorrow'）への回答義務。
+- 🐛 **参照句の誤ルート3系**（実測捕捉）: 'reopen my last tab'→last-tab 切替（reopen-tab を /reopen(?!.*\ball\b).*\btab\b/ 化して先取）、'close the tab i just closed'→close-tab がアクティブタブ閉鎖（i\b lookahead で reopen-tab へ）、'今のタブを閉じて'→close-tab-by-name の term 誤検索（stoplist に 今|幾つ|何個|違う → close-tab/tab-status/next-tab へ）。
+- 🐛 **'help please' が scoped-help で '「please」のコマンドは0個'** → (?!please\b) で help へ透過。
+- ✨ **date 相対日付**: 'tomorrow'/'明日は何日'(+1)、'明後日'/'day after tomorrow'(+2)、'next week'/'来週'(+7)、'next month'/'来月'、'next year'/'来年'、'今年' を計算応答 + 'whats the date'/"today's date"/'the date'/'今日何日'/'何日ですか'。
+- ✨ **heading-level 誠実不在原子**: 'h2'/'level two heading'/'heading level 2'/'見出しレベル' → '「2番目の見出し」で順番に選べます'。heading-select へ first–tenth EN 序数（action 単語→数値マップ）。
+- ✨ **エイリアス第37弾**: goToEn bare 'go X'（stoplist で back/forward/up/down/away/off/home 等を除外）、goToJp 'に行って'/'へ行って'、next-tab 'switch tabs'/'change tab'/'swap tabs'/'the other tab'/'タブを切り替え'/'違うタブ'、mute-toggle 'be quiet'/'shut up'/'be silent'/'quiet please'/'silence'、stop-everything 'cancel all'/'全部キャンセル'/'全てやめて'、vr-exit 'close app'/'close browser'、window-state '最大化して'/'最小化して'、trouble '真っ暗だ'/'真っ黒'、help 'what should i say'/'使い方がわからない'、scroll 'move up/down'/'a bit'/'little scroll'、speech-faster 'もっと早く読んで'/'早く読んで'、resume-reading '読み続ける'。
+- ✅ **テスト +96（git stash で80件赤確認、残りは共存ガードの設計上緑）**: Total 5423 tests (131 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
+### Session 156: 質問形/位置句原子 — 質問が実行する誤ルート3系 + 'go to X tab' 奪取修正 + EN 自然句群
+外部基準: Voice Access/Chrome の 'am I muted?' が状態質問である慣例（toggle でない）、スクリーンリーダーの問い合わせ形、英語圏の 'take me back'/'skip ahead 30 seconds' 口語。
+- 🐛 **質問形が実行していた3系**（実測捕捉）: 'did i bookmark this'→bookmark-page トグル・'am i muted'→mute-toggle トグル・'is the mic on'→mic-on 起動 → それぞれ (?<!did i )・(?!d\b)・(?<!the ) で status 系へ透過（mute-status/bookmark-status/mic-status へ質問形追加）。
+- 🐛 **'close the tab on the right/left' がアクティブタブを閉じていた**（実害）: close-tab に on/to 句の lookahead。誤対象より未認識が安全。
+- 🐛 **'go to my email tab'/'open X tab' が literal ナビゲート**: goToEn lookahead に settings\b・tab 語尾除外 → tab-by-name が term capture で切替。'open my settings'→settings-toggle、'open my mail tab'→device-apps 奪取も (?!.*\btab\b) で封殺。
+- ✨ **時間指定 skip 形**: video-seek へ (skip|jump|go|fast) (ahead|forward) N sec/min + EN minutes 計算（'skip ahead 4 paragraphs'→paragraph-skip-n 維持、'go forward'→navigate 維持）。
+- ✨ **一括閉じ・戻り・質問句群**: close-other-tabs 'close the other tabs'、close-all-tabs 'close my tabs'/'close everything'、back 'take/send/bring me back'（両コピー）、navigate 'forward a page'/'one page forward'、time 'tell me the time'/'時計'、battery-status 'whats my battery'、about 'version number'/'who made this'/'バージョン番号'、history-latest 'when did i visit'/'have i been here'/'前に来たことある'。
+- ✨ **スクロール/パネル/速度/入力/障害**: scroll-top 'to the top'/'go back up'/'scroll back up'、scroll-bottom 'to the bottom'、panel-distance 'move/bring it closer'/'push it away'/'shrink the window|panel'（方向判定に bring/push）、speech 'read this faster'/'speed it up'/'slow down'/'slow it down'/'read it slower'、input-methods 'press/hit enter'/'press ok'/'return key'/'エンターを押して'、trouble 'its not working'/"doesn't work"/'cant see'/'見えない'/'動いてない'、audio-trouble 'cant hear anything'。
+- 🐛 **(raphone)? typo 全4箇所** → (rophone)? で 'microphone' 到達可に。tab-search 'find my tab' の 'my' 誤 capture → ストップワード除外。
+- ✅ **テスト +89（git stash で74件赤確認、残りは共存ガードの設計上緑）**: Total 5327 tests (130 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
+### Session 155: ランドマーク/フォーム原子 — 'go to main content' 誤ナビゲート修正 + redo 誠実双子 + クエリ/修復句群
+外部基準: スクリーンリーダーのローター（NVDA Elements List）、Voice Access 'go to main'/'next field'/'select all'、Chrome undo/redo。
+- 🐛 **'go to main content'/'go to the content'/'jump to the nav' が literal ナビゲート**（実測捕捉）: `landmarks` 誠実不在原子を go-to 前に登録（'next landmark'/'landmark list'/'main region'/'ランドマーク'/'メインに飛んで'/'ページの領域' も）→ 'ページの領域ジャンプはまだできません。「目次」で見出しを確認できます'。'go to google' は go-to 維持。
+- ✨ **redo 誠実双子**: 'redo'/'redo it'/'やり直して'/'やり直し'/'ctrl y' → undo（reopen-tab）の対を指針。'undo'→reopen-tab 維持。
+- ✨ **ローター/フォーム/修飾**: links へ 'next link'/'previous link'/'links list'/'前のリンク'/'リンクに進んで'/'リンクに戻って'、input-methods へ 'next field'/'form controls'/'edit box'/'fill the form'/'次の入力欄'/'フォーム'/'テキストボックス'、text-style へ 'all caps'/'uppercase'/'lowercase'/'capitalize'/'bold'/'italic'/'大文字にして'/'太字にして'、copy-selection へ 'select all'/'copy page'/'テキストをコピー'/'全部選択して'。
+- ✨ **find-in-page EN capture**: 'search the page for X'/'search this page for X'/'look for X'（語 capture を action でも再マッチ）。
+- ✨ **クエリ群**: help 'what can you do'/'show me the commands'/'command list'/'何を聞けばいい'、word-status 'what word is this'/'this word'/'今の単語'（'この単語'→read-word 維持）、char-status 'what letter is this'/'this character'/'この文字'、spell-word 'how is it spelled'/'どう綴る'、speech-rate-status 'what speed'/'読む速さは'/'どのくらいの速さ'、recenter 'where is the panel'/'center the panel'/'パネルを中央に'/'パネルが見えない'、reader-progress 'am i at the top'/'are we at the bottom'/'how far along'/'ページの先頭にいる'、reader-scale-status '拡大率'/'magnification'、reader-size-up 'magnify'、date 'today is'/"what's today"、vr-exit 'quit the app'、device-settings 'restart the app'/'reboot'/'ヘッドセットを再起動'（'再起動して'→refresh 維持の共存テスト）。
+- ✨ **微量スクロール/resume/目次**: scroll-down 'scroll a little'/'a little bit down'/'tiny scroll'/'もう少しだけ下' + up twin、resume-reading 'where i left off'/'pick up where i left off'/'続きはどこ'/'続きから読んで'（'続きを読んで'→read-here 維持）、toc '目次はどこ'/'目次は'、next-paragraph 'skip the paragraph'。
+- ✅ **テスト +114（git stash で106件赤確認、8件は共存ガードの設計上緑）**: Total 5238 tests (129 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
+### Session 154: EN パリティ原子 — scroll-to-the-X 間隙・bare slower/faster・リプレイ誤スキップ修正
+外部基準: Voice Access 'scroll to the top/bottom'・'what did you say'、Chrome 'clear my history'、NVDA rate の bare 'slower'/'faster'。
+- 🐛 **'scroll to the top'/'scroll to the bottom' が未認識**（実測捕捉）: `/scroll (to )?top/` が 'the' を挟む形を取り逃し → `(to( the)? )?` 化（'scroll to top' は維持）+ 'jump to top/bottom'。
+- 🐛 **'もう一度再生'/'リプレイ'/'play it again' が +10秒スキップ実行**（実測捕捉）: video-seek の restart 判定を 頭から|最初から → +もう一?回|もう一度|リプレイ|play (it )?again へ拡張し冒頭シーク（-1e9）に。
+- ✨ **bare 副詞**: speech-slower /^slower$/'more slowly'、speech-faster /^faster$/'more quickly'（'slower please' は politeVariants 経由で一致）。
+- ✨ **echo/質問**: say-again 'what did you say'/'リピート'/'今のを繰り返して'/'今の言葉'/'さっきの言葉'、describe-tab 'what page'/'what site'（'…is this' → where-am-i 維持の共存テスト）、online-status 'am i online'/'are we connected'、video-status "what's playing"/'何が再生されてる'、device-settings 'go offline'。
+- ✨ **その他**: clear-history EN 形（clear/delete/erase my history）、reader-size-up 'too small'/'make it bigger'/'text is too small' + down twin、pause-reading 'pause this'、stop-reading 'これを止めて'、stop-everything 'やめさせて'/'全部やめて'、audio-trouble '聞こえにくい'/'聞きにくい'、trouble "i'm stuck"/'something is wrong'/'it froze'、panel-distance 'もうちょっと大きく/小さく'。
+- ✅ **テスト +64（git stash で54件赤確認、10件は共存ガードの設計上緑）**: Total 5124 tests (128 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
 ### Session 153: ページめくり/状態質問原子 — '行を進めて' 誤ルート修正 + 方向・めくり口語形 + 声/言語選択
 外部基準: 電子書籍リーダーの 'ページ送り' 句、Voice Access 'scroll down' の方向句、NVDA 言語/音声選択。
 - 🐛 **'行を進めて' が navigate でページ forward 実行**（実測捕捉）: navigate の 進め lookbehind に 行を を追加（両コピー）→ next-line へ透過。'進めて'/'ページを進めて'→navigate、'読み進めて'→resume-reading 維持の共存テスト。

@@ -306,7 +306,7 @@ describe('alias pass XVII', () => {
       expect(vc.lastCommand.key).toBe('say-last-transcript');
     }
   );
-  test.each(['復唱して', '言い直し', '読み直して'])(
+  test.each(['復唱して', '言い直し'])(
     '"%s" → say-again', (p) => {
       const { vc } = makeVC();
       vc.processCommand(p);
