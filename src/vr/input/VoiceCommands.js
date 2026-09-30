@@ -1023,6 +1023,7 @@ export class VoiceCommands {
     push(normalized.replace(/忘れそうだった[。！？!?]?$/u, 'て'));
     push(normalized.replace(/忘れてしまった[。！？!?]?$/u, 'て'));
     push(normalized.replace(/るの忘れちゃいました[。！？!?]?$/u, 'て'));
+
     push(normalized.replace(/(て|で)(?:あげて|あげ(?:る|ます)[ねよわか]?|くれる|くださる|くださいます)[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)(?:くれ|くださ)ちゃう[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)もら(?:う|える|った|います|えます|ってもいい|っていい)[。！？!?]?$/u, '$1'));
@@ -1319,6 +1320,7 @@ export class VoiceCommands {
         'if you have a (?:sec|second|minute|moment|chance)|if it\'?s not too much trouble|' +
         'before (?:you go|i (?:leave|go))|whenever you (?:can|get a chance)|at your (?:earliest )?convenience|no rush but|' +
         'go ahead and|feel free to|do us both a favor and|grant me the favor and|confer upon me the favor and|do yourself a favor and|do yourselves a favor and|do us a favour and|do me a favour and|do yourself a favour and|do yourselves a favour and|you could do worse than|cant hurt to|wont hurt to|it cant hurt to|no harm in|no reason not to|theres no reason not to|least you can do is|least you could do is|the least you could do is|you could at least|you might at least|could at least|at least|i pray you will|i pray youll|pray|prithee|wouldst thou|dost thou|wilt thou|when youve got a sec|when youre free|next time you get a chance|the next chance you get|whenever you feel like it|when you have a moment|once youre done|after youre done|as soon as you can|first chance you get|once you get a sec|if you ask me|if you want my opinion|if i were you id|were i you id|what id do is|herere what id do|before you do anything|before anything|first things first|first order of business|the first order of business|starting off|kicking off|opening move|hurry up and|quit stalling and|stop messing around and|stop dilly dallying and|how about you|hows about you|what about|how bout you|how boutcha|whaddya say|what say you|suppose you could|suppose youd|think you could|think you can|you think you could|be my guest|have at it|by all means|for the love of god|for gods sake|for petes sake|for crying out loud|oh for fucks sake|for fucks sake|god damn|jesus christ|holy hell|jeez|gah|ugh|omg|wtf|fucking|damn it|dammit|whenever youre ready|sometime today|so then|ok ok|okay okay|alright alright|well then|well now|now now|now listen|look here|see here|there there|oh and|oh also|and another thing|in fact|on second thought|one more thing|by the way|btw|like for real|no lie|dead serious|straight up|i mean it|i kid you not|believe me|trust me|i promise|promise|good looks|say less|no kidding|bet|word|legit|y\'?all|you all|excuse me but|pardon me but|excuse me|pardon me|beg your pardon|ahem|psst|heads up|check it|hear me out|come now|frankly|honestly|also|ya wanna|you wanna|do|oh|well|say|listen|look|alright|thanks|' +
+
         'anyways?|by the way|btw|yes please|see if you can|see about|try|' +
         'have a go at|get to|up and|might i trouble you to|be a lamb and|' +
         'have the goodness to|be a dear and|i beg you to|' +
@@ -4726,6 +4728,7 @@ export class VoiceCommands {
         'close it dont fight me on this',
         'close it and dont make me ask again',
         'deal with the tab', 'deal with this tab',
+
         'タブの閉鎖を願います', '閉鎖を願います', '廃棄してください', '破棄してください',
         '閉じる操作をして', '閉じるアクションを', '閉じる手続きを', '閉じる操作を願います',
         'it needs closing', 'it needs to be closed', 'this tab needs to go',
