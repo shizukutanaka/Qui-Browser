@@ -1722,7 +1722,6 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 
 ### Session 254
 
-<<<<<<< HEAD
 - ✨ JA: てくださいゃ・てほしくて残置（くださいましょうか・くださいませね・くださいなし・ほしくてね・ほしくてな・ほしくてならないのです）・dict理名詞尾（のが理だ・理義だ・筋目だ・良識だ・判明だ）→ 実行。
 - ✨ EN LXVI: 'herewith'/'hereby'・'i hereby instruct/direct you to'・'i instruct/direct you to'・'i bid you' 前置 → 実行。
 - ✅ tests/hereby-atoms.test.js +25（実装前18件赤確認）、計12894全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
@@ -1765,30 +1764,6 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 - ✅ tests/frontrunner-atoms.test.js +26（実装前12件赤確認）、計12718全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
 
 ### Session 249
-||||||| 1a53d38
-=======
-- ✨ JA: ておけば・てある残置（おけば大丈夫・おけば安心・あるはずです・あるべきだった・あるところです）・dict解名詞尾（のが結論だ・答えだ・解答だ・解だ・至極だ・真髄だ）→ 実行。
-- ✨ EN LXII: 'for the love of mike'・'for christs sake'・'for pitys sake' 前置 → 実行（gods/heavens/goodness sake は既ルート緑）。
-- ✅ tests/for-pitys-sake-atoms.test.js +26（実装前14件赤確認）、計12795全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
-
-### Session 252
-- 🐛 誤ルート2件: '閉じておくよう進める' → navigate（変体 '…よう進め' が `進め` にヒット → `(?<!よう)` 追加、2箇所）；'閉じてはいかがなものか' → negate（`ものか` に `いかがな` lookbehind 追加）。
-- ✨ JA: ておくよう方向尾（おくよう進める・おく方向で・おく形で）・てはいかが残置（はいかがか・はいかがなものか・はどうかしらね）・dict初手名詞尾（のが初手だ・一の手だ・先手だ・第一歩だ・入口だ・取っ掛かりだ）→ 実行。
-- ✨ EN LXI: 'do us the service of'・'bless/grace me by'（oblige 枠に併合）・'give me the pleasure of it being closed' スワップ → 実行。
-- ✅ tests/first-move-atoms.test.js +25（実装前16件赤確認）、計12769全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
-
-### Session 251
-- ✨ JA: ておく確定残置（おく算段だ・おく手だ・おく方向だ・おくが吉）・てみろ方言（みろう・みなされ）・dict秘策名詞尾（のが秘策だ・奥の手だ・切り札だ・とっておきだ・虎の子だ・隠し玉だ）→ 実行。
-- ✨ EN LX: 'final answer:'・'the verdict is in'・'case closed'・'decision made'・'mums the word'・'say no more' 前置 → 実行（final answer:? でコロン許容）。
-- ✅ tests/verdict-atoms.test.js +26（実装前19件赤確認）、計12744全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
-
-### Session 250
-- ✨ JA: てみる・てくれん残置（みればどう・みるといいよ・みるのが吉・みるべし・くれんな・くれんよ）・dict本命名詞尾（のが本命だ・大本命だ・本命視だ・第一候補だ・本命筋だ・最有力だ）→ 実行。
-- ℹ️ EN LIX 'why not/what say/how about' 提案枠は既ルートで全緑（変更なし）。
-- ✅ tests/frontrunner-atoms.test.js +26（実装前12件赤確認）、計12718全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
-
-### Session 249
->>>>>>> origin/devin/1790597147-carpe-diem-atoms
 - ✨ JA: てな・てとく残置（なって・なってば・なさいまし・なさるがよい・とくべき・といてある）・dict常套名詞尾（のが定番だ・お決まりだ・王道だ・正攻法だ・基本だ）→ 実行。
 - ✨ EN LVIII: 'if ever there was a time'・'theres no time like the present'・'strike while the iron is hot'・'carpe diem'・'seize the day' 前置 → 実行。
 - ✅ tests/carpe-diem-atoms.test.js +25（実装前18件赤確認）、計12692全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
