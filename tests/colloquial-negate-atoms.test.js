@@ -165,3 +165,11 @@ describe('coexistence guards', () => {
     expect(key(vc)).toBe('stop');
   });
 });
+
+describe('prohibitive 〜るな is not stripped into a command', () => {
+  test.each(['閉じるな', 'タブを閉じるな'])('"%s" does not close the tab', (p) => {
+    const vc = makeVC();
+    run(vc, p);
+    expect(vc._tm.closeTab).not.toHaveBeenCalled();
+  });
+});
