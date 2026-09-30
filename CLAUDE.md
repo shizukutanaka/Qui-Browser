@@ -1720,6 +1720,41 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 202
+
+- ✨ 受益尾XX: TAIL_TE — 九州/名古屋系 'くれんけん'/'くれんさい'/'もらおか'/'もらいましょ'/'おくんなまし' + 裸 'ては'（'閉じては'→'閉じて'）→ 実行。
+- ✨ dict判定XII: FR — 'のが常道'/'が吉'/'んだから'/'ので(ー)'/'んす'/'がいいさ'/'ことを所望'/'ことを希望'/'ことを要請' → 実行。
+- ✨ 意向提案II: VOL 尾 + 'よ'/'ぞ'/'かい' → '閉じようよ'/'閉じようぞ'/'閉じようかい' → 実行。
+- ✨ てみる/ちゃ残置: TM + 'みよ'/'みようよ'；'ちゃってよ'/'じゃってよ' → て/で。
+- ✨ EN前置詞XI: 'can/could/will/would ya'（くだけた you）、'be a pal/friend and'、'it needs a closing'/'it requires'/'the tab requires'、'the tab is still open'/"it's still open" → 実行；swap 動詞 + pop/slide（'pop it closed'）；語尾 'when you get a sec/moment'/'before anything else'/'first thing'/'that second'。
+- 🐛 回帰消化: FR `ので` が '閉じたいので' を '閉じたい' に縮約して '閉じたって'→describe-tab 奪取を誘発 → `(?<!たい)ので` で保全。ENPRE 内 `'…|it'?s still open'` の裸 `'` が文字列を早期終了 → `it\'?s` に escape（文字列構築 regex の escape 規則再確認）。
+- ✅ tests/dialect-request-atoms.test.js +39（実装前30件赤確認）、計10795全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 201
+
+- ✨ 受益尾XIX: TAIL_TE — '閉じてくれるのかな'/'くれませんこと'/'くれるはず'/'くれるべき'/'やってもらおうじゃないか'/'もらおうかね'/'もらうとするか' + 九州・博多系 'もらうけん'/'もらうばい'/'もらうちゃ'/'くれたる' + 'くださいますように'/'くれてもいいじゃん'/'くださるまいか' → 実行。
+- ✨ dict判定XI: FR — 'のが順当'/'のが適切か'/'ほうが無難だ'/'ほうが手っ取り早い'/'しかないじゃん'/'のも賢い'/'のも吉'/'ことに限る'/'と決まっている'/'が道理'/'が順序'/'に決まってる'/'一択'/'ましょうね'/'しかあるまい' → 実行。
+- ✨ 命令残置: '閉じておしまい'/'閉じてしまえと'（TAIL_TE）+ '閉じーや'/'閉じや'（関西命令 literal）→ close-tab。
+- ✨ させて・たら残置: SE_TAIL + 'いただきたいんです'/'くれんか'；たら + 'どうかね'/'どうなの'/'いいと思うよ'/'いいと思うんだ'/'と思います' → 実行。
+- ✨ EN前置詞X: 'can/could/will you just'、'do yourself(s) a favor and'、'get on it'/'hop to it'、"i'm asking/telling/begging you to"、受動 'needs/has/should/ought to be closed'/'needs to get'、'the tab wants/could use'/'could do with' → 実行；語尾 'please and thank you'/'for pete's/goodness' sake'/'for crying out loud'；裸過去分詞 'closed'/'shut'/'opened' → 命令形解決。
+- 🐛 誤ルート是正: '閉じてくださるまいか'/'閉じるしかあるまい'/'閉じておしまい' が negate `/まい$/` 奪取 → lookbehind に かある/くださる/おし 追加（'ほかある' は 'かある' に包含）。help の `^do (you|they)` が 'do yourself…' を先食い → `\b` 追加。
+- 🐛 回帰消化: ENPRE 裸 'do' が 'do yourself a favor and X' を先食い → 長形前置（最長一致）。'do you mind/think… closing it' は依頼枠 → close-tab ピン（help ではない — probe 実測で訂正）。
+- ✅ tests/request-frame-atoms.test.js +61（実装前43件赤確認）、計10757全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 200
+
+- ✨ 受益尾XVIII: TAIL_TE — '閉じてくれんのか'/'もらうよ'/'もらっときたい'/'くださいなよ'/'くだされよ'/'やってもらおうか'/'てこそ'/'いいんちゃう(関西)'/'ええん(と)?ちゃう' → 実行。
+- ✨ dict判定X: FR — '閉じるのも一手だ'/'のも選択肢の一つだ'/'べきところだ'/'ほうが楽(だ)' → 実行；'閉じたほうが早くない' は た→て / だ→で 変換規則追加。
+- ✨ させて残置: SE_TAIL に 'もらうよ'/'くれますように' 追加 → '閉じさせてもらうよ'/'くれますように' → 実行。
+- ✨ お/ご敬語: 尾に 'なさいませ' 追加 → 'お閉じなさいませ' → 実行。
+- ✨ 前置詞: JA prefix に 'さえ'/'なあ' 追加 → 'さえ閉じればいい'/'なあ、閉じて' → 実行。
+- ✨ EN前置詞IX: 'would it be asking too much to'/'am i asking too much to'/'too much to ask you to'/'just this once'/'one time'/'see to (it that you|it that)'/'see that it gets'/'ensure it gets'/'make sure'/"you're gonna"/'you shall'/'the tab needs'/'it should get'/'this wants' → 実行；語尾 'just this once' 追加。
+- ✨ EN主語スワップ: 'it closes' → 'close it'（closes→close マップ追加）。
+- 🐛 誤ルート是正: 'would it be asking too much to X' が help 誤ルート → help の `would it be` lookahead に `asking` 除外を追加して実行化。
+- 🐛 回帰消化: 裸 `you` 前置詞追加で 'you ought to close it' を奪取 → `you oughta|you ought to` を裸 `you` より前置で解消（ENPRE 最長一致ルール再確認）。
+- ✨ リテラル: '閉じてばかり(だと)'/'閉じちゃうばっかり'→trouble、'まだ開いてる'→describe-tab、'なあ聞いて'→say-again。
+- ✅ tests/command-frame-atoms.test.js +46（実装前41件赤確認）、計10695全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
 ### Session 199
 
 - ✨ 受益尾XVII: TAIL_TE — '閉じてくれんですか'（ん縮約）/'くれたまえ(よ)'（たまえ命令調）/'もらって(も)いいですかね' → 実行。
