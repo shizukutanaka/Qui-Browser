@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 256
+### Session 257
 
+- ✨ JA: てくださいゃ・てほしくて残置（くださいましょうか・くださいませね・くださいなし・ほしくてね・ほしくてな・ほしくてならないのです）・dict理名詞尾（のが理だ・理義だ・筋目だ・良識だ・判明だ）→ 実行。
+- ✨ EN LXVI: 'herewith'/'hereby'・'i hereby instruct/direct you to'・'i instruct/direct you to'・'i bid you' 前置 → 実行。
+- ✅ tests/hereby-atoms.test.js +25（実装前18件赤確認）、計12894全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 256
 - ✨ JA: ておいたら・ておいて・てやって残置（おいたらどうですかね・おいたらば・おいてね・おいといて・やってよ・やっておいて）・dict手段名詞尾（のがやりようだ・手段だ・方策だ・やり口だ・作法です・手立てだ）→ 実行。
 - ✨ EN LXV: 'out of respect for me'・'out of deference to me'・'out of courtesy to me'・'as a courtesy to me'・'in deference to my wishes'・'in consideration of me' 前置 → 実行。
 - ✅ tests/deference-atoms.test.js +24（実装前18件赤確認）、計12869全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
