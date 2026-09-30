@@ -365,7 +365,7 @@ export class VoiceCommands {
     // Sentence-final particles (口語/方言): '閉じてよ' → '閉じて',
     // '読んでね' → '読んで', '待ってな' → '待って'. Terminal-only strip —
     // a stripped variant that matches nothing is simply skipped.
-    push(normalized.replace(/(?:よね|なあ|ねえ|よ|ね|(?<![うくぐすつぬぶむる])な|ぜ|わ|とも|さ)[。！？!?]?$/u, ''));
+    push(normalized.replace(/(?:よね|なあ|ねえ|よ|ね|(?<![うくぐすつぬぶむる])な|ぞ|ぜ|わ|とも|さ)[。！？!?]?$/u, ''));
 
     // Colloquial/dialect suffixes: permissive 'てもいい(かな)'/'ていいかな' →
     // bare て; volitional 'たい(んだけど)' → て; Kansai 'といて' → て;
