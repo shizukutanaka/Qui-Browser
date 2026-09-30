@@ -1680,6 +1680,12 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 ## R266 skip-list（Session 340）
 - 特になし — 新規候補は全件ルート済み（'close that tab yonder' は位置指示のため close-tab で正当化）
 
+## R267 skip-list（Session 341）
+- 特になし — 新規候補は全件ルート済み
+
+## R268 skip-list（Session 342）
+- 特になし — 新規候補は全件ルート済み
+
 ## R261 skip-list（Session 335）
 - `閉じるのはだめ(かな)?` — 「閉じるのはまずい」(close意図) との曖昧対で null 維持
 ## 使い方（次のセッションへ）
