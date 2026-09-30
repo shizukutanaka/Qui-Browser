@@ -227,6 +227,8 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice '閉じるのが急所と考察します' の急所名詞尾XXIが NO-MATCH~~
 - ~~voice '閉じるのが急所と断定します' の急所名詞尾XXIIが NO-MATCH~~
 - ~~voice '閉じるのが急所と主張します' の急所名詞尾XXIIIが NO-MATCH~~
+- ~~voice '閉じるのが急所と推奨します' の急所名詞尾XXIVが NO-MATCH~~
+- ~~voice 'would you be a dear|an angel|a love|a pal|a sport|a darling to' の be-a-X 枠が NO-MATCH~~
 - ~~voice 'might|may you be so kind|good|sweet|gracious to' の might-so 枠が NO-MATCH~~
 - ~~voice 'would you kindly|please be so kind|good to' の入れ子前置が NO-MATCH~~
 - ~~voice 'could you be so good|sweet|lovely|gracious|nice to' の could-so-Adj 枠が NO-MATCH~~
