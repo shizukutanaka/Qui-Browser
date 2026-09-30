@@ -566,6 +566,7 @@ export class VoiceCommands {
       'のがいい|のはどう|のがよい|' +
       'ぞい|ぞ|ぜ|ねん|ねえ|なあ|' +
       'のか|こと|ように|んだよ|んやで';
+      'ぞい|ぞ|ぜ|ねん|ねえ|なあ';
     const QC = normalized.match(new RegExp(
       '^(.{1,10}?[うつるくぐすぬぶむきぎしちにみびい])(?:' + QC_TAIL + ')[。！？!?]?$', 'u'));
     if (QC) {
@@ -576,6 +577,7 @@ export class VoiceCommands {
       '|いただけないか|いただきたい|いただきます|いただけますか|ください|ほしい' +
       '|もらいます|もらうね|もらうわ|' +
       '|いただければ|いただけたら|いただくね|いただくよ|いただけるかな)';
+      '|いただければ|いただけたら)';
     push(normalized.replace(new RegExp('させて' + SE_TAIL + '[。！？!?]?$', 'u'), 'て'));
     push(normalized.replace(new RegExp('([まらわかがさたなばぱ])せて' + SE_TAIL + '[。！？!?]?$', 'u'),
       (m, ch) => A_SE_TE[ch] || ch));
@@ -935,11 +937,14 @@ export class VoiceCommands {
       .replace(/[,\s]+(?:eh|hey|mate|yeah|ok|okay|bud|buddy|fam|boss|dude|bro|chief|big guy|hun|hon|sis|capn|captain|kiddo|son)[.!?]?$/i, '')
       .replace(/[,\s]+(?:won'?tcha|wouldja|couldja|wontcha)[.!?]?$/i, '')
       .replace(/[,\s]+for (?:me|us)[.!?]?$/i, '')
+      .replace(/[,\s]+(?:eh|hey|mate|yeah|ok|okay)[.!?]?$/i, '')
       .replace(/[,\s]+(?:please )?thanks[.!?]?$/i, '')
       .replace(/[,\s]+(?:real )?(?:quick|fast|quickly)[.!?]?$/i, '')
       .replace(/[,\s]+(?:right now|asap|pronto|stat|at your leisure|when you have a moment|whenever you get around to it|if you don'?t mind|for me thanks|for me|thanks|soon|slowly|carefully|gently|quietly)[.!?]?$/i, '')
       .replace(/([,\s]+(?:now|then|first|next|also|too|again|yet|already|once more|one more time|immediately|right away|this instant|at once|today|tonight|rn|ttyl|brb|g2g|gtg|thx|kthx|tyvm|pls|plz|pwease|thanks in advance))+[.!?]?$/i, '')
       .replace(/[,\s]+(?:if (?:u|you) (?:could|can|would|want(?: to)?|don'?t mind)|if ur able|if (?:u|you)'?re able|whenever you (?:want|feel like it|get around to it|can))[.!?]?$/i, '')
+      .replace(/[,\s]+(?:right now|asap|pronto|stat|at your leisure|when you have a moment|whenever you get around to it|if you don'?t mind)[.!?]?$/i, '')
+      .replace(/[,\s]+(?:now|then|first|next|also|too|again|yet|already|once more|one more time|immediately|right away|this instant|at once)[.!?]?$/i, '')
       .replace(/[,\s]+and[.!?]?$/i, '')
       .replace(/[,\s]+(?:whenever|if you (?:would|could|will|wont|want))[.!?]?$/i, '')
       .replace(/\b(it|this) (?:up|off|out|through|down)\b/i, '$1')
@@ -2566,6 +2571,7 @@ export class VoiceCommands {
         'stuck again', 'wont respond', 'unresponsive', 'something went wrong',
         'same thing', 'why is it slow', 'why wont it work', 'not again',
         'why is it broken', 'it keeps failing', 'keeps crashing',
+        /(?:it|this) won'?t(?! ?you)/i, 'cant close it', 'wont close', 'wont load',
         '目を休めたい', '目を休める', '少し休みたい', '疲れてきた',
         '押せない', '押せません', '選べない', '選べません', '触れない',
         'クリックできない', 'タップできない', '押しても反応しない', '動きません',
@@ -5376,6 +5382,7 @@ export class VoiceCommands {
       'paint\\b|solitaire\\b|minesweeper\\b|disk\\b|activity\\b|device\\b|' +
       'recycle\\b|files\\b|registry\\b|regedit\\b|scheduler\\b|services\\b)' +
       '(?!.*\\s(?:windows?|downloads?|devtools|dev tools)$)(.+?)\\b(?<!\\btab)$', 'i');
+      'trash\\b|spotlight\\b|dock\\b|launchpad\\b|live\\b)' +
     this.registerCommand('go-to', {
       patterns: [goToJp, goToEn],
       action: (transcript) => {
