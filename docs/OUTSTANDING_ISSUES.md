@@ -567,6 +567,13 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**'単語を進んで'/'次の単語へ'/'単語単位'/'語を飛ばす'/'一単語戻る'/'前の単語へ' が未認識**~~ — **Session 150 で実装**: next-word/prev-word へ方向形。
 - ~~**'一行目'/'二行目' の漢数字序数・'最終行'/'最後の行目'・'spell that/this' が未認識**~~ — **Session 150 で実装**: reader-goto-line の行目 capture を漢数字対応（KANJI map）+ last-line/spell-word エイリアス。'30行目'→reader-goto-line 維持の共存テスト。
 - ~~**'末尾に飛んで'/'末端まで'/'先頭に飛んで'/'頭まで戻る' が未認識**~~ — **Session 150 で実装**: scroll-bottom/scroll-top へ 飛んで/まで 形。
+- ~~**'go to sleep' が literal ナビゲート・'おやすみ'/'寝る'/'スタンバイ'/'起きて'/'ウェイクアップ' が未認識**~~ — **Session 151 で実装**: sleep-mode へ JA 睡眠双子 + 'good night'/'go to sleep'/'wake me up'（onGoTo 非呼出を断言）。
+- ~~**'クリックして'/'押して'/'タップして'/'選択して'/'フォーカスして'/'入力して'/'入力欄' が未認識**~~ — **Session 151 で実装**: input-methods へ要素ジェスチャー・入力句（'見つめて選ぶ' 誘導）。
+- ~~**'何を開いてる'/'開いているもの' が go-to で literal ナビゲート**~~ — **Session 151 で修正**: tabs-list へ '何を開いてる'/'開いているもの'/'開いてるものは'/'開いてるやつ'。
+- ~~**'読み進めて'/'読み上げを進めて' が navigate でページ forward 実行**~~ — **Session 151 で修正**: navigate の 進め 分岐へ (?<!読み|上げを) lookbehind + resume-reading へ '読み進めて'/'読み上げ続けて'/'続けて読んで' 等。
+- ~~**'ゆっくりと'/'丁寧に'/'はっきりと'/'急いで'/'さっさと' が未認識（副詞形）**~~ — **Session 151 で実装**: speech-slower/speech-faster へ副詞形。
+- ~~**'さっき閉じたやつ'/'閉じたばっかり'/'間違って閉じた'/'閉じる前のタブ' が未認識**~~ — **Session 151 で実装**: reopen-tab へ口語・誤操作形。
+- ~~**'小さくして'/'近くで見せて'/'ズームして'/'飛ばして' が未認識**~~ — **Session 151 で実装**: panel-distance（近/遠方向判定継承）・reader-scale-status・next-paragraph へ。
 
 ---
 
