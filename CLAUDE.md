@@ -1720,6 +1720,29 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 193
+- ラウンド119: 感謝・確信フレーム残置原子層（tests/gratitude-frame-atoms.test.js、+79件 / 実装前54件赤）
+  - JA て受益残置XI（TAIL_TE）: `お願いね|お願いできるかな|お願いしてもいいかな|お願いしてもらえますか|お願いしたいのですが|お願いしたく存じます|お願い申し上げたく|もらえたなら|くれたら助かる|くれないですかね|くれないかなあ|くれると助かるわ|くれたらいいのに|くれさえすれば|もらいたいん(ですが|のですが)|もらうのは無理ですか|あればいい|いただけると(大変ありがたい|ありがたく存じ)ます|いただければ幸いでございます|いただけますようお願い申し上げます`
+  - JA dict確信・感謝尾（FR III）: `とありがたい(です)?|と助かります|(ば|れば)ありがたい|れば(幸いです|助かる)|ならありがたい|こと(は|が)可能で(しょう|す)か|ことが望ましいかと|という(選択肢もあります|手があります)|必要あるかな|必要ありそう`
+  - JA たい気持ち尾（FR）: `たいんですが(ね|けども)|たいなあ|たい気がする|たいと思ってるんです|たい気分です|たい(時|場合)は|た方がいい(気がする|と思うんです)|たほうが(よさそう|良いと思う)|た状態(にして|でいて)`
+  - EN 深礼儀IV（ENPRE）: `would you (consider|be amenable to|be so good to)`、`(might|may) i ask that you` — **裸 `may i` より前置必須**、`(can|could|may) i trouble you to`、`i was wondering (whether|if) you could`、`is it within your power to`、`how would you feel about|what do you think about|do you think you might`
+  - help lookahead 拡張: `could/should/shall/would i` に `trouble you|ask that you` 除外、`can i` に同（execute 枠を保持）
+  - en パイプライン: `^possibly|maybe|perhaps` 先行副詞剥がしを追加（'i was wondering if you could possibly X' の残基 — ENPRE は `^` アンカーのみ、中間副詞は残余側で処理）
+  - リテラル: devtools `開発者モード(にして)?`、privacy-clean `キャッシュクリア(して)?`、vr-enter `全画面表示にして`、window-state `画面を(最大化|最小化)して`（既存 '最大化して'→window-state 期待と整合）、device-apps `拡張機能を管理して|ピクチャーインピクチャー(にして)?|アップデートして`、trouble `this (tab|page|thing)? ?sucks|it sucks|this is (garbage|trash|useless)`
+  - 教訓: ENPRE の `^` 結合は先頭のみ—中間に挟まる副詞（possibly）は「先行側の剥がし後の残基」として en パイプラインで別途処理；ヘルプ regex の先行除外を広げる時は `(?!get|ask|trouble) you` 系と ` ask that you` の両形を列挙
+
+### Session 192
+- ラウンド118: 伝達・義務残置原子層（tests/relay-obligation-atoms.test.js、+85件 / 実装前59件赤）
+  - JA 伝達命令（FR）: `よう(に)?伝えて(ください)?|ようお伝えください|くれるよう言って(ほしい)?|って言ってる(でしょ|よ)?|って何回も言ってる` — '閉じるようお伝えください'→close-tab
+  - JA 方言義務尾（IKE）: `なきゃダメだっけ|なきゃだよね|なきゃなんない(わ|んだ)?|なきゃいかん(のか)?|なきゃまずいかな|なきゃならんかった|なくてはいかん(か|のか)?`
+  - JA shall-we 意向質問: FR `ましょうか(ね)?`（'閉じましょうか'→close-tab — EN 'shall we X' 実行と同値化）+ TAIL_TE `あげましょうか`
+  - JA dict提案尾II（FR）: `(方|ほう)がいいかな|(方|ほう)がいいんじゃないか|としよう(か|な)?|といいでしょう|といいんじゃないの|べきかと存じます|べきかと思われます|ことが望ましいのでは|のが良いと存じます|ことをお願い(申し上げます|いたします)|だけで結構です|だけでいいです|しかないと思う`
+  - JA て受益残置X（TAIL_TE）: `くれませんかな|くれませんかい|くれますかい|もいいかい|ほしいです|ほしいんだ|もらえますか(ね)?|ちょ|いただけますでしょうか|いただければと存じます|いただけましたら幸甚です|くださると大変助かります|くだされば幸いに存じます|(くれる|くださる)ようお願い(いたします|します)|頂くわけにはいきませんか|頂いても宜しいでしょうか|くれるだけでいい|あげ(ましょうか|る)?|もいいんじゃないですか|もいいと思うよ|も差し支えなければ|はいかがかと`
+  - JA とく残置・タブ前置: `[とど]いて(ください|くれ|もらえ(ます|ません)か|ほしい)?(ね)?→て`、`[とど]こ(かな|か|う)?→て`、`^タブ(?=閉じ|複製|開|消)` 前置剥がし — **variants は再展開されない**ため 'タブ閉じちゃってもいいかい' はちゃ尾剥がし後にチェーンで前置剥がし
+  - リテラル: 速度を落と(して|す)→speech-slower、もっとスロー/もうちょいゆっくり→speech-slower、早めに読んで→speech-faster、もう少し(だけ)?大きくして→volume-up、ピン外し(て|す)→unpin-active
+  - EN: ENPRE `you have my (permission|blessing) to|i would ask that you`
+  - 教訓: `_politeVariants` の push 済み候補は再度ルール展開されない — 前置+後置の複合剥がしは1本のチェーンで書く
+
 ### Session 191
 - ラウンド117: 提案・疑問残置原子層（tests/suggestion-residue-atoms.test.js、+93件 / 実装前76件赤）
   - JA て受益残置IX: TAIL_TE `よろしくお願い(します|致します)|おねがいします|頼みます|頼む|もらえないものか(しら)?|もええんちゃう|もええんですか|もいいんじゃない(か)?`
