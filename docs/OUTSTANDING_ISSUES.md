@@ -149,6 +149,7 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice '閉じてゆくべき/ゆけばいい' のてゆく方言尾が NO-MATCH~~
 - ~~voice '閉じてしまったようです/ところです' の完了報告尾が NO-MATCH~~
 - ~~voice '閉じるのがワークフローだ/標準だ' の手順名詞尾が NO-MATCH~~
+<<<<<<< HEAD
 - ~~voice '閉じてみるわよ/もろうてええか' のみるわ・もろうて残置が NO-MATCH~~
 - ~~voice '閉じるのが件だ/話です' の件名詞尾が NO-MATCH~~
 - ~~voice 'id be much obliged if youd' の感謝条件枠が NO-MATCH~~
@@ -161,6 +162,18 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice '閉じてしまえばいいよ/てまえよ' のしまえば・まえ残置が NO-MATCH~~
 - ~~voice '閉じるのが仕事だ/頼みだ' の仕事名詞尾が NO-MATCH~~
 - ~~voice 'do us both a favor and' が裸 'do' に先食いされていた~~
+||||||| 2016b0e
+=======
+- ~~voice '閉じてくださいませね/ほしくてな' のくださいゃ・ほしくて残置が NO-MATCH~~
+- ~~voice '閉じるのが理だ/判明だ' の理名詞尾が NO-MATCH~~
+- ~~voice 'herewith/i bid you' の正式指令枠が NO-MATCH~~
+- ~~voice '閉じておいてね/てやってよ' のおいたら・やって残置が NO-MATCH~~
+- ~~voice '閉じるのが手段だ/手立てだ' の手段名詞尾が NO-MATCH~~
+- ~~voice 'out of deference to me' の敬意枠残置が NO-MATCH~~
+- ~~voice '閉じてしまえばいいよ/てまえよ' のしまえば・まえ残置が NO-MATCH~~
+- ~~voice '閉じるのが仕事だ/頼みだ' の仕事名詞尾が NO-MATCH~~
+- ~~voice 'do us both a favor and' が裸 'do' に先食いされていた~~
+>>>>>>> origin/devin/1790597583-be-a-peach-atoms
 - ~~voice '閉じておくんだよ/くれるんじゃないか' のおくのだ・くれるんじゃ残置が NO-MATCH~~
 - ~~voice '閉じるのが処置だ/処方だ' の処置名詞尾が NO-MATCH~~
 - ~~voice 'be a peach/sport and' の呼びかけ懇願残置が NO-MATCH~~
