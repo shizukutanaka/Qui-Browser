@@ -1720,7 +1720,7 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 250
+### Session 248
 
 - ✨ JA: てみる・てくれん残置（みればどう・みるといいよ・みるのが吉・みるべし・くれんな・くれんよ）・dict本命名詞尾（のが本命だ・大本命だ・本命視だ・第一候補だ・本命筋だ・最有力だ）→ 実行。
 - ℹ️ EN LIX 'why not/what say/how about' 提案枠は既ルートで全緑（変更なし）。
