@@ -174,6 +174,15 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice '閉じるのが好機だ/旬だ' の好機名詞尾が NO-MATCH~~
 - ~~voice '閉じておくわけです' のおく断定尾が NO-MATCH~~
 - ~~voice '閉じるのが矜持だ/誇りだ' の矜持名詞尾が NO-MATCH~~
+- ~~voice '閉じてもらいますね' のもらいます残置が NO-MATCH~~
+- ~~voice '閉じてくるしかない' のくる残置が NO-MATCH~~
+- ~~voice '閉じるのが極意だ/骨子だ' の極意名詞尾が NO-MATCH~~
+- ~~voice '閉じるのが勘所だ/狙い目だ' の勘所名詞尾が NO-MATCH~~
+- ~~voice '閉じてくれませんだろうか' のくれません残置が NO-MATCH~~
+- ~~voice '閉じるのが要旨だ/旨趣だ' の要旨名詞尾が NO-MATCH~~
+- ~~voice 'id be most|ever so obliged if youd' の obliged 変体が NO-MATCH~~
+- ~~voice 'would you do me the courtesy|honor of' の名誉枠が NO-MATCH~~
+- ~~voice 'i would be most grateful if youd' の長形感謝枠が NO-MATCH~~
 - ~~voice 'id be indebted|eternally grateful if youd' の重感謝枠が NO-MATCH~~
 - ~~voice 'wed be grateful if youd' の複数感謝枠が NO-MATCH~~
 - ~~voice 'id really appreciate it if youd' の感謝依頼枠が NO-MATCH~~

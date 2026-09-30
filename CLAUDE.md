@@ -1720,8 +1720,23 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 274
+### Session 277
 
+- ✨ JA: てくれません残置（くれませんだろうか/かねええ/でしょうかな）・dict要旨名詞尾（のが要旨だ/趣旨だ/主眼だ/本旨だ/旨趣だ/神髄ですね）→ 実行。
+- ✨ EN LXXXVI: 'id be ever so obliged|most obliged|deeply obliged|so obliged|truly obliged if youd' 前置 → 実行（'id be much obliged if youd' は既ルート緑）。
+- ✅ tests/be-obliged-atoms.test.js +24（実装前14件赤確認）、計13376全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 276
+- ✨ JA: dict勘所名詞尾（のが勘所だ/急所だ/急所です/急務です/眼目だ/狙い目だ）→ 実行。
+- ✨ EN LXXXV: 'would you do me the courtesy of|the honor of' 前置 → 実行（could you do me the courtesy|kindness of、would you do me the favor of は既ルート緑）。
+- ✅ tests/do-me-the-atoms.test.js +24（実装前8件赤確認）、計13352全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 275
+- ✨ JA: てもらいますね・くるのがよい・くるしかない・くるんです残置。dict極意名詞尾（のが極意だ/神髄だ/肝要だ/要諦だ/骨子だ/神髄です）→ 実行。
+- ✨ EN LXXXIV: 'i would be most grateful|most obliged|eternally|forever|deeply|truly grateful if youd' 前置 → 実行。
+- ✅ tests/i-would-be-atoms.test.js +24（実装前16件赤確認）、計13328全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 274
 - ✨ JA: ておくわけです・おくものです・おくのがよろしい残置。dict矜持名詞尾（のが節操だ/気概だ/意気だ/誇りだ/矜恃だ/矜持だ）→ 実行。
 - ✨ EN LXXXIII: 'id be indebted to you|forever indebted|eternally|infinitely|beyond|undyingly grateful if youd' 前置 → 実行。
 - ✅ tests/indebted-atoms.test.js +24（実装前15件赤確認）、計13304全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
