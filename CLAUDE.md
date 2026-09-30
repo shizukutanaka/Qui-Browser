@@ -1720,8 +1720,30 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 241
+### Session 245
 
+- ✨ JA: てある・てもらう残置（あるのがいい・あるといい・もらうもん・もらうわけ・もらうのが筋）・dict契機名詞尾（のが合図だ・契機だ・きっかけだ・節目だ・境目だ・区切りだ）→ 実行。
+- ✨ EN LIV: 'pretend i said'・'imagine i asked you to'・'indulge me'・'do me proud'・'make my day' 前置 → 実行。
+- 🐛 先食い: 裸 'indulge me' が oblige枠 'indulge me by/and' を先食い → `(?! (?:by|and))` lookahead で最長一致（回帰1件→緑）。
+- ✅ tests/humor-me-atoms.test.js +25（実装前16件赤確認）、計12592全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 244
+- ✨ JA: ておこう口語尾（おこうね・おこうかな）・dict結果名詞尾（のが成り行きだ・結末だ・帰結だ・終わりだ・締めだ・仕舞いだ）→ 実行。
+- ✨ EN LIII: 'be done with it'・'be through with it'・'enough of that/enough already'・'that does it/that settles it' 前置 → 実行。
+- ✅ tests/done-with-it-atoms.test.js +27（実装前15件赤確認）、計12567全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 243
+- ✨ JA: てやる意志尾（わい・んじゃ・やっちゃうわ・やりましょう）・てかまわない許可尾（かまわない・かまいません・かまわないよ）・dict任務名詞尾（のが任務だ・役目だ・役割だ・責務だ・務めだ）→ 実行。
+- 🐛 誤ルート: '閉じてかまわないよ' が変体 '…かまわないで' 経由で negate 誤ルート → `ないで` に `(?<!かまわ)` 追加（'閉じないで' 否定はピン維持）。
+- ✨ EN LII: 'say when/say the magic word/your word is my command/fire away/have at it/knock yourself out' 前置 → 実行。
+- ✅ tests/word-is-command-atoms.test.js +26（実装前19件赤確認）、計12540全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 242
+- ✨ JA: てね呼びかけ尾（ねって・ねー・よねって）・てくれ長形残置（くれよう・くれましょう）・dict助言名詞尾（のが助言だ・のが忠告だ・のが進言だ・のが提言だ・のが指針だ・のが戒めだ）→ 実行。
+- ✨ EN LI: 'give it a rest'・'call it quits and'・'pull the plug and' 前置 + 'pull the plug on it'/'shut the book on it' 比喩スワップ → 実行。
+- ✅ tests/plug-pull-atoms.test.js +26（実装前19件赤確認）、計12514全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 241
 - ✨ JA: しまった完了報告尾（しまったようです・しまったみたいです・しまったところです）・はじめて創始尾（はじめていい・はじめてすっきり）・dict手順名詞尾（のが手順として正しい・のがプロセスだ・のがワークフローだ・のがステップだ・のが工程だ・のが標準だ）→ 実行。
 - ✨ EN L: 'im ready/willing/happy/prepared for you to'・'id welcome you'・'id welcome it if youd'・'id appreciate it ever so much if youd' 前置 → 実行。
 - ✅ tests/welcome-frame-atoms.test.js +25（実装前18件赤確認）、計12488全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
