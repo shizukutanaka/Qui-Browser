@@ -4,6 +4,9 @@
 
 各項目には「対応可否」の目安として難易度と優先度を付けています。優先度は「実際にユーザーに影響するか」を基準にしており、コード上の見た目の重大さとは一致しない場合があります。
 
+~~- Session 313: EN decree/judgment 宣告(i declare/pronounce/rule the tab X・the tab is hereby/thereupon/forthwith X・by decree/order/edict/fiat)・'the tab is beyond help by <decree>' が scoped-help 先勝ち → ENパターン lookahead に `by (decree|order|proclamation|edict|statute|fiat)` 除外追加で close へ。onyx/jade 由来の 'unmount it/the tab'・'unsubscribe it' 欠落リテラル補填(フルスイート赤3件→緑)・JA 文書型敬体/禁制宣告(申し渡し・〜するな・〜てはならぬ・禁ず・許可せぬ 等)~~
+~~- Session 313: EN probe 残留 — tab-search 8件('i find the tab <adj>' 形は tab-search 先勝ちで維持・close リテラルで一部カバー)・JA 既登 close 27件/妥当 pin(stop-everything 2・vr-exit 1)~~
+
 ~~- Session 312: EN end/halt/dispose 俗語動詞(end it/halt it/snip/chop/murder/smite)・needs-to-go・time-to-close・go/come close it・bye tab・JA とくれ/おくれ/んとくれ・てなよ/てわよ・ちゃうなら/ちゃったほうが・許可問い(てもいいよね/ええか)・dict名詞尾XXXI(慣例/原則/規範/ルール 等)~~
 ~~- Session 312: 'scram/beat it/get lost/begone'(話者解散)・'close off/shut off/shut out/cut that/stop the tab'(曖昧)は意図的に未ルート；'ておる/とる' 進行形は describe-tab 正当ヒットでピン見送り~~
 
