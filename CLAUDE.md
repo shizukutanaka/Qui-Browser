@@ -252,6 +252,24 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 142: 談話/口語原子 — ack/訂正/辞退・許可願望形・談話前置詞・how-to 誤ナビゲート修正
+外部基準: 会話型アシスタントの社交応答（ack/否定/訂正は無操作確認）、日本語口語 ASR の許可・願望・関西方言形、Voice Access の how-to→help 誘導。
+- 🐛 **'どうやって戻る'/'どうやって進む' がナビゲートを実行する実害修正**（実測捕捉）: back の `戻る` regex・navigate の `進む` regex に `(?<!どうやって)` lookbehind（両コピー）→ help へ透過（`/どうやって/`・'どうすればいい'/'なんとかして'/'how do i' 追加）。goBack/goForward 非呼出を断言。
+- ✨ **`ack` 原子**: 'ありがとう'/'サンキュー'/'thank you' → 'どういたしまして'、'わかった'/'了解'/'OK'/'got it' → '承知しました'（社交応答を認識エラーで答えない）。
+- ✨ **negate 拡張（訂正・辞退系）**: '違う'/'そうじゃない'/'間違えた'/'ちがう'/'違います'、'ええよ'/'もういい'/'いいよ'/'いいから'/'結構です'/'もう大丈夫'/'いらない'/'ほっといて'/'そのまま'、EN 'leave it'/'keep it'/'as you were' → '実行しません'。
+- ✨ **`_politeVariants` 口語拡張**: 許可形 'てもいい(かな)'/'ていいかな'→て、願望形 'たい(んだけど|けど)'→て、関西 'といて'→て、'ちゃって'→'てしまって'、'たまえ'/'なさい'→て、疑問尾 'かな'/'かしら'、譲歩尾 'んだけど'/'けど'/'けれど'、談話前置詞 'えっと'/'あの'/'ちょっと'/'今すぐ'/'とりあえず'/'一応'/'まあ'/'なんか'/'ところで'。
+- ✨ **EN wrapper 拡張**: 'i want to'/'i wanna'/"i'm gonna"/'let me'/"let's"/'may i'/'hey'/'ok'/'so'/'now' 前置き剥がし + close-tab 'close' bare 形。
+- ✅ **テスト +73（git stash で66件赤確認、7件は共存ガード設計上緑）**: Total 4138 tests (116 suites); 0 lint errors（警告 132 = baseline 同一）; build green・FFFD 0件。
+
+### Session 141: 口語/命令形/否定原子 — 文末粒子リトライ層・命令語幹・'しないで' 誠実確認
+外部基準: Voice Access の cancel/'never mind' 確認応答、日本語口語 ASR（命令形・終助詞のノイズ耐性）、スマートスピーカーの「否定要求=無操作確認」原則。
+- ✨ **文末粒子ストリップ層**（`_politeVariants` 拡張）: 実測で '閉じてよ'/'進んでね'/'教えてな' 系の終助詞（よ/ね/な/ぞ/ぜ/わ/とも/さ/よね/なあ/ねえ + 句読点）が全コマンドで NO-MATCH → 敬語尾層と同じく variant リトライで一括対応（per-command ではなく層で解決、生フレーズ優先でゼロ回帰設計）。
+- ✨ **命令語幹一括**（実測捕捉）: close-tab +'閉じろ'/'消えろ'/'とじろ'/'閉じてしまって'、read-aloud +'読め'/'読み上げろ'/'読んでよ'、speech-faster +'早くしろ'/'速くしろ'/'もっと早くしろ'、speech-slower +'遅くしろ'/'ゆっくりしろ'/'ゆっくりと読んで'、stop-reading +'黙って'/'黙れ'/'だまって'/'黙りなさい'/'うるさいから止めて'、volume-down +'静かにしろ'/'音を小さくしろ'、mute-toggle +'音消して'/'声を消して'/'声を出さないで'/'黙らせて'、captions-toggle + を助詞なし形 regex（'字幕消して'/'キャプション出して' 等4本）。
+- ✨ **`negate` 原子**（connectBrowser 末尾＝全コマンド最後に登録）: '閉じないで'/'進まないで'/'やめておいて'/'やめといて'/'しなくていい'/'なくていい'/'never mind'/'forget it'/"don't do that" → '承知しました。実行しません'（'認識できません' では要求が未聴取と誤解するため、無操作を明示確認）。'cancel that' は stop-everything 既存所有。
+- 🐛 **negate 配置の回帰を実測捕捉**: registerDefaultCommands 末尾に置くと connectBrowser 登録より先に評価され '読まないで' が読み上げ停止せず '実行しません' 応答 → connectBrowser 最終登録へ移動し '読まないで'→stop-reading・'聞かないで'→stop を共存テストで保証。
+- ✨ **口語問い合わせ形**: tabs-list +'何が開いてる'/'何が開いてますか'/'今何が開いてる'/'開いているものは'/'ぜんぶのタブ'/'すべてのタブは'、where-am-i +'どこにいるの'/'今どこにいるの'/'どこにいますか'/'どこだっけ'、describe-tab +'どんなサイト'/'どんなタブ'/'どんなところ'/'どんなページは'、stop +'聞かないで'/'聞かない'/'聞くなよ'。
+- ✅ **テスト +51（git stash で48件赤確認、3件は共存ガード設計上緑）**: Total 4065 tests (115 suites); 0 lint errors（警告 132 = baseline 同一）; build green・FFFD 0件。
+
 ### Session 140: マイク状態/EN 対等原子 — unmute/mic-on 双子・close-the-tab/unpin 方向安全・EN bare 形一括 + 誠実不在クラスタIV
 外部基準: Voice Access 'mic on/off'・Chrome 'close the tab'・NVDA の pause/resume/continue 句・デスクトップ minimize/maximize の欠如応答。
 - 🐛 **'unmute mic' がマイクを停止する実害修正**（実測捕捉）: stop の loose `/mute (the )?mic/` が 'unmute' 内の 'mute' にマッチ → `\bmute` へ修正 + 新規 `mic-on`（'mic on'/'unmute mic'/'start listening'/'turn on the mic'/'音声認識を再開' → `this.start()` + '音声認識を再開します'）。
