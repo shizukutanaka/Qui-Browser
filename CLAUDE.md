@@ -1720,6 +1720,117 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 189
+- ラウンド115: 残余語尾・判定枠原子層（tests/residual-tail-atoms.test.js へ追記、+84件 / 実装前69件赤）
+  - JA て敬語残置VII: TAIL_TE に `くださいますかな|くださいますね|くださいまいか|くださいまい|もらおう|もらいましょう|もらうか|もいいっすか|もええですか`（'くださいまいか' は variant 順で negate の `/まい$/` より TAIL_TE 先勝ちで実行化）
+  - JA ても許可・ちゃっても: `ちゃっても(いい|よい|ええ)(っすか|ですか|か)?→て` / `じゃっても…→で` push
+  - JA 不能依頼質問: `られませんか(ね|な)?→て`（一段）+ 五段融合 `Xられませんか→stemTe(Xり)`（'戻られませんか'→戻って）+ え段 `Xませんか→E_TE`（'読めませんか'→読んで）
+  - JA dict 条件・判定残置: FR `なら今|ならここ|んなら|んであれば|のであれば早めに|のなら今|ほうがいいかもしれない`
+  - JA べき質問→help: `/べき(かな|ですかね|でしょうか|かね)$/`（判断質問=非実行）+ 誤実行修正: back の `戻る(?!な|まい)` に `べ` 追加（'戻るべきですかね' が生実行していた）
+  - EN: chain1 に `should we|ought we|might we|would we|would/might you possibly|i wonder if you('d|d| could)|wondering if you('d|d| could)|there's gotta be a way to|is it possible for you to|would it be possible for you to` + help `/^is there (?:any )?way to/`（'is there a way to' 統合）
+  - 教訓: function-scope const（E_TE ~459）は参照行より前必須—429行配置で TDZ 障害→移動で解消。tests/residual-tail-atoms.test.js は R96 由来の既存ファイル—新規writeで既存170件を潰さないこと
+
+### Session 188
+- ラウンド114: 意向報告・残余フレーム原子層（tests/intent-report-atoms.test.js、+123件 / 実装前100件赤）
+  - JA ては依頼枠: TAIL_TE に `はもらえませんか|はいただけませんか|はどうでしょう|はいかがでしょうか|はいかがですか`
+  - JA て受益残置VI: `やってください|もらっていいですか|もらうわけにはいかないでしょうか|しまおうではないか|しまおうじゃないか`
+  - JA 引用・断定残置: FR `ように言った|ように言われた|ようにと言った`、語幹 `なさい(よ|な|ってば|ね)`、関西 `なって`（stemTe — `stemTe`/`dictTe` const 宣言（~415行）より後ろに配置必須）
+  - JA 意向提案枠: VOL 尾拡張 `よう/おう(?:かな|ではないか|じゃないか|…)`（一段）、KAI 尾拡張 `[おこごそとのぼもろほ]う(?:かいな|…|ではないか|じゃないか|…)`（五段: '戻ろうではないか'→戻って）
+  - JA ば+じゃん/のでは: E_TE/りゃ/ちゃえば 各規則の尾に `じゃん|のでは` 追加 + 五段 `りゃ`→'って' push（'戻りゃいいじゃん'→戻って）
+  - JA 判定枠III: FR `のが筋(?:では)?|ほうが賢明|のが妥当|のが適切|ことを推奨|ことをおすすめ|ことを望む|ことを望みます|ことを期待|ことにしよう|ことにしたい`
+  - EN 深礼儀III: chain1 に `would you be so good as to|be good enough to|do me the kindness of|beseech|entreat|if it please(s) you|pray|prithee`
+  - EN 可能性・提案枠: `any way you could/can|any way for you to|is there any way|any chance you might|how about you|what about you|you wanna`
+  - EN 名誉/decency: `have the decency to|do the decent thing and|have the courtesy to`
+  - EN 後置礼儀・完了語尾: `if you would be so kind|if you would kindly|and be done (with it)|and get it over with|and let's move on|once and for all|for good|permanently|for the last time`
+  - 誤ルート修正: `could/can i (get|ask) you to` が help（`/^can i /`・`/^could…i/`）に誤ルート → lookahead 除外で実行へ; `any way you can` help リテラル除去
+  - 教訓: `stemTe`/`dictTe`/`MAS*U_TE` は関数内 const（~415行宣言）— それより上の行で使うと `Cannot access before initialization`。交互配置: 最長一致は同一交互内の「行順」でなく「後続行の別 push」でも解決可（'what about you' を 'what about' 同交互内前置で修正）
+  - 9716→9839テスト全緑 / lint 0エラー136警告=baseline / build green / FFFD 0件
+
+### Session 187
+- ラウンド113: 残余・複合原子層（tests/remainder-compound-atoms.test.js、+198件 / 実装前143件赤）
+  - JA て受益残置V・複合尾: TAIL_TE に `お願い申し上げます|お願いいたします|お願い致します` + ておく残置群（`おきますね|おきましょう|おきたい|おくつもり|おく予定|おくことにする/した|おくね|おいてほしい/くれ/くださいね|おこうと思います/思って|しまってよい`）+ `くれますよう|ますと系|ましたら系|くださいな|くださいましね|ちょうだいな/ね` + **`から[^。！？!?]*`**（てから順序接続: '閉じてから次へ'→close-tab）
+  - JA 判定枠II: FR に `ほうがよろしいと存じます` + FR 残基 `れ$`→stemTe 行追加（'閉じられればいい'→close-tab）
+  - JA とく/ちゃ残置: `とこう|といて`（て+で双push）、`ちゃ(?:いなさい|ってください|ってもいい|っていい)`→て / `じゃ`→で / `じまえ・じゃえ` 双push
+  - JA お敬語拡張: `いただきたい` 追加 + 長尺化（lint 対応で `new RegExp` 連結化）
+  - EN 礼儀深掘りII: chain1 に `be a X` 系・courtesy・grateful-if-you 群（`(?:i'd|id|i would) be (?:grateful|obliged|thankful|...) if you` / `appreciate it if you`）+ `extend/afford/grant (me)? the courtesy of` + `suppose you/we|say you` + `if you'd just go ahead and|if you could just go ahead and|if you could just possibly`（裸 `if you could` より前置配置）
+  - 教訓: TAIL_TE 編集時 `から[^。！？!?]*` に `|` 欠落で次分岐と癒合（`から[^...]*くれますれば` 巨大ブランチ化）— 編集後は必ずコンパイル済み .source を検証。また `_politeVariants` 透過再帰により pushed variant も再ストリップされる（'possibly close it'→'close it'）
+  - 9518→9716テスト全緑 / lint 0エラー136警告=baseline / build green / FFFD 0件
+
+### Session 186
+- ラウンド112: 条件・許可原子層（tests/conditional-request-atoms.test.js、+194件 / 実装前172件赤）
+  - JA て受益残置IV: TAIL_TE に `くれますれば|くれれば幸い|助かります|嬉しい|助かるんだ` + もらえれば/いただければ系
+  - JA て許可質問: `いいか|よいか|もいいか|いいのか|いいんでしょうか|よろしいか|いいわけですね|いいんですよね|いいかしら|いいかと` 系一括
+  - JA dict条件・緩接続: FR に `ならば(よろしい|結構です)|ならいい|のであれば(早く|よろしい|大丈夫)|ので(いい|よい|したら|結構です)|という(のであれば|ことであれば)|ことなら(いい|できる)` + `とか(いう|言って|で|して|ね|よ)|なんかして|くらい(なら|で|して)|ぐらい|程度で|ほどで|だけ(なら|でいい|のこと|の話|なんだけど|なんです|なのに)|さえすれば|すらすれば|でも(いい|して|すれば)|か何かして|かなんかして|とかなんとかして`
+  - EN 譲歩・前置ネストIII: chain1 に `if you'd just|if you would/could just|if you would be so kind as to|if it's not too much (trouble|to ask)|unless you (object|mind)|barring objection|subject to your approval|with your permission|by your leave|if you will permit|permit me to|want/need/tell me to|do you want/need me to|say the word|all you (have to|need to|gotta) do is|you (only|just) (have|need) to|all it takes is|do the honors|have the honor/pleasure|take a stab/crack/shot/whack|give it a go|try your hand|proceed|go forth|venture/dare/trouble yourself|bother|deign/condescend/vouchsafe|see/think fit|find it in (yourself|your heart)|have the goodness/kindness|oblige me by|indulge/humor me|bear with me|put up with it` 等
+  - EN 語尾: `for you|for once|a shot|a try|a go`
+  - 誤ルート修正: `find it in your heart to X`→find-in-page（`it in (yourself|your heart)` 除外・findQueryRe を _findQueryRe const 化）、`go forth and X`→go-to（`go(?! forth)` 除外）、`do you want/need me to`→help 奪取（lookahead に want|need 追加）
+  - 教訓: ENPRE は `^(ALT)[,\s]+` — 前置ブランチ内の末尾スペースを必須化すると裸形を破壊。可変部分は `(?: ...)` でスペース込みオプション化。また `(?:A)?` の先食いは最長一致順で解消（'if you will permit' を 'if you will' より先に）
+  - 9324→9518テスト全緑 / lint 0エラー136警告=baseline / build green / FFFD 0件
+
+### Session 185: 殊さ依頼原子 — よう依頼枠・名詞型依頼・て受益残置III・EN深礼儀II
+
+Round 111 of the standing "おまかせ" improvement loop (stacks on #396's
+`devin/1790528928-compound-request-atoms` @ ee36a2d). All forms below verified
+NO-MATCH (or misroute) via live probes before implementation; ~136 candidates
+probed, 137 failing-first cases shipped.
+
+#### JA dict + よう(に)? + 依頼名詞枠（FR 尾）
+- `ように?(?:お願い|頼み|願い|要請|希望)(?:申し上げます|致します|いたします|します|する|ます)?`
+  → '閉じるようお願いします'/'閉じるよう頼みます'/'閉じるよう願います'→実行
+  （初回は末尾 'ます' を落として '頼みます'/'願います' が NONE — プローブで捕捉）
+- dict + bare 依頼名詞 `要請|お願い|希望|依頼`（'閉じる要請'→close-tab）
+
+#### JA て + 受益・敬体残置III（TAIL_TE 拡張）
+- `くれますかね|くれりゃ|くれないかなあ|くれないですかね|くださいまし|
+  くださいますよう(お願い…)?|くれるのでしょうか|くれるんでしょうか|くれるだろうか|
+  くれるかどうか|くださったら|もらったら|もらうよう|いただくよう|
+  くださるようお願い…|頂戴いたします|頂戴する|ちょうだいする|
+  お願い申し上げます|お願いいたします|お願い致します`
+
+#### JA dict + 判断枠（FR 尾）
+- `ことはできますか|ことができますか|ことは可能ですか`（能力→実行と解釈）
+- `べきではある|べきかと|べきもの|べきかもしれない`（**'べきではないか' は
+  negate 維持 — 判定枠と禁止枠を分離**）
+- `のが良い(と思う)?|のがいいかも|のがいいでしょう|のが正しい|ことが望ましい|
+  のが望ましい|のが好ましい|ほうがいいと思います|ほうがいいです|
+  ほうがいいと考えます|ほうがよろしい|ほうがいいかも`
+- `必要があろう|必要性がある|必要があるように思う|必要がありそう|必要ありそう|
+  必要がありますね|必要があるのでは|必要があるようだ`
+
+#### EN 深礼儀ネストII（chain1 拡張 + 先行ルール修正）
+- `'it would (help|mean) a lot if you (could)?'` + 'it would be X if you could' に
+  `lovely|wonderful|fantastic|marvelous` 追加（scoped-help が 'help a lot' を
+  トピック問い合わせと誤認 → `a lot if` だけ除外に窄め、'it would help a lot'
+  単体の scoped-help を回帰維持）
+- 意見枠: `how would you like to|what would you say to|what do you say to|
+  how do you feel about|up for|down for`
+- 陳述依頼: `humbly request (that )?you|i (request|ask) that you|
+  i (ask|beg|urge|implore) you to|may i (ask|trouble) you to|
+  might i trouble you to|ask you to|trouble you to`（'may i' が先に食う
+  順序問題は 'ask you to|trouble you to' 残余ブランチで解消）
+- 推量枠: `(think|reckon|figure|guess|imagine|believe|suppose) you could|
+  do you (think|suppose|reckon|figure) you (could|might)( maybe)?` —
+  help の `^do (you|they)` を `(?! suppose| reckon| figure)` に窄め、
+  `^how do (we|you)` に `(?!.*feel about)` 追加（**共に実行ルートへ是正**）
+- 可能性枠: `any possibility of|any chance of|is there any chance of|
+  would it be (too much( trouble)?|possible) to`（'is there any chance' が
+  'of' を残して先行マッチ → `(?: of)?` で最長一致化）
+- 接頭副詞: `(perhaps|maybe|possibly|surely|certainly) you (could|can|would)|
+  you (could|can|might|may) (always|just|as well)|(might|may) as well|
+  perhaps|maybe|possibly|surely|certainly`
+
+#### EN 即時・便宜語尾
+- `if you might|when ready|when you can|when possible|at your earliest
+  convenience|at your convenience|if convenient|where possible|as soon as
+  possible|as quickly as you can|as fast as you can|as soon as you can|at once|
+  this instant|immediately if possible|right away( please)?|straightaway|
+  forthwith|posthaste|in a jiffy|in a flash|in a sec|in a moment|momentarily`
+- 'double quick' は先行する bare-'quick' 語尾に先勝ちさせて配置
+  （961 行目の `(?:real )?(?:quick|fast|quickly)` 内の最長一致として移動）
+
+Verification: 157/157 new cases green (137 red pre-impl), full suite 9324/9324,
+eslint 0 errors / 136 warnings (=baseline), `npm run build` green, FFFD 0.
+
 ### Session 184: 複合依頼原子 — 受益メガ尾II・意向報告・ばよろしい・EN礼儀ネスト深掘り
 
 Round 110 of the standing "おまかせ" improvement loop (stacks on #394/#395's merged
