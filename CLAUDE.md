@@ -1720,7 +1720,7 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 251
+### Session 248
 
 - ✨ JA: ておく確定残置（おく算段だ・おく手だ・おく方向だ・おくが吉）・てみろ方言（みろう・みなされ）・dict秘策名詞尾（のが秘策だ・奥の手だ・切り札だ・とっておきだ・虎の子だ・隠し玉だ）→ 実行。
 - ✨ EN LX: 'final answer:'・'the verdict is in'・'case closed'・'decision made'・'mums the word'・'say no more' 前置 → 実行（final answer:? でコロン許容）。
