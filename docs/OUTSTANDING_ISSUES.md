@@ -1573,6 +1573,33 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - **EN 曖昧処分IV (Session 316)**: 'murk it'/'write it off'/'gut it'/'wreck it'/'smash it'/'crush it'（賞賛語または語義曖昧）、'murder it dead'/'kill it dead'（冗長強調）、'vanish this'/'poof it'/'make it poof'、'begone/be gone tab'（古語呼びかけ）、'hit the bricks'/'hang it up'/'leave the tab'/'drop it like its hot'/'flush it'/'burn it down'/'for good close it'/'batten it down'/'why wouldnt you close it'（wh 枠は wont/cant のみ pin）。
 - **JA 非対象 (Session 316)**: '閉じぬこ'（まれな南方方言形）。
 
+### R242 / Session 316（CXCVI）— 意図スキップ一覧
+- EN: `smash it` / `crush it` / `lose it` / `begone tab` / `leave the tab` — 処分意図不明瞭または pin 衝突 (`leave`族)
+- EN: `why wont/cant you close it` — trouble 確立ピン維持（修正試行は既存3テストの回帰で撤回）
+- JA: `閉じるべきでは` — negate 確立ピン維持
+
+### R243 / Session 317（CXCVII）— 意図スキップ一覧
+- EN: `do it then` — 動詞指称なし、単独では閉じ意図不明
+- EN: `curtain call for this tab` — device-apps 誤爆するが演劇語で処分意図が曖昧 → 観察
+- EN: `end of the line for this tab` — caret-edge（End キー語）先勝ちのため維持
+- EN: `leave it closed` — 「閉じたままに」意 → negate 維持
+- EN: `scram` / `get lost` / `sick of this tab` / `tired of this tab` — 感情表現 or 罵倒、処分意図不明
+- JA: `閉じとくよ/ね/わ` — 話者宣言（"自分で閉じる" とも取れる）→ とく尾としてルート化済みだが実行可否は観察枠
+
+## R244 skip-list（Session 318）
+- `its done here` — 「自分はここで終わり」寄りの曖昧宣言、tab-close と vr-exit の中間で観察枠（null 維持）
+- `do it then` — 先行コンテキスト依存の曖昧命令（null 維持）
+- `close out (the|this) tab` — 'close up X' と同族の名指し形 → close-tab-by-name ピンで維持
+- `閉じるのが正解` — 確立 help ピン維持（'正解でしょう' は dict で close-tab に分岐済み）
+
+## R245 skip-list（Session 319）
+- `handle this`/`deal with this`/`sort this out`/`address this`/`fix this` — 'this' が曖昧目的語（'…it' 族は ack/trouble ピン済み）→ null 維持
+- `do something about|with it`, `something needs to happen to this tab` — 漠然要請で閉じ意図不明瞭 → null
+- `閉じれるかな` — 能力wonder形、依頼と質問の中間 → null 観察枠
+- `閉じてばかりでは`, `閉じるばかり` — 習慣批判で命令ではない → null
+- `閉じるのが理にかないます` — 語内に `ない` を含み negate 生ヒット → negate ピン（実害なし・記録のみ）
+- `begone (tab)` — R242 archaic-address ピン維持（`begone from my sight` は close-tab で分岐済み）
+
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。
