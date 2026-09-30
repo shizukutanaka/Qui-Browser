@@ -345,7 +345,7 @@ export class VoiceCommands {
 
     // ます形 → て形: godan stem-final kana map (行きます → 行って is the one
     // common exception); anything else takes stem + て (ichidan).
-    // (Past/negative forms ました/ません are NOT stripped — '閉じました'
+    // (Past/negative forms ました/ません are NOT stripped — '閉じました',
     // means "I closed it", not a request.)
     const m = normalized.match(/^(.*?)(?:ましょう|ませんか|ますか|ます|なさい)[。！？!?]?$/u);
     if (m && m[1]) {
@@ -1559,7 +1559,7 @@ export class VoiceCommands {
     push(normalized.replace(/だほうが早くない[。！？!?]?$/u, 'で'));
     // 'なよね' casual imperative: '閉じなよね'→'閉じて'.
     stemTe(normalized.replace(/なよね?[。！？!?]?$/u, ''));
-    // Negative-rhetorical urge: '閉じないでどうする'/'閉じずにどうする'→'閉じて'
+    // Negative-rhetorical urge: '閉じないでどうする'/'閉じずにどうする'→'閉じて',
     // (ichidan stemTe) / '読まずにどうする'→'読んで' (godan NAKYA).
     stemTe(normalized.replace(/(?:ないで|なくて|ずに)どうする[のん]?[。！？!?]?$/u, ''));
     push(normalized.replace(/([まらわかがさたなばぱ])(?:ないで|なくて|ずに)どうする[のん]?[。！？!?]?$/u,
@@ -2100,7 +2100,7 @@ export class VoiceCommands {
 
     // Read aloud starting at line N — VoiceOver read-from-line parity, the
     // indexed variant of read-here. Hoisted before reader-goto-line: its
-    // /(\d+)\s*行目/ and /line (\d+)/ would otherwise swallow '30行目から読み上げ'
+    // /(\d+)\s*行目/ and /line (\d+)/ would otherwise swallow '30行目から読み上げ',
     // and 'read from line 30'.
     this.registerCommand('read-from-line', {
       patterns: [/(\d+)\s*行目から読み上げて?/, /(\d+)\s*行目から読んで/,
@@ -4168,7 +4168,7 @@ export class VoiceCommands {
       confirmationText: config.confirmationText || null,
       description: config.description || '',
       // Spoken example for the 'help' command, used only when every pattern
-      // is a RegExp (no literal phrase to read aloud) — e.g. 'search'/'go-to'
+      // is a RegExp (no literal phrase to read aloud) — e.g. 'search'/'go-to',
       // accept a free-form spoken argument, so there's no single fixed string.
       example: config.example || null,
       metadata: config.metadata || {}
@@ -4961,7 +4961,7 @@ export class VoiceCommands {
 
     // Clear browsing history (privacy) — hands-free equivalent of the settings
     // panel "Clear History" action (Session 56). Registered before the greedy
-    // go-to catch-all. The '履歴' patterns don't collide with go-to's 'を開く'
+    // go-to catch-all. The '履歴' patterns don't collide with go-to's 'を開く',
     // capture, but specific-before-catch-all is the rule (processCommand stops
     // at the first match in registration order).
     this.registerCommand('clear-history', {
@@ -5073,7 +5073,7 @@ export class VoiceCommands {
     // and the chrome strip's stop-loading and private-mode affordances.
     // Registered before the greedy go-to catch-all: its `を開く` capture would
     // otherwise claim utterances like "新しいタブを開く".
-    // new-tab-with — the named-open twin: 'Xで新しいタブ'/'new tab with X'
+    // new-tab-with — the named-open twin: 'Xで新しいタブ'/'new tab with X',
     // opens a tab AND resolves the term through onGoTo (the go-to path:
     // URL → navigate, term → search). Registered BEFORE new-tab — its
     // /new\s+tab/i prefix-match owns the EN phrase and silently drops the
@@ -5627,19 +5627,18 @@ export class VoiceCommands {
         'unhold its claim utterly', 'remove its hold on existence straightaway', 'set adrift the tab with disgust', 'unground its rights utterly',
         'give up on this tab without mercy', 'flush out the tab totally', 'unwelcome its claim on this with purpose', 'unweave that tab immediately',
         'shear off its hold immediately', 'unname its title with ease', 'unhit this thing joyfully', 'dissolve it with glee',
-        'bleed that tab without looking back', 'unclose its hold on existence with intent', 'cast out this thing with a dance', 'repossess this without remorse',
+        'bleed that tab without looking back', 'cast out this thing with a dance', 'repossess this without remorse',
         'wrench out its title with a dance', 'scratch off that tab with zeal', 'unmoor it its claim on me without pity', 'deny its hold fully',
         'disown its right with glee', 'disown its right with hatred', 'weed out its right eagerly', 'unshelve this with conviction',
         'unshackle that tab with equanimity', 'unsack it with enthusiasm', 'repossess its title summarily', 'relinquish its hold on this with a laugh',
         'relinquish its hold on me with relief', 'unstick its hold on me with delight', 'unsee that tab utterly', 'seize its hold on me with a smile',
         'excise that tab totally', 'unberth this page permanently', 'repudiate its place with dispatch', 'empty out this thing happily',
-        'unship its claim with apathy', 'pluck out its hold on me absolutely', 'cast away its grip freely', 'unsubscribe its hold on this with determination',
-        'unmoor its grip on me with satisfaction', 'fling away the tab forthwith', 'nationalize its hold with dispatch', 'obliterate this tab readily',
+        'unship its claim with apathy', 'pluck out its hold on me absolutely', 'cast away its grip freely', 'unmoor its grip on me with satisfaction', 'fling away the tab forthwith', 'nationalize its hold with dispatch', 'obliterate this tab readily',
         'oust its claim on existence with relish', 'cast out its existence permanently', 'uncase its existence without mercy', 'unmake its place with purpose',
         'unwant this page without a second thought', 'give over its rights with promptness', 'unstand that tab without remorse', 'pull out this totally',
         'unrecord its place with relief', 'unform the page wholly', 'turn loose it permanently', 'cast out its rights immediately',
         'lance off its claim on existence eagerly', 'tear off its right with repugnance', 'tear out its claim on this with satisfaction', 'unnest its claim on me with glee',
-        'cast out the tab with haste', 'peel its hold on existence instantly', 'unclose its rights with certainty', 'impound that tab with a smile',
+        'cast out the tab with haste', 'peel its hold on existence instantly', 'impound that tab with a smile',
         'unwish it with calm', 'unbrowse this thing irrevocably', 'efface its place readily', 'unstop its right happily',
         'sequester its rights with a laugh', 'unhold its claim without hesitation', 'expel this tab at once', 'slough off its claim on this with a dance',
         'unknit its right with coldness', 'uncoil its place with disgust', 'waive its hold on me with delight', 'unclog the page with apathy',
@@ -5650,12 +5649,11 @@ export class VoiceCommands {
         'unneed its right with a grin', 'forswear this page with peace', 'uncoil this thing without hesitation', 'unharness its title with zeal',
         'eminent-domain its rights summarily', 'unjack its claim on existence thankfully', 'saw off this page with purpose', 'unbag it with joy',
         'tear out that tab promptly', 'commandeer this page without hesitation', 'unbear its place with a song', 'pluck off the tab gratefully',
-        'disinhume it with dispatch', 'forswear its claim on me irrevocably', 'unbeg this with loathing', 'debark this with intent',
-        'unearth its hold on existence with passion', 'unroost its hold gratefully', 'let drift its hold on existence thankfully', 'scuff off its existence fully',
+        'disinhume it with dispatch', 'forswear its claim on me irrevocably', 'unbeg this with loathing', 'debark this with intent', 'unroost its hold gratefully', 'let drift its hold on existence thankfully', 'scuff off its existence fully',
         'unmoor it its hold on this readily', 'erase its claim on existence categorically', 'brush off its claim on this without regret', 'unsocket this thing willingly',
         'unvisit its grip on me once and for all', 'rootle out this tab with relish', 'requisition its hold on this fast', 'dissolve this thing freely',
         'tear off its existence with hatred', 'unserve this irrevocably', 'unstand its grip with a song', 'strip off its claim on this readily',
-        'weed out its grip with glee', 'unbag this thing with hatred', 'unpin it eagerly', 'extricate its hold with peace',
+        'weed out its grip with glee', 'unbag this thing with hatred', 'extricate its hold with peace',
         'unanchor its claim with a dance', 'nationalize its claim on this with fervor', 'unclasp its right readily', 'cut adrift its hold on existence with a song',
         'tear off its grip with intent', 'empty its grip without delay', 'unstick its grip on me with malice', 'obliterate its claim on me without hesitation',
         'cede this page with purpose', 'unlove this tab with a cheer', 'unroost the page without mercy', 'uproot this thing with tranquility',
@@ -5681,10 +5679,9 @@ export class VoiceCommands {
         'cut adrift its hold on me with scorn', 'unroll this completely', 'unjam its grip instantaneously', 'nationalize this thing with alacrity',
         'seize its hold on me right now', 'unlist its claim on this with indifference', 'unlace the page with scorn', 'nationalize its claim on existence without hesitation',
         'shell its title now', 'cast out this thing fully', 'unwant that tab once and for all', 'unseat its title with a smile',
-        'tear off its place with disgust', 'unearth this tab with purpose', 'unsaddle its grip without remorse', 'repudiate this page immediately',
+        'tear off its place with disgust', 'unsaddle its grip without remorse', 'repudiate this page immediately',
         'bereave the page with revulsion', 'unlie this page with disdain', 'sign over the page with serenity', 'unlie that tab with revulsion',
-        'unlie its right with hatred', 'unsack its existence with disdain', 'unwant this with finality', 'reject its hold with alacrity',
-        'exhume the tab with a song', 'unnest its place with repugnance', 'unlie its grip thankfully', 'disown this permanently',
+        'unlie its right with hatred', 'unsack its existence with disdain', 'unwant this with finality', 'reject its hold with alacrity', 'unnest its place with repugnance', 'unlie its grip thankfully', 'disown this permanently',
         'shell that tab without remorse', 'shell its claim on existence with a grin', 'unfix its place fast', 'dispossess its existence with revulsion',
         'unbind its claim on this with relief', 'cast away its grip on me instantaneously', 'unknit this without regret', 'reject its grip with fervor',
         'spurn its hold on this immediately', 'gut its claim with contempt', 'unrecord its grip on me with malice', 'unbox its existence with loathing',
@@ -5694,20 +5691,18 @@ export class VoiceCommands {
         'leech this thing wholly', 'unpresent its claim on me with coolness', 'oust its existence with malice', 'dig out this thing entirely',
         'reject its claim on me forever', 'abdicate its rights with dispatch', 'disentangle it gladly', 'drain this page with joy',
         'sequester its title right now', 'unfetter its right thankfully', 'unpresent its place fully', 'unhope its claim without pity',
-        'break off the page with determination', 'expel it with dispatch', 'unstick its hold straightaway', 'chop off its hold on me with a cheer',
-        'unsubscribe its hold willingly', 'wash off this with a dance', 'snip off its claim on this with zeal', 'unhold it totally',
+        'break off the page with determination', 'expel it with dispatch', 'unstick its hold straightaway', 'chop off its hold on me with a cheer', 'wash off this with a dance', 'snip off its claim on this with zeal', 'unhold it totally',
         'exscind this page with serenity', 'unberth its grip with indifference', 'unhope its claim on this with satisfaction', 'pull out its claim on this readily',
         'slice off its claim on me straightaway', 'drain its claim on me with purpose', 'deny its claim on existence with intent', 'unyoke its grip with calm',
         'leech its place with satisfaction', 'quitclaim its hold with loathing', 'sequester it with promptness', 'shake off its right with tranquility',
         'unsleep its claim on existence happily', 'unhinge its title with revulsion', 'untomb its claim on existence with coolness', 'let slip its rights willingly',
-        'commandeer its hold absolutely', 'exhume its place with enthusiasm', 'abjure that tab with satisfaction', 'pry out this thing with delight',
+        'commandeer its hold absolutely', 'abjure that tab with satisfaction', 'pry out this thing with delight',
         'pry out its claim on me permanently', 'pry out its place with calm', 'untomb its right without pity', 'husk its place thankfully',
         'disentomb its claim on me quickly', 'rip off this tab without delay', 'unweave its grip with hatred', 'unclench its hold on this irrevocably',
         'unhand its existence with repugnance', 'uncoil its claim on me with certainty', 'unchain its hold on me without regret', 'unsack its hold on this with coldness',
         'unlove its grip on me with calm', 'unpack its hold permanently', 'rip out its title with joy', 'unfetter the tab on the spot',
         'unwish it irrevocably', 'unmold its claim on existence with scorn', 'unsocket this thing with antipathy', 'unmoor it its hold on this with determination',
-        'unfold its hold on existence right now', 'unjam its title with serenity', 'pare off its place with peace', 'quitclaim its right with passion',
-        'exhume its grip on me with ease', 'flush out its hold with a song', 'unhouse its hold at once', 'unbar its hold on me forthwith',
+        'unfold its hold on existence right now', 'unjam its title with serenity', 'pare off its place with peace', 'quitclaim its right with passion', 'flush out its hold with a song', 'unhouse its hold at once', 'unbar its hold on me forthwith',
         'write off this tab with a laugh', 'unstop its hold with joy', 'unstring its hold on me with promptness', 'shake off its grip on me with calm',
         'disclaim its claim immediately', 'eschew its right for good', 'break off its existence with loathing', 'untie it with apathy',
         'unbeg its grip summarily', 'eschew its rights with dispatch', 'unsit the tab with satisfaction', 'chop off this tab with peace',
@@ -5715,8 +5710,8 @@ export class VoiceCommands {
         'shake off its rights with a laugh', 'dispossess its claim with a dance', 'unclasp its hold on existence with antipathy', 'unform its existence with fervor',
         'slough off its claim freely', 'unlace its claim on this with alacrity', 'abdicate this wholly', 'unstand its claim on this speedily',
         'unload this tab wholly', 'let slip that tab without a second thought', 'surrender its right with apathy', 'strip bare its claim with glee',
-        'unrest its rights with malice', 'unvisit the tab with serenity', 'unearth this tab with antipathy', 'excise this tab with indifference',
-        'push out this tab right now', 'wind up this thing with joy', 'unsubscribe its claim on me with zeal', 'pluck off its hold on me with a cheer',
+        'unrest its rights with malice', 'unvisit the tab with serenity', 'excise this tab with indifference',
+        'push out this tab right now', 'wind up this thing with joy', 'pluck off its hold on me with a cheer',
         'scuff off its claim instantly', 'desquamate that tab with alacrity', 'dissolve its claim with a grin', 'defoliate its claim on existence on the spot',
         'shuck its hold on me with promptness', 'give over this page without a backward glance', 'excise this tab utterly', 'eschew its hold on existence with a song',
         'pry off the tab without a second thought', 'appropriate the page entirely', 'waive its hold on me without remorse', 'unsit its right with indifference',
@@ -5751,37 +5746,32 @@ export class VoiceCommands {
         'shell its rights summarily', 'ungrave its existence utterly', 'untomb this tab with coolness', 'reject the tab with joy',
         'divest its claim on this with a song', 'tear off it', 'unground its hold on existence with promptness', 'unform this tab',
         'wrench out its hold permanently', 'unbind its claim on existence with indifference', 'expel its grip summarily', 'sign over its hold gladly',
-        'deprive its existence thankfully', 'unpin its rights with equanimity', 'dust off its right completely', 'unbury this page without regret',
-        'unhook its claim gratefully', 'drain its right gladly', 'unrecord its claim on existence with a cheer', 'disown its hold with contempt',
+        'deprive its existence thankfully', 'dust off its right completely', 'unhook its claim gratefully', 'drain its right gladly', 'unrecord its claim on existence with a cheer', 'disown its hold with contempt',
         'peel its hold on existence absolutely', 'defoliate its hold today', 'unname its right irrevocably', 'exscind its hold on existence with enthusiasm',
         'unknit its hold with a smile', 'flay the tab swiftly', 'toss out its hold on me with a dance', 'unwind its claim without regret',
-        'unwrap the page with a smile', 'empty out its rights with serenity', 'unview its right happily', 'sign away its hold on this right now',
-        'unpin its hold on this with dispatch', 'throw off this entirely', 'unpin the page with zeal', 'cast away its existence irrevocably',
+        'unwrap the page with a smile', 'empty out its rights with serenity', 'unview its right happily', 'sign away its hold on this right now', 'throw off this entirely', 'cast away its existence irrevocably',
         'abdicate its rights categorically', 'unlace the tab with joy', 'unwire its grip with hatred', 'unbear this gratefully',
         'peel its hold on the spot', 'unpray this tab with relief', 'cast adrift its existence at once', 'disclaim its hold on me with coolness',
         'wrench out the tab joyfully', 'unneed this tab without regret', 'unhope its claim on existence with a song', 'unsack its claim on this with a grin',
-        'unhost that tab with haste', 'requisition it entirely', 'unrecord its hold happily', 'unmount its claim on me straightaway',
-        'extricate the tab with a song', 'dissolve this tab with determination', 'slice off this with a laugh', 'skin its place with a dance',
-        'dust off its rights', 'unsubscribe this tab categorically', 'cast out its claim on this with alacrity', 'unwire its rights entirely',
+        'unhost that tab with haste', 'requisition it entirely', 'unrecord its hold happily', 'extricate the tab with a song', 'dissolve this tab with determination', 'slice off this with a laugh', 'skin its place with a dance',
+        'dust off its rights', 'cast out its claim on this with alacrity', 'unwire its rights entirely',
         'cede its claim on me forthwith', 'drain its hold on me absolutely', 'abjure its hold on existence', 'obliterate the tab with a laugh',
-        'unseal that tab with a song', 'unblock its right with finality', 'thrust out its hold on this with antipathy', 'debark it once and for all',
-        'unstick the tab with zeal', 'unshackle this tab with a cheer', 'set adrift the tab quickly', 'unhope its claim on existence with serenity',
-        'exhume its claim on this with disdain', 'pod its place eagerly', 'unbag its right with purpose', 'let loose its claim on me with antipathy',
+        'unseal that tab with a song', 'thrust out its hold on this with antipathy', 'debark it once and for all',
+        'unstick the tab with zeal', 'unshackle this tab with a cheer', 'set adrift the tab quickly', 'unhope its claim on existence with serenity', 'pod its place eagerly', 'unbag its right with purpose', 'let loose its claim on me with antipathy',
         'unview this thing with joy', 'strip off its hold on existence with zeal', 'unrecord that tab with delight', 'untwist its hold on existence with certainty',
         'spurn its hold on this for good', 'empty this page willingly', 'unhand its right with a smile', 'unhorse its claim swiftly',
         'excoriate its rights quickly', 'untwist its right without pity', 'unlatch its claim on existence with alacrity', 'flay this tab at once',
         'wash off this thing thankfully', 'set adrift the tab with zeal', 'uncarry its place finally', 'wash off the page with coolness',
         'abjure this tab', 'obliterate its grip on me forever', 'unbuild its place with resolve', 'extract this page without regret',
         'unmoor it its place with passion', 'pluck out this instantly', 'tear out the page fast', 'untap the page with a song',
-        'unfold its existence on the spot', 'unlie its title with coldness', 'unsubscribe its existence with zeal', 'clear out this with purpose',
+        'unfold its existence on the spot', 'unlie its title with coldness', 'clear out this with purpose',
         'unship it with equanimity', 'extirpate this tab', 'let drift its place with conviction', 'unfix its claim on this straightaway',
         'unwish this page permanently', 'displace this page with fervor', 'wrest off its existence with scorn', 'eminent-domain its place instantly',
         'shake off its grip thankfully', 'leech its grip with pleasure', 'dissolve the page with glee', 'unhave its rights with pleasure',
         'wind up its grip with finality', 'shove out this thing with a smile', 'rip out its claim at once', 'unhorse this with a grin',
         'unpress the page with speed', 'uncoil this gladly', 'unwelcome this today', 'unhope the page with resolve',
         'unplug this thing with determination', 'throw off its claim on this with malice', 'unlist its claim on existence with fervor', 'let drift that tab joyfully',
-        'unfile its grip on me with purpose', 'uncase its hold on this with a cheer', 'unsubscribe the tab with equanimity', 'deny its claim on this with satisfaction',
-        'unearth this page fully', 'toss away its claim on existence with equanimity', 'scratch off its hold on me gratefully', 'unsee its claim with relief',
+        'unfile its grip on me with purpose', 'uncase its hold on this with a cheer', 'deny its claim on this with satisfaction', 'toss away its claim on existence with equanimity', 'scratch off its hold on me gratefully', 'unsee its claim with relief',
         'release its place eagerly', 'untwist its right instantly', 'pod its existence with zeal', 'snip off its hold on me with resolve',
         'unneed its rights with malice', 'unspin its claim on me with resolve', 'unneed its claim on existence with ease', 'unhinge the page with ease',
         'unbar it with certainty', 'extirpate the page with resolve', 'unbag this page gladly', 'cast out its hold on me promptly',
@@ -5790,8 +5780,7 @@ export class VoiceCommands {
         'shove out its hold on me without mercy', 'unstring the page with tranquility', 'unhinge this tab today', 'bereave its existence immediately',
         'expropriate its grip on me with a grin', 'chop off its place with equanimity', 'dispossess it with coolness', 'relinquish the tab finally',
         'appropriate its right with revulsion', 'shove out it with contempt', 'dissolve its grip instantly', 'unyoke its claim on this freely',
-        'unkeep the page forthwith', 'oust its hold on this without mercy', 'unleash this page with relief', 'unhit its right with conviction',
-        'unshut its claim on me without a second thought', 'give away its rights permanently', 'unhit its claim on this with zeal', 'eject it willingly',
+        'unkeep the page forthwith', 'oust its hold on this without mercy', 'unleash this page with relief', 'unhit its right with conviction', 'give away its rights permanently', 'unhit its claim on this with zeal', 'eject it willingly',
         'unpray its rights with dispatch', 'turn over its existence with disdain', 'uproot its claim on existence absolutely', 'shove out this tab with contempt',
         'shake off that tab with pleasure', 'write off its existence permanently', 'strip off the page speedily', 'rip out it absolutely',
         'untap its grip on me with calm', 'unthread this thing quickly', 'repudiate its claim on this speedily', 'unmake this thing with passion',
@@ -5804,140 +5793,98 @@ export class VoiceCommands {
         'unleash its place with fervor', 'disentomb this tab permanently', 'pluck off its grip on me without a backward glance', 'untap its hold on existence happily',
         'unstick this tab with aversion', 'forgo this page with aversion', 'undock that tab with certainty', 'scour off its claim on existence with aversion',
         'unkeep its hold on existence with relief', 'unclog its hold on this with aversion', 'unrecord this without delay', 'uncall this tab gladly',
-        'unpresent this page with aversion', 'hand over its claim on this with aversion', 'undo its hold on me with satisfaction', 'uncall this thing with finality',
-        'unkeep its grip on me with contempt', 'undo its grip with contempt', 'unthread the page immediately', 'cast out its right with aversion',
-        'undo its hold on existence joyfully', 'undock its claim on existence with tranquility', 'uncall its grip with hatred', 'unmoor the tab with aversion',
-        'bereave its grip with aversion', 'erase its claim on existence with aversion', 'undo this thing with a cheer', 'undo its right with equanimity',
-        'uncall that tab absolutely', 'wash off its hold on this with aversion', 'eject this with aversion', 'sign over its hold on existence with aversion',
-        'undo this tab with ease', 'undock its grip immediately', 'scour off this page with aversion', 'bereave this thing with aversion',
+        'unpresent this page with aversion', 'hand over its claim on this with aversion', 'uncall this thing with finality',
+        'unkeep its grip on me with contempt', 'unthread the page immediately', 'cast out its right with aversion', 'undock its claim on existence with tranquility', 'uncall its grip with hatred', 'unmoor the tab with aversion',
+        'bereave its grip with aversion', 'erase its claim on existence with aversion', 'uncall that tab absolutely', 'wash off its hold on this with aversion', 'eject this with aversion', 'sign over its hold on existence with aversion', 'undock its grip immediately', 'scour off this page with aversion', 'bereave this thing with aversion',
         'unplace this tab with aversion', 'undock its hold on existence irrevocably', 'uncall this with intent', 'undock its grip on me on the spot',
         'uncall its rights freely', 'undock the page fast', 'uncall its title irrevocably', 'unmold its place with aversion',
         'unkeep its title without hesitation', 'unrecord this tab eagerly', 'undock that tab with apathy', 'unrecord this thing summarily',
         'undock its title with disdain', 'throw aside this page with aversion', 'rootle out the tab with aversion', 'unhold its right with aversion',
         'unkeep its title with ease', 'undock this right away', 'disentangle its claim with aversion', 'uncall that tab with disdain',
         'cast aside its hold on me with aversion', 'flay the page with aversion', 'uncall its place with peace', 'unstop the page with satisfaction',
-        'let slip its rights with aversion', 'undo its place with aversion', 'unlock its hold on me with aversion', 'abnegate this with aversion',
-        'undo that tab with apathy', 'unregister the page with aversion', 'unwish its hold on me with aversion', 'unkeep its grip with aversion',
-        'liquidate it with aversion', 'unkeep its right right now', 'undock its claim on this finally', 'uncall its claim on this with speed',
-        'undo this with fervor', 'rob its claim on this with aversion', 'undream its hold with aversion', 'saw off its right with aversion',
-        'uncall its title with disgust', 'uncall the page at once', 'unkeep its rights forthwith', 'undo its hold on me finally',
-        'force out this tab with aversion', 'undock the tab right away', 'undock its claim on me summarily', 'uncall its grip happily',
+        'let slip its rights with aversion', 'abnegate this with aversion', 'unregister the page with aversion', 'unwish its hold on me with aversion', 'unkeep its grip with aversion',
+        'liquidate it with aversion', 'unkeep its right right now', 'undock its claim on this finally', 'uncall its claim on this with speed', 'rob its claim on this with aversion', 'undream its hold with aversion', 'saw off its right with aversion',
+        'uncall its title with disgust', 'uncall the page at once', 'unkeep its rights forthwith', 'force out this tab with aversion', 'undock the tab right away', 'undock its claim on me summarily', 'uncall its grip happily',
         'unrecord the page with joy', 'unshackle this tab with aversion', 'root out its place with aversion', 'abnegate that tab with aversion',
-        'undock this thing with indifference', 'undo it irrevocably', 'unplead its claim on me with aversion', 'undock its claim on existence with antipathy',
+        'undock this thing with indifference', 'unplead its claim on me with aversion', 'undock its claim on existence with antipathy',
         'uncall this promptly', 'uncall its claim on this instantaneously', 'unopen its claim on this with aversion', 'expropriate its hold on this with aversion',
-        'void that tab with aversion', 'give over this page with aversion', 'undo this tab with determination', 'unthread the page with relief',
-        'pod this tab with aversion', 'undo it right now', 'uncall the page with indifference', 'disengage its grip with aversion',
+        'void that tab with aversion', 'give over this page with aversion', 'unthread the page with relief',
+        'pod this tab with aversion', 'uncall the page with indifference', 'disengage its grip with aversion',
         'wrench off its claim on existence with aversion', 'undock this thing summarily', 'unmold its claim on existence with aversion', 'uncall its grip with malice',
-        'unmake the page with aversion', 'unthread the page gladly', 'deprive its claim on existence with aversion', 'unblock this with aversion',
-        'undo that tab freely', 'unform its hold with aversion', 'unkeep its claim instantaneously', 'let slip its title with aversion',
-        'unfile this thing with aversion', 'unkeep its claim on existence without a backward glance', 'toss out its grip on me with aversion', 'undo its rights right away',
-        'undock its hold joyfully', 'uncall the tab quickly', 'repossess the page with aversion', 'let go the page with aversion',
+        'unmake the page with aversion', 'unthread the page gladly', 'deprive its claim on existence with aversion',
+        'unform its hold with aversion', 'unkeep its claim instantaneously', 'let slip its title with aversion',
+        'unfile this thing with aversion', 'unkeep its claim on existence without a backward glance', 'toss out its grip on me with aversion', 'undock its hold joyfully', 'uncall the tab quickly', 'repossess the page with aversion', 'let go the page with aversion',
         'undock its claim on me fast', 'uncall this thing completely', 'brush off it with aversion', 'unstop the page with peace',
         'repudiate this with aversion', 'dust off it with aversion', 'shove out the tab with aversion', 'rootle out its title with aversion',
         'undock this with glee', 'obliterate this tab with aversion', 'unkeep its hold right now', 'give away its rights with aversion',
         'unbox its grip on me with aversion', 'undock its rights with intent', 'unload its hold with aversion', 'uncall the page for good',
         'undock this page without regret', 'uncall its claim straightaway', 'unkeep its grip fully', 'uncall its claim on existence wholly',
         'undock this with peace', 'exscind its title with aversion', 'unlace its grip with aversion', 'unkeep its claim on this with loathing',
-        'sign over its claim on this with aversion', 'unkeep this page with peace', 'unwrap this page with aversion', 'undo its claim without mercy',
-        'unhouse its existence with aversion', 'undo its claim on me with determination', 'untie its grip on me with aversion', 'foreclose on its grip on me with aversion',
+        'sign over its claim on this with aversion', 'unkeep this page with peace', 'unwrap this page with aversion', 'unhouse its existence with aversion', 'untie its grip on me with aversion', 'foreclose on its grip on me with aversion',
         'unrecord this page with joy', 'uncall its claim categorically', 'undock its hold on existence with aversion', 'uncall its hold on existence with a grin',
-        'undock its hold on me totally', 'let drift it with aversion', 'unseal its place with aversion', 'unkeep its place summarily',
-        'undo its hold with passion', 'uncall the page with fervor', 'unkeep its grip on me with glee', 'uncall its rights right away',
-        'cast aside its hold on this with aversion', 'undo its grip fast', 'dislodge its title with aversion', 'unkeep its claim without a backward glance',
-        'dig out its hold on this with aversion', 'undo this page with a grin', 'undock its claim on me straightaway', 'undo its right with speed',
-        'uncall its hold on me right now', 'undo its title fully', 'forfeit it with aversion', 'unkeep its hold forthwith',
-        'unrecord this thing with joy', 'undo its title with a laugh', 'unkeep its hold with revulsion', 'skin its place with aversion',
+        'undock its hold on me totally', 'let drift it with aversion', 'unseal its place with aversion', 'unkeep its place summarily', 'uncall the page with fervor', 'unkeep its grip on me with glee', 'uncall its rights right away',
+        'cast aside its hold on this with aversion', 'dislodge its title with aversion', 'unkeep its claim without a backward glance',
+        'dig out its hold on this with aversion', 'undock its claim on me straightaway', 'uncall its hold on me right now', 'forfeit it with aversion', 'unkeep its hold forthwith',
+        'unrecord this thing with joy', 'unkeep its hold with revulsion', 'skin its place with aversion',
         'uncall the page freely', 'unkeep its grip permanently', 'unrecord the page happily', 'uncall its grip on me with a laugh',
-        'undock its claim on existence with purpose', 'unhit the tab with aversion', 'uncall its right with a laugh', 'uncall its grip promptly',
-        'undo its hold on existence with promptness', 'undo its rights with coolness', 'liquidate its hold on existence with aversion', 'undo its claim on this gladly',
-        'undock its rights', 'unkeep this page finally', 'uncall its claim on existence with finality', 'undo its claim on existence with antipathy',
-        'unkeep its title without mercy', 'undock its grip on me with repugnance', 'unmount this with aversion', 'cast out its claim with aversion',
+        'undock its claim on existence with purpose', 'unhit the tab with aversion', 'uncall its right with a laugh', 'uncall its grip promptly', 'liquidate its hold on existence with aversion', 'undock its rights', 'unkeep this page finally', 'uncall its claim on existence with finality', 'unkeep its title without mercy', 'undock its grip on me with repugnance', 'cast out its claim with aversion',
         'scrape off this tab with aversion', 'unkeep its place swiftly', 'unrecord this page without pity', 'throw away its rights with aversion',
-        'undock its title with pleasure', 'cast adrift its claim on existence with aversion', 'undo its right categorically', 'seize and destroy its hold with aversion',
-        'uncall its hold on existence with scorn', 'uninvite its hold on existence with aversion', 'undo its rights happily', 'undock this thing promptly',
+        'undock its title with pleasure', 'cast adrift its claim on existence with aversion', 'seize and destroy its hold with aversion',
+        'uncall its hold on existence with scorn', 'uninvite its hold on existence with aversion', 'undock this thing promptly',
         'undock its hold on this totally', 'undock its claim with malice', 'unrecord this instantaneously', 'break off this tab with aversion',
         'cut adrift its claim on this with aversion', 'unoffer the page with aversion', 'unhorse that tab with aversion', 'toss aside its hold on this with aversion',
-        'unrecord that tab with aversion', 'unrecord this fast', 'undock its grip on me with loathing', 'unrecord this page on the spot',
-        'undo it', 'unmoor it its claim on this with aversion', 'forgo its claim with aversion', 'uncall its hold without looking back',
-        'uncall the page entirely', 'unkeep it finally', 'undock its claim on this with dispatch', 'root out its claim with aversion',
-        'undo this tab with promptness', 'uncall this thing instantly', 'undock that tab with scorn', 'unsubscribe its claim on this with aversion',
-        'undock its place without mercy', 'undock its claim on existence with haste', 'shear off its grip with aversion', 'unsit the page with aversion',
-        'uncall its right with a smile', 'pry off it with aversion', 'unearth its hold on this with aversion', 'hack off its claim on me with aversion',
-        'undo its title with disgust', 'surrender this with aversion', 'unseal its grip on me with aversion', 'unrecord this tab quickly',
-        'unplead its claim on existence with aversion', 'undock its grip with tranquility', 'undo its hold gratefully', 'undo its hold on this with certainty',
-        'wipe off its title with aversion', 'unbridle its rights with aversion', 'undo this with revulsion', 'undo its place at once',
-        'skin the page with aversion', 'undo its hold on this gladly', 'unberth this with aversion', 'undock its rights forever',
-        'unkeep its hold with a laugh', 'undo this tab permanently', 'unthread this page with resolve', 'uncall its claim on this with indifference',
-        'uncall its hold on this with a grin', 'unwelcome its claim on me with aversion', 'undo it with apathy', 'uncall its hold today',
-        'undo its place with apathy', 'unkeep its place without hesitation', 'undo its claim on this forever', 'unkeep its hold on me right now',
+        'unrecord that tab with aversion', 'unrecord this fast', 'undock its grip on me with loathing', 'unrecord this page on the spot', 'unmoor it its claim on this with aversion', 'forgo its claim with aversion', 'uncall its hold without looking back',
+        'uncall the page entirely', 'unkeep it finally', 'undock its claim on this with dispatch', 'root out its claim with aversion', 'uncall this thing instantly', 'undock that tab with scorn', 'undock its place without mercy', 'undock its claim on existence with haste', 'shear off its grip with aversion', 'unsit the page with aversion',
+        'uncall its right with a smile', 'pry off it with aversion', 'hack off its claim on me with aversion', 'surrender this with aversion', 'unseal its grip on me with aversion', 'unrecord this tab quickly',
+        'unplead its claim on existence with aversion', 'undock its grip with tranquility', 'wipe off its title with aversion', 'unbridle its rights with aversion', 'skin the page with aversion', 'unberth this with aversion', 'undock its rights forever',
+        'unkeep its hold with a laugh', 'unthread this page with resolve', 'uncall its claim on this with indifference',
+        'uncall its hold on this with a grin', 'unwelcome its claim on me with aversion', 'uncall its hold today', 'unkeep its place without hesitation', 'unkeep its hold on me right now',
         'scrub off this page with aversion', 'unstick its title with aversion', 'eminent-domain its place with aversion', 'unrecord this thing with alacrity',
-        'uncall this page with certainty', 'pull out this tab with aversion', 'untie its right with aversion', 'shuck the page with aversion',
-        'undo its claim with disgust', 'unoffer this thing with aversion', 'uncall its claim with a grin', 'quitclaim its rights with aversion',
+        'uncall this page with certainty', 'pull out this tab with aversion', 'untie its right with aversion', 'shuck the page with aversion', 'unoffer this thing with aversion', 'uncall its claim with a grin', 'quitclaim its rights with aversion',
         'displace its claim on this with aversion', 'dust off its claim on existence with aversion', 'dig out its claim on this with aversion', 'undock its existence with resolve',
-        'undock its hold on this with coldness', 'undo its claim on me finally', 'undo its grip with malice', 'brush off this tab with aversion',
+        'undock its hold on this with coldness', 'brush off this tab with aversion',
         'unhave its claim on existence with aversion', 'disavow this with aversion', 'uncall its title with apathy', 'unkeep its claim on this once and for all',
         'undock this with conviction', 'scour off it with aversion', 'unthread this page with passion', 'unweave its grip with aversion',
         'give up on its rights with aversion', 'undock its hold with scorn', 'unperch its claim with aversion', 'unwind its rights with aversion',
         'undock that tab summarily', 'root out its title with aversion', 'rob its right with aversion', 'unkeep its rights gladly',
-        'cast away its place with aversion', 'cast off its hold on existence with aversion', 'undo its grip on me with dispatch', 'skin its hold on this with aversion',
-        'unkeep its claim on me straightaway', 'throw aside its hold on existence with aversion', 'unmold its grip with aversion', 'uncall its hold on this with pleasure',
-        'undo its hold on me with a smile', 'undock its title with a grin', 'undo the tab with joy', 'undo its grip on me gladly',
-        'unhit its grip with aversion', 'exscind its claim on this with aversion', 'eradicate its hold with aversion', 'undo its hold on existence with glee',
-        'uncall its hold without regret', 'unrest the tab with aversion', 'shear off its rights with aversion', 'uncall its claim on me with apathy',
-        'unbeg its grip on me with aversion', 'unlace its claim on this with aversion', 'undo it with fervor', 'deny its existence immediately',
+        'cast away its place with aversion', 'cast off its hold on existence with aversion', 'skin its hold on this with aversion',
+        'unkeep its claim on me straightaway', 'throw aside its hold on existence with aversion', 'unmold its grip with aversion', 'uncall its hold on this with pleasure', 'undock its title with a grin', 'unhit its grip with aversion', 'exscind its claim on this with aversion', 'eradicate its hold with aversion', 'uncall its hold without regret', 'unrest the tab with aversion', 'shear off its rights with aversion', 'uncall its claim on me with apathy',
+        'unbeg its grip on me with aversion', 'unlace its claim on this with aversion', 'deny its existence immediately',
         'unhope this tab with aversion', 'undock its existence today', 'unkeep its title with relief', 'undock the page with loathing',
         'throw away its grip on me with aversion', 'uncall its grip on me with fervor', 'expunge its claim on this with aversion', 'undock its grip with peace',
         'peel it with aversion', 'clip off its title with aversion', 'undock its claim on this categorically', 'dust off this tab with aversion',
         'unhitch that tab with aversion', 'unkeep its place with hatred', 'undock the tab permanently', 'uncall its grip on me with promptness',
         'unlike its existence with aversion', 'unthread this page', 'unkeep its hold entirely', 'undock its hold on this with revulsion',
         'wash off its hold with aversion', 'uncall its hold on existence fast', 'unthread the page with satisfaction', 'undock its title without regret',
-        'uncall its claim on me with malice', 'confiscate its hold on me with aversion', 'undo its title forever', 'sequester its title with aversion',
-        'exhume its title with aversion', 'unlay its place with aversion', 'undo that tab with dispatch', 'unstar its title with aversion',
-        'untwist its hold on me with aversion', 'unrecord the tab readily', 'undo its hold on this right now', 'undo its claim with coolness',
-        'unberth its rights with aversion', 'unwish its claim on this with aversion', 'undock its grip on me with zeal', 'forfeit its claim with aversion',
-        'undo its claim on me readily', 'unkeep its claim on me joyfully', 'undock this once and for all', 'gut this thing with aversion',
+        'uncall its claim on me with malice', 'confiscate its hold on me with aversion', 'sequester its title with aversion', 'unlay its place with aversion', 'unstar its title with aversion',
+        'untwist its hold on me with aversion', 'unrecord the tab readily', 'unberth its rights with aversion', 'unwish its claim on this with aversion', 'undock its grip on me with zeal', 'forfeit its claim with aversion', 'unkeep its claim on me joyfully', 'undock this once and for all', 'gut this thing with aversion',
         'undock its rights categorically', 'uncall its rights entirely', 'fling away this tab with aversion', 'undock its claim on me with indifference',
-        'leech its rights with aversion', 'weed out its claim on existence with aversion', 'undock this page swiftly', 'undo its place with joy',
-        'unstop the page forever', 'undo this page without looking back', 'slice off that tab with aversion', 'unrecord this tab with resolve',
+        'leech its rights with aversion', 'weed out its claim on existence with aversion', 'undock this page swiftly', 'unstop the page forever', 'slice off that tab with aversion', 'unrecord this tab with resolve',
         'let go its claim with aversion', 'unthread its place with aversion', 'unbrace this thing with aversion', 'unlace its title with aversion',
-        'give in on its grip with aversion', 'undock its claim with a grin', 'undo this tab with delight', 'uncall its hold speedily',
-        'unblock its title with aversion', 'uncall its place with finality', 'undo the tab with a song', 'unkeep its grip forthwith',
-        'unkeep its claim on existence with a grin', 'undo that tab with coldness', 'uncall its title on the spot', 'undo its claim on me freely',
-        'undock this tab with peace', 'dislodge the page with aversion', 'root out its grip with aversion', 'undo its claim on me gladly',
-        'undock this irrevocably', 'uncall its claim on existence with relief', 'unthread this page right now', 'undock this with indifference',
+        'give in on its grip with aversion', 'undock its claim with a grin', 'uncall its hold speedily', 'uncall its place with finality', 'unkeep its grip forthwith',
+        'unkeep its claim on existence with a grin', 'uncall its title on the spot', 'undock this tab with peace', 'dislodge the page with aversion', 'root out its grip with aversion', 'undock this irrevocably', 'uncall its claim on existence with relief', 'unthread this page right now', 'undock this with indifference',
         'dispossess its title with aversion', 'undock that tab promptly', 'uncall its hold fast', 'unjack this thing with aversion',
-        'unkeep its hold on existence irrevocably', 'uncase its rights with aversion', 'undock its claim on existence with apathy', 'undock its hold on existence gladly',
-        'undo its hold on me without mercy', 'uncall its grip on me categorically', 'turn loose the page with aversion', 'undock its grip on me with glee',
+        'unkeep its hold on existence irrevocably', 'uncase its rights with aversion', 'undock its claim on existence with apathy', 'undock its hold on existence gladly', 'uncall its grip on me categorically', 'turn loose the page with aversion', 'undock its grip on me with glee',
         'cast adrift this page with aversion', 'unrecord the page with enthusiasm', 'unkeep its hold on existence with contempt', 'unfix this thing with aversion',
         'unsack its claim on existence with aversion', 'uncall its rights quickly', 'unwant its hold on me with aversion', 'confiscate its hold on this with aversion',
         'unrecord the tab irrevocably', 'undock its place straightaway', 'surrender the page with aversion', 'unkeep its hold on existence quickly',
-        'unfold its right with aversion', 'unkeep it without regret', 'undo its claim on this with speed', 'unhinge its grip with aversion',
+        'unfold its right with aversion', 'unkeep it without regret', 'unhinge its grip with aversion',
         'unthread the page with purpose', 'undock its claim on existence', 'peel this thing with aversion', 'abnegate its claim on this with aversion',
         'ungrave its title with aversion', 'unkeep its claim summarily', 'unstick its right with aversion', 'disinhume this thing with aversion',
-        'set adrift this thing with aversion', 'undock its claim on me happily', 'undo its existence with finality', 'undo its claim on the spot',
-        'deprive its hold on me with aversion', 'unkeep its grip wholly', 'uncall its claim on this once and for all', 'undo the tab thankfully',
-        'uncall its grip on me with indifference', 'split off this thing with aversion', 'unkeep its hold with passion', 'unfile its title with aversion',
-        'unhouse its claim on me with aversion', 'undock its hold with pleasure', 'unrecord this tab with pleasure', 'exhume its hold on existence with aversion',
-        'uncall its claim on this with relish', 'unshow its existence with aversion', 'cut adrift it with aversion', 'break off its claim on this with aversion',
-        'disengage it with aversion', 'undo this thing without regret', 'undo its claim with a song', 'seize and destroy the tab with aversion',
+        'set adrift this thing with aversion', 'undock its claim on me happily', 'deprive its hold on me with aversion', 'unkeep its grip wholly', 'uncall its claim on this once and for all', 'uncall its grip on me with indifference', 'split off this thing with aversion', 'unkeep its hold with passion', 'unfile its title with aversion',
+        'unhouse its claim on me with aversion', 'undock its hold with pleasure', 'unrecord this tab with pleasure', 'uncall its claim on this with relish', 'unshow its existence with aversion', 'cut adrift it with aversion', 'break off its claim on this with aversion',
+        'disengage it with aversion', 'seize and destroy the tab with aversion',
         'undock its claim on me with fervor', 'abnegate its title with aversion', 'shove out that tab with aversion', 'uncall the tab without remorse',
         'undock it with ease', 'unjam its title with aversion', 'undock its hold on existence summarily', 'unkeep its existence with intent',
         'uncall this page totally', 'uncall its hold on existence promptly', 'uncall its hold on existence fully', 'unbrace this tab with aversion',
-        'uncall its claim on me with disgust', 'undo that tab with coolness', 'uncall its hold on existence with apathy', 'unkeep its claim on this on the spot',
-        'scuff off its right with aversion', 'scuff off its hold on existence with aversion', 'undo its claim on me with calm', 'give away that tab with aversion',
-        'undo its grip with scorn', 'undock its existence with certainty', 'undock its grip with glee', 'uncall the tab with relish',
-        'shave off its title with aversion', 'unperch its grip with aversion', 'undock this tab right now', 'undo its hold on this with antipathy',
-        'wrench out it with aversion', 'undock its place with alacrity', 'undo this thing forever', 'undock its hold with passion',
-        'undo its grip with conviction', 'undo this tab utterly', 'undo its grip with promptness', 'unbrace the page with aversion',
+        'uncall its claim on me with disgust', 'uncall its hold on existence with apathy', 'unkeep its claim on this on the spot',
+        'scuff off its right with aversion', 'scuff off its hold on existence with aversion', 'give away that tab with aversion', 'undock its existence with certainty', 'undock its grip with glee', 'uncall the tab with relish',
+        'shave off its title with aversion', 'unperch its grip with aversion', 'undock this tab right now', 'wrench out it with aversion', 'undock its place with alacrity', 'undock its hold with passion', 'unbrace the page with aversion',
         'pull out its hold on me with aversion', 'unkeep its rights with speed', 'defoliate the tab with aversion', 'waive its hold on me with aversion',
-        'undock its claim on me with loathing', 'uncall its claim on this absolutely', 'undo its hold on this with determination', 'unkeep its title with equanimity',
-        'unbury the tab quickly', 'unfile its claim on me with aversion', 'unshut this tab with aversion', 'unrest this tab with aversion',
-        'unhand this page with aversion', 'uncall its hold with dispatch', 'unfile its hold with aversion', 'unplace its hold on existence with aversion',
-        'undo its claim on me with a song', 'deny its existence at once', 'undock that tab with determination', 'undo its rights quickly',
-        'undock its hold on me instantaneously', 'undo its hold on me with promptness', 'undo its claim summarily', 'uncall its hold on existence joyfully',
+        'undock its claim on me with loathing', 'uncall its claim on this absolutely', 'unkeep its title with equanimity', 'unfile its claim on me with aversion', 'unrest this tab with aversion',
+        'unhand this page with aversion', 'uncall its hold with dispatch', 'unfile its hold with aversion', 'unplace its hold on existence with aversion', 'deny its existence at once', 'undock that tab with determination', 'undock its hold on me instantaneously', 'uncall its hold on existence joyfully',
         'confiscate its grip on me with aversion', 'unbrace its claim on me with aversion', 'eminent-domain its hold with aversion', 'uncall its title with malice',
-        'undock its grip with certainty', 'undock this tab with a song', 'unlove its hold on existence with aversion', 'exhume its claim on existence with aversion',
-        'uncall its claim on this now', 'uncall this finally', 'slough off this tab with aversion',
+        'undock its grip with certainty', 'undock this tab with a song', 'unlove its hold on existence with aversion', 'uncall its claim on this now', 'uncall this finally', 'slough off this tab with aversion',
         // pass CCLXV: nullify/annul declaratives + verdict-finality + doom/fate/day-countdown idioms
         'nullify it hereafter', 'nullify this tab hereafter', 'nullify the tab outright', 'nullify that tab henceforth',
         'nullify this page', 'nullify this page effective at once', 'nullify the page as of now', 'nullify this thing by my own authority',
@@ -7973,7 +7920,7 @@ export class VoiceCommands {
         'scratch it from the schedule', 'off the schedule with it', 'off the schedule', 'out of the rotation',
         'out of the lineup', 'out of circulation', 'out of commission', 'out of service',
         'out of the catalog', 'out of the catalogue', 'out of the inventory', 'out of the inventory with it',
-        'unregister it', 'unenroll it', 'unsubscribe it', 'retire it forever',
+        'unregister it', 'unenroll it', 'retire it forever',
         'put it out to grass', 'send it to the pasture', 'send it to the farm upstate', 'send it to live on a farm',
         'send it to live on the farm', 'send it to a nice farm', 'send it to its forever home', 'send it to a forever home',
         'rehome it', 'rehome the tab', 'adopt it out', 'give it up for adoption',
@@ -8526,7 +8473,7 @@ export class VoiceCommands {
         'skiddoo', 'shove off the tab', 'buzz off the tab', 'fly away tab',
         'sashay away', 'detach it', 'detach the tab',
         'detach it now', 'disengage it', 'disengage the tab', 'unhook it',
-        'unhook the tab', 'unmount it', 'unmount the tab', 'deregister it',
+        'unhook the tab', 'deregister it',
         'deregister the tab', 'delist it', 'delist the tab', 'unlist it',
         'unlist the tab', 'strike it off the list', 'off the list', 'cross it off the list',
         'scratch it off the list', 'drop it from the list', 'off the roster', 'drop it from the roster',
@@ -14537,7 +14484,7 @@ export class VoiceCommands {
     // Find-in-page — the Ctrl+F atom, scoped to the reader viewport (the
     // only searchable text surface). find-next/find-prev cycle matches like
     // Ctrl+G / Shift+Ctrl+G. The cycle commands are registered FIRST because
-    // the query command's /(.+?)を探して/ would otherwise steal '次を探して'
+    // the query command's /(.+?)を探して/ would otherwise steal '次を探して',
     // and '前を探して' as queries.
     this.registerCommand('find-next', {
       patterns: ['次を探して', '次の候補', '次のマッチ', '次のヒット',
@@ -15052,7 +14999,7 @@ export class VoiceCommands {
 
     // Open ALL bookmarks as tabs — Chrome's "open all bookmarks" context
     // entry. Iterates onBookmarkList and stops at the tab cap honestly
-    // ('上限のため残りは開けません'). Registered before go-to's 'を開いて'
+    // ('上限のため残りは開けません'). Registered before go-to's 'を開いて',
     // catch-all.
     this.registerCommand('open-all-bookmarks', {
       patterns: ['お気に入りをすべて開いて', 'お気に入りを全部開いて',
@@ -15134,7 +15081,7 @@ export class VoiceCommands {
       description: 'Move the tab at a strip position'
     });
 
-    // Open a saved entry by NAME — the bookmark/history-select atoms'
+    // Open a saved entry by NAME — the bookmark/history-select atoms',
     // natural-language sibling ('open bookmark news' / 'ブックマークのニュース
     // を開いて'). Registered BEFORE go-to: its `を開く`/`open X` catch-all
     // owns these shapes (verified by dispatch check).
@@ -15186,7 +15133,7 @@ export class VoiceCommands {
     });
 
     // Move the active/indexed tab to a strip edge — Chrome drag-to-edge by
-    // voice. Hoisted before go-to: its /に移動/ catch-all owns '右端に移動'
+    // voice. Hoisted before go-to: its /に移動/ catch-all owns '右端に移動',
     // and would navigate to the literal phrase (misroute — probe-verified).
     this.registerCommand('move-tab-start', {
       patterns: ['先頭に移動', '左端に移動', '一番左に移動', '最初に移動',
@@ -15505,7 +15452,7 @@ export class VoiceCommands {
       [/スナップターンを(オン|オフ)/, /snap turn (on|off)/i],
       'Toggle snap turn');
 
-    // Comfort preset — the cycle button's voice surface. Bare 'コンフォート'
+    // Comfort preset — the cycle button's voice surface. Bare 'コンフォート',
     // cycles forward; a named preset lands directly (JA aliases included).
     this.registerCommand('comfort-preset', {
       patterns: [/コンフォート/, /comfort (preset|mode)/i,
@@ -15639,7 +15586,7 @@ export class VoiceCommands {
     // position (Ctrl+9 → last). The voice equivalent: 'タブ3' / 'tab 3' and
     // '最後のタブ' / 'last tab'. Out-of-range announces honestly instead of
     // clamping (clamping would move the user somewhere they didn't ask for).
-    // tab-title-n — tab-select's reporting twin (VoiceOver 'tab N name'
+    // tab-title-n — tab-select's reporting twin (VoiceOver 'tab N name',
     // parity): answers 'what is tab N called' WITHOUT switching. Registered
     // BEFORE tab-select: its /タブ(\d+)/ prefix match would absorb
     // 'タブNのタイトル' (verified by dispatch check).
@@ -16318,7 +16265,7 @@ export class VoiceCommands {
         /list\s+(my\s+)?history/i],
       'Read the history list');
 
-    // Count twins — the list commands' count-only surface (asking 'how many'
+    // Count twins — the list commands' count-only surface (asking 'how many',
     // shouldn't read the whole list). Field-accessed late-bound hooks.
     const countCmd = (name, kind, unit, field, patterns, desc) =>
       this.registerCommand(name, {
@@ -17701,7 +17648,7 @@ export class VoiceCommands {
     });
 
     // Honest-absence cluster — phrases whose surface deliberately does not
-    // exist, answered plainly instead of NO-MATCH ('認識できませんでした'
+    // exist, answered plainly instead of NO-MATCH ('認識できませんでした',
     // leaves the user guessing whether the phrase or the feature failed).
     // reader-mode: every article already renders via the reader extractor,
     // so the toggle is an always-on answer.
