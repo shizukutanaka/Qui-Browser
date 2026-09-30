@@ -1721,6 +1721,7 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Last Revision**: 2026-08-18 (Session 74)
 
 ### Session 226
+### Session 222
 
 - ✨ てくれ引用/期待尾: くれとは言えない・くれとしか言いようがない・くれと頼みたい・くれと願っている・くれそうですか・くれますのでは・くれようや → 実行。
 - ✨ てもいい許可尾II: もいいでしょうかね・もいいかなあ・もいいんかな・もいいことにして・もいいとするなら → 実行。
