@@ -133,7 +133,35 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 エラーではなく、明示的にオフにしたユーザーの選択は永続値が勝つ。**戻すのは1行**だが、
 戻す者は上記4条件のどれが再発したかを言えること（`tests/vr-app-wiring.test.js` がこの既定を固定）。
 
-- ~~JA 副詞/へッジ開放子（さあ/ほら/やっぱり/できれば/可能なら/よかったら/もしよければ/よろしければ/良ければ）~~ — **Session 174 で実装**
+- ~~voice '閉じてくれよお'/'閉じてくださると助かります'/'閉じてもらえますでしょうか'/'閉じていただくことはできますか'/'閉じてさえくれれば'/'閉じたらいかがですか' 複合受益尾が NO-MATCH~~ — **Session 178 で実装**（TAIL_TE II + たら提案尾）
+- ~~voice '閉じないとまずい'/'閉じなきゃ困る'/'閉じないとだめだ' 義務・必要尾が NO-MATCH~~ — **Session 178 で実装**（IKE II 層）
+- ~~voice 'do us all a favor and X'/'god just X'/'may i please X' の積層前置詞が単一パスで残滓~~ — **Session 178 で実装**（ENPRE 二重適用 + favor 句の先置き）
+- ~~voice 'did it reload' が refresh 実行・'ffs close it' が trouble 奪取・'明日は何日' が defer 奪取・'閉じたろ' が describe-tab 誤ルート~~ — **Session 178 で修正**（refresh lookahead / ffs 裸化 / 明日は除外 / ろ意志形のたろ除外）
+- ~~voice '画面を録画して'/'配信して'/'画面共有して'/'record my screen' が NO-MATCH~~ — **Session 178 で実装**（screen-record 誠実アトム新設）
+- ~~voice 'i told you to X'/'i asked nicely'/'didn't i say'/'for the last time'/'i'm gonna'/'for goodness sake'/'jesus'/'ffs'/'c'mon'/'like'/'you know'/'i mean'/'sorta'/'kinda'/'basically'/'literally'/'seriously'/'honestly'/'frankly'/'really'/'be a doll and' 前置詞欠落~~ — **Session 178 で実装**（EN 前置連鎖II）
+- ~~voice 'X would you'/'X shall we'/'X might you' タグ質問尾・'immediately/right away/this instant/at once' 即時尾が残滓~~ — **Session 178 で実装**（EN 尾剥がしII）
+- ~~voice 'クリップボードを消して'/'open finder/task manager/trash/spotlight'/'half screen'/'tile the windows'/'did it open'/'is it still open'/'保存できた'/'まだ読んでるの'/'read the text'/'もういいのか' 等の原子欠落~~ — **Session 178 で実装**（privacy-clean/device-apps/window-state/describe-tab/bookmark-status/speaking-status/read-aloud/negate 拡張）
+- - - ~~voice '閉じても構いません/もよろしい/差し支え'・dict+'のがいい/のはどう'・'んか' 西部依頼・義務否定尾（なきゃいけない等）が NO-MATCH/無回答~~ — **Session 177 で実装**（TAIL_TE+QC_TAIL+IKE 層、テスト186件）
+- ~~voice 'could/should/shall/would i X'・'is it ok to X' が実行系へ誤ルート余地~~ — **Session 177 で実装**（help 透過、R97 'can i' 系と整合）
+- ~~voice 'open devtools'/'view source'/'inspect element'/'open my downloads'/'go on then' が go-to リテラルナビゲート or NO-MATCH~~ — **Session 177 で実装**（devtools 誠実アトム + goToEn 除外 + download 原子拡張）
+- ~~voice 'アンインストール'/'ホーム画面に追加'/'sign me out'/'Cookie消して'/'emergency stop'/'nuke it' 等の honest/literal 欠落~~ — **Session 177 で実装**（device-apps/account/privacy-clean/stop-everything/close-tab 拡張）
+- ~~voice 挨拶・反応句（おはよう/こんにちは/good morning/howdy/thanks a million/my dude 等）が NO-MATCH~~ — **Session 177 で実装**（ack/negate 拡張）
+- ~~voice 'read it to me'/'where was i'/'その続き'/'あと半分'/'bigger please'/'do over'/'bookmark it'/'capture this' 等のリーダー・ブラウザ形欠落~~ — **Session 177 で実装**（read-aloud/resume-reading/read-here/reader-progress/reader-size/repeat/bookmark/screenshot 拡張）
+- ~~voice 'なんで閉じないの'/'why wont it'/'screw this'/'grr'/'dammit' 等の故障・不満質問が NO-MATCH~~ — **Session 177 で実装**（trouble 拡張）
+
+~~Voice: ておきます/なさいますか/ろと言った/てはよ 敬語・引用・方言命令尾~~ — **Session 176 で実装**
+~~Voice: 閉じられない/cant close it/wont load 不能報告が NO-MATCH~~ — **Session 176 で実装**
+~~Voice: なくても/ちゃダメ/のやめて/no need to 拒否形が NO-MATCH~~ — **Session 176 で実装**
+~~Voice: 失礼します/お先に/close session 別れ句II・EN 褒め句残り~~ — **Session 176 で実装**
+~~Bug: '進められない' が navigate を実行（可能/否定形の lookahead 欠落）~~ — **Session 176 で修正**
+~~JA 過去て尾（てきた/てきます/ていった/ておいた）~~ — **Session 175 で実装**
+- ~~JA 状態報告（たまま/たばかり）・傾向報告（がち）・障害報告語彙（バグった/詰まった/お手上げ/最悪）~~ — **Session 175 で実装**
+- ~~JA 二重否定・義務の実行化（なくはない/わけにはいかない/ざるを得ない）~~ — **Session 175 で実装**
+- ~~JA 婉曲不能（かねる/かねます）→help・困ってる系~~ — **Session 175 で実装**
+- ~~JA 前置へッジ（すみません/悪いんだけど/お手数ですが/ぜひ/どうぞ/とにかく/とっとと/急いで）~~ — **Session 175 で実装**
+- ~~EN courtesy frames（anyway/btw/see if you can/might i trouble you）+ immediacy tails（right now/asap/if you dont mind）~~ — **Session 175 で実装**
+
+~~JA 副詞/へッジ開放子（さあ/ほら/やっぱり/できれば/可能なら/よかったら/もしよければ/よろしければ/良ければ）~~ — **Session 174 で実装**
 - ~~提案疑問枠（てはどう/いかが、たらどうかな/いいか）+ てみて 尾~~ — **Session 174 で実装**
 - ~~意向報告（Xようと思って/と思う）の動詞化~~ — **Session 174 で実装**
 - ~~方言依頼尾（ておくれ、ちゃおうかな/じゃおうかな、たりして/だり）~~ — **Session 174 で実装**
