@@ -1720,7 +1720,6 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-<<<<<<< HEAD
 ### Session 179
 
 - ✨ JA 残余依頼尾: `といて/どいて`→stemTe、`といた/どいた`（過去とく）拡張、`ほうが` 裸形（いい/ええ/よい/かな 任意化 → '閉じたほうが'）、`dict+予定/つもり`→dictTe（'閉じる予定'→close-tab）、意向形 `ろ→って` の `たろ/だろ` 除外（lookbehind）。
@@ -1743,21 +1742,6 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 - 🐛 実害修正: trouble の `/^ffs\b/` が 'ffs close it' を raw パスで奪取 → `/^ffs[.!?]?$/i` 裸のみ。refresh（早期登録1506行）の `/reload$/` が 'did it reload' を working-status から奪取 → `(?<!did |has |is |it )` 後読み。意志形マップ `ろ→って` が '閉じたろ'→'閉じたって' を生成し describe-tab へ誤ルート → `(?<![ただ])ろ` で 'たろ/だろ' 除外（559行目の `たろ→て` 規則へ委譲）。defer `/^明日(?!の)/` が '明日は何日' を奪取 → `(?!の|は)`。
 - ✅ tests/quotative-status-atoms.test.js +293（実装前の13件赤 + 途中回帰を全消化）、計8254全緑・lint 0エラー（警告137=baseline）・build green・FFFD 0件。
 
-||||||| 68f1e79
-=======
-### Session 178
-
-- ✨ 受益・依頼複合尾の完成形 (TAIL_TE II): `(て|で)(くれ|くれればいい|くれさえすれば|さえくれれば|くれよお|くださると.*|もらえ.*|いただ.*|ほしい.*|もいいんですか?|も大丈夫ですか?|よお)` — '閉じてくれよお'/'閉じてほしいわー'/'閉じてくださると助かります'/'閉じてもらえますでしょうか'/'閉じていただくことはできますか'/'閉じてさえくれれば'→close-tab。`たら(どう|いかが)` 提案尾 stemTe（'閉じたらいかがですか'→close-tab）。
-- ✨ 義務・必要尾 (IKE II): `ないとまずい|なきゃまずい|なくてはまずい|ないと困る|なきゃ困る|ないとやばい|なきゃやばい|ないとだめだ|なきゃだめだ` + `んだ/んです/んだよ` コーダ（'閉じないとまずい'→close-tab）。`て形+(さえしてくれれば|さえすれば|すればいい|さえして|なよね|ないでどうする|なくてどうする|ずにどうする)` 尾。
-- ✨ 前置・引用の残弾: HP 'あのね/ねえ/そういえば/いいから/いい加減|この場で|今'。QUOTE '言ってる/言ってんのに/言ったじゃん/言ったでしょ/言ってくれ'。pushes `よお|ってばよ|ってよ|だって`。
-- ✨ EN 前置連鎖の宣言・強調層: 'i told you to|i asked nicely|didn't i say|for the last time|i'm gonna|i gotta|i hafta|i'd like to|allow me to|may i please|might i|for goodness/heavens/gods sake|jesus|god|ffs|come on|c'mon|like|you know|i mean|sort of|kind of|basically|actually|literally|seriously|honestly|frankly|really|definitely|absolutely|totally|be a doll and' — ENPRE 二重適用で 'god just close it'/'may i please close it' の積層前置詞を剥がし、'do (us|me|everyone)( all)? a favor' を 'do' より先置き。
-- ✨ EN 尾剥がしII: タグ質問 `(would|will|won't|can't|could|can|might|shall|must) (you|ya|we)` + `immediately|right away|this instant|at once`。
-- ✨ 新規誠実不在アトム `screen-record`: '画面を録画して'/'配信して'/'ライブ配信'/'画面共有して' + EN record/livestream/share-screen → 「録画・配信・画面共有はこのブラウザにありません」（'キャプチャして'→screenshot は維持）。
-- ✨ 原子拡充: mute-status did/get 系・vr-exit 'leave fullscreen'・defer '明日/tonight/later today'・working-status did-it/still 系・ack thank-you/lifesaver・privacy-clean クリップボード・window-state half/quarter/tile/cascade/arrange・device-apps OSアプリ（finder/explorer/task manager/trash/spotlight/dock/launchpad/desktop/clipboard history）・describe-tab still-open/did-it-open + JA閉じ系・reader-progress halfway/読み終わった・speaking-status まだ読んでるの・bookmark-status 保存できた・negate もういい・read-aloud read the text/words/content/body/main・trouble JA苦情尾+ffs裸化。
-- 🐛 実害修正: trouble の `/^ffs\b/` が 'ffs close it' を raw パスで奪取 → `/^ffs[.!?]?$/i` 裸のみ。refresh（早期登録1506行）の `/reload$/` が 'did it reload' を working-status から奪取 → `(?<!did |has |is |it )` 後読み。意志形マップ `ろ→って` が '閉じたろ'→'閉じたって' を生成し describe-tab へ誤ルート → `(?<![ただ])ろ` で 'たろ/だろ' 除外（559行目の `たろ→て` 規則へ委譲）。defer `/^明日(?!の)/` が '明日は何日' を奪取 → `(?!の|は)`。
-- ✅ tests/quotative-status-atoms.test.js +293（実装前の13件赤 + 途中回帰を全消化）、計8254全緑・lint 0エラー（警告137=baseline）・build green・FFFD 0件。
-
->>>>>>> origin/devin/1790521102-permission-tail-atoms
 ### Session 177
 
 - ✨ 許可・敬語尾の実行化 II: て形+`も構いません/もよろしい/差し支え/もよい/ええよ/くれぬか/くれへんの/くださいますか/ほしいの`（TAIL_TE 拡張 — '閉じても構いません'→close-tab）。dict+`のがいい/のはどう`→dictTe（'閉じるのはどう'→close-tab）。`んか` 西部依頼（一段 stemTe + 五段 NAKYA: '読まんか'→'読んで'）。
