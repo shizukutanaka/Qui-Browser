@@ -1738,6 +1738,7 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - R284 note: `閉じんなってば` は既存 close literal 維持（方言命令 vs 禁止で曖昧 — 変更は別途判断）。
 - R285 pin: `flush it`/`hang it up`→null 維持（granular 確立: 曖昧）。`閉じてんで`→describe 不採用 — `_politeVariants` の てみ→んで 変換が 閉じてみ* close ピン21形を横取りしたため（variant 残置衝突は describe 側に限定）。
 - R286 pin: `write it off`→null 維持（granular 確立: 経理 euphemism 曖昧）。`open fire on it`→go-to 誤ルートを close 修正（'open' keyword 先勝ち → リテラル化で先勝ち固定）。`閉じるべきかと思う`→help ピン維持。
+- R287: `call checkmate`→device-apps 先勝ち（'call' 部分一致パターンは literal より先に評価 → literal 化でも解決不可・不採用）。`stash it away for good`/`stash it permanently`→bookmark-page 誤ルートを close 修正。`畳め` 裸形のみ不採用（畳む系は close-all-tabs 所有・単タブへ混入しないよう未登録） — 実害なし。
 
 ## 使い方（次のセッションへ）
 
