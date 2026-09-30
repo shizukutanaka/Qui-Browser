@@ -972,6 +972,7 @@ export class VoiceCommands {
         'if you could just go ahead and|if you could just possibly|' +
         'do you care to|if you could|if you would be so good|if you would|' +
         'if you can|can we|could we|why dont you|why dont we|why do we not|' +
+        'if you could|if you would be so good|if you would|' +
         'might you|wont you|care to|fancy|please and thank you|uh|um|er|erm|' +
         'if you\'?d be so kind|why not|hows about|' +
         'do (?:us|me|everyone)(?: all)? (?:a|the) favor(?: of| and)?|do a favor(?: and)?|' +
@@ -1071,6 +1072,7 @@ export class VoiceCommands {
         'help me|i need you to|' +
         'i was (?:kinda )?hoping you could|i had hoped you could|i would have thought you could|i expected you to|i assumed you would|i figured maybe you could|i thought maybe you could|i was thinking maybe|supposedly you can|apparently you can|presumably you can|obviously you can|surely you can|surely you could|do the honou?rs and|have the courtesy to|have the decency to|extend (?:me )?the courtesy of|grant me the favor of|afford me the favor of|(?:oblige|gratify|accommodate) me (?:by|and)|humor me and|i need (?:it |this |that |the tab )|i want (?:that |it |this |the tab )|i was thinking you could|i was thinking you can|i figured you could|i figured you can|i reckoned you could|i thought you could|imagine you|pretend you|i guess you could|i guess you can|i suppose you could|i suppose you can|i could use you to|i want you(?: to| closing| reading)?|i\'?d like you to|i\'?d appreciate it if you|don\'?t forget to|' +
         'make sure to|be sure to|remember to|try to|try and|just this once|just|simply|' +
+        'i was (?:kinda )?hoping you could|i had hoped you could|i would have thought you could|i expected you to|i assumed you would|i figured maybe you could|i thought maybe you could|i was thinking maybe|supposedly you can|apparently you can|presumably you can|obviously you can|surely you can|surely you could|do the honou?rs and|have the courtesy to|have the decency to|extend (?:me )?the courtesy of|grant me the favor of|afford me the favor of|oblige me by|humor me and|i need (?:it |this |that |the tab )|i want (?:that |it |this |the tab )|i was thinking you could|i was thinking you can|i figured you could|i figured you can|i reckoned you could|i thought you could|imagine you|pretend you|i guess you could|i guess you can|i suppose you could|i suppose you can|i could use you to|i want you(?: to| closing| reading)?|i\'?d like you to|i\'?d appreciate it if you|don\'?t forget to|' +
         'while you(?:\'?re| are) at it|since you(?:\'?re| are) (?:here|there|at it)|when you get a (?:sec|second|minute|chance|moment)|' +
         'if you have a (?:sec|second|minute|moment|chance)|if it\'?s not too much trouble|' +
         'before (?:you go|i (?:leave|go))|whenever you (?:can|get a chance)|at your (?:earliest )?convenience|no rush but|' +
@@ -2354,6 +2356,7 @@ export class VoiceCommands {
         /^do (i|we)\b/i,
         /^do (you|they)\b(?! (?:mind|hear|think|suppose|reckon|figure|want|need|care)\b)/i,
         /^mind if i\b/i,
+        /^do (i|we)\b/i, /^do (you|they)\b(?! (?:mind|hear|think|suppose|reckon|figure|want|need)\b)/i, /^mind if i\b/i,
         /^is there (?:any )?way to\b/i, /かね(?:る|ます|ません)$/,
         /^(?:can|could|would|might|will) it be (?!too much|possible|asking)/i, /^is it closable\b/i,
         /^is it possible this can be\b/i, /^any idea how to\b/i, /^is it true\b/i,
