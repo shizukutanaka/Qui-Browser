@@ -4,6 +4,27 @@
 
 各項目には「対応可否」の目安として難易度と優先度を付けています。優先度は「実際にユーザーに影響するか」を基準にしており、コード上の見た目の重大さとは一致しない場合があります。
 
+~~- Session 313: EN decree/judgment 宣告(i declare/pronounce/rule the tab X・the tab is hereby/thereupon/forthwith X・by decree/order/edict/fiat)・'the tab is beyond help by <decree>' が scoped-help 先勝ち → ENパターン lookahead に `by (decree|order|proclamation|edict|statute|fiat)` 除外追加で close へ。onyx/jade 由来の 'unmount it/the tab'・'unsubscribe it' 欠落リテラル補填(フルスイート赤3件→緑)・JA 文書型敬体/禁制宣告(申し渡し・〜するな・〜てはならぬ・禁ず・許可せぬ 等)~~
+~~- Session 314: EN demand/court-order 枠(i {want,need,demand,order,command,decree,require,expect} OBJ {closed,gone,dead,...}・the court/bench {finds,rules,declares,sentences} the tab {dead,guilty,condemned,...}・stands condemned/accused・outlawed/recalled/rescinded declaratives)・JA 命令文書・判定宣告(をV旨命ず/言い渡す・命令書発令・し給え残置・こととする/ものとする・べきほかない・見せしめ/お達し)~~
+~~- Session 314: 棄却パターン — 'you {may,shall,must,can,will} not keep it' 系は negate 方向逆のため不採用・'{abandon,cease,drop,give up,...} keeping it' は曖昧で不採用。close-tab-by-name JA パターンの捕捉群に `(?:(?!(?:この|その|あの)タブ).)+` 追加（'このタブを閉じて' が名指しタブとして誤爆 → close-tab 正当ヒットへ）~~
+~~- Session 313: EN probe 残留 — tab-search 8件('i find the tab <adj>' 形は tab-search 先勝ちで維持・close リテラルで一部カバー)・JA 既登 close 27件/妥当 pin(stop-everything 2・vr-exit 1)~~
+
+~~- Session 312: EN end/halt/dispose 俗語動詞(end it/halt it/snip/chop/murder/smite)・needs-to-go・time-to-close・go/come close it・bye tab・JA とくれ/おくれ/んとくれ・てなよ/てわよ・ちゃうなら/ちゃったほうが・許可問い(てもいいよね/ええか)・dict名詞尾XXXI(慣例/原則/規範/ルール 等)~~
+~~- Session 312: 'scram/beat it/get lost/begone'(話者解散)・'close off/shut off/shut out/cut that/stop the tab'(曖昧)は意図的に未ルート；'ておる/とる' 進行形は describe-tab 正当ヒットでピン見送り~~
+
+
+~~- Session 311: EN 俗語処分動詞(bin/chuck/junk/nuke/kill/ditch/dump/toss 等)・close-all 俗語形・JA じゃい/まえよう/ておいちゃ/ちゃうけど・dict名詞尾XXX(定石/鉄則/王道 等)・閉鎖願い系が negate 複写リテラルに誤爆~~
+~~- Session 311: 'wind it up'/'put a lid on it'/'lose it' は閉じ意図不明瞭のため意図的に未ルートのまま（false-positive 回避）~~
+
+
+~~- Session 310: vocative 尾(man/pal/champ/love/darling/honey/guys/yall)・hey browser/bruh/dude 前置・do-X-a-favour・theres-a-love・er/'em eye-dialect・JA てんか/なはれ/おくり/もうて/たろか/させます 未ルート群~~
+~~- Session 310: 曖昧処分句(sort it out/take care of it/deal with it/handle it)は破壊的操作と断定不可 → ack へ（'off with it' 系の明確な処分慣用句のみ close-tab）~~
+
+
+~~- Session 309: "close every tab" が close-tab-by-name 誤ルート（lookahead に every/each/both/those/these 追加で解消）~~
+~~- Session 309: silent-probe 検出の約90件残留（negate 見送り/断念枠、かね/たもれ/至急尾、close-all every 形、pin current、bookmark add-to、reopen 誤って形、EN discourse 前置、quick-ism 語尾、ordinal from-the-right）~~
+
+
 ---
 
 ## A. 削除（Session 74 で完了）— イーロン・マスクのアルゴリズム step 2
@@ -149,6 +170,176 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice '閉じてゆくべき/ゆけばいい' のてゆく方言尾が NO-MATCH~~
 - ~~voice '閉じてしまったようです/ところです' の完了報告尾が NO-MATCH~~
 - ~~voice '閉じるのがワークフローだ/標準だ' の手順名詞尾が NO-MATCH~~
+- ~~voice '閉じるのが進め方だ' の navigate 誤ルート~~
+- ~~voice '閉じてもいいかしらね' のもいいか残置が NO-MATCH~~
+- ~~voice '閉じるのが流儀だ/進め方だ' の流儀名詞尾が NO-MATCH~~
+- ~~voice '閉じてくださいよお' の長音残置が NO-MATCH~~
+- ~~voice '閉じてしまおうぞ/ね' のしまおう残置が NO-MATCH~~
+- ~~voice '閉じるのが任意だ/裁量だ/お任せだ' の裁量名詞尾が NO-MATCH~~
+- ~~voice '閉じておくのを忘れた' の忘れ報告が NO-MATCH（実行化）~~
+- ~~voice '閉じておくと良かった' のおくと良かった尾が NO-MATCH~~
+- ~~voice '閉じるのが礼式だ/義理だ' の礼式名詞尾が NO-MATCH~~
+- ~~voice '閉じてくれませんかねえ' のくれません残置が NO-MATCH~~
+- ~~voice '閉じておくのが吉だ/上策だ' のおく+名詞複合尾が NO-MATCH~~
+- ~~voice '閉じるのが気遣いだ/親切だ' の配慮名詞尾が NO-MATCH~~
+- ~~voice '閉じてみるのがいいかも' のみる判断尾が NO-MATCH~~
+- ~~voice '閉じるのが信念だ/譲れない線だ' の信念名詞尾が NO-MATCH~~
+- ~~voice '閉じてしまうのが最善/得策' のしまう判断尾が NO-MATCH~~
+- ~~voice '閉じるのが恒例だ/しきたりだ' の慣習名詞尾が NO-MATCH~~
+- ~~voice '閉じておくに限ります' のおく限り尾が NO-MATCH~~
+- ~~voice '閉じるのが本道だ/真っ当だ' の正道名詞尾が NO-MATCH~~
+- ~~voice '閉じておけば大丈夫です/正解だ' のおけば安心尾が NO-MATCH~~
+- ~~voice '閉じるのが体面だ/面目だ' の体面名詞尾が NO-MATCH~~
+- ~~voice '閉じてほしいものかな' の negate 誤ルート~~
+- ~~voice '閉じてくるべきだ' のくる方向尾が NO-MATCH~~
+- ~~voice '閉じるのが好機だ/旬だ' の好機名詞尾が NO-MATCH~~
+- ~~voice '閉じておくわけです' のおく断定尾が NO-MATCH~~
+- ~~voice '閉じるのが矜持だ/誇りだ' の矜持名詞尾が NO-MATCH~~
+- ~~voice '閉じてもらいますね' のもらいます残置が NO-MATCH~~
+- ~~voice '閉じてくるしかない' のくる残置が NO-MATCH~~
+- ~~voice '閉じるのが極意だ/骨子だ' の極意名詞尾が NO-MATCH~~
+- ~~voice '閉じるのが勘所だ/狙い目だ' の勘所名詞尾が NO-MATCH~~
+- ~~voice '閉じてくれませんだろうか' のくれません残置が NO-MATCH~~
+- ~~voice '閉じるのが要旨だ/旨趣だ' の要旨名詞尾が NO-MATCH~~
+- ~~voice '閉じておこうかと/おいてもらえますか' のておき残置が NO-MATCH~~
+- ~~voice '閉じるのが心髄だ/奥義だ' の心髄名詞尾が NO-MATCH~~
+- ~~voice '閉じてみるとするか/くれませんかしら' のみる/くれません残置が NO-MATCH~~
+- ~~voice '閉じるのが骨髄だ/精髄だ' の骨髄名詞尾が NO-MATCH~~
+- ~~voice '閉じておく予定です/つもりです' のておく残置が NO-MATCH~~
+- ~~voice '閉じるのが枢要だ/枢機だ' の枢要名詞尾が NO-MATCH~~
+- ~~voice '閉じてくれんかの/くれんじゃないか' のくれん残置が NO-MATCH~~
+- ~~voice '閉じるのが大本だ/土台だ' の大本名詞尾が NO-MATCH~~
+- ~~voice '閉じてちゃいなよ/ちゃおうかな' のちゃい残置が NO-MATCH~~
+- ~~voice '閉じるのが礎だ/大黒柱だ' の礎名詞尾が NO-MATCH~~
+- ~~voice '閉じてくれませんものか' が negate 誤ルート~~
+- ~~voice '閉じるのが急所ですか/勘所だね' の急所名詞尾IIが NO-MATCH~~
+- ~~voice '閉じてもらいますわ' のもらいます残置が NO-MATCH~~
+- ~~voice '閉じるのが急所かも/狙い目です' の急所名詞尾IIIが NO-MATCH~~
+- ~~voice '閉じてくださいますかしら/ませんでしょうか' のくださいます残置が NO-MATCH~~
+- ~~voice '閉じるのが急所だと思います/勘所と考えます' の急所名詞尾IVが NO-MATCH~~
+- ~~voice '閉じておかれますか' が help 誤ルート~~
+- ~~voice '閉じるのが急所べきだ' の急所名詞尾Vが NO-MATCH~~
+- ~~voice '閉じるのが急所級だ' の急所名詞尾VIが NO-MATCH~~
+- ~~voice 'i would hate for you to close it' が未ルート（婉曲拒否）~~
+- ~~voice '閉じてくださったら幸いです' の kudasattara 残置が NO-MATCH~~
+- ~~voice '閉じるのが急所かと存じます' の急所名詞尾VIIIが NO-MATCH~~
+- ~~voice '閉じてくださいましたら嬉しいです' の kudasaimashitara 残置が NO-MATCH~~
+- ~~voice '閉じるのが急所なわけです' の急所名詞尾IXが NO-MATCH~~
+- ~~voice '閉じるのが急所と存じ上げます' の急所名詞尾Xが NO-MATCH~~
+- ~~voice '閉じてくださり幸いです' の kudasari 残置が NO-MATCH~~
+- ~~voice '閉じるのが急所と考えております' の急所名詞尾XIが NO-MATCH~~
+- ~~voice '閉じてくださったでしょうか' の kudasatta 残置が NO-MATCH~~
+- ~~voice '閉じるのが急所に存じ上げます' の急所名詞尾XIIが NO-MATCH~~
+- ~~voice '閉じてもらうのが一番です' の morau 名詞尾Vが NO-MATCH~~
+- ~~voice '閉じるのが急所と言います' の急所名詞尾XIIIが NO-MATCH~~
+- ~~voice '閉じるのが急所かと思い上げます' の急所名詞尾XIVが NO-MATCH~~
+- ~~voice '閉じてくださるようお願いします' の kudasaru-you 残置が NO-MATCH~~
+- ~~voice '閉じるのが急所と考え上げます' の急所名詞尾XVが NO-MATCH~~
+- ~~voice '閉じてくださるなら幸いです' の kudasaru-nara 残置が NO-MATCH~~
+- ~~voice '閉じるのが急所かと心得ております' の急所名詞尾XVIが NO-MATCH~~
+- ~~voice '閉じるのが急所と見受けられます' が help 誤ルート~~
+- ~~voice '閉じるのが急所と思われます' の急所名詞尾XVIIが NO-MATCH~~
+- ~~voice '閉じてもらうと助かります' の morau-to 残置VIが NO-MATCH~~
+- ~~voice '閉じるのが急所という見解です' の急所名詞尾XVIIIが NO-MATCH~~
+- ~~voice '閉じてくださいますれば幸いです' の kudasaimasureba 残置が NO-MATCH~~
+- ~~voice '閉じるのが急所と確信しています' の急所名詞尾XIXが NO-MATCH~~
+- ~~voice '閉じるのが急所と認識しています' の急所名詞尾XXが NO-MATCH~~
+- ~~voice '閉じてもらったら幸いです' の morattara 残置が NO-MATCH~~
+- ~~voice '閉じるのが急所と考察します' の急所名詞尾XXIが NO-MATCH~~
+- ~~voice '閉じるのが急所と断定します' の急所名詞尾XXIIが NO-MATCH~~
+- ~~voice '閉じるのが急所と主張します' の急所名詞尾XXIIIが NO-MATCH~~
+- ~~voice '閉じるのが急所と推奨します' の急所名詞尾XXIVが NO-MATCH~~
+- ~~voice '閉じるのが急所と進言します' の急所名詞尾XXVが NO-MATCH~~
+- ~~voice '閉じるのが急所と提案します' の急所名詞尾XXVIが NO-MATCH~~
+- ~~voice '閉じるのが急所という所見です' の急所名詞尾XXVIIが NO-MATCH~~
+- ~~voice 'you could probably|conceivably|potentially' の中置副詞が NO-MATCH~~
+- ~~voice 'do you think you could conceivably|probably|potentially' の副詞挿入が NO-MATCH~~
+- ~~voice 'do you think you would|might be able to' の think-able 枠が NO-MATCH~~
+- ~~voice 'would you be a dear|an angel|a love|a pal|a sport|a darling to' の be-a-X 枠が NO-MATCH~~
+- ~~voice 'might|may you be so kind|good|sweet|gracious to' の might-so 枠が NO-MATCH~~
+- ~~voice 'would you kindly|please be so kind|good to' の入れ子前置が NO-MATCH~~
+- ~~voice 'could you be so good|sweet|lovely|gracious|nice to' の could-so-Adj 枠が NO-MATCH~~
+- ~~voice 'would you be so sweet|lovely|gracious|nice to' の so-Adj-to 枠が NO-MATCH~~
+- ~~voice 'id be much|deeply obliged to' の obliged-to 短縮枠が NO-MATCH~~
+- ~~voice 'i would be much|deeply obliged to' の obliged-to 自発枠が NO-MATCH~~
+- ~~voice 'id be most happy|glad|delighted|pleased|willing|ready to' の id-most 枠が NO-MATCH~~
+- ~~voice 'i would be most happy|glad|delighted|pleased|willing|ready to' の most-X-to 枠が NO-MATCH~~
+- ~~voice 'id be ever so happy|glad|delighted|pleased|willing|ready to' の ever-so 自発枠が NO-MATCH~~
+- ~~voice 'id be only too happy|glad|delighted|pleased|willing|ready to' の id-only-too 枠が NO-MATCH~~
+- ~~voice 'i would be only too happy|glad|delighted|pleased|willing|ready to' の only-too 枠が NO-MATCH~~
+- ~~voice 'id be more than happy|delighted|pleased|glad|willing|ready to' の強調自発枠が NO-MATCH~~
+- ~~voice 'i would be happy|delighted|pleased|glad|willing|ready to' の自発枠が NO-MATCH~~
+- ~~voice 'if you would be so good|kind enough as to' の重丁寧枠が NO-MATCH~~
+- ~~voice 'i would not mind|object if you closed it' の同意枠が NO-MATCH~~
+- ~~voice 'i would prefer|appreciate if you closed it' の希望枠が NO-MATCH~~
+- ~~voice 'i would love|like for it to be closed' の for-it 目的格が NO-MATCH~~
+- ~~voice '閉じるのが急所だと思うんです' の急所名詞尾VIIが NO-MATCH~~
+- ~~voice 'i would be much|deeply obliged if youd' の obliged 変体IIが NO-MATCH~~
+- ~~voice 'i would be ever so grateful|obliged if youd' の重感謝枠IIが NO-MATCH~~
+- ~~voice 'could you conceivably' の推測枠が NO-MATCH~~
+- ~~voice 'would you be opposed|averse|reluctant to' の反対枠が NO-MATCH~~
+- ~~voice 'would|might you be inclined|willing to' の意向枠が NO-MATCH~~
+- ~~voice 'i wonder if you would mind|i am wondering if you could' の wondering 変体が NO-MATCH~~
+- ~~voice 'may i implore|request you to' の懇願枠が NO-MATCH~~
+- ~~voice 'would you be so sweet|lovely|gracious as to' の丁寧枠が NO-MATCH~~
+- ~~voice 'i would ask of you|urge you to' の懇願枠が NO-MATCH~~
+- ~~voice 'id be eternally|deeply indebted if youd' の indebted 変体が NO-MATCH~~
+- ~~voice 'id be most|ever so obliged if youd' の obliged 変体が NO-MATCH~~
+- ~~voice 'would you do me the courtesy|honor of' の名誉枠が NO-MATCH~~
+- ~~voice 'i would be most grateful if youd' の長形感謝枠が NO-MATCH~~
+- ~~voice 'id be indebted|eternally grateful if youd' の重感謝枠が NO-MATCH~~
+- ~~voice 'wed be grateful if youd' の複数感謝枠が NO-MATCH~~
+- ~~voice 'id really appreciate it if youd' の感謝依頼枠が NO-MATCH~~
+- ~~voice 'how say you|what do ya say we' の提案枠が NO-MATCH~~
+- ~~voice 'id be grateful|thankful if youd' の感謝条件枠が NO-MATCH~~
+- ~~voice 'could i trouble you for a close' の依頼枠が NO-MATCH~~
+- ~~voice 'would you be sweet enough to' の形容詞依頼枠が NO-MATCH~~
+- ~~voice '閉じるのが利益だ/好都合だ' の利益名詞尾が NO-MATCH~~
+- ~~voice 'id be honored|thrilled if youd' の形容詞条件枠が NO-MATCH~~
+- ~~voice 'if you could bring yourself to' の自己条件枠が NO-MATCH~~
+- ~~voice 'if youd be a dear/pal and' の条件呼びかけ枠が NO-MATCH~~
+- ~~voice '閉じておくのも手かも/ありかと' のおくのも残置が NO-MATCH~~
+- ~~voice '閉じるのが必須だ/不可欠だ' の必須名詞尾が NO-MATCH~~
+- ~~voice 'thank you kindly for closing it' の先感謝スワップが NO-MATCH~~
+- ~~voice '閉じてくれればと思う/願う' のくれればと残置が NO-MATCH~~
+- ~~voice '閉じるのが手際だ/手っ取り早い' の手際名詞尾が NO-MATCH~~
+- ~~voice 'im begging you,/im down on my knees' の懇願裸形が NO-MATCH~~
+- ~~voice '閉じておくしかないんだ/あげるのが筋だ' のおくしか・あげる残置が NO-MATCH~~
+- ~~voice '閉じるのが選択肢だ/分岐点だ' の選択名詞尾が NO-MATCH~~
+- ~~voice 'the sooner the better/no time to lose' の急迫枠が NO-MATCH~~
+- ~~voice '閉じちゃってね/じゃって' のちゃって・じゃって残置が NO-MATCH~~
+- ~~voice '閉じてくれぞ/くれわ' のくれ方言残置が NO-MATCH~~
+- ~~voice '閉じるのが心がけだ/覚悟です' の心がけ名詞尾が NO-MATCH~~
+- ~~voice 'while youre in there' のついで枠残置が NO-MATCH~~
+- ~~voice '閉じておくんや/おくんですから' の関西おくんや残置が NO-MATCH~~
+- ~~voice '閉じるのが手筈だ/決まりだ' の手筈名詞尾が NO-MATCH~~
+- ~~voice 'when you get a free moment/second' の時間余裕枠残置が NO-MATCH~~
+- ~~voice '閉じてみるわよ/もろうてええか' のみるわ・もろうて残置が NO-MATCH~~
+- ~~voice '閉じるのが件だ/話です' の件名詞尾が NO-MATCH~~
+- ~~voice 'id be much obliged if youd' の感謝条件枠が NO-MATCH~~
+- ~~voice '閉じてくださいませね/ほしくてな' のくださいゃ・ほしくて残置が NO-MATCH~~
+- ~~voice '閉じるのが理だ/判明だ' の理名詞尾が NO-MATCH~~
+- ~~voice 'herewith/i bid you' の正式指令枠が NO-MATCH~~
+- ~~voice '閉じておいてね/てやってよ' のおいたら・やって残置が NO-MATCH~~
+- ~~voice '閉じるのが手段だ/手立てだ' の手段名詞尾が NO-MATCH~~
+- ~~voice 'out of deference to me' の敬意枠残置が NO-MATCH~~
+- ~~voice '閉じてしまえばいいよ/てまえよ' のしまえば・まえ残置が NO-MATCH~~
+- ~~voice '閉じるのが仕事だ/頼みだ' の仕事名詞尾が NO-MATCH~~
+- ~~voice 'do us both a favor and' が裸 'do' に先食いされていた~~
+- ~~voice '閉じておくんだよ/くれるんじゃないか' のおくのだ・くれるんじゃ残置が NO-MATCH~~
+- ~~voice '閉じるのが処置だ/処方だ' の処置名詞尾が NO-MATCH~~
+- ~~voice 'be a peach/sport and' の呼びかけ懇願残置が NO-MATCH~~
+- ~~voice '閉じておけば安心/てあるはずです' のおけば・てある残置が NO-MATCH~~
+- ~~voice '閉じるのが結論だ/真髄だ' の解名詞尾が NO-MATCH~~
+- ~~voice 'for pitys sake/for christs sake' の嘆願枠残置が NO-MATCH~~
+- ~~voice '閉じておくよう進める' の navigate 誤ルート・'はいかがなものか' の negate 誤ルート~~
+- ~~voice '閉じるのが初手だ/取っ掛かりだ' の初手名詞尾が NO-MATCH~~
+- ~~voice 'do us the service of/bless me by' の恩恵枠が NO-MATCH~~
+- ~~voice '閉じておくが吉/みろう' のおく確定・みろ方言残置が NO-MATCH~~
+- ~~voice '閉じるのが秘策だ/隠し玉だ' の秘策名詞尾が NO-MATCH~~
+- ~~voice 'final answer/case closed' の評決枠が NO-MATCH~~
+- ~~voice '閉じてみるべし/くれんよ' のてみる・くれん残置が NO-MATCH~~
+- ~~voice '閉じるのが本命だ/最有力だ' の本命名詞尾が NO-MATCH~~
 - ~~voice '閉じてなって/とくべき' のてな・てとく残置が NO-MATCH~~
 - ~~voice '閉じるのが王道だ/基本だ' の常套名詞尾が NO-MATCH~~
 - ~~voice 'carpe diem/strike while the iron is hot' の今こそ枠が NO-MATCH~~
@@ -1366,6 +1557,218 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - ~~**依頼前置詞・困惑句が未認識**~~ — **Session 167 で実装**: help に 'お願いします/よろしくお願いします/どうぞ/わかんない/わかりませんでした/どうしたら'、negate に 'nah bruh/no can do/no dice/negative ghostrider/most certainly not/whatever/doesnt matter/forget everything'。
 
 ---
+
+## R239 (PR #525待ち) で意図スキップした残原子
+
+- **Speaker-dismissal**: 'scram/beat it/get lost/begone/vamoose/skedaddle/git gone/be gone' — 話者自身が立ち去る＝vr-exit 寄りだが、ターゲット曖昧で誤実行リスクのため unrouted 維持。
+- **閉じ意図不明瞭**: 'close off/shut off/shut out/cut that/stop the tab' — 電源/遮断/停止の混同域。
+- **苦情句**: 'sick of/tired of/fed up with/had enough of this tab' — 要望は非明示。
+- **JA 曖昧尾**: '閉じるなんて'（驚き/嫌悪）・'閉じるのが下策ではない'（二重否定の弱肯定）・'閉じておるのに/閉じとるし'（進行状態の報告）。
+- **ENPRE 空白**: 2トークン slang（'no cap' 済、'on god'、'on a stack'）は未登録 — 次ラウンド候補。
+
+## R240 (PR 待ち) で意図スキップした残原子
+
+- **Speaker-dismissal II**: 'vanish it'・'close on in'・'call it with this tab'・'wind down this tab' — 閉じ意図が弱い/ターゲット曖昧。
+- **人称化処分**: 'close her/him up|down'・'shut her/him down' — 対象が人（うるさい人を黙らせる）と取れるため unrouted 維持。
+- **JA 依頼曖昧尾**: '閉じぬきで'・'閉じよっちゅうの'・'閉じておくれやす'・'閉じておくんなはれ'・'閉じてくれっつってんだろ' — 方言+罵倒混合で命令明度が低い。
+- **閉じてんか**: '閉じているのか' の進行質問 → describe-tab は正当ルート（実行ではなく状態応答）。
+
+- **EN 曖昧処分III (Session 315)**: 'scrub it'/'scratch the tab'（cancel 意味）、'lose it'（感情的意味）、'bye felicia'/'get gone'（話者解散・対人）、'fire the tab'（起動/解雇で曖昧）、'shut up shop'（'shut up' mute-toggle ピン先勝ちで不登録）。
+- **JA 非実在形 (Session 315)**: '閉じええよ'（実際に使われない形）等、逐語変換でたまたま生成される語尾は対象外。
+- **EN 曖昧処分IV (Session 316)**: 'murk it'/'write it off'/'gut it'/'wreck it'/'smash it'/'crush it'（賞賛語または語義曖昧）、'murder it dead'/'kill it dead'（冗長強調）、'vanish this'/'poof it'/'make it poof'、'begone/be gone tab'（古語呼びかけ）、'hit the bricks'/'hang it up'/'leave the tab'/'drop it like its hot'/'flush it'/'burn it down'/'for good close it'/'batten it down'/'why wouldnt you close it'（wh 枠は wont/cant のみ pin）。
+- **JA 非対象 (Session 316)**: '閉じぬこ'（まれな南方方言形）。
+
+### R242 / Session 316（CXCVI）— 意図スキップ一覧
+- EN: `smash it` / `crush it` / `lose it` / `begone tab` / `leave the tab` — 処分意図不明瞭または pin 衝突 (`leave`族)
+- EN: `why wont/cant you close it` — trouble 確立ピン維持（修正試行は既存3テストの回帰で撤回）
+- JA: `閉じるべきでは` — negate 確立ピン維持
+
+### R243 / Session 317（CXCVII）— 意図スキップ一覧
+- EN: `do it then` — 動詞指称なし、単独では閉じ意図不明
+- EN: `curtain call for this tab` — device-apps 誤爆するが演劇語で処分意図が曖昧 → 観察
+- EN: `end of the line for this tab` — caret-edge（End キー語）先勝ちのため維持
+- EN: `leave it closed` — 「閉じたままに」意 → negate 維持
+- EN: `scram` / `get lost` / `sick of this tab` / `tired of this tab` — 感情表現 or 罵倒、処分意図不明
+- JA: `閉じとくよ/ね/わ` — 話者宣言（"自分で閉じる" とも取れる）→ とく尾としてルート化済みだが実行可否は観察枠
+
+## R244 skip-list（Session 318）
+- `its done here` — 「自分はここで終わり」寄りの曖昧宣言、tab-close と vr-exit の中間で観察枠（null 維持）
+- `do it then` — 先行コンテキスト依存の曖昧命令（null 維持）
+- `close out (the|this) tab` — 'close up X' と同族の名指し形 → close-tab-by-name ピンで維持
+- `閉じるのが正解` — 確立 help ピン維持（'正解でしょう' は dict で close-tab に分岐済み）
+
+## R245 skip-list（Session 319）
+- `handle this`/`deal with this`/`sort this out`/`address this`/`fix this` — 'this' が曖昧目的語（'…it' 族は ack/trouble ピン済み）→ null 維持
+- `do something about|with it`, `something needs to happen to this tab` — 漠然要請で閉じ意図不明瞭 → null
+- `閉じれるかな` — 能力wonder形、依頼と質問の中間 → null 観察枠
+- `閉じてばかりでは`, `閉じるばかり` — 習慣批判で命令ではない → null
+- `閉じるのが理にかないます` — 語内に `ない` を含み negate 生ヒット → negate ピン（実害なし・記録のみ）
+- `begone (tab)` — R242 archaic-address ピン維持（`begone from my sight` は close-tab で分岐済み）
+
+## R246 skip-list（Session 320）
+- `閉じていない`/`閉じてない(ですけど|のに|んです|んですけど|ですよ)`/`まだ|ずっと閉じてない`/`閉じてもない` — 平叙状態報告で閉じ意図が曖昧 → null ピン（んだけど系は未了訴え→trouble 一貫）
+- `閉じてないんですよ` — 変種経路で negate に落ちる誤ルート（`てない` 内の `ない`）→ 低実害のため記録のみ
+- `閉じるべきだったはず` — はず-complaint 系統に合流して trouble
+- `開きっぱなし` 族・`閉じ残したまま` — 状態報告→describe-tab ピン（'開きっぱなし' の既存ルートに統合）
+
+## R247 skip-list（Session 321）
+- `do i have to spell it out close it`/`do i look like im joking close it`/`shall i repeat myself close it` — 疑問前置が help 生ヒットで先勝ち（登録順）。interrogative 規則に合わせ help ピン
+- `must i repeat close it` — `repeat` 語ヒットで say-again（実害小・記録）
+- `close it or else what` — "or else what" は挑発返しで命令確度が揺れる → null
+- `閉じないんか` — ない系で negate（'閉じないのかよ'系は reproach→trouble で分岐済み）
+- `閉じっぱでいい` — 「閉じたままで良い」/「閉じなくて良い」両読み → null
+
+## R248 skip-list（Session 322）
+- `閉じたつもりだった` — believed-closed 状態報告 → describe-tab（のに付きは trouble）
+- `閉じてもらえましたか` — 受益もらえ形が close-tab 確立ルート（過去形でも踏襲）
+- `閉じられてなかった/閉じられてない/閉じていなかった/閉じれてなかった/閉じれてない` — passive-potential 否定報告は R246 規則で null（訴え意図不明瞭）
+- `閉じずにいる(つもり)` — 本来 'ずにおく' negate 族だが `いる` で go-to 誤爆 → negate リテラルで吸収
+
+## R249 skip-list（Session 323）
+- `shut r down` — 'er 変種は曖昧のため null（'shut er down' は vr-exit 族ピン維持）
+- `close that there tab` — deictic-by-name 確立ルート踏襲
+
+## R250 skip-list（Session 324）
+- `閉じ忘れたまま` — 状態報告族で describe-tab（確立ルート踏襲）
+- `閉じてたはず(だった|なのに)` — はず-未達期待規則で trouble（'閉じてるはず' 系も統合済み）
+
+## R251 skip-list（Session 325）
+- `閉じられないのかしら`/`閉じないわけですか` — 既 trouble ルート緑・踏襲
+- `閉じ忘れたまま` — describe-tab 族（確立）
+
+## R252 skip-list（Session 326）
+- `閉じれるわけですか` — わけ族で ack 確立ピン維持
+- `閉じまいかと思うけど/のです/た` — 「閉じない」deliberation は命令性なし → null
+
+## R253 skip-list（Session 327）
+- `shut the thing down` — tab/app スコープ曖昧（'shut X down'→vr-exit 族との衝突回避）→ null
+- `let it go`/`leave it gone` — 放棄/無視の確立 negate ピン維持
+
+## R254 skip-list（Session 328）
+- `閉じるほかないよ` — negate 'ないよ' 先取りを close-tab literal で解消（確立回避法）
+- そのほか残置なし（本ラウンドは全消化）
+
+## R255 skip-list（Session 329）
+- `閉じるなんて/なんか/なんぞ` 系 — 曖昧感嘆（'閉じるなんかして'のみ既緑）→ null
+- `閉じる度に/たび(に)` — 習慣節・命令性なし → null
+- `閉じた覚えもない` — 記憶報告・曖昧 → null
+
+## R256 skip-list（Session 330）
+- `help yourself close it` — scoped-help 先取り（登録順・確立規則；意味的にも許容）
+- `閉じないろ` — 変形ない命令 → negate 維持
+
+## R257 skip-list（Session 331）
+- `should i|shall i close it` — 疑問形 → help（確立ピン）
+- `ought i close it` — 古風疑問 → null
+
+## R258 skip-list（Session 332）
+- `閉じるかどうかだよね/決めよう/閉じるか閉じないかだ` — 審議節 → null
+- `閉じるかどうするか/べきか閉じないべきか/閉じるか閉じるまいか` — AかBか 確立 help ピン
+
+## R259 skip-list（Session 333）
+- `閉じるかなりか` — AかBか 審議 → help 確立ピン
+
+## R261 skip-list（Session 335）
+- `閉じるのはだめ(かな)?` — 「閉じるのはまずい」(close意図) との曖昧対で null 維持
+
+## R263 skip-list（Session 337）
+- `閉じたんで` — describe-tab literal にすると '閉じたんだ'/'閉じたなんか' の variant を横取りするため未登録（generic variant 衝突）
+
+## R264 skip-list（Session 338）
+- `poof` — 魔法/消失の感嘆詞として曖昧、未登録
+- `閉じるのは無駄` / `閉じるのが惜しい` / `閉じるのがもったいない` — 「不要」と「閉じ意図」の曖昧対（だめ系ピンと同型）で null 維持
+- `閉じたるわ` / `閉じたるぞ` — 確立 describe-tab ピン（'閉じたる'=閉じた+る parse）のため close literal 未追加
+
+## R265 skip-list（Session 339）
+- `閉じてくれないの` — 「閉じてくれないの?」非難疑問 vs 「閉じてくれないの(ね)」依頼の曖昧で null 維持
+
+## R266 skip-list（Session 340）
+- 特になし — 新規候補は全件ルート済み（'close that tab yonder' は位置指示のため close-tab で正当化）
+
+## R267 skip-list（Session 341）
+- 特になし — 新規候補は全件ルート済み
+
+## R268 skip-list（Session 342）
+- 特になし — 新規候補は全件ルート済み
+
+## R269 skip-list（Session 343）
+- 特になし — 新規候補は全件ルート済み（'閉じるべからず|べからざるなり' は禁止宣言のため negate で正当化）
+
+## R270 skip-list（Session 344）
+- 'close it later today' → defer（意図通り延期ルート）・'close it when done/finished' → conditional（確立ルート）
+- '閉じてはるな' → negate（てはる敬語+な禁止の合成で正当化）・'閉じておくべきでは' → negate（べきでは=禁止前置）
+
+## R271 skip-list（Session 345）
+- '閉じるのが正解だ'/'閉じるが正解だ' → スキップ（'閉じるのが正解'→help 確立ピンとの曖昧対；宣言形でも判定が分かれる）
+
+## R272 skip-list（Session 346）
+- 'close it why keep it'→negate 維持（'why keep it' は存続への反問で negate 収まり）
+- 'close it i repeat'→say-again 維持（'must i repeat close it' の repeat 確立ピンと整合）
+
+## R273 skip-list（Session 347）
+- '閉じてない' → null 維持（平叙ステータス報告、describe/negate と曖昧 — 確立ピン）
+- '閉じてもらった'（裸形）→ close-tab 維持（受益過去形は variant 'て' で close；報告系は語尾付きのみ describe へ）
+
+- R274 skip: '閉じたがる|閉じたがってる'→null — 三人称願望（話者意図と解せず）。
+- R274 skip: '閉じてへん' bare→null — '閉じてない' bare null ピン踏襲（語尾付き てへんねん|やん|で は trouble）。
+- R274 skip: '閉じてるのに' → describe — 「閉じたのに（まだ残ってる）」系の不満は別解釈余地、進行報告として登録済み。
+- R274 skip: 'closing time|last call|final boarding' → close-tab — ジョーク系だが閉鎖意図として受理（ドキュメント済み）。
+
+- R275 skip: bare 'oblige me'/'the needful'/'im asking (you) nicely'/'onegai (shimasu)' → null — 動詞・対象なし依頼、close-tab に倒すには曖昧すぎ。'oblige me by closing it' / 'do the needful' は close-tab 登録済み。
+- R275 skip: 'do me a solid' → help 既存ピン（対象なし favor）維持。
+
+- R276 skip: 'move along'→resume-reading 維持（汎用前進句・close意図なし）。
+- R276 note: '閉じるだろう' 系は命令-nudge として close-tab（予測質問と実務的に同一）。
+
+- R277 skip: '閉じるんじゃなかった'→null — 「閉じるべきでなかった」後悔は reopen か negate か曖昧。
+- R277 pin: 'begone tab'→null（vault CXCIX 確立）・'tab begone'→close-tab。
+- R277 pin: '閉じるんだった'→close-tab（residual-register-atoms の should-have execute 確立 — trouble ではない）。
+
+- R278 pin: 'pack it in'/'call it quits'/'quit it'→stop-everything、'leave it for dead'→negate — close 系と誤認しやすいので注意。
+
+- R279 pin: 'lose it'→null（曖昧）・'閉じてはんな'→close-tab（はん収縮）・'閉じてちゃぁ'→null（曖昧）。describe literal の includes-match は 'てはん' でも 'てはんな' を横取りするため、はん族は describe 不可。
+
+- R280 pin: 'smash it'/'burn it down'→null・'てあるべきだ'/'てあればいい'→close。裸'てある'/'てあって'/'burn it' literal は variant 残置（べきだ→てあって、down→burn it）を横取りするため追加不可 — てある系は修飾形（わ|んだ|けど|のに）のみ describe/trouble 可能。
+
+- R281 skip: 'call the tab off' は device-apps（'call'=電話 alias、登録順 ~3892 < close ~5609）が先勝ち — close literal 追加は無効。裸 'spent'/'used up'/'old news' はタブ参照なし曖昧で null 維持。
+
+- R282 skip: 'go pound sand' は go-to（/go / 先頭一致・登録順 go-to < negate）が先勝ち — negate literal 追加無効、拒絶意図だが navigate 誤ルート継続。'into next week'/'kick it into next week' は date ピン維持（時間読み）。
+
+- R283 skip: 'take care of it' は ack・'im done here' は vr-exit が登録順先勝ち — close 向け裸形追加は誤ルートのため不採用（'take care of that|the tab' / 'done here' / 'we are done here' は close-tab 登録済み）。
+- R283 skip: '閉じとる*' 族（とるがよ|ばい|わい|ぞよ|っちゃ）— 九州進行「閉じておる」報告にも命令にも読める曖昧形 → null 維持（'閉じとるで'→describe ピン整合のため）。
+- R283 pin: '閉じとるけんね'→negate・'閉じなきゃいけないんだよ'→trouble・'閉じないといけないことになってる'→negate — 確立ピン維持。
+
+- R284 pin: `閉じてくれないの`→null 維持（springer 確立: 反報 vs 依頼で曖昧）。`scrub it`/`wreck it`/`crush it`→null 維持 — タブ明示形のみ登録。
+- R284 fix: `閉じんでな`→negate（'閉じな' close literal の variant 残置が開放依頼を横取りしていた — raw literal 化で先勝ち固定）。`take it out back`→close-tab（'back' で reopen に誤ルートしていた慣用句）。
+- R284 note: `閉じんなってば` は既存 close literal 維持（方言命令 vs 禁止で曖昧 — 変更は別途判断）。
+- R285 pin: `flush it`/`hang it up`→null 維持（granular 確立: 曖昧）。`閉じてんで`→describe 不採用 — `_politeVariants` の てみ→んで 変換が 閉じてみ* close ピン21形を横取りしたため（variant 残置衝突は describe 側に限定）。
+- R286 pin: `write it off`→null 維持（granular 確立: 経理 euphemism 曖昧）。`open fire on it`→go-to 誤ルートを close 修正（'open' keyword 先勝ち → リテラル化で先勝ち固定）。`閉じるべきかと思う`→help ピン維持。
+- R312: `/version/` regex が 'aversion' に誤爆→`(?<!a)` lookbehind修正・`/call \w+/` が 'uncall' に誤爆→`(?<!un)` 修正・`unbookmark*`/`unpin*` は実義のため不採用・JA `ものか`/`もんだ`/`からな` ピン維持。
+- R311: `overturn this page *`→next-page / `開くべきではなかった*を`→go-to / `消えてほしい*`→dismiss-notify / `the call *`→device-apps ピン維持(phone意図)・`close out this tab`→close-tab-by-name ピン・`undo it*`→reopen-tab 維持。
+- R310: `opening it was *`→go-to / `it opened by-*`→go-to / `間違いのタブだ*`→tab-by-name / `クリックしてしまった`→input-methods / `見てしまった`→describe-tab 誤ルートを close リテラル化・`i meant the other tab`→next-tab は正ルート維持・JA `はずだった`→trouble ピン。
+- R309: `let it find no mercy *`→find-in-page 誤ルート56件を close リテラル化・JA `〜するな`→negate ピン維持。
+- R308: `pretend it never existed`→ruby negate ピン衝突不採用・`残さないんだよ`→trouble ピン・`忘れろものか`（ものか rhetorical）→negate 正ルート・`forgotten going forward`→navigate 誤ルートを close リテラル化。
+- R307: 'wreck it'/'hang it up'→granular-pool null ピン再衝突（'hang it' bare は variant-strip 横取りで共に除去）・`tear it up like a bad blueprint`→print 誤ルートを close リテラル化・`死は*からな`→trouble 維持。
+- R306: 'どうしようもない*'・'遅すぎる{わ,よ,ぞ,ぜ,な,からな}'・'二度と*{よ,からな}'→trouble/negate ピン自動除外・`plunge it into the frozen water`（R305）は trouble 維持。
+- R305: `leave it *`~154件→negate ピン自動除外・`let it die without anyone {searching,finding}`→web-search/find-in-page 誤ルートを close リテラル化・`plunge it into the frozen water`→trouble 維持。
+- R304: `fire the tab`→ledger null ピン維持・`hang it*` 系→'hang it up' ピン横取りのため除去・`transmute it to *`→mute-toggle・`呪いをかける*`→describe-tab 誤ルートは close リテラル化で修正。
+- R303: `blast it off`→volume-up・`unpin*`→unpin-active・`cut it off*`/`can it`→stop-everything ピン維持。`the tab was a mistake from the start`/`the tab was too far gone`→read-aloud/panel-distance 誤ルートは close リテラル化で修正。
+- R302: `smash it`/`crush it`→granular-pool null ピン維持・`cut it up`→stop-everything・`put it to sleep permanently`→sleep-mode・`踏んときな`→negate。
+- R301: `どんぞ*`→negate ピン。テストファイル命名はカラー枯渇で衝突が発生 — violet は CCXXXIII で使用済みのため teal を採用。今後も `tests/*-atom-sweep.test.js` の既存名を確認すること。
+- R300: `取り消す*`→reopen-tab 取消ピン維持・`消し去るのが正解`(だ無し)→help 既ルート・'the tab was doomed from the start'→read-aloud 誤ルートを close に修正。
+- R299: `keep it under(water)/captive/prisoner/hostage`→negate keep-it ピン追随。
+- R298: `turn it off`/`switch it off`/`shut it down`→vr-exit ピン維持・`power off the tab`/`put it to sleep`→sleep-mode・`電源を落として/切って/切るんだ/ちまえ`→sleep-mode (power→sleep 慣例)・`停止させろ`/`止めさせろ`→stop-everything・`dim it out`→brightness・`nix it`→negate 既ルート維持。
+- R297: `pitch it out/away/into the bin`→speech-pitch-status 先勝ち ('pitch' サブストリング)・`二度と戻る*` が back regex 横取り → lookbehind で遮断して negate/close へ固定・`姿を見せてくれるな`→web-search 既ルート維持 (曖昧)。JA negate 312件/trouble 15件は既登録済みのためスキップ。
+- R296: `cancel it permanently`/`cancel it for good`→stop-everything・`scratch it out`/`scratch it off`/`leave it on the cutting room floor`→negate ピン維持・`poof it`/`make it poof`→granular-pool null 確立ピン衝突 (採用断念)・`見せるんじゃない`→tabs-list 先勝ち・JA 裸過去報告 (捨てた/捨ててしまった 系)・眠りの国/夢の国→sleep 曖昧・お先にどうぞ→辞退表現のため不採用。プローブ入力 FFFD 文字化け (`捨てちゃった`) 検出済。
+- R295: `call time of death`/`call the code*`→device-apps ('call' 登録先勝ち)・`never fly again`/`never fly for it`→negate・`fly it too close`→panel-distance 誤ルート→close 修正済・`death certificate for it`→security-status 誤ルート→close 修正済・裸 `bang it`/`bang the tab`→曖昧不採用・`pronounce it` 裸形不採用・JA `寝かせ*`/`眠らせ*`/`眠りに*`→sleep-mode ピン族・`滅ぼすか`/`べきか` 系→help 疑問尾・`滅ぼすべきだった`/`死んだと思*`→trouble 期待報告・`追悼会を開け`→go-to 先勝ち ('開け')。プローブ入力に FFFD 文字化け2件混入→検出し修正済。
+- R294: `get gone`→null 確立ピン維持・`mission abort`/`abort the mission*`→stop-everything・`pitch it overboard`→pitch-status・`never come back*`/`dont come back*`→negate・'night night'→sleep-mode ピン族・`read it a bedtime story`→read-aloud 曖昧・`full astern`→back 曖昧・JA `読め*` 全系→trouble/negate ピン族・`ひどい`系裸形→reaction 曖昧不採用。実害: `問題のタブだ`/`呪いのタブだ`→tab-by-name 誤ルートを close-tab へ修正。
+- R293: `open it up for an autopsy`→go-to・`call off the tab`/`call the whole thing off`→device-apps 登録順先勝ち・`burn it down`→null 確立ピン維持（'burn it' substring 横取りで `burn it` 自体も不採用）・`farewell forever` は既存 close リテラル維持・`fire it`/`fire the tab`→null 維持・`pin it up`/`pin it to the wall`→pin-tab 危険不採用・`撤回*/取消*`→reopen/cancel 系・`中止*/キャンセル*`→stop-everything・`終了するんだ`→vr-exit・`休止*`→pause 曖昧・`display*`→describe 曖昧不採用。
+- R292: `see it out`/`see it off`→describe-tab・`end of the line for it`→caret-edge・`curtain call for it`→device-apps・`no encore for it`→repeat-command ピン追随・`leave it *`/`二度と*`/`帰ってくるな`→negate ピン維持・`口を封じろ|噤ませろ|永遠に黙らせろ`→mute-toggle ピン追随・`出直せ|やり直せ|仕切り直せ|畳み直せ`→redo 両義不採用・`surrender to it`→方向逆不採用。
+- R291: `bye felicia`→ledger null 確立ピン維持。`uninstall the tab`/`quits for it`→device-apps/stop-everything ピン追随・眠らせ*→sleep-mode・消*残置→dismiss-notify・`final offer`→商談曖昧不採用・`going once/twice`→go-to 先勝ち・`over and out`→ack 維持。
+- R290: `go easy on it`/`commute*`（mute 部分一致）/`see it through`/`stick with it`→go-to/mute-toggle/describe/resume 先勝ち（'leave the tab'/'drop it like its hot' null ピン維持・'unclose the tab'/'unshut the tab' は close 部分一致先勝ちで裸形のみ reopen）。
+- R289: `pitch it aside`/`pitch it out`→speech-pitch-status 先勝ち（'pitch' パターン・literal 化不可）・`undo it*`/`ctrl z*`→reopen-tab は正セマンティクス維持・`bail it out` rescue 両義で不採用。
+- R288: `gut it`/`fire the tab`→null 確立ピン維持（'gut the tab' は採用・'fire it' 未採用）。'cleave it*'→negate ピン（cleave は split/cling 両義）。'mute it*'→mute-toggle 正解維持。
+- R287: `call checkmate`→device-apps 先勝ち（'call' 部分一致パターンは literal より先に評価 → literal 化でも解決不可・不採用）。`stash it away for good`/`stash it permanently`→bookmark-page 誤ルートを close 修正。`畳め` 裸形のみ不採用（畳む系は close-all-tabs 所有・単タブへ混入しないよう未登録） — 実害なし。
 
 ## 使い方（次のセッションへ）
 
