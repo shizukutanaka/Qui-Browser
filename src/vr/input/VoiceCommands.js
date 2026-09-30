@@ -996,6 +996,7 @@ export class VoiceCommands {
         'how do you feel about|up for|down for|humbly request (?:that )?you|' +
         'i (?:request|ask) that you|i (?:ask|beg|urge|implore) you to|' +
         'may i (?:ask|trouble|implore|request) you to|might i trouble you to|could i trouble you for a|ask you to|trouble you to|implore you to|request you to|' +
+
         '(?:think|reckon|figure|guess|imagine|believe|suppose) you could|' +
         'do you (?:think|suppose|reckon|figure) (?:you|we) (?:could|might|can)(?: maybe)?|' +
         'any possibility of|any chance of|is there any chance of|' +
@@ -1234,6 +1235,7 @@ export class VoiceCommands {
     push(normalized.replace(/^i would not (?:be (?:opposed|averse|adverse) to|object to) you closing it[.!?]?$/i, 'close it'));
     push(normalized.replace(/^(?:thank you|thanks) kindly for closing it[.!?]?$/i, 'close it'));
     push(normalized.replace(/^thanking you in advance for closing it[.!?]?$/i, 'close it'));
+
     push(normalized.replace(/^i (?:feel|think|believe|figure|reckon|guess)(?: like)? (?:it|this|that|the tab) (?:should|needs to|has to|ought to|wants|wants to|got to|get) ?(?:be |get )?(?:closed|shut|gone|closing|go)[.!?]?$/i, 'close it'));
     push(normalized.replace(/[,\s]+posthaste, if you please[.!?]?$/i, ''));
     push(normalized.replace(/[,\s]+(?:if you please|pretty please(?: with (?:sugar|a cherry) on top)?|be a dear)[.!?]?$/i, ''));
@@ -8789,6 +8791,8 @@ export class VoiceCommands {
         'wrong tab', 'wrong page', 'you misheard', 'thats wrong tab',
         /[^く]れへん[のん]?$/, /らんね$/, /[^く]れんね$/, /えんね$/, /(?<!ま)[えけせねへべめげぺ]んね$/, /[えけせねへべめげぺ]へん[のん]?$/,
         /もんか$/, /(?<!くれない|いい|いかがな|もらえない|いただけない|いただけぬ|いただけます|ほしい|ません)ものかな?$/, /わけ(?:が|じゃ)?ない$/,
+        /もんか$/, /(?<!くれない|いい|いかがな|もらえない|いただけない|いただけぬ|いただけます|ほしい)ものかな?$/, /わけ(?:が|じゃ)?ない$/,
+
         /(?<!る)んぞ$/, /まへん[のん]?$/, /んねん$/, /[きぎしじち]へん[のん]?$/,
         /んと(?:いい|ええ|よい)(?:かも|かもな|かもね)?$/, // '閉じんといい' = 閉じないほうがいい
         'nuh uh', 'uh uh', 'nah nah',
