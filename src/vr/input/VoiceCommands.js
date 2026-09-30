@@ -992,6 +992,37 @@ export class VoiceCommands {
     push(normalized.replace(/残してた[。！？!?]?$/u, 'て'));
     push(normalized.replace(/残してました[。！？!?]?$/u, 'て'));
     push(normalized.replace(/ずに残った[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろといったんだ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろって言ってんだよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろって言ったろ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろと申しております[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろと命じます[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろを命じる[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろって何回言う[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろと再三言った[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/なさいよね[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る気ある[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る気はある[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るつもりある[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るつもりはあるの[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのかよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ちゃおうかしら[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ちゃいますか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ちゃうよね[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るかね[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ようかしら[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ちゃうかしらね[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てとお願いしてる[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てと頼んでる[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てと頼んでます[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てと言ったのに[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てと言っている[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てと何度も言った[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てと再三お願い[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るの忘れそう[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/忘れそうだった[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/忘れてしまった[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るの忘れちゃいました[。！？!?]?$/u, 'て'));
     push(normalized.replace(/(て|で)(?:あげて|あげ(?:る|ます)[ねよわか]?|くれる|くださる|くださいます)[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)(?:くれ|くださ)ちゃう[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)もら(?:う|える|った|います|えます|ってもいい|っていい)[。！？!?]?$/u, '$1'));
@@ -2567,7 +2598,8 @@ export class VoiceCommands {
         'how do you use this', 'how does this thing work',
         /^how (?:might|may|would|could|should) i\b/i,
         /べきか(?:どうか)?[。！？!?]?$/, /(?<!く)られるか?[。！？!?]?$/,
-        /(?<!く|考え|見受け)られますか?[。！？!?]?$/, /(?<!く)られることができますか?[。！？!?]?$/, /(?<!く|おか)れますか[。！？!?]?$/,
+        /(?<!く|考え|見受け)られますか?[。！？!?]?$/,
+        /(?:られ|れ)るのか[。！？!?]?$/, /(?<!く)られることができますか?[。！？!?]?$/, /(?<!く|おか)れますか[。！？!?]?$/,
         /^is it possible to/i,
         'どうすればいい', 'どうすれば', 'なんとかして',
         '使い方がわからない', '操作方法がわからない', 'やり方がわからない',
@@ -2981,6 +3013,11 @@ export class VoiceCommands {
         '勝手に閉じた', '勝手に動いた', '開けない', 'タブが開けない',
         "i'm stuck", 'im stuck', 'i am stuck', 'something is wrong', 'it froze', 'it crashed',
         /did it fail/i, /did it (crash|freeze)/i,
+        'it refuses to close', 'it keeps reopening',
+        'it keeps coming back up', 'it just wont die',
+        'it wont go away', 'this wont go away', 'it wont die',
+        'this wont close', 'this just wont close',
+        '閉じないのかよ', '閉じないわけ', '閉じへんのか', '閉じへんわけ',
         '何も見えない', '真っ白', '画面が白い', '映らない', '固まる', '落ちた',
         'クラッシュした', 'クラッシュ', '画面が落ちた', 'アプリが落ちた',
         '耳が痛い', '酔った', '気分が悪い', '目が疲れた', '滑らかじゃない',
@@ -4668,6 +4705,26 @@ export class VoiceCommands {
         'its time for it to go', 'its time for it to be gone',
         'about time it went', 'its about time it went',
         'high time it was closed', 'high time it went',
+        'what part of close it dont you get',
+        'how hard is it to close it',
+        'how many times do i have to say close it',
+        'do i have to spell it out close it',
+        'is it really that hard to close it',
+        'do i look like im joking close it',
+        'am i asking too much close it', 'was i unclear close it',
+        'did i stutter close it', 'do you need it in writing close it',
+        'want me to say it again close it',
+        'this is your last chance close it', 'last warning close it',
+        'final warning close it', 'close it or else',
+        'close it or so help me', 'close it or ill do it myself',
+        'close it or were done', 'close it or i swear',
+        'close it and thats final', 'close it and thats that',
+        'close it period', 'close it end of story',
+        'close it end of discussion', 'close it no ifs ands or buts',
+        'close it no arguments', 'close it no debate',
+        'close it no questions', 'close it dont argue',
+        'close it dont fight me on this',
+        'close it and dont make me ask again',
         'deal with the tab', 'deal with this tab',
         'タブの閉鎖を願います', '閉鎖を願います', '廃棄してください', '破棄してください',
         '閉じる操作をして', '閉じるアクションを', '閉じる手続きを', '閉じる操作を願います',
@@ -9122,7 +9179,7 @@ export class VoiceCommands {
         'close it i changed my mind', 'close it scratch that',
         'close it that was a joke', 'close it just kidding',
         'scratch that close it', 'that was a joke close it',
-        'just kidding close it',
+        'just kidding close it', '閉じるなよ絶対',
         'change of plans', 'forget this', 'think about it later',
         'もうやだ', 'いやだ', 'やだ', '嫌だ', 'もういいのか', 'もういいかな',
         /んと(?:いて|く|きましょう|いてね)[。！？!?]?$/u,
