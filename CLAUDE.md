@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 279
+### Session 280
 
+- ✨ JA: ておく残置（おく予定です/おくつもりです）・dict枢要名詞尾（のが枢要だ/枢機だ/急所でしょう/要点ですね/急所ですよ/勘所です）→ 実行。
+- ✨ EN LXXXIX: 'would you be so sweet|lovely|gracious as to' 前置 → 実行（'so good|kind as to'、'could you be so good as to' は既ルート緑）。
+- ✅ tests/so-sweet-as-atoms.test.js +24（実装前11件赤確認）、計13448全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 279
 - ✨ JA: てみる残置（みるとするか/みるとしよう）・くれません残置（かしら/かねぇ）・dict骨髄名詞尾（のが骨髄だ/精髄だ/核心です/要諦です/急所ですね）→ 実行。
 - ✨ EN LXXXVIII: 'i would ask of you that you|beg of you to|urge you to|entreat you to' 前置 → 実行（'i would ask|request that you' は既ルート緑）。
 - ✅ tests/i-would-urge-atoms.test.js +24（実装前13件赤確認）、計13424全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
