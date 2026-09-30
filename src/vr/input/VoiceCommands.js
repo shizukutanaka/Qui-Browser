@@ -5379,6 +5379,29 @@ export class VoiceCommands {
         'お眠りなさい', '安らかに眠って', '鎮まれ', '鎮まって',
         '追っ払え', '追っ払って', '出ていって', '明け渡せ', '明け渡して',
         '退去させて', '退去して', '退出して', '外に出せ',
+        // pass CCXC: EN exorcism/ghost + card-table surrender idioms;
+        // JA お祓い/悪霊退散/除霊 + 降参/投了/白旗 frames
+        'banish the spirit', 'cast out the spirit', 'be gone spirit',
+        'release the spirit', 'banish the ghost', 'exorcise this demon',
+        'drive out the demons', 'lay the ghost', 'lay it to rest finally',
+        'rest in pieces', 'spook it away', 'no more haunting', 'unhaunt it',
+        'haunt no more', 'fold the hand', 'fold this hand',
+        'cash out', 'cash me out', 'cash it out', 'cash out now',
+        'deal me out', 'deal me out of this', 'count me out',
+        'im out of this hand', 'ante up and out', 'i quit this one',
+        'throw in the cards', 'throw the hand in', 'walk away from the table',
+        'leave the table', 'leave the game',
+        'お祓いして', 'おはらいして', '悪霊退散', '悪霊払って',
+        '悪魔を払って', '悪魔払い', '退魔して', '退治して', '成敗して',
+        '呪いを解いて', '呪い解いて', '除霊して', '浄化して',
+        '清めて', 'お清めして', 'お清めを', 'お経をあげて',
+        'お鎮め', '祟り退治', 'まじないをかけて',
+        '降参だ', '降参にしよう', '降参します', '投了します', '投了だ',
+        'ギブだ', '負けを認めて', '負けました', '降ります', '降りる',
+        '降りていい', 'フォールド', 'フォールドする', '離脱します',
+        'ドロップアウト', 'ドロップしよう', '白旗を上げて', '白旗だ',
+        '白旗を振って', 'とどめを刺して', 'とどめを刺せ',
+        'トドメを刺して', '止めを刺して', 'フィナーレ',
         'when convenient close it', 'close it when convenient',
         'when it suits you close it', 'close it when it suits you',
         'if you dont mind too much close it', 'if its no bother close it',
@@ -18417,7 +18440,9 @@ export class VoiceCommands {
         '閉じてる', '閉じている', '閉じたか', '閉じましたか', '開いてる', '開いている',
         '今見てるタブ', '今見ているタブ', '今開いてるタブ', '選択中のタブ',
         /describe (the )?tab/i, /^page info$/i, /^site info$/i,
-        'hows it look', 'how does it look', 'whats on here', 'what does it look like'],
+        'hows it look', 'how does it look', 'whats on here', 'what does it look like',
+        // pass CCXC: presence-state reports
+        'the ghost is gone'],
       action: () => {
         const tabs = tabManager?.tabs || [];
         const i = tabManager?.activeIndex ?? -1;
@@ -18661,6 +18686,8 @@ export class VoiceCommands {
         'clear the tabs', 'clear all the tabs', 'close every single tab', 'close every tab',
         'chuck all the tabs', 'ditch all the tabs', 'ditch the tabs','全てのタブを畳んで', '全部畳んで', 'タブを畳んで', '畳んで', '畳んでしまいなさい', '畳んでおくんだ', '畳んじまいな', '畳んじまったほうがいい', '畳みゃあいい', '畳みゃいい', '畳めや', '畳まんかい', '畳まへんか', '畳まずにはいられない', '畳まねばならん', '畳まなければならん', '畳むしかなかろう', '畳むに限ります', '畳むが筋だ', '畳むが順当だ', '畳むが妥当だ', '畳むが本懐', '畳むが定石', '畳むがセオリー', '畳むが常識', '畳む一択だ', '畳むべきなんじゃないか', '畳むべきなんじゃない', '畳むべきかも', '畳むべきだと思うよ', '畳むべきだと思うけど', '畳むべきだと思うんだけど', '畳むべきだと思うんだが', '畳むべきだと思うわ', '畳むべきだと考える', '畳むべきだと考えます', '畳むべきだと存じます', '畳むべきだと判断する', '畳むべきだと判断します', '畳むべきとの判断だ', '畳むべきとの結論だ', '畳むべきとの見解だ', '畳むべきとの見解です', '畳むべきとの答えだ', '畳むべきとの回答だ', '畳んだらいいのに', '畳んでおくべきだった', '畳んでおくべきだったな', '畳もうと思ってた', '畳もうと思ってたんだ', '畳もうと思っていた', '畳もうとしていた', '畳もうとしてた', '畳もうと思った', '畳もうと思ったんだ', '畳もうかと思った', '畳もうかと思ってる', '畳もうかと思う', '畳もうかと', '店を畳め', '店を畳むんだ', '畳む時間だ', '畳み時だ', '全部殺せ', '全部消せ', 'すべてのタブを閉じて', 'すべてのタブを閉じる', '全部のタブを閉じて', 'たたんで', 'タタんで',
         '畳みかけて', '畳んでしまって',
+        // pass CCXC: JA mass-withdrawal
+        '全員撤退', '撤退開始', '総撤退', '一斉撤収', '一斉撤退',
         '全部閉じてほしい', '全部消して', '全部消えて', 'みんな閉じて', 'すべて閉じて',
         '全て閉じて', '全部閉じて', 'タブを全部閉じる', '全部のタブを閉じる',
         '全部タブを閉じて', 'タブを全て閉じて', '全部のタブを消して',
@@ -18827,7 +18854,7 @@ export class VoiceCommands {
         /stop everything/i, /stop all/i, /cancel all/i, /cancel everything/i,
         'enough', 'thats enough', 'that will do', 'enough of that',
         'cut it out', 'cut that out', 'knock it off', 'pack it in',
-        'wrap it up', 'wrap up', 'call it', 'call it a day', 'call it quits', 'thats a wrap',
+        'wrap it up', 'wrap up', 'call it', 'call it a day', 'call it quits', 'calling it quits', 'thats a wrap',
         'knock that off', 'cut it', 'quit it', 'quit that', 'cease', 'desist', 'halt',
         'thatll do', 'that will do it', 'thats plenty', 'that is enough',
         'no more of that', 'no more please', 'enough now', 'enough of this',
