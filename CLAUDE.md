@@ -1720,7 +1720,7 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 254
+### Session 248
 
 - ✨ JA: ておくのだ・てくれるんじゃ残置（おくんだよ・おくのです・おくというのが・くれるんじゃないか・くれるんじゃないの）・dict処置名詞尾（のが措置だ・処置だ・処分だ・対処だ・処置です・処方だ）→ 実行。
 - ✨ EN LXIII: 'be a peach/sport' を vocative-beg 枠に併合 → 実行。
