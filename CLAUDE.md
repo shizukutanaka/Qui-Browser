@@ -252,6 +252,34 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 163: 敬語/禁止/動名詞原子 — お〜ください・るな禁止・ます語幹+な・mind+gerund
+外部基準: お/ご+ます語幹+ください敬語、辞書形+な禁止（"don't"）、ます語幹+な口語命令、ておいて/てごらん/てして、EN 'would you mind ~ing'、is-it 状態質問、me-構文。
+- 🐛 **辞書形+な禁止の誤実行修正（実害）**: '戻るな' が back、'進むな' が navigate、'閉じるな' が close-tab を実行していた → `戻る(?!な)|進む(?!な)` 化 + negate に `/(う|つ|る|く|ぐ|す|ぬ|ぶ|む)な$/` + `/^(don't|do not|never)\b/i`。'閉じるな'→negate、'読むな'→negate。
+- ✨ **敬語層（_politeVariants）**: `お|ご` + ます語幹 + `ください|下さい` → `MASU_TE` マップでて形変換（お読みください→読んで、お待ちください→待って）。ます語幹+`な`→て形（閉じな→閉じて）。`なさい(?:よ|な)?`→て形。`ておいて|てごらん|てして`→て。
+- ✨ **EN gerund→stem**: `mind`/`would you mind` 前置 + 動名詞正規化（closing→close, going→go, stopping→stop 等 GERUND_STEM マップ）。
+- ✨ **過度敬語・is-it 質問**: 'be so kind as to'/'if you please'/'pretty please' 剥がし、'is it loud/quiet/paused/playing/dark/bright/ready'→各 status。'tell me again'→say-again、'tell me what it says'→read-aloud、'give me the tabs'→tabs-list、'shut it'→close-tab、'shut it down'/'turn it off'→vr-exit、'turn up/down the volume'、'crank it down'/'pump it up'、'make it louder/quieter/faster/slower'。
+- ✨ **見て→describe-tab**: bare '見て'/'みて'/'見せて'（'見せて' はタブ一覧維持）。
+- ✅ **テスト +78（git stash で67件赤確認）**: Total 5912 tests (137 suites); 0 lint errors（警告 137 = baseline 同一）; build green。
+
+### Session 162: 方言語尾・裸動詞原子 — 関西進行形/依頼形、EN wait idioms、up-verb ナビゲート
+外部基準: 関西弁進行形(とる/どる/てん/でん)、依頼形(てや/てはる/てもろて/てくれん)、'ずに' 否定、EN 'hang on/hold up' 待機句、'fire up/pull up/bring up' phrasal verbs。
+- 🐛 **'open up a tab'/'open a tab' 誤ルート修正**: tab-by-name が 'a' をタイトルとして誤検索 → new-tab リテラル化（登録順が先行するため pattern 追加のみで勝つ）。
+- ✨ **`_politeVariants` 語尾層IV**: てん→て、でん→で、てんか/でんの→てる、とる→てる/どる→でる、(て|で)や/はる/もろて/くれへん/くれん→て、(て|で)へん/ひん→てる、っす→''。
+- ✨ **goToEn 前置詞拡張**: `fire up|pull up|bring up|open up` + `tabs` 除外（'pull up the tabs'→tabs-list リテラルが先行勝ち）。
+- ✨ **EN 待機句→pause-reading**: 'hang on'/'hold up'/'wait a sec'/'one sec'/'gimme a sec'/'hold on'。
+- ✨ **状態質問**: 'whatcha doing'/'何してる'/'使ってる'→working-status、'閉じてる'/'開いてる'→describe-tab、'戻っとる'→back-status。
+- ✨ **その他**: 'close em all'/'close them all'→close-all-tabs、'sup'/'yo'/'whats up'→ack、'知らん'/'できひん'→help、'ずに' 系→negate、'開いてる'→describe-tab。
+- ✅ **テスト +84（git stash で73件赤確認）**: Total 5834 tests (136 suites); 0 lint errors（警告 137 = baseline 同一）; build green。
+
+### Session 161: 口語語尾・裸語原子 — ~ちゃお/~なきゃ/二重語尾、EN bare 名詞・短縮形
+外部基準: 日本語口語の意志形(~ちゃお)/義務形(~なきゃ)収縮、文末 'かい'、EN 単一語コマンド(Siri/Alexa 慣行)、'gonna/wanna/gotta/gimme/lemme' 短縮前置詞。
+- ✨ **`_politeVariants` 語尾層III**: `ちゃお`→て、`じゃお`→で（ん-じゃ は んで 形へ）、`なきゃ|なければ|ないと`→あ行五段マップ('読まなきゃ'→'読んで')+一段→て、二重語尾 `てあげてください|てくださると|ていただければ|てほしいんだけど|てほしいな`→て。
+- ✨ **文末粒子 かい**: '読んでるかい'→speaking-status（'読んでる' リテラルも追加）。
+- ✨ **EN 短縮前置詞**: bare `gonna|wanna|gotta|gimme|lemme|imma`（'i' なし形）— 'gonna close this'→close-tab（'close this' リテラルも新設）。
+- ✨ **bare EN 単語コマンド**: tabs→tabs-list、bookmarks/favorites→bookmarks-open、history→history、scroll→scroll-down、read→read-aloud、find/search→find-in-page、stop→stop-reading、top/bottom→scroll 端、up/down→scroll。
+- ✨ **その他**: 'take me home'→home、'get outta here'→vr-exit、'kinda slow'→trouble、'cheers'/'good job'→ack、'なにこれ'/'what is this'/'lemme see'→describe-tab、'やって'→help、'半分進んで/戻って'→half-page、'待て'→pause-reading、'検索しろ'/'探しろ'→find-in-page。
+- ✅ **テスト +90（git stash で73件赤確認）**: Total 5750 tests (135 suites); 0 lint errors（警告 137 = baseline 同一、今回の追加分は0）; build green。
+
 ### Session 160: 語尾変化原子 — ~てみる/~ちゃう/~てもらう リトライ層拡張 + 裸副詞・命令・懇願句
 外部基準: 日本語口語の語尾変化（~てみる/~ちゃう/~てもらう）、EN bare adverbs、ロボット型命令形。
 - ✨ **`_politeVariants` 語尾層II**: `(て|で)みる`→て、`てしまう`→て、`ちゃう|じゃう`→て、`てあげて`/`てもらう`→て。raw フレーズ優先でゼロ回帰設計 — '閉じちゃった'/'消えちゃった'（reopen-tab の事故報告リテラル）を共存テストで維持。
