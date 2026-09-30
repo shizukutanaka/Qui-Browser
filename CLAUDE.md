@@ -1720,6 +1720,16 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 196
+
+- ✨ 受益残置尾: TAIL_TE XIV — '閉じてくれるんだけど/んだよね'、'閉じてくれたっていい'、'閉じてもらうんだ/んだけど/ことになって'、'閉じてやるから/あげるから'、'閉じてくださったなら'、'閉じてくれさえすればいい/くれりゃいい/くれたなら/くれればいいのに' → 実行。
+- ✨ dict提案・判断残置: FR VI — '閉じるといいですよ/がよかろう/んじゃないかな/こともできるし/ということもある/のも悪くない/のでいいんじゃない/以外ない/のほかない/のが一番だ/といいかもね/のが早い/に越したことはない/べきだろうね/でいいのかな/のでいいですか' + ちゃう残置 '閉じちゃうのも手だ/しかないか/ちゃったほうが早い'（て/で 両変換）→ 実行。
+- ✨ EN hedged-report枠: 'i was thinking/figured/reckoned/thought you could X'（ENPRE前置 + 語尾後置両対応）+ 'imagine/pretend you closed it' + 語尾 'kind sir/would you be so kind/at your earliest' → 実行。
+- ✨ リテラル: 'あと少し大きく'/'音量もう少し上げて'→volume-up、'もうちょい読んで'/'ゆっくり読み直して'→read-aloud、'画面を元に戻して'→reader-scale-reset、'全てのタブを畳んで'→close-all-tabs、'このタブ残して'/'このタブ以外閉じて'/'残りは閉じて'/'残り全部閉じて'→close-other-tabs。
+- 🐛 回帰消化: 'ゆっくり読んで' は speech-slower の既存ピン — read-aloud リテラル追加が奪取 → 該当リテラルは read-aloud 側では 'ゆっくり読み直して' のみ（'ゆっくり読んで' は speech-slower 維持）。
+- ⚠️ 教訓: `vc.commands` の Map は `connectBrowser()` 呼出後にしか populate されない（6447 行付近のブロックは connectBrowser 内）— probe で 'close-all-tabs' が不在に見えたのは connect 前のため。リテラル string パターンは完全一致、alias は includes 部分一致。
+- ✅ tests/benefactive-residue-atoms.test.js +55（実装前54件赤確認）、計10453全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
 ### Session 195
 
 - ✨ **JA 許可も尾**: TAIL_TE XIII に 'もいいんですけど/も結構ですよ/も差し支えないです/も問題ないです/もいいんではないか/もいいと思うんだけど(ね|よ)/もいいんじゃないの/も大丈夫' + 裸 'いいですよ/いいかもしれない/いいんではないか' 系（'閉じてもいいんですけど'→close-tab）。'ちゃっていいかもしれない/ちゃっていいんじゃない/ちゃったほうがいいんじゃない' を CHA 枠へ追加。'たっていいですよ/ちゃったっていい' 系は TAIL_TE より前に push — 変体 '閉じたって' が describe-tab リテラル奪取するのを順序で解消（describe-tab 側も ^…$ アンカー化）。
