@@ -1458,6 +1458,7 @@ export class VoiceCommands {
     push(normalized.replace(/てお願い(?:します(?:ぞ|ね|わ|よ|って)?|しとります|してんの|だから|だ|を)[。！？!?]?$/u, 'て'));
     push(normalized.replace(/てお頼み(?:します|申します)|てお願いさせてください|てくださいじゃ|てくださいまへんか[。！？!?]?$/u, 'て'));
     push(normalized.replace(/てしまいませ|てしまいだまれ|てしまいだめ|てもうていいよ|てもうてもええで|てみなはれ|てみてほしいよ|てみてくれんか|てみてもらいたい[。！？!?]?$/u, 'て'));
+
     push(normalized.replace(/(て|で)(?:あげて|あげ(?:る|ます)[ねよわか]?|くれる|くださる|くださいます)[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)(?:くれ|くださ)ちゃう[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)もら(?:う|える|った|います|えます|ってもいい|っていい)[。！？!?]?$/u, '$1'));
@@ -5423,6 +5424,7 @@ export class VoiceCommands {
         '閉じたい一心', '閉じたく思っている', '閉じたく思う',
         '閉じる方が好みだ', '閉じるが好み', '閉じたほうが好みだ',
         '閉じるのが好み',
+
         'dont you think we should close it',
         'dont you think you should close it',
         '閉じてもらえそうな',
@@ -7360,6 +7362,7 @@ export class VoiceCommands {
         '閉じたのだ', '閉じたんだよ', '閉じたんだが', '閉じたのね',
         '閉じてるでしょ', '閉じてあるんでしょ', '閉じてあるはず',
         '閉じてあるんだよね',
+
         '閉じられましたか', '閉じれましたか', '閉じてもらいましたか',
         '閉じるとこだった', '閉じるとこでした', '閉じる寸前だった',
         '閉じる寸前でした', '閉じそうだった', '閉じそうでした',
@@ -9917,6 +9920,7 @@ export class VoiceCommands {
         '閉じるほどでもない', '閉じるものではない',
         'let it stay open', 'let it keep going', 'let it run',
         'let it sit', 'let it hang',
+
         '閉じないままおく', '閉じないでおく',
         '閉じずにいる', '閉じずにいるつもり',
         'change of plans', 'forget this', 'think about it later',
