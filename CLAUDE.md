@@ -2848,6 +2848,20 @@ permission/capability questions (てもいいでしょうか / られますか)�
 - ✅ **テスト +170（実装前実行で140件赤確認、内26件は共存ガードの設計上緑）**: Total 6918 tests (144 suites); 0 lint errors（警告 137 = baseline 同一）; build green; FFFD 0件。
 
 ### Session 313: Voice atoms CXCIII — 方向処分句動詞 + スラング vocative + JA 方言依頼残置 + dict 名詞尾XXXII。EN: directional disposal（down/away/out with this/the tab・out with it/this・through/finished with this/(the tab)・over and done with it）・wrap/pack/end 系（wrap the tab up・pack it up/away・do it/the tab in・tear/rip/pull it down・put an end to it/this・put/lay it to rest・retire it/the tab・put it out of its misery）・slang discourse 前置（bro/sis/fam/fams/dawg/cuz/tbh/ngl/lowkey/highkey/deadass/ong/fr fr/fr — ENPRE の |bruh|dude|be a champ and| 交互に併入）。JA: しもた/しもうた/しもて（近畿完了）・とこなあ/とこうな（南日本意向+否定型→stem-な 誤爆を (?<!とこ|どこ) lookbehind で回避）・とか(や)・ってのはどう・たらええのに・た方がええ・ましょうぜ・ますかね・かなあ・なよー・なよっと・やぁ。dict 名詞尾XXXII（最適解/好判断/良案/名案/上策/妙案/早道/近道/得策/策）。確立ピン維持: 'wrap it up'/'wrap this up'→stop-everything・'shut X down'→vr-exit・'put it to sleep'→sleep-mode・'のが正解'→help・'んといて'→negate・sick/tired/fed-up・なんて・下策ではない は意図スキップ。
+### Session 325: frieze atom sweep — EN modal-shrink/shortcut queries + JA comparative/timing/delegation III
+外部基準: minimal-effort framing ("one click close it", "all you do is close it"), how-to shortcut queries→help, JA 比較最適 (より他ない/のが一番), 時機提案 (タイミングだ/閉じ時かな), 名詞委任III (るの任せる/ることをお願い), 否定反語依頼 (てくれないのか)。
+- ✨ **EN**: modal-shrink リテラル（only close it・close it only・all you do is close it・just a click|one click|one tap|a single click close it）；shortcut/command 問い→help（which|what button|key closes it・whats the shortcut|command for close|to close it・what was the close command）。
+- ✨ **JA**: 比較最適（るより他ない|るよりほかはない|るよりない|る以外にない|る他はない|るほかはない|るのが一番|最善|最適|るがベスト|ベター|一番 → 'て'）；時機提案（るとしたら今|るなら今だ|るタイミング(だ|かな)?|じ時(かな|だ|では)→'じて'|じどきかな→'じて'|る頃合い(だ)?|るいい機会|る機会だ → 'て'）；名詞委任III（るの任せる|任せた|お任せします|おまかせ(します)|よろしくね|ること(を)?お願い(する|します)? → 'て'）；否定反語依頼（てはくれないのか|てもくれないのか|てくれないのかな → 'て'）；反証問い→trouble（閉じないのかしら|閉じれないのかしら|閉じないわけか|閉じないのかなって）。
+- 🔄 **ピン維持**: '閉じられないのかしら'・'閉じないわけですか'→trouble（既ルート緑・踏襲）；'閉じ忘れたまま'→describe-tab（確立族）。
+- ✅ tests/frieze-atom-sweep.test.js +80（実装前 ~50件赤確認）、計16112全緑・lint 0エラー/警告136=baseline・build green・FFFD 0件。
+
+### Session 324: cornice atom sweep — EN you-imperative/request-outcome + JA ば-residue + 感嘆粒子
+外部基準: imperative you-frames ("you close it", "what i want is to close it"), JA ば仮定尾残置 (れば済む/ばいい), 忘れ報告IV, 未達期待はずII, 感嘆粒子 (ったく/ったら/もう/本当)。
+- ✨ **EN**: you-imperative（close it you|you please・youd close it・you best close it・you better just close it）；request-outcome 枠（what i want|need is to close it・all i want|need|asking is it closed|you close it・im begging for it closed・im asking nicely (close it|for you to close it)）。
+- ✨ **JA**: ば-残置II（ればいいよ|いいんです|よいぞ|済む(のに)|解決|いいじゃない|よろしいのに|いいはず|いい筈・たらいいのでは → 'て'）；Kansai ば形（ばいい|りゃいい・じゃいい→'じて' 補正 — '閉じゃいい'→close-tab）；忘れ報告IV（閉じ忘れてる|忘れてたわ|るの忘れてたよ → 'て'）；未達期待はずII→trouble（られるはず(だった|なのに)・るはずだった(んだけど|んだ)|のに・(れ)?てるはず(だった|のに)）；放置状態→describe-tab（閉じっぱなしにしてた|だったよ・開きっぱなしにしてた・開いたまんま(だった)）；感嘆粒子リテラル（てよ本当|まったく|ったく|もう|ったら・てくださいよ本当・なさい|ろ|れよったら・てほしいよもう）。
+- 🔄 **ピン維持**: '閉じ忘れたまま'→describe-tab（状態報告族）；'閉じてたはず'族→trouble（確立済み）はず規則踏襲。
+- ✅ tests/cornice-atom-sweep.test.js +85（実装前 ~50件赤確認）、計16032全緑・lint 0エラー/警告136=baseline・build green・FFFD 0件。
+
 ### Session 323: plinth atom sweep — EN done-status/obligation + 'em-contractions + JA decision/shidai + verge reports
 外部基準: casual register ("its done", "close em all"), JA 意志名詞化 (ることにしました), 次第報告 (る次第である), 寸前報告 (寸前だった/かけてた), 気弱意図 (気もする)。
 - ✨ **EN**: done-status 宣言（its|it is + closed|done|done for|over|finished|dealt with|handled|sorted|dead|toast|history + the tab is done|over|the tabs done ~23形）；obligation（the tab has|needs to go・tabs got to go 系）；contraction 命令（close r up|down・close the thing・close that tab there）；'em 縮約 bulk（close m all・shut m all → close-all-tabs）。

@@ -1623,6 +1623,14 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - `shut r down` — 'er 変種は曖昧のため null（'shut er down' は vr-exit 族ピン維持）
 - `close that there tab` — deictic-by-name 確立ルート踏襲
 
+## R250 skip-list（Session 324）
+- `閉じ忘れたまま` — 状態報告族で describe-tab（確立ルート踏襲）
+- `閉じてたはず(だった|なのに)` — はず-未達期待規則で trouble（'閉じてるはず' 系も統合済み）
+
+## R251 skip-list（Session 325）
+- `閉じられないのかしら`/`閉じないわけですか` — 既 trouble ルート緑・踏襲
+- `閉じ忘れたまま` — describe-tab 族（確立）
+
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。
