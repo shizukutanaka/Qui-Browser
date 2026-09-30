@@ -1720,6 +1720,33 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 212
+
+- ✨ 受益尾XXX（か-particle/いただけ深敬語）: TAIL_TE — くれんまいか/くれんのかね/くれよって/くれりゃそれでいい・もらうことか/もらうんじゃ/もらいたいけど/ものだ・いただいてもよろしいですか/いただけませんことか/いただけますものか/いただけますと幸甚/いただけると(大変)助かります/幸甚に存じます/いただけますなら/幸甚でございます/助かるのですが/いただければと・ほしいばかりに/ばっかり/と願います/と切に願います/のみです/わけです → 実行。
+- ✨ dict残置XXI（こと/の/ん-particle）: FR — ことしかない(んだ)/こともありだ/ことで十分だ/ことでいい/ことにしようじゃないか/のでいいと思う/のをお願いしたい/のお願い + 関西ん尾 んやって/んじゃって/んけ/んけん/んけー/んよな/んでな/んやぞ/んぞ → 実行。
+- ✨ EN前置詞XXI: 'i formally/humbly/respectfully request that you'・'i earnestly ask that you'・'i am appealing to you to'・'i charge/enjoin you to (please)' → 実行；語尾 'would you be a love'/'when the mood strikes'/'as the spirit moves you'/'i owe you one'/'name your price'/'you know you want to'。
+- 🐛 誤ルート3件: negate `まい` 変体経由で 'くれんまいか' 奪取 → TAIL_TE に 'くれんまいか' 追加で先勝ち；negate `んぞ$` が関西命令 '閉じるんぞ' を奪取 → `(?<!る)`；negate `ものか` が 'いただけ(ます|ない)ものか'（強い願望依頼）を奪取 → lookbehind 追加（'もらうもんか' 拒否は維持）。
+- ✅ tests/solemn-request-atoms.test.js +68（実装前35件赤確認）、計11351全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 211
+
+- ✨ 受益尾XXIX（ほしい敬語/条件）: TAIL_TE — ほしく存じます/ほしく思います/ほしいのですが/ほしいんですけど/ほしいと存じます/ほしいところですが・構わなければ/構わないなら/良ければ/よろしければ(幸い) → 実行。
+- ✨ 受け身依頼（閉じられ〜 = 間接依頼）: '閉じられてもいい/ては'・否定質問形 '閉じられないでしょうか/かな/かしら'・'閉じられるはずです/と思います/と思うんですが' → て形生成で実行。
+- ✨ 義務残置: negob +ならないでしょう/ならないのでは・IKE +ねばならぬ/ねばなりません/なきゃいけませんね + 依頼 'ませんね'（masu+んね）→ 実行。
+- ✨ EN前置詞XX: 'i shall require/must ask/request that you'・'i would request that you'・'i am requesting/begging you please'・'i am pleading/plead/appeal to you'・'do you care to' → 実行；語尾 'whenever convenient'/'in your own time'。
+- 🐛 誤ルート3件: '閉じられないXか' が trouble 奪取 → lookahead で かな/かしら/かね/でしょうか/かて（変換アーティファクト）を除外；negate `ないで` が 'ならないで' 変体（なければならないでしょう→…ならないで）を奪取 → `(?<!なら)`；方言尾 `んね` が 'ませんね' を奪取 → `(?<!ま)`；help `^do (you|they)` が 'do you care to' を奪取 → lookahead に care 追加。
+- 📌 ピン確認: '閉じられますか/ますかね/ますでしょうか'→help（能か質問の既存意味論維持）、'閉じなくていい系'→negate（不要宣言）。
+- ✅ tests/passive-request-atoms.test.js +53（実装前42件赤確認）、計11283全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 210
+
+- ✨ 受益尾XXVIII: TAIL_TE — くれはります/くれよなあ/くれなあ/くれよー/くれー・もろうて → 実行。
+- ✨ dict残置XX（こと-/ほうが-評価）: FR — ことにしておきましょう/ことにいたします/ことと存じます・ことも考えもの/悪くない/一考・ことは必須/がベター/ベスト/肝要/先決・ほうが筋/道理/本筋/順当だ/妥当だ/正しい/正解(だ)/よいかと(思う)/よいと思われる/賢明かと思います → 実行。
+- ✨ EN前置詞XIX: 'i (must) insist/urge/petition you to'・'i implore you please'・'i am asking that you'・'(?:could|can|may|might) i have you' → 実行。
+- ✨ EN語尾: 'if you would be so kind as to'・'whenever it suits you'・'at whatever point works'・'on your own time'・接尾 'pretty please with a cherry on top'・'oblige/gratify me and'。
+- 🐛 誤ルート: help `^(?:could|should|shall|would) i` が 'could i have you X' 奪取 → lookahead に `have you` 追加；ENPRE 裸 'may i'/'might i'/'i must'/1123行モーダル剥がしの先食いを最長一致配置で是正（have-you 枠を各裸形より前置）。
+- ✅ tests/judgment-frame-atoms.test.js +50（実装前44件赤確認）、計11230全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
 ### Session 209
 
 - ✨ 受益尾XXVII: TAIL_TE — くれようか/くれるさ/くれるっしょ・もらうべく/もんだ/いって/でな/さ/だけで/のみ(で)・くれさえすりゃ/あれば・おいていただきます/おいていただけますか/おいてもらいます/おいてもらえます → 実行。
