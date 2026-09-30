@@ -502,7 +502,7 @@ export class VoiceCommands {
     stemTe(normalized.replace(/(?:つつ|ながら)[。！？!?]?$/u, ''));
     // Apology/hedge openers + benefactive-tail escalations → bare て-form
     const HP = normalized.replace(
-      /^(?:恐れ入りますが|恐縮です(?:が)?|申し訳ありませんが|申し訳ない(?:んですが)?|ついでに|まず|さあ|ほら|やっぱり|やっぱ|できれば|可能なら|よかったら|もしよければ|よろしければ|良ければ|すみませんが|すみません|悪いんだけど|悪いんだが|悪いけど|お手数ですが|差し支えなければ|お手すきの際に|できたら|もし可能なら|もし|よければ|ぜひ|どうぞ|とにかく|ともかく|とっとと|さっさと|直ちに|早急に|急いで|いそいで|だって|ほんとに|本当に|マジで|ガチで|つーか|っつーか|つうか|早よ|あのね|ねえねえ|ねえ|あのう|そういえば|いいから|いい加減(?:に)?|この場で|今|じゃあ|ほなら|ほな|さて|では|あのさあ|あのさ)[、,]?/u, '');
+      /^(?:恐れ入りますが|恐縮です(?:が)?|申し訳ありませんが|申し訳ない(?:んですが)?|ついでに|まず|さあ|ほら|やっぱり|やっぱ|できれば|可能なら|よかったら|もしよければ|よろしければ|良ければ|すみませんが|すみません|悪いんだけど|悪いんだが|悪いけど|お手数ですが|差し支えなければ|お手すきの際に|できたら|もし可能なら|もし|よければ|ぜひ|どうぞ|とにかく|ともかく|とっとと|さっさと|直ちに|早急に|急いで|いそいで|早く|はやく|だって|ほんとに|本当に|マジで|ガチで|つーか|っつーか|つうか|早よ|あのね|ねえねえ|ねえ|あのう|そういえば|いいから|いい加減(?:に)?|この場で|今|じゃあ|ほなら|ほな|さて|では|あのさあ|あのさ)[、,]?/u, '');
     if (HP !== normalized) {
       push(HP);
       for (const v of this._politeVariants(HP)) {
@@ -560,7 +560,7 @@ export class VoiceCommands {
       'くれんかね|くれんか|くれますかねえ|くれますかね|もらってよろしいか|もらってよろしい|' +
       'もらいますか|もらえますかな|おいていただけると|おいていただければ|' +
       'はくれませんか|はくれないか|おきませんか|おきますか|しまおうかな|しまおうか|' +
-      'くれないものか|結構ですか|構いませんか|もろてええか|もろてよろしいか|もろていいか|もろてええ|もろてよろしい|よろしくお願いします|よろしくお願い致します|おねがいします|頼みます|頼む|もらえないものか|もらえないものかしら|もええんちゃう|もええんですか|もいいんじゃないか|もいいんじゃない|くれませんかな|くれませんかい|くれますかい|もいいかい|ほしいです|ほしいんだ|もらえますかね|もらえますか|ちょ|いただけますでしょうか|いただければと存じます|いただけましたら幸甚です|くださると大変助かります|くだされば幸いに存じます|くれるようお願いします|くださるようお願いいたします|頂くわけにはいきませんか|頂いても宜しいでしょうか|くれるだけでいい|あげましょうか|あげる|もいいんじゃないですか|もいいと思うよ|も差し支えなければ|はいかがかと|お願いね|お願いできるかな|お願いしてもいいかな|お願いしてもらえますか|お願いしたいのですが|お願いしたく存じます|お願い申し上げたく|もらえたなら|くれたら助かる|くれないですかね|くれないかなあ|くれると助かるわ|くれたらいいのに|くれさえすれば|もらいたいんですが|もらいたいのですが|もらうのは無理ですか|あればいい|いただけると大変ありがたいです|いただけるとありがたく存じます|いただければ幸いでございます|いただけますようお願い申し上げます)[。！？!?]?$', 'u');
+      'くれないものか|結構ですか|構いませんか|もろてええか|もろてよろしいか|もろていいか|もろてええ|もろてよろしい|よろしくお願いします|よろしくお願い致します|おねがいします|頼みます|頼む|もらえないものか|もらえないものかしら|もええんちゃう|もええんですか|もいいんじゃないか|もいいんじゃない|くれませんかな|くれませんかい|くれますかい|もいいかい|ほしいです|ほしいんだ|もらえますかね|もらえますか|ちょ|いただけますでしょうか|いただければと存じます|いただけましたら幸甚です|くださると大変助かります|くだされば幸いに存じます|くれるようお願いします|くださるようお願いいたします|頂くわけにはいきませんか|頂いても宜しいでしょうか|くれるだけでいい|あげましょうか|あげる|もいいんじゃないですか|もいいと思うよ|も差し支えなければ|はいかがかと|お願いね|お願いできるかな|お願いしてもいいかな|お願いしてもらえますか|お願いしたいのですが|お願いしたく存じます|お願い申し上げたく|もらえたなら|くれたら助かる|くれないですかね|くれないかなあ|くれると助かるわ|くれたらいいのに|くれさえすれば|もらいたいんですが|もらいたいのですが|もらうのは無理ですか|あればいい|いただけると大変ありがたいです|いただけるとありがたく存じます|いただければ幸いでございます|いただけますようお願い申し上げます|もらいたく存じます|もらいたく思います|くれたならば|おくれる|おくれます|おくれませか|やってもらえる|やってもらえます|もらいますので|くださいませんかね|くださいましな|くださいませますか|もいいですかね|もいいかね|みせる|みせます|みましょうか|みましょうね)[。！？!?]?$', 'u');
     push(normalized.replace(TAIL_TE, '$1'));
     // 'んです/のです' copula tail: '読んでほしいんです' tail via TAIL_TE; bare 'んですが' drops
     push(normalized.replace(/(?:んですが|のですが|んです|のです)[。！？!?]?$/u, ''));
@@ -577,7 +577,7 @@ export class VoiceCommands {
     // dict+ residual frames: '閉じると思い'/'閉じることにして'/'閉じるしかない'/
     // '閉じるわけにはいかない'/'閉じる必要がある'/'閉じるでしょ'/'閉じるより'→'閉じて'
     const FR = normalized.replace(
-      /(?:と思い|ようと思い|んだよね|んだけどさ|んですよ|ことに(?:する|した|して)|ほうがいい(?:ね|かも)?|ほうがマシ(?:だ|です)?|といい(?:よ|です)|ばどうか?|しかない(?:んだ|よ|な)?|っきゃないな|よりほかない(?:な)?|だけしかない|わけにはいかない|必要が(?:ある|あります|ありそう)|べきです|べきなのに|なくちゃいけない|なあかんで|でしょ|でしょう|だろう|んじゃないか|んじゃなかった|より|ましてよ|ますので|ますよね|たいと思います|たいと思ってます|たいんですが|たいと思う|かと思って|かと考えて|と思います|と思ってます|と思っています|と考えて|方がいいと思う|方がいい|しかないんです|しかありません|しかないのでは|ということ(?:です|で|ですね|ね)?|というわけです|方向性?で|感じで|形で|次第です|予定です|んですが|のであれば|なら早く|なら今のうち|ように?(?:お願い|頼み|願い|要請|要求|依頼|希望)(?:申し上げます|致します|いたします|します|する|ます)?|要請|お願い|希望|依頼|ことはできますか|ことができますか|ことは可能ですか|べきではある|べきかと|べきもの|べきかもしれない|のが良い(?:と思う)?|のがいいかも|のがいいでしょう|のが正しい|ことが望ましい|のが望ましい|のが好ましい|ほうがいいと思います|ほうがいいです|ほうがいいと考えます|ほうがよろしい|ほうがいいかも|必要があろう|必要性がある|必要があるように思う|必要がありそう|必要ありそう|必要がありますね|必要があるのでは|必要があるようだ|ならばよろしい|ならば結構です|ならば|ならいいんだけど|ならいい|なら早い|なら今のうちに|のなら早く|のならいい|のであれば早く|のであればよろしい|のであれば大丈夫|のでいい|のでよい|のでしたら|ので結構です|というのであれば|ということであれば|ことならいい|ことならできる|とかいう|とか言って|とかで|とかして|とかね|とかよ|とかなんとかして|なんかして|なんかで|くらいなら|くらいで|くらいして|ぐらいなら|程度で|ほどで|だけならいい|だけなら|だけでいい|だけのこと|だけの話|だけなんだけど|だけなんです|だけなのに|さえすれば|すらすれば|でもいい|でもして|でもすれば|か何かして|かなんかして|後で|後に|あとで|あとに|たら次|ようになさい|ようにしてほしい|ようにしてくれ|ようにしていただけますか|ようにしてもらえますか|ようにして|ようにお願いできますか|べくお願いします|べく|べきと考えます|べきと存じます|べきでしょう|べきものと考えます|ことが望ましいと思います|のが望ましいと思います|ほうが望ましい|ほうがよろしいかと思います|ほうがよろしいかと|ほうがよろしいと存じます|ほうがいいと存じます|のが筋(?:では)?|ほうが賢明|のが妥当|のが適切|ことを推奨|ことをおすすめ|ことを望む|ことを望みます|ことを期待|ことにしよう|ことにしたい|ように言った|ように言われた|ようにと言った|ばいいじゃん|ばよいのでは|ばいいのでは|ばええじゃん|なら今|ならここ|んなら|んであれば|のであれば早めに|のなら今|ことか|ことなんだけど|ってことで|ってことですか|ってこと|ということでよろしいですか|ということで|ものなら|のならば|のであったら|んだったら早く|んだったらね|んだったら|ことにしようかな|ことにした方がいい|ことにしたほうがいい|というわけにはいかない|のが筋ではないだろうか|ことにします|ことに致します|ものとする|ものとします|ものと思います|ものと考えます|がよい|がよろしい|ほうがいいかもしれない|のもあり|のもいい|のも手だ|ってのもあり|というのもあり|という手もある|といいんじゃない|といいんじゃないか|とよいでしょう|とよろしい|とよいです|ようにする|ようにしてください|ほかないだろう|ほかあるまい|らよいのではないか|らいかがでしょうか|らいかがでしょう|らどうでしょうか|らどうですか|よう(?:に)?伝えて(?:ください)?|ようお伝えください|くれるよう言って(?:ほしい)?|って言ってる(?:でしょ|よ)?|って何回も言ってる|方がいいかな|ほうがいいかな|方がいいんじゃないか|ほうがいいんじゃないか|としよう(?:か|な)?|といいでしょう|といいんじゃないの|ましょうか(?:ね)?|べきかと存じます|べきかと思われます|ことが望ましいのでは|のが良いと存じます|ことをお願い申し上げます|ことをお願いいたします|だけで結構です|だけでいいです|とありがたい(?:です)?|と助かります|ばありがたい|ればありがたい|れば幸いです|れば助かる|ならありがたい|ことは可能でしょうか|ことが可能ですか|ことが望ましいかと|という選択肢もあります|という手があります|必要あるかな|必要ありそう|たいんですがね|たいんですけども|たいなあ|たい気がする|たいと思ってるんです|たい気分です|たい時は|たい場合は|た方がいい気がする|たほうがよさそう|た方がいいと思うんです|たほうが良いと思う|た状態にして|た状態でいて|しかないと思う|れればいい)[。！？!?]?$/u, '');
+      /(?:と思い|ようと思い|んだよね|んだけどさ|んですよ|ことに(?:する|した|して)|ほうがいい(?:ね|かも)?|ほうがマシ(?:だ|です)?|といい(?:よ|です)|ばどうか?|しかない(?:んだ|よ|な)?|っきゃないな|よりほかない(?:な)?|だけしかない|わけにはいかない|必要が(?:ある|あります|ありそう)|べきです|べきなのに|なくちゃいけない|なあかんで|でしょ|でしょう|だろう|んじゃないか|んじゃなかった|より|ましてよ|ますので|ますよね|たいと思います|たいと思ってます|たいんですが|たいと思う|かと思って|かと考えて|と思います|と思ってます|と思っています|と考えて|方がいいと思う|方がいい|しかないんです|しかありません|しかないのでは|ということ(?:です|で|ですね|ね)?|というわけです|方向性?で|感じで|形で|次第です|予定です|んですが|のであれば|なら早く|なら今のうち|ように?(?:お願い|頼み|願い|要請|要求|依頼|希望)(?:申し上げます|致します|いたします|します|する|ます)?|要請|お願い|希望|依頼|ことはできますか|ことができますか|ことは可能ですか|べきではある|べきかと|べきもの|べきかもしれない|のが良い(?:と思う)?|のがいいかも|のがいいでしょう|のが正しい|ことが望ましい|のが望ましい|のが好ましい|ほうがいいと思います|ほうがいいです|ほうがいいと考えます|ほうがよろしい|ほうがいいかも|必要があろう|必要性がある|必要があるように思う|必要がありそう|必要ありそう|必要がありますね|必要があるのでは|必要があるようだ|ならばよろしい|ならば結構です|ならば|ならいいんだけど|ならいい|なら早い|なら今のうちに|のなら早く|のならいい|のであれば早く|のであればよろしい|のであれば大丈夫|のでいい|のでよい|のでしたら|ので結構です|というのであれば|ということであれば|ことならいい|ことならできる|とかいう|とか言って|とかで|とかして|とかね|とかよ|とかなんとかして|なんかして|なんかで|くらいなら|くらいで|くらいして|ぐらいなら|程度で|ほどで|だけならいい|だけなら|だけでいい|だけのこと|だけの話|だけなんだけど|だけなんです|だけなのに|さえすれば|すらすれば|でもいい|でもして|でもすれば|か何かして|かなんかして|後で|後に|あとで|あとに|たら次|ようになさい|ようにしてほしい|ようにしてくれ|ようにしていただけますか|ようにしてもらえますか|ようにして|ようにお願いできますか|べくお願いします|べく|べきと考えます|べきと存じます|べきでしょう|べきものと考えます|ことが望ましいと思います|のが望ましいと思います|ほうが望ましい|ほうがよろしいかと思います|ほうがよろしいかと|ほうがよろしいと存じます|ほうがいいと存じます|のが筋(?:では)?|ほうが賢明|のが妥当|のが適切|ことを推奨|ことをおすすめ|ことを望む|ことを望みます|ことを期待|ことにしよう|ことにしたい|ように言った|ように言われた|ようにと言った|ばいいじゃん|ばよいのでは|ばいいのでは|ばええじゃん|なら今|ならここ|んなら|んであれば|のであれば早めに|のなら今|ことか|ことなんだけど|ってことで|ってことですか|ってこと|ということでよろしいですか|ということで|ものなら|のならば|のであったら|んだったら早く|んだったらね|んだったら|ことにしようかな|ことにした方がいい|ことにしたほうがいい|というわけにはいかない|のが筋ではないだろうか|ことにします|ことに致します|ものとする|ものとします|ものと思います|ものと考えます|がよい|がよろしい|ほうがいいかもしれない|のもあり|のもいい|のも手だ|ってのもあり|というのもあり|という手もある|といいんじゃない|といいんじゃないか|とよいでしょう|とよろしい|とよいです|ようにする|ようにしてください|ほかないだろう|ほかあるまい|らよいのではないか|らいかがでしょうか|らいかがでしょう|らどうでしょうか|らどうですか|よう(?:に)?伝えて(?:ください)?|ようお伝えください|くれるよう言って(?:ほしい)?|って言ってる(?:でしょ|よ)?|って何回も言ってる|方がいいかな|ほうがいいかな|方がいいんじゃないか|ほうがいいんじゃないか|としよう(?:か|な)?|といいでしょう|といいんじゃないの|ましょうか(?:ね)?|べきかと存じます|べきかと思われます|ことが望ましいのでは|のが良いと存じます|ことをお願い申し上げます|ことをお願いいたします|だけで結構です|だけでいいです|とありがたい(?:です)?|と助かります|ばありがたい|ればありがたい|れば幸いです|れば助かる|ならありがたい|ことは可能でしょうか|ことが可能ですか|ことが望ましいかと|という選択肢もあります|という手があります|必要あるかな|必要ありそう|たいんですがね|たいんですけども|たいなあ|たい気がする|たいと思ってるんです|たい気分です|たい時は|たい場合は|た方がいい気がする|たほうがよさそう|た方がいいと思うんです|たほうが良いと思う|た状態にして|た状態でいて|しかないと思う|と決めた|ことに決めた|ことを決めた|つもりですが|つもりなんです|つもりでいる|予定なんです|予定です|予定なので|はずなんです|はずです|はずと思います|ようにしました|と思うんだけど|と思うんですが|と思いますので|べきかと考えます|のが賢明かと|のが賢明です|たほうがいいのでは|ほうがいいのでは|こともできる|こともできます|のもいいですね|のもいいね|たらどうかと思う|たらどうかと思います|たらいいと思います|たらいいと思う|たほうがいいと思うのですが|た方がいいと思います|たいんだけれど|たいですわ|たいわ|たく思います|たく存じます|たくなってきた|たくなった|れればいい)[。！？!?]?$/u, '');
     if (FR !== normalized &&
         !(normalized.match(/より[。！？!?]?$/u) &&
           !/[うつるくぐすぬぶむきぎしちにみびるい]$/u.test(FR))) {
@@ -938,8 +938,8 @@ export class VoiceCommands {
     const ENPRE = new RegExp("^(?:i (?:want|need) you to|i'?d like you to|" +
         "i'?d appreciate it if you|i (?:want|wanna|need)(?: na| to)?|i'm gonna|" +
         'gonna|wanna|gotta|gimme|lemme (?:have|see|get)|lemme|imma|' +
-        "let me (?:have|see|get)|let me|let's|may i ask that you|might i ask that you|may i|i said|i meant to|i meant|" +
-        'i was wondering if|i was hoping you(?:' + "'?" + 'd|d| would| could)|i was hoping|do you think you could|is there any chance of|is there any chance|' +
+        "let me (?:have|see|get)|let me|let's|may i ask that you|might i ask that you|may i suggest (?:you|that you)|might i suggest|may i|i said|i meant to|i meant|" +
+        'i was wondering if|i was hoping for you to|i would like for you to|i was hoping you(?:' + "'?" + 'd|d| would| could)|i was hoping|do you think you could|is there any chance of|is there any chance|' +
         'any chance you could|if you would be so kind as to|if you would be so kind|would you be so kind|' +
         'if you wouldnt mind(?: terribly| awfully| at all)?|if you will permit|how about we|why dont we|shall we|suppose we|lets|' +
         'supposed to|fixing to|about to|feel like|in the mood to|how bout|' +
@@ -989,6 +989,9 @@ export class VoiceCommands {
         "feel welcome to|you're welcome to|youre welcome to|you are welcome to|" +
         'what say you|what do you say we|whaddya say we|what say we|possibly|' +
         'you have my permission to|you have my blessing to|i would ask that you|' +
+        'could you be so kind to|' +
+        'i would like for you to|i was hoping for you to|i would like it if you|' +
+        'go for it|i dare you to|dont be shy|don\'t be shy|' +
         'would you consider|would you be amenable to|would you be so good to|' +
         'might i ask that you|may i ask that you|can i trouble you to|' +
         'could i trouble you to|may i trouble you to|' +
@@ -1043,7 +1046,7 @@ export class VoiceCommands {
         'do us the (?:kindness|favor) of|oblige me by|indulge me and|' +
         'humor me and|bear with (?:me|it) and|put up with it and|give|' +
         'help me|i need you to|' +
-        'i want you to|i\'?d like you to|i\'?d appreciate it if you|don\'?t forget to|' +
+        'i want you(?: to| closing| reading)?|i\'?d like you to|i\'?d appreciate it if you|don\'?t forget to|' +
         'make sure to|be sure to|remember to|try to|try and|just|simply|' +
         'while you(?:\'?re| are) at it|since you(?:\'?re| are) (?:here|there|at it)|when you get a (?:sec|second|minute|chance|moment)|' +
         'if you have a (?:sec|second|minute|moment|chance)|if it\'?s not too much trouble|' +
@@ -1105,7 +1108,7 @@ export class VoiceCommands {
       .replace(/[,\s]+for (?:me|us)[.!?]?$/i, '')
       .replace(/[,\s]+(?:please )?thanks[.!?]?$/i, '')
       .replace(/[,\s]+(?:real )?(?:double quick|quick|fast|quickly)[.!?]?$/i, '')
-      .replace(/[,\s]+(?:right now|asap|pronto|stat|at your leisure|when you have a moment|whenever you get around to it|if you don'?t mind|for me thanks|for me|thanks|soon|slowly|carefully|gently|quietly|that would be (?:great|nice|awesome|helpful|lovely|wonderful)|if you might|when ready|when you can|when possible|at your earliest convenience|at your convenience|if convenient|where possible|as soon as possible|as quickly as you can|as fast as you can|as soon as you can|at once|this instant|immediately if possible|right away please|right away|straightaway|forthwith|posthaste|double quick|if you would be so kind|if you'?d be so kind|if you would kindly|and be done with it|and be done|and get it over with|and let'?s move on|once and for all|for good|permanently|for the last time|in a jiffy|in a flash|in a sec|in a moment|momentarily|for you|for once|a shot|a try|a go|now|is all i ask|is all i need|is what i want|is the idea|(?:would|could) be (?:great|nice|lovely|wonderful|awesome|amazing|fantastic|splendid|marvelous|delightful|appreciated|much appreciated|greatly appreciated|helpful)|would help|would mean a lot)[.!?]?$/i, '')
+      .replace(/[,\s]+(?:right now|asap|pronto|stat|at your leisure|when you have a moment|whenever you get around to it|if you don'?t mind|for me thanks|for me|thanks|soon|slowly|carefully|gently|quietly|that would be (?:great|nice|awesome|helpful|lovely|wonderful)|if you might|when ready|when you can|when possible|at your earliest convenience|at your convenience|if convenient|where possible|at your discretion|whenever possible|when you get the chance|when you get a chance|whenever you can|as soon as possible|as quickly as you can|as fast as you can|as soon as you can|at once|this instant|immediately if possible|right away please|right away|straightaway|forthwith|posthaste|double quick|if you would be so kind|if you'?d be so kind|if you would kindly|and be done with it|and be done|and get it over with|and let'?s move on|once and for all|for good|permanently|for the last time|in a jiffy|in a flash|in a sec|in a moment|momentarily|for you|for once|a shot|a try|a go|now|is all i ask|is all i need|is what i want|is the idea|(?:would|could) be (?:great|nice|lovely|wonderful|awesome|amazing|fantastic|splendid|marvelous|delightful|appreciated|much appreciated|greatly appreciated|helpful)|would help|would mean a lot)[.!?]?$/i, '')
       .replace(/([,\s]+(?:now|then|first|next|also|too|again|yet|already|once more|one more time|immediately|right away|this instant|at once|today|tonight|rn|ttyl|brb|g2g|gtg|thx|kthx|tyvm|pls|plz|pwease|thanks in advance))+[.!?]?$/i, '')
       .replace(/[,\s]+(?:if (?:u|you) (?:could|can|would|want(?: to)?|don'?t mind)|if ur able|if (?:u|you)'?re able|whenever you (?:want|feel like it|get around to it|can))[.!?]?$/i, '')
       .replace(/[,\s]+and[.!?]?$/i, '')
@@ -1928,6 +1931,7 @@ export class VoiceCommands {
         'little louder', 'pump up the volume', 'turn it way up',
         'turn it all the way up', 'blast it', 'speak louder',
         'too quiet', 'its too quiet', 'its so quiet', 'way too quiet',
+        'the volume is kind of low', 'volume is kind of low', 'kind of low', 'a bit low',
         'really quiet', 'pretty quiet', 'kinda quiet', 'too soft',
         '声をあげて', '音をあげて', '音量あげて', '音あげて', '音を上げて',
         '静かすぎる', '静かすぎ', '静かすぎるよ', '小さすぎる', '声が小さすぎるよ',
@@ -1966,6 +1970,8 @@ export class VoiceCommands {
         '小さい声で', '小さな声で', '声をおさえて', '声を抑えて',
         'whisper', 'deafening', 'painfully loud', 'ear splitting', 'too loud for me',
         'too much volume', 'blaring', 'blasting',
+        'its a bit loud', 'a little loud', 'kind of loud', 'turn the volume way down',
+        'turn it way down', 'crank it down a notch', 'crank the volume down',
         'turn down the volume', 'crank it down', 'make it quieter',
         /volume (down|lower|decrease|quieter)/i],
       action: () => {
@@ -2681,6 +2687,8 @@ export class VoiceCommands {
         '反応が遅い', '重たい', 'もたつく', '反応が悪い', '動作がもたつく',
         'kinda slow', 'kinda laggy', 'a bit slow', 'little slow', 'bit laggy',
         /[ただ]はず(?:だった|なのに|のに)?[。！？!?]?$/, 'it crashed on me',
+        /と思ったのに[。！？!?]?$/, /てもまだ.*ない[。！？!?]?$/, /どころか[。！？!?]?$/,
+        /[てで]ばっかり[。！？!?]?$/, /はずがまだ/, /はずなのにまだ/,
         '勝手に閉じる', '勝手に閉じられた', '自動で閉じた', '急に閉じた',
         'いきなり閉じた', '勝手に消えた', '勝手に閉じてきた', 'it crashed again',
         'really slow', 'super slow', 'pretty slow', 'very slow', 'way slow',
@@ -4270,6 +4278,11 @@ export class VoiceCommands {
         'close that one', 'close the other one', 'close that', 'close the one there',
         'kill it', 'axe it', 'trash it', 'bin it', 'ditch it', 'dump it',
         'nuke it', 'ax it', 'put it away',
+        'タブの閉鎖を願います', '閉鎖を願います', '廃棄してください', '破棄してください',
+        '閉じる操作をして', '閉じるアクションを', '閉じる手続きを', '閉じる操作を願います',
+        'it needs closing', 'it needs to be closed', 'this tab needs to go',
+        'this has got to go', 'this needs to go', 'it has to go',
+        'i want you closing it', 'i need you closing it',
         'yeet it', 'off it', 'do away with it', 'be done with it',
         'done with it', 'over it', 'through with it', 'finished with it',
         'close this down', 'close this up', 'close that up', 'close that down',
@@ -4609,7 +4622,7 @@ export class VoiceCommands {
         '読み上げてもらえますか', '朗読して', '朗読をお願い', '声で読んで',
         '音声で読んで', '読み始めから', '先頭から読んで', '最初の行から読んで',
         '冒頭から読んで', 'もう一度読んで', 'も一回読んで', '再び読んで',
-        '再度読んで', 'もう一回読み直して', '読み直してほしい', 'finish reading it',
+        '再度読んで', 'もう一回読み直して', '読み直してほしい', 'read it at your own pace', 'keep reading it to me', 'finish reading it',
         'もう一回最初から', '最初からやり直し',
         'そのページを読んで', '記事を読んで', '文章を読んで', 'テキストを読んで',
         '内容を読んで', '本文を読んで', 'はやく読んで',
@@ -4783,7 +4796,7 @@ export class VoiceCommands {
         '早すぎる', '早すぎ', 'ゆっくり言って', 'ゆっくり話して',
         'ゆっくりして', 'ゆっくりにして', '速度を下げて', '速度さげて', 'スピードを下げて',
         '速度を落として', '速度を落とす', 'スピードを落として', 'もっとスロー', 'もっとスローで',
-        'もうちょいゆっくり', 'もうちょっとゆっくり',
+        'ゆっくりめで読んで', 'ゆっくりめに読んで', 'ゆっくりめに', 'もうちょいゆっくり', 'もうちょっとゆっくり',
         'もっとゆっくり', 'もっとゆっくり話して', '聞き取れない', '聞き取りにくい',
         '読み上げが速い', '読み上げが速すぎる', '聞き取りやすくして',
         '遅く', 'ゆっくりめ',
@@ -7099,6 +7112,8 @@ export class VoiceCommands {
         /how far (along|have i (read|got))/i,
         'at the bottom yet', 'did i reach the end', 'how far down are we',
         'whats my position', 'what is my position', 'am i near the end',
+        'どこまで読んだっけ', 'どこまで読んだかな', 'どこまで読んだか', '半分くらい読んだ',
+        'だいたい半分読んだ', '大体半分読んだ',
         'almost there', 'nearly there', 'almost done', 'nearly done',
         'halfway there', 'getting there', 'nearly finished',
         'almost finished', 'about halfway', 'about done',
@@ -8654,8 +8669,8 @@ export class VoiceCommands {
         '大丈夫です', 'もう大丈夫', 'いらない', 'もういらない', 'ほっといて', '放っといて',
         'そのままで', 'そのまま', 'そのままでいい',
         '置いといて', '置いとく', '置いておいて', '置いておく', 'このまま', 'このままで',
-        '読まずに', '閉じずに', '戻らずに', '進まずに', '消さずに', '開かずに', /ずに$/,
-        /(?:う|つ|る|く|ぐ|す|ぬ|ぶ|む)な[。！？!?]?$/, /^(?:(?:don'?t|do not)(?! forget to)|never)\b/i,
+        '読まずに', '閉じずに', '戻らずに', '進まずに', '消さずに', '開かずに', /ずに$/, /ずに(?:おいて|おきましょう|おこう|おいてね)[。！？!?]?$/,
+        /(?:う|つ|る|く|ぐ|す|ぬ|ぶ|む)な[。！？!?]?$/, /^(?:(?:don'?t|do not)(?! forget to| be\b)|never)\b/i,
         'nope', 'nah', 'no way', 'no thanks', 'no thank you', 'not that', 'wrong one',
         'thats not what i said', 'forget that', 'scratch that',
         'nvm', 'disregard', 'ignore that', 'ignore me', 'ignore it', 'drop it',
@@ -8666,7 +8681,8 @@ export class VoiceCommands {
         '気がない', 'つもりはない', 'つもりない', 'するつもりはない', 'やるつもりはない',
         /べきでは(?:ないかと?|ない|ありません)?[。！？!?]?$/, /気(?:が)?ない[。！？!?]?$/,
         /おけ[。！？!?]?$/, '止めておけ', 'やめておけ',
-        /つもり(?:は)?ない[。！？!?]?$/, /たくない[。！？!?]?$/,
+        /つもり(?:は)?ない[。！？!?]?$/, /つもりはありません/, /たくない[。！？!?]?$/,
+        /ほしくな(?:い|く)(?:の|です|な|んです)?[。！？!?]?$/, /ないまま(?:にして|でいて|でおいて)[。！？!?]?$/,
         'いいです', 'いいんです', 'いいですよ', 'そのままお願い', 'そのままにして',
         'そのままにしておいて', 'このままにして', 'このままにしておいて',
         'nopers', 'nope nope', 'absolutely not', 'not interested', 'negative',

@@ -133,6 +133,12 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 エラーではなく、明示的にオフにしたユーザーの選択は永続値が勝つ。**戻すのは1行**だが、
 戻す者は上記4条件のどれが再発したかを言えること（`tests/vr-app-wiring.test.js` がこの既定を固定）。
 
+- ~~voice '閉じると決めた'/'閉じることに決めた'/'閉じるつもりですが'/'閉じる予定なんです'/'閉じるはずなんです'/'閉じるようにしました' の決意・予定報告尾が NO-MATCH~~ — **Session 194 で実装**（FR IV）
+- ~~voice '閉じてほしくないの'/'閉じずにおいて'/'閉じないままにして'/'閉じるつもりはありません' の不要宣言が NO-MATCH~~ — **Session 194 で実装**（negate II）
+- ~~voice '閉じてみせる'/'閉じてみましょうか'/'閉じてもらいたく存じます'/'閉じておくれる'/'閉じてくださいませんかね' の受益・意向残置が NO-MATCH~~ — **Session 194 で実装**（TAIL_TE XII）
+- ~~voice '閉じたと思ったのに'/'閉じてもまだ閉じない'/'閉じるどころか'/'閉じてばっかり' の苦情枠が NO-MATCH~~ — **Session 194 で実装**（trouble II）
+- ~~voice 'it needs closing'/'it needs to be closed'/'this tab needs to go'/'i want you closing it'/'may/might i suggest'/'could you be so kind to'/'go for it'/'i dare you to'/'close it whenever possible'/'at your discretion' が NO-MATCH〜誤ルート~~ — **Session 194 で実装**（ENPRE IV + 受動needs枠 + 尾剥がし）
+- ~~voice 'dont be shy, close it' が negate 誤奪取~~ — **Session 194 で修正**（`^don'?t` lookahead に ` be\b` 除外）
 - ~~voice '閉じてお願いね'/'閉じてお願い申し上げたく'/'閉じてくれたら助かる'/'閉じてもらいたいんですが'/'閉じていただければ幸いでございます' の受益・へりくだり深残置が NO-MATCH~~ — **Session 193 で実装**（TAIL_TE XI）
 - ~~voice '閉じるとありがたい'/'閉じれば幸いです'/'閉じることは可能でしょうか'/'閉じるという選択肢もあります'/'閉じる必要あるかな' のdict確信・感謝尾が NO-MATCH~~ — **Session 193 で実装**（FR III）
 - ~~voice '閉じたいなあ'/'閉じたい気がする'/'閉じたい時は'/'閉じた方がいい気がする'/'閉じたほうがよさそう' のたい気持ち残置が NO-MATCH~~ — **Session 193 で実装**（FR たい尾一括）
