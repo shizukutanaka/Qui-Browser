@@ -1722,6 +1722,17 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 
 ### Session 248
 
+- ✨ JA: ておけば・てある残置（おけば大丈夫・おけば安心・あるはずです・あるべきだった・あるところです）・dict解名詞尾（のが結論だ・答えだ・解答だ・解だ・至極だ・真髄だ）→ 実行。
+- ✨ EN LXII: 'for the love of mike'・'for christs sake'・'for pitys sake' 前置 → 実行（gods/heavens/goodness sake は既ルート緑）。
+- ✅ tests/for-pitys-sake-atoms.test.js +26（実装前14件赤確認）、計12795全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 252
+- 🐛 誤ルート2件: '閉じておくよう進める' → navigate（変体 '…よう進め' が `進め` にヒット → `(?<!よう)` 追加、2箇所）；'閉じてはいかがなものか' → negate（`ものか` に `いかがな` lookbehind 追加）。
+- ✨ JA: ておくよう方向尾（おくよう進める・おく方向で・おく形で）・てはいかが残置（はいかがか・はいかがなものか・はどうかしらね）・dict初手名詞尾（のが初手だ・一の手だ・先手だ・第一歩だ・入口だ・取っ掛かりだ）→ 実行。
+- ✨ EN LXI: 'do us the service of'・'bless/grace me by'（oblige 枠に併合）・'give me the pleasure of it being closed' スワップ → 実行。
+- ✅ tests/first-move-atoms.test.js +25（実装前16件赤確認）、計12769全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 251
 - ✨ JA: ておく確定残置（おく算段だ・おく手だ・おく方向だ・おくが吉）・てみろ方言（みろう・みなされ）・dict秘策名詞尾（のが秘策だ・奥の手だ・切り札だ・とっておきだ・虎の子だ・隠し玉だ）→ 実行。
 - ✨ EN LX: 'final answer:'・'the verdict is in'・'case closed'・'decision made'・'mums the word'・'say no more' 前置 → 実行（final answer:? でコロン許容）。
 - ✅ tests/verdict-atoms.test.js +26（実装前19件赤確認）、計12744全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
