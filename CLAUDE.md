@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 163: 敬語/禁止/動名詞原子 — お〜ください・るな禁止・ます語幹+な・mind+gerund
+外部基準: お/ご+ます語幹+ください敬語、辞書形+な禁止（"don't"）、ます語幹+な口語命令、ておいて/てごらん/てして、EN 'would you mind ~ing'、is-it 状態質問、me-構文。
+- 🐛 **辞書形+な禁止の誤実行修正（実害）**: '戻るな' が back、'進むな' が navigate、'閉じるな' が close-tab を実行していた → `戻る(?!な)|進む(?!な)` 化 + negate に `/(う|つ|る|く|ぐ|す|ぬ|ぶ|む)な$/` + `/^(don't|do not|never)\b/i`。'閉じるな'→negate、'読むな'→negate。
+- ✨ **敬語層（_politeVariants）**: `お|ご` + ます語幹 + `ください|下さい` → `MASU_TE` マップでて形変換（お読みください→読んで、お待ちください→待って）。ます語幹+`な`→て形（閉じな→閉じて）。`なさい(?:よ|な)?`→て形。`ておいて|てごらん|てして`→て。
+- ✨ **EN gerund→stem**: `mind`/`would you mind` 前置 + 動名詞正規化（closing→close, going→go, stopping→stop 等 GERUND_STEM マップ）。
+- ✨ **過度敬語・is-it 質問**: 'be so kind as to'/'if you please'/'pretty please' 剥がし、'is it loud/quiet/paused/playing/dark/bright/ready'→各 status。'tell me again'→say-again、'tell me what it says'→read-aloud、'give me the tabs'→tabs-list、'shut it'→close-tab、'shut it down'/'turn it off'→vr-exit、'turn up/down the volume'、'crank it down'/'pump it up'、'make it louder/quieter/faster/slower'。
+- ✨ **見て→describe-tab**: bare '見て'/'みて'/'見せて'（'見せて' はタブ一覧維持）。
+- ✅ **テスト +78（git stash で67件赤確認）**: Total 5912 tests (137 suites); 0 lint errors（警告 137 = baseline 同一）; build green。
+
 ### Session 162: 方言語尾・裸動詞原子 — 関西進行形/依頼形、EN wait idioms、up-verb ナビゲート
 外部基準: 関西弁進行形(とる/どる/てん/でん)、依頼形(てや/てはる/てもろて/てくれん)、'ずに' 否定、EN 'hang on/hold up' 待機句、'fire up/pull up/bring up' phrasal verbs。
 - 🐛 **'open up a tab'/'open a tab' 誤ルート修正**: tab-by-name が 'a' をタイトルとして誤検索 → new-tab リテラル化（登録順が先行するため pattern 追加のみで勝つ）。
