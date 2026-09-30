@@ -2848,6 +2848,20 @@ permission/capability questions (てもいいでしょうか / られますか)�
 - ✅ **テスト +170（実装前実行で140件赤確認、内26件は共存ガードの設計上緑）**: Total 6918 tests (144 suites); 0 lint errors（警告 137 = baseline 同一）; build green; FFFD 0件。
 
 ### Session 313: Voice atoms CXCIII — 方向処分句動詞 + スラング vocative + JA 方言依頼残置 + dict 名詞尾XXXII。EN: directional disposal（down/away/out with this/the tab・out with it/this・through/finished with this/(the tab)・over and done with it）・wrap/pack/end 系（wrap the tab up・pack it up/away・do it/the tab in・tear/rip/pull it down・put an end to it/this・put/lay it to rest・retire it/the tab・put it out of its misery）・slang discourse 前置（bro/sis/fam/fams/dawg/cuz/tbh/ngl/lowkey/highkey/deadass/ong/fr fr/fr — ENPRE の |bruh|dude|be a champ and| 交互に併入）。JA: しもた/しもうた/しもて（近畿完了）・とこなあ/とこうな（南日本意向+否定型→stem-な 誤爆を (?<!とこ|どこ) lookbehind で回避）・とか(や)・ってのはどう・たらええのに・た方がええ・ましょうぜ・ますかね・かなあ・なよー・なよっと・やぁ。dict 名詞尾XXXII（最適解/好判断/良案/名案/上策/妙案/早道/近道/得策/策）。確立ピン維持: 'wrap it up'/'wrap this up'→stop-everything・'shut X down'→vr-exit・'put it to sleep'→sleep-mode・'のが正解'→help・'んといて'→negate・sick/tired/fed-up・なんて・下策ではない は意図スキップ。
+### Session 336: crown atom sweep — EN wrap-up idioms/keep-open + JA ta-ue/ba-yokatta/naito III
+外部基準: EN wrap-up idioms ("were done here", "thats all she wrote", "mission accomplished"), keep-open family -> negate; JA た上で sequence, ばよかった regret, ないと duty III.
+- ✨ **EN**: wrap-up（were done|finished here・done here・thats it|all|all she wrote・mission accomplished・job|task|work done・calling it・wrapping up|wrap it up close it）；keep-open→negate literal（let it stay open|keep going|run|sit|hang）。
+- ✨ **JA**: た上で（た上で(いい|お願い)?|た上がいい → 'て'）；ばよかった（ればいいのになあ|ねえ|さ|なー・れば|ば|りゃ|じゃよかった(のに)?・たほうがよかった(のに)?・ておけばよかったのに → 'て'・'じゃよかったのに'→'じて'）；ないとIII（ないとまずいよ|やばいよ|よ → 'て'）。
+- 🔄 **ピン維持**: 'keep it up'→resume-reading・'ないといけないんだよ'→trouble（確立）。
+- ✅ tests/crown-atom-sweep.test.js +71（実装前 ~45件赤確認）、計16945全緑・lint 0エラー/警告136=baseline・build green・FFFD 0件。
+
+### Session 335: keystone atom sweep — EN desire/do-the-thing + JA kure-masu II/youka II/noha/chau
+外部基準: EN desire states ("i want it gone|off|out"), do-the-thing idioms ("just do it", "make it so", "get it done"); JA くれますか II (んでしょうか), ようか volitionals II (なあ|しらね|のう|ねえ), のは evaluations, ちゃう residue.
+- ✨ **EN**: desire（want it away|off|out・need it gone already）；do-thing（just do it・do it・do the thing・make it happen・get it done・do what needs doing・make it so・you know what to do・like you mean it）。
+- ✨ **JA**: くれますかII（てくれますんでしょうか → 'て'）；ようかII（ようかなあ|なー|と思った|ちゃおうかと|かしらね|かしらん|かのう|かの|かねえ → 'て'）；のは評価（てもらうのは(どう)?|てくれるのは(どう)?|るのはどうかな|いかが|まずい(かな)?|あり(かな|だよね)?|どうだろう → 'て'）；ちゃう残置（ちゃいますよ|ちゃうかも|ちゃったけどいいよね|ちゃっていいかな|いいよな|ちゃう方がいい → 'て'）。
+- 🔄 **ピン維持**: '閉じるのはだめ(かな)?'→null（「閉じるのはまずい」=close意図 vs 「だめ」=negate曖昧対）。
+- ✅ tests/keystone-atom-sweep.test.js +72（実装前 ~45件赤確認）、計16874全緑・lint 0エラー/警告136=baseline・build green・FFFD 0件。
+
 ### Session 334: arch atom sweep — EN harm/resolve + JA mae/made/beki/sase-itadaku + shimatta-cause
 外部基準: EN harm frames ("would it kill you", "whats the harm"), resolve idioms ("one way or another", "come hell or high water", "by hook or by crook"); JA まえ/まで idiom tails, べき residue, させていただく declarations, しまった-cause reports.
 - ✨ **EN**: harm（it wouldnt kill you・whats the harm|what harm is there|would it do・no harm no foul・not gonna hurt）；resolve（one way or another・come hell or high water・by hook or by crook・whatever it takes|you have to do）。
