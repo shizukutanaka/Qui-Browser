@@ -2356,7 +2356,6 @@ export class VoiceCommands {
         /^do (i|we)\b/i,
         /^do (you|they)\b(?! (?:mind|hear|think|suppose|reckon|figure|want|need|care)\b)/i,
         /^mind if i\b/i,
-        /^do (i|we)\b/i, /^do (you|they)\b(?! (?:mind|hear|think|suppose|reckon|figure|want|need)\b)/i, /^mind if i\b/i,
         /^is there (?:any )?way to\b/i, /かね(?:る|ます|ません)$/,
         /^(?:can|could|would|might|will) it be (?!too much|possible|asking)/i, /^is it closable\b/i,
         /^is it possible this can be\b/i, /^any idea how to\b/i, /^is it true\b/i,
