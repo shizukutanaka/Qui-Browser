@@ -1720,7 +1720,7 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 296
+### Session 295
 
 - ✨ JA: てくださるよう残置（お願いします/ようにお願いします）・dict急所名詞尾XV（のが急所と考え上げます 等6形）→ 実行。
 - ✨ EN CV: 'id be ever so happy|glad|delighted|pleased|willing|ready to' 前置 → 実行。
