@@ -1720,8 +1720,93 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 222
+### Session 234
 
+- ✨ てもらう疑問尾残置: もらえるんでしょうか・もらえますでしょうかね・もらえぬものでしょうか・もらえますかいな/かしら・もらえんのかな → 実行。
+- ✨ ておく報告/決断尾: おくのがいいと思います・おくに越したことはない・おくべきかと思います・おくしかないかも・おきさえすれば・おきゃあいい → 実行（'おくべきかと思います' は宣言=実行、裸 'おくべきか' は質問として help 維持）。
+- ✨ dict目的/理由名詞尾II: 目的です・理由です・ためのものです・ためなんです・という趣旨です・ための指示です → 実行。
+- ✨ EN XLIII: 'for the love of pete'/'for cryin out loud'・'id be ever so grateful if you'・'much obliged if youd'・'id be forever in your debt if you'・'id owe you big time if youd?'・'you would earn my gratitude if youd?' 前置 → 実行。
+- ✅ tests/gratitude-debt-atoms.test.js +36（実装前19件赤確認）、計12287全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 233
+- ✨ てください命令句残置: くださいませませ・くださいますの・くださいますようにと・くださいなさい・くださいなね → 実行。
+- ✨ なさい系方言残置: なさんな・なされい → stemTe 追加（'閉じないでちょうだい/いただきたい' は do-not 依頼で negate ピン維持）。
+- ✨ dict効率/利得名詞尾: のが効率的だ・ほうが効率的・のが合理的だ・のが賢いやり方・のがスマートだ・のが得だ → 実行。
+- ✨ EN XLII: 'do me the service|kindness|favor of'（service等を courtesy 枠に併合）・'oblige me with a'・'one small favor:?'/'one tiny favor' 前置 → 実行。
+- ✅ tests/favor-service-atoms.test.js +36（実装前20件赤確認）、計12251全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 232
+- 🐛 negate 裸 `おけ$` が '閉じておけ/おけよ/おけって/おけばいいじゃん' を否定誤ルート — やめ/止め/にしておけ の leave-it 語幹に限定（'止めておけ' 否定はピン維持）。
+- ✨ お+ます語幹 謙譲命令: お閉じしたいんです/いたしますね/申し上げます/お願いします/させていただきます → stemTe push で実行。
+- ✨ ておく条件/判定残置: おくんだったら・おくのであれば・おくがよろしい → 実行。
+- ✨ dict見解/立場尾: のが見解だ・のが立場だ・という見解で・べきとの見解・のが私の意見・べきという意見 → 実行。
+- ✨ EN XLI: first thing you do・at the first|earliest opportunity・the moment|instant you can・the second you get a chance・next chance you get・when the opportunity arises 前置 → 実行。
+- ✅ tests/humble-imperative-atoms.test.js +36（実装前29件赤確認）、計12215全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 231
+- 🐛 '閉じるつもりで進める' が navigate 誤ルート → FR `つもりで進める` で実行化。
+- ✨ てもらう手配/謙譲残置: もらう手はずになっている・もらう算段だ・もらう段取りです・もらいたくお願いする/申し上げます → 実行。
+- ✨ てきて方向残置: きてくれ/ください/ほしい/もらえますか/もらいたい/なさい → 実行。
+- ✨ dict意図/方針名詞尾: 意向です・意図です・方針です・旨連絡・という方針で → 実行。
+- ✨ EN XL: if youd/could be so good・see it in your heart・within your power・no trouble at all・no inconvenience・presents no difficulty・manageable/works for you/suits you 前置 → 実行。
+- ✅ tests/capability-courtesy-atoms.test.js +37（実装前27件赤確認）、計12179全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 230
+- ✨ てちょうだい俗残置: ちょうだいませんか → 実行（ね/よ/な/ませ/なさい は既存）。
+- ✨ dict手配/段取尾: 段取りで・手はずで・手配を頼む・段取りをとる・という段取り・のが筋だと考えます → 実行。
+- ✨ EN XXXIX: if you see fit/as you see fit・if you deem it appropriate|necessary・should you feel so inclined・if you are so inclined/of a mind to・if you feel up to it・at your pleasure 前置 → 実行。
+- ✅ tests/pleasure-inclination-atoms.test.js +37（実装前16件赤確認）、計12142全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 229
+- ✨ てしまう判定/決断尾: しまったほうがいいかと・しまうのがいいかもしれん・しまうのも手か・しまうことを勧める・しまうことにしようか/している → 実行（'てみるべきでは' はべきでは禁止ピン整合で negate 維持）。
+- ✨ てみる試行尾: みるのが良いのでは・みるという手もある・みることも視野・みるしかないじゃん・みたらいいんちゃう → 実行。
+- ✨ dict慣習/当然名詞尾: のが当然/常識/当たり前/自然/礼儀/お作法だ → 実行。
+- ✨ EN XXXVIII: your duty|mission is to・it is your job to・it falls to you to・the responsibility is yours to・someone has to・somebody has got to・it is high|about|past time you 前置 → 実行。
+- ✅ tests/duty-judgment-atoms.test.js +38（実装前27件赤確認）、計12105全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 228
+- 🐛 '閉じていただけぬものか' が negate（ものか拒否修辞）誤ルート — lookbehind に `いただけぬ` 追加。
+- ✨ てもらう進行/謙譲残置: もらっております・もらうことになります → 実行。
+- ✨ dict願望/目的尾III: ことを切望する・ことを所望いたします・ことを請い願う・べく頼む・べくお願い申し上げる・ようにと切に → 実行。
+- ✨ EN XXXVII: 'out of the kindness of your heart'/'as an act of kindness|mercy'/'as a (personal )?favor to me'/'be an obliging soul and' 前置 → 実行；'indulge me by' を oblige-favor 枠に併合。
+- ✅ tests/deep-honorific-atoms.test.js +37（実装前16件赤確認）、計12067全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 227
+- ✨ てくれ推量/仮定尾: くれるかなあ・くれるかしらね・くれるのを望む・くれるといいんだが・くれればそれで足りる・くれたのならば・くれようとは → 実行。
+- ✨ ておく受益/許可残置: おいてもらえば・おいてもらいたいんだけど/ものだ・おかせてくれ/おかせていただきます・おきたいと願っております → 実行。
+- ✨ dict前提/仮定尾: のでしたらば・とすれば幸い・ようであれば助かる・とお願いする/と期待する・という条件で → 実行。
+- ✨ EN XXXVI: im assuming/hoping/counting on/relying on/betting + id wager/ill assume + correct me if im wrong/if im not mistaken + god/heaven/luck willing 前置 → 実行。
+- ✅ tests/volitional-auxiliary-atoms.test.js +37（実装前29件赤確認）、計12030全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 226
+- ✨ てくれ引用/期待尾: くれとは言えない・くれとしか言いようがない・くれと頼みたい・くれと願っている・くれそうですか・くれますのでは・くれようや → 実行。
+- ✨ てもいい許可尾II: もいいでしょうかね・もいいかなあ・もいいんかな・もいいことにして・もいいとするなら → 実行。
+- ✨ dict「よう言ってる」進行依頼: よう言ってる/言っておる・ようにと・ように頼んでる/お願いしてる/言うてる・ようにと言っている → 実行。
+- ✨ EN XXXV: any way/possibility/chance + in the event/in case/whenever possible/if at all feasible 前置 → 実行。
+- ✅ tests/quotative-irrealis-atoms.test.js +34（実装前25件赤確認）、計11993全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 225
+- 🐛 Devin Review #436 指摘2件: 'remind me to X' が即実行 → ENPRE 撤去 + defer `/^remind me (?:to|about)\b/` で誠実応答化; negate `まい` の `(?<!ち|じ)` が '閉じまい' をルート消失 → `(?<!ち|んじ)` に限定（ちまい/んじまい 縮約のみ除外）。
+- ✨ ておく残置II: おくのもありだ・おくのがいいかも・おくことにするよ・おきなよ → 実行（'おくべきではないか' は禁止修辞 → negate 維持）。
+- ✨ dict確認/同意尾: のでいいね・ので構わないか・のが良いかと存じます・のが宜しいかと・のが筋かと → 実行。
+- ✨ EN XXXIV: '(it|the tab) (needs|has|should|ought) to get (closed|shut)'/'could use|could do with a closing'/'a closure|closing is (required|in order|necessary|what needed)' → close-tab スワップ。
+- ✅ tests/obligation-get-atoms.test.js +34（実装前20件赤確認）、計11959全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 224
+- ✨ なさい系拡張命令: なさってください・なされて・なさいますように・なさるよう・なさいって言って → stemTe 追加で て形化 → 実行。
+- ✨ しまえ/ちまえ残置: てしまえよ・てしまえばいいじゃん・ちまいな/ちまい → 実行；negate `まい` に `(?<!ち|じ)` 追加（'閉じちまい' の誤ルート是正）。
+- ✨ dict判定尾XXVII: のもいいかもしれん・のもいいんでは・のも一手か・のも悪くない気がする・のも十分ありだ・のが良いように思う・のがいい気がしてきた → 実行。
+- ✨ EN XXXIII: 'note to self'/'remind me to'/'(would) someone|somebody' 前置 → 実行；'(shut|close) it (away|off|up)' スワップ→close-tab。
+- ✅ tests/imperative-nasai-atoms.test.js +35（実装前20件赤確認）、計11925全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 223
+- ✨ てくれ残置: くれなんだけど・くれないんだけど/んですが・くれるわけ/こと・くれんの(かな)・くれてもいいんだけど → 実行。
+- ✨ dict推量/判断尾: だろうね・であろう・ものと思われます・ものと考えられます・ものと見受けます・ものと判断(いた)します → 実行。
+- 🐛 誤ルート3件: trouble の `(れない|ない)(んだけど…)$` が 'くれない' 依頼を奪取 → `(?<!く)れない|(?<!くれ)ない` 分岐化；ack `/るわけ$/` が 'くれるわけ' 奪取 → `(?<!くれ)`；help `/(?<!く)られます/` が '考えられます' 奪取 → `(?<!く|考え)`。
+- ✨ EN XXXII: 'i (feel|think|believe|figure|reckon|guess) (it|the tab) (should|needs to|wants…) (be )?(closed|to go)' 目的格スワップ→close-tab；語尾 'id be grateful'/'id appreciate it'/'youd be doing me a solid'。
+- ✅ tests/assertive-report-atoms.test.js +39（実装前26件赤確認）、計11890全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 222
 - ✨ ては提案尾III: はどうですかね/は如何ですか/はどうかしら/はどうぞ/はいかがかと存じます → 実行。
 - ✨ あげる/やる受益尾: あげるわよ/からね/ますよ/てもいい/ようか/ので・やるわ/やるんで/やろうか/やっから → 実行。
 - ✨ dict条件尾: ならよろしい/なら大丈夫です/なら構いません/のでしたら結構です/のであれば幸いです → 実行。
