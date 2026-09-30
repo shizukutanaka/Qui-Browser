@@ -133,6 +133,70 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 エラーではなく、明示的にオフにしたユーザーの選択は永続値が勝つ。**戻すのは1行**だが、
 戻す者は上記4条件のどれが再発したかを言えること（`tests/vr-app-wiring.test.js` がこの既定を固定）。
 
+- ~~voice '閉じてくださいますかな'/'閉じてくださいますね'/'閉じてくださいまいか'/'閉じてもらおう'/'閉じてもらいましょう'/'閉じてもらうか' のて敬語・受益残置が NO-MATCH／'くださいまいか' が negate 誤ルート~~ — **Session 189 で実装**（TAIL_TE 拡張）
+- ~~voice '閉じてもいいっすか'/'閉じてもええですか'/'閉じちゃってもいいですか'/'閉じちゃってもよいですか'/'閉じちゃってもいいっすか' のても許可・ちゃっても残置が NO-MATCH~~ — **Session 189 で実装**（TAIL_TE + ちゃっても/じゃっても→て/で push）
+- ~~voice '閉じられませんか(ね|な)'/'戻られませんか'/'読めませんか' の不能依頼質問が NO-MATCH~~ — **Session 189 で実装**（られませんか→て / godan られ融合→stem+'り'→stemTe / え段ませんか→E_TE）
+- ~~voice '閉じるなら今'/'閉じるならここ'/'閉じるんなら'/'閉じるんであれば'/'閉じるのであれば早めに'/'閉じたほうがいいかもしれない' の条件・判定残置が NO-MATCH~~ — **Session 189 で実装**（FR 拡張）
+- ~~voice '閉じるべきかな'/'閉じるべきですかね'/'閉じるべきでしょうか' が NO-MATCH、'戻るべきですかね' が back 誤実行~~ — **Session 189 で実装**（help `/べき(かな|ですかね|でしょうか|かね)$/` + 戻る regex に べ lookahead）
+- ~~voice 'should we X'/'ought we'/'might we'/'would we'/'would you possibly'/'might you possibly'/'i wonder if you could'/'wondering if you could'/'theres gotta be a way to'/'is it possible for you to'/'is there any way to' が NO-MATCH／一部 misroute~~ — **Session 189 で実装**（ENPRE chain1 拡張 + 'is there any way to'→help）
+- ~~voice '閉じてはどうでしょう'/'閉じてはいかがですか'/'閉じてはもらえませんか'/'閉じてはいただけませんか' の ては依頼枠が NO-MATCH~~ — **Session 188 で実装**（TAIL_TE 拡張）
+- ~~voice '閉じてやってください'/'閉じてもらっていいですか'/'閉じてもらうわけにはいかないでしょうか'/'閉じてしまおうではないか'/'閉じちゃおうではないか' の受益・意向残置が NO-MATCH~~ — **Session 188 で実装**（TAIL_TE + CHA 拡張）
+- ~~voice '閉じるように言った'/'閉じなさいってば'/'閉じなって'/'戻りなって' の引用・関西命令残置が NO-MATCH~~ — **Session 188 で実装**（FR + なさい尾 + なって stemTe 規則）
+- ~~voice '閉じようではないか'/'戻ろうではないか'/'閉じようじゃないか'/'読もうではないか' の意向提案枠が NO-MATCH~~ — **Session 188 で実装**（VOL/KAI 尾拡張: 一段 `よう…` + 五段 `[お-row]う…`）
+- ~~voice '閉じればいいじゃん'/'閉じりゃいいじゃん'/'閉じちゃえばいいじゃん'/'戻りゃいいじゃん'/'閉じればいいのでは'/'戻ればよいのでは' のば+じゃん/のでは尾が NO-MATCH~~ — **Session 188 で実装**（E_TE/りゃ/ちゃえば 尾拡張 + 五段りゃ→って push）
+- ~~voice '閉じるのが筋'/'閉じるほうが賢明'/'閉じるのが妥当'/'閉じるのが適切'/'閉じることを推奨'/'閉じることを望みます'/'閉じることにしよう'/'閉じることにしたい' の判定枠IIIが NO-MATCH~~ — **Session 188 で実装**（FR 拡張）
+- ~~voice 'would you be so good as to close it'/'do me the kindness of'/'beseech'/'entreat'/'if it please you'/'pray close it'/'prithee'/'any way you could'/'is there any way'/'any chance you might'/'how about you'/'what about you'/'you wanna'/'have the decency to'/'do the decent thing and'/'have the courtesy to'/'close it if you would be so kind'/'close it once and for all'/'close it for good'/'close it permanently'/'close it and be done with it' の EN 深礼儀III・完了語尾が NO-MATCH~~ — **Session 188 で実装**（chain1 + EN 語尾拡張）
+- ~~voice 'could i get you to close it'/'can i ask you to close it'/'any way you can close it' が help 誤ルート~~ — **Session 188 で実装**（`/^can i/`・`/^(could|…)i/` lookahead 除外 + 'any way you can' help リテラル除去）
+- ~~voice '閉じてから次へ'/'戻ってから閉じて'/'読んでから続けて' の てから順序接続が NO-MATCH~~ — **Session 187 で実装**（TAIL_TE `から[^。！？!?]*` ブランチ — `|` 欠落による分岐癒合を捕捉・修正）
+- ~~voice '閉じておきますね'/'閉じておきましょう'/'閉じておきたい'/'閉じておくつもり'/'閉じておくことにします'/'閉じておいてほしい'/'閉じておこうと思います'/'閉じてしまってよい' の ておく残置群が NO-MATCH~~ — **Session 187 で実装**（TAIL_TE 拡張）
+- ~~voice '閉じてお願い申し上げます'/'閉じてお願いいたします'/'閉じてくださいますと'/'閉じていただけましたら'/'閉じてくださいな'/'閉じてくださいましね'/'閉じてちょうだいね'/'閉じてくれますよう' の受益・敬語残置が NO-MATCH~~ — **Session 187 で実装**（TAIL_TE 拡張）
+- ~~voice '閉じたほうがよろしいと存じます'/'閉じられればいい' の判定・残基尾が NO-MATCH~~ — **Session 187 で実装**（FR 追加 + `れ$`→stemTe 残基行）
+- ~~voice '閉じとこう'/'閉じといて'/'閉じちゃいなさい'/'閉じちゃってください'/'閉じちゃってもいい'/'閉じじまえ'/'読んじゃえ' の とく/ちゃ残置が NO-MATCH~~ — **Session 187 で実装**（双push て+で / ちゃ尾拡張）
+- ~~voice 'i would be grateful if you closed it'/"i'd be obliged if you"/'i would appreciate it if you'/'extend the courtesy of closing it'/'afford me the courtesy'/'suppose you closed it'/'say you could close it'/'if you could just possibly close it'/'if you could just go ahead and close it' の EN 礼儀深掘りII が NO-MATCH~~ — **Session 187 で実装**（chain1 grateful-if-you・courtesy・suppose/say 枠 + `if you could` 前置配置で最長一致解消）
+- ~~voice '閉じるようお願いします'/'閉じるよう頼みます'/'閉じる要請'/'閉じるお願い'/'閉じる希望'/'閉じる依頼' の よう依頼・名詞型依頼が NO-MATCH~~ — **Session 185 で実装**（FR 尾 よう+依頼名詞枠 + bare名詞尾）
+- ~~voice '閉じてくださいまし'/'閉じてくださいますよう'/'閉じてくれますかね'/'閉じてくれりゃ'/'閉じてくれないかなあ'/'閉じてくれるのでしょうか'/'閉じてくれるかどうか'/'閉じてくださったら'/'閉じてもらったら'/'閉じてもらうよう'/'閉じて頂戴いたします'/'閉じてお願い申し上げます'/'閉じてお願いいたします' のて受益残置IIIが NO-MATCH~~ — **Session 185 で実装**（TAIL_TE 拡張）
+- ~~voice '閉じることはできますか'/'閉じるべきではある'/'閉じるべきもの'/'閉じるべきかもしれない'/'閉じるのが良い'/'閉じるのが望ましい'/'閉じるほうがよろしい'/'閉じる必要があろう'/'閉じる必要性がある'/'閉じる必要ありそう' の判断枠が NO-MATCH~~ — **Session 185 で実装**（FR 尾拡張。'べきではないか'→negate 維持）
+- ~~voice 'it would help a lot if you could close it'/'it would mean a lot if'/'how would you like to'/'what would you say to closing it'/'do you suppose you could'/'do you reckon you could'/'do you figure you could'/'how do you feel about closing it'/'any chance of closing it'/'is there any chance of closing it'/'would it be too much trouble to close it'/'may i ask you to close it'/'i beg you to close it'/'humbly request you close it'/'think you could close it'/'perhaps you could close it'/'you might as well close it'/'might as well close it' の深礼儀・可能性・推量枠が NO-MATCH/help・scoped-help 誤ルート~~ — **Session 185 で実装**（chain1 拡張 + help/scoped-help 先行ルール窄め + 'is there any chance' の 'of' 最長一致化）
+- ~~voice 'close it at your earliest convenience'/'close it at once'/'close it forthwith'/'close it double quick'/'close it in a jiffy'/'close it when you can'/'close it if convenient'/'close it momentarily' の即時・便宜語尾が NO-MATCH~~ — **Session 185 で実装**（EN 語尾拡張 + 'double quick' 先行配置）
+
+- ~~voice '閉じていただけないものでしょうか'/'戻ってくれませんかね'/'閉じていただければ幸いに存じます'/'閉じてもいいのであれば' の複合受益尾が NO-MATCH~~ — **Session 184 で実装**（TAIL_TE メガ拡張 + くださるでしょうか）
+- ~~voice '閉じたいと思います'/'閉じたいんですが'/'閉じようと考えて'/'閉じようかと思って'/'閉じるというわけです'/'閉じる次第です'/'閉じるんですが'/'閉じればよろしい'/'閉じざるを得ないです'/'閉じなければいけない' の意向・義務報告尾が NO-MATCH/describe-tab 誤ルート~~ — **Session 184 で実装**（FR 拡張 + たい先行剥がし + よう残存→て + ばよろしい規則 + negob ざるを得ない）
+- ~~voice '閉鎖してください'/'タブを閉鎖して'/'削除をお願いします'/'消去してください'/'リセットしてください'/'クリアしてください' の名詞型依頼が NO-MATCH~~ — **Session 184 で実装**（close-tab/settings-reset/clear-history リテラル）
+- ~~voice 'i was hoping youd close it'/'it would be great if you could close it'/'would you do me a favor and close it'/'do me the favor of closing it'/'you might want to close it'/'if you could close it that would be great' の深い礼儀ネストが NO-MATCH~~ — **Session 184 で実装**（ENPRE chain1 最長一致修正 + post-would-you 再剥がし + 'that would be great' 語尾）
+- ~~voice '後戻りして'/'逆戻りして'/'ひとつ前に戻って'/'来た道を戻って'/'さかのぼって'・'スクロールをお願い'/'ページを下げて'/'もうちょっと下に'・'朗読して'/'声で読んで'/'冒頭から読んで'/'get on with it'/'carry on reading'/'wrap up reading'/'今何ページ目'/'全体の何割' が NO-MATCH~~ — **Session 184 で実装**（back/scroll-down/read-aloud/resume-reading/reader-progress リテラル）
+
+- ~~voice '閉じると思い'/'閉じるんだよね'/'閉じることにする'/'閉じたほうがいいね'/'閉じる必要がある'/'閉じるべきです'/'閉じちゃっていい'/'閉じてみるか'/'閉じるでしょ'/'閉じるより'/'閉じますので' の複合・残置フレーム尾が NO-MATCH~~ — **Session 183 で実装**（FR 複合尾拡張 + た形幹の先行て形 push + CHA/TM/SE_TAIL 補強）
+- ~~voice '閉じないわけにはいかない'/'閉じなくちゃいけない'/'閉じないとダメ'/'読まないわけにはいかない' の一段・五段否定義務が NO-MATCH/negate 誤ルート~~ — **Session 183 で実装**（negob 最優先て形 push + インラインあ段→てマップ）
+- ~~voice 'close it for me thanks'/'close it soon|slowly|carefully|gently|quietly'/'do go and close it'/'cant you close it'/'could you close it'/'very well close it' の EN 語尾副詞・前置詞が NO-MATCH/go-to 誤ルート~~ — **Session 183 で実装**（EN tail/ENPRE 拡張）
+- ~~voice 'the fifth tab'/'fifth tab'/'tab number five'/'third tab'/'go back three'/'back twice'/'forward once'/'残りを閉じて'/'他を閉じて'/'音量さげて'/'音おとして'/'音なしにして'/'はやくして'/'ゆっくりして'/'速度を上げて'/'字を小さく'/'中ほどへ'/'半分へ'/'ポーズして'/'続きを'/'止めておけ'/'やめておけ'/'続き読んで'/'一番下に行って'/'全部閉じてほしい'/'閉まって'/'shut down this tab'/'it reopened' が NO-MATCH~~ — **Session 183 で実装**（bare序数/nav-steps EN/量指定子/副詞音量・速度/事故報告・消失タブ質問/bulk名詞）
+
+- ~~voice '閉じたいのに'/'閉じたいんだ'/'戻りたいので'/'閉じると思います'/'閉じると考えて'/'閉じるはず'/'閉じるのでは'/'閉じるのだ'/'閉じるのである' の たい/意向/期待尾が NO-MATCH~~ — **Session 182 で実装**（たい汎用尾 + QC_TAIL 意向報告 + dict+はず規則；過去 たはず→trouble 分離）
+- ~~voice '閉じといてほしい(な)'/'閉じといてくれ'/'閉じといてもらう'/'閉じさせてもらいます'/'閉じさせてもらうね'/'読ませてもらいます' の残置依頼尾が NO-MATCH~~ — **Session 182 で実装**（といて依頼尾 + SE_TAIL もらいます系）
+- ~~voice '閉じていいよね'/'閉じても大丈夫'/'閉じていいっす'/'閉じてええん(か)?'/'閉じてくださいますと幸いです'/'閉じてくだされば幸いです'/'閉じてくれますと'/'閉じてもいいでしょうか'/'閉じて問題ありませんか'/'閉じて構いません' の許可・敬語尾が NO-MATCH~~ — **Session 182 で実装**（TAIL_TE 許可/敬語群）
+- ~~voice '閉じるべきか(どうか)?'/'閉じられますか'/'閉じられる(か)?'/'閉じれますか' が NO-MATCH~~ — **Session 182 で実装**（help 能力・協議質問；'閉じてくれますか' 奪取を `(?<!く)` で解消）
+- ~~voice 'shut this/that/the tab'/'drop this/the tab'/'lose this'/'remove/delete this/the tab'/'kill this'/'kill it dead'/'nuke this/the tab'/'scrap it'/'get rid of the tab'/'close it away'/'make it closed'/'i need it closed'/'id like it closed'/'i want it shut'/'merely/no/nah/wait close it'/'so yeah close it' が NO-MATCH~~ — **Session 182 で実装**（EN 削除動詞 + make/like/it 受動スワップ + ENPRE V）
+- ~~voice 'is it closing'/'has it closed'/'was it closed|open'/'is it gone'/'its back'/'it came back'/'it closed on me|itself'/'it disappeared'/'it went away'/'its gone now'/'消えたよ'/'閉じちゃいました'/'閉じちゃったから'/'閉じられたんだ'/'閉じちゃうんだ'/'it crashed on me'/'勝手に閉じる'/'自動で閉じた'/'急に閉じた'/'いきなり閉じた'/'勝手に消えた'/'閉じたはず(なのに)?'/'閉じるべきでは'/'閉じる気ない'/'閉じるつもりない'/'閉じたくない' が NO-MATCH~~ — **Session 182 で実装**（describe-tab 状態質問 + reopen-tab 事故報告 + trouble 不随意報告 + negate 否定意向群）
+
+- ~~voice '閉じますよ'/'閉じまっか'/'読みますね'/'戻りますよ'/'止めますよ' の ます+終助詞尾が NO-MATCH~~ — **Session 181 で実装**（汎用ます+助詞規則）
+- ~~voice '読めって'/'閉じろと'/'探せって'/'閉じるのか'/'閉じること'/'閉じるように'/'閉じるんだよ'/'閉じるんやで'/'閉じとけよ'/'閉じとこな'/'閉じてやー'/'閉じてやよ'/'あのさ閉じて' が NO-MATCH~~ — **Session 181 で実装**（引用命令拡張 + QC_TAIL 目的/説明尾 + とけ/とこ助詞 + て長音尾 + あのさ開放詞）
+- ~~voice 'i want this closed'/'get this closed'/'have this closed'/'get this pinned'/'id like this muted' の受動目的語構文が NO-MATCH~~ — **Session 181 で実装**（pronoun-past スワップ拡張 it|this|that + bare this/that X-ed）
+- ~~voice 'you can close it'/'yo close it'/'quickly close it'/'hurry up and close it'/'be kind and close it' が NO-MATCH~~ — **Session 181 で実装**（ENPRE IV 主語+副詞+呼称）
+- ~~voice 'how might/may/would i X'/'im good thanks'/'thats enough reading'/'still going'/'you alive'/'誰の声'/'ここどこ'/'タブ教えて'/'読み切った'/'もう読まない'/'what am i on' が欠落~~ — **Session 181 で実装**（help 能力疑問 + ack 充足句 + 各種リテラル補充）
+- ~~voice '閉じるべきだった'/'閉じるんだった'/'読むの忘れてた'/'閉じようかい(な)?'/'閉じとけば'/'閉じときなさい'/'閉じよか(な|ろう)?' の残置・願望・方言意向尾が NO-MATCH~~ — **Session 180 で実装**（べきだった/んだった/忘れてた 層 + KAI 関西意向 + よか尾 + ときなさい）
+- ~~voice 'i meant to close it'/'i was gonna X'/'lemme have the url'/'it would help if you X'/'be so good as to X'/'i never got around to X' の謝辞・仮定前置詞が NO-MATCH~~ — **Session 180 で実装**（ENPRE III + PAST_VERB 層 + ENPRE 第一連鎖の lemme/let-me/i-meant-to 長形優先）
+- ~~voice 'show me how to X'/'walk me through X'/'how do i use this'/'whats the trick' の指南要求が欠落~~ — **Session 180 で実装**（help 指南枠 + scoped-help (?!if|it)）
+- ~~voice 'ざっと読んで'/'流し読みして'/'斜め読み'/'拾い読み'/'黙読する'/'自分で読む'/'ちらっと見て'/'見損ねた'/'聞き損ねた' の読書・失敗報告句が欠落~~ — **Session 180 で実装**（read-aloud 速読 + stop-reading 黙読 + describe-tab + say-again/trouble 損ね系）
+- ~~voice 'ほなら閉じて'/'さて閉じて'/'おつかれさま'/'ほなね'/'じゃあの'/'またな'/'また明日' が NO-MATCH または wrong-atom~~ — **Session 180 で実装**（HP openers II + vr-exit 別れ句IV）
+- ~~voice 'make it so'/'put me in vr'/'beam me in'/'zoom to 50'/'reset the zoom'/'one line down'/'next block'/'say it faster'/'確かめて'/'もうええわ'/'おおきに'/'i would appreciate it' が欠落~~ — **Session 180 で実装**（repeat/vr-enter/percent-jump/scale-reset/scroll/paragraph/speech/web-search/negate/ack 補充）
+- ~~voice '閉じといたほうが(いい)?'/'閉じといてね'/'閉じる予定'/'閉じるつもり' の残余依頼尾が NO-MATCH~~ — **Session 179 で実装**（といた/どいた・予定/つもり・裸ほうが）
+- ~~voice 'close it for me will ya'/'close it wontcha'/'be a good bot and X'/'u can X'/'ya better X'/'plz/pwease close it'/'close it ttyl/rn/thx'/'close it if u could'/'close it whenever you want'/'close it bud/fam/boss' が NO-MATCH または trouble 誤ルート~~ — **Session 179 で実装**（ENPRE II + vocative/contraction/immediacy尾 + 二度目 for-me）
+- ~~voice 'open calculator/notepad/terminal/app store/photoshop/word/excel/paint'/'empty the recycle bin' が go-to literal ナビゲート誤ルート~~ — **Session 179 で実装**（device-apps OSアプリ語彙 + goToEn 除外）
+- ~~voice 'still loading'/'is it done loading'/'how long left'/'how many more pages'/'what percent'/'do you have the time'/'close that one' が原子欠落~~ — **Session 179 で実装**（loading/remaining/reader-progress/time/close-tab 補充）
+- ~~voice 'maybe later'/'hold off'/'i changed my mind'/'もうやだ'/'なくてもいい' が NO-MATCH 余地~~ — **Session 179 で実装**（negate II + JA 嫌悪・不要句）
+- ~~voice 'roger wilco'/'affirmative'/'はいはい'/'かしこまりました'/'ありがてー'/'万歳'/'ええやん' 等の受容句が欠落~~ — **Session 179 で実装**（ack III）
+- ~~voice 'stuck again'/'i give up'/'bloody hell'/'うんざり'/'ふざけんな'/'お手上げ'/'限界'/'無理だ' 系の故障・断念句が欠落~~ — **Session 179 で実装**（trouble II）
+- ~~voice 'i quit'/'im outta here'/'signing off'/'どうすりゃいい'/'わからなくなった'/'意味がわからない' が欠落~~ — **Session 179 で実装**（vr-exit 別れ句III + help 混乱句II）
+- ~~voice '閉じそう'/'閉じるところ'/'消えそうなところ' の相報告が欠落~~ — **Session 179 で実装**（describe-tab 閉じ系相報告・限定語彙化）
 - ~~voice '閉じてくれよお'/'閉じてくださると助かります'/'閉じてもらえますでしょうか'/'閉じていただくことはできますか'/'閉じてさえくれれば'/'閉じたらいかがですか' 複合受益尾が NO-MATCH~~ — **Session 178 で実装**（TAIL_TE II + たら提案尾）
 - ~~voice '閉じないとまずい'/'閉じなきゃ困る'/'閉じないとだめだ' 義務・必要尾が NO-MATCH~~ — **Session 178 で実装**（IKE II 層）
 - ~~voice 'do us all a favor and X'/'god just X'/'may i please X' の積層前置詞が単一パスで残滓~~ — **Session 178 で実装**（ENPRE 二重適用 + favor 句の先置き）
@@ -148,6 +212,8 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice 挨拶・反応句（おはよう/こんにちは/good morning/howdy/thanks a million/my dude 等）が NO-MATCH~~ — **Session 177 で実装**（ack/negate 拡張）
 - ~~voice 'read it to me'/'where was i'/'その続き'/'あと半分'/'bigger please'/'do over'/'bookmark it'/'capture this' 等のリーダー・ブラウザ形欠落~~ — **Session 177 で実装**（read-aloud/resume-reading/read-here/reader-progress/reader-size/repeat/bookmark/screenshot 拡張）
 - ~~voice 'なんで閉じないの'/'why wont it'/'screw this'/'grr'/'dammit' 等の故障・不満質問が NO-MATCH~~ — **Session 177 で実装**（trouble 拡張）
+
+~~Session 186 (ラウンド112): 条件・許可原子層 — JA て受益残置IV・て許可質問（いいか/よろしいか系）・dict条件枠（ならば/のであれば/ことなら）・緩接続（とか/なんか/くらい/だけ/さえ/でも）・EN 譲歩前置詞（unless/barring/by your leave）・want-me-to 枠・just-have-to・名誉/try 枠・語尾 'for you'/'for once'/'a shot' — find-in-page/go-to/help 3件の誤ルート修正（ENPRE 末尾スペース必須化の破壊を学習）~~
 
 ~~Voice: ておきます/なさいますか/ろと言った/てはよ 敬語・引用・方言命令尾~~ — **Session 176 で実装**
 ~~Voice: 閉じられない/cant close it/wont load 不能報告が NO-MATCH~~ — **Session 176 で実装**
