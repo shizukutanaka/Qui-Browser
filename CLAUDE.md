@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 239
+### Session 240
 
+- ✨ JA: てあげましょう自発尾・ておきました/おいた報告・理由尾（おきましたよ・おきましたから・おいたので・おいたから）・てゆく方言尾（ゆけばいい・ゆくべき・ゆくのがいい）・dict程度名詞尾（のが相当だ・のが度合いだ・のが程度だ・のが丁度いい・のがちょうどいい頃合）→ 実行。
+- ✨ EN XLIX: 'by way of tidying up'・'as a matter of housekeeping'・'in the interest of tidiness'・'for the sake of cleanliness'・'out with it'・'speak the word and' 前置 → 実行。
+- ✅ tests/housekeeping-atoms.test.js +27（実装前19件赤確認）、計12463全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 239
 - ✨ JA: てさえ/てすら譲歩尾（さえすればいい・すらくれれば・すらいただければ）・てならない促動尾（ならない・ならないでしょう・なりません）・dict爽快評価尾（のが爽快だ・のがすっきりだ・のが心地よい・のが清々しい・のが気分いい・のがさっぱりだ）→ 実行。
 - ✨ negate: 'てばかりではだめ' 限定反復禁止報告 → negate。
 - ✨ EN XLVIII: 'now lets' 前置 + '(lets|id|i|we should|you should|they should) have it closed|shut|gone' 目的格スワップ → 実行（'lets have it closed'/'i want it closed' は既緑）。
