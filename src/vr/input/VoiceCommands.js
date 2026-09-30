@@ -1411,6 +1411,15 @@ export class VoiceCommands {
     push(normalized.replace(/ないとまずいよ[。！？!?]?$/u, 'て'));
     push(normalized.replace(/ないとやばいよ[。！？!?]?$/u, 'て'));
     push(normalized.replace(/ないとよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ますかねえ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ますかな[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ますかのう[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ますかの[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ますかぞ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ますわね[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てちょうだいますよう[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てちょうだいまして[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てちょうだいます[。！？!?]?$/u, 'て'));
     push(normalized.replace(/(て|で)(?:あげて|あげ(?:る|ます)[ねよわか]?|くれる|くださる|くださいます)[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)(?:くれ|くださ)ちゃう[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)もら(?:う|える|った|います|えます|ってもいい|っていい)[。！？!?]?$/u, '$1'));
@@ -5226,6 +5235,18 @@ export class VoiceCommands {
         'thats all she wrote close it', 'mission accomplished close it',
         'job done close it', 'task complete close it', 'work done close it',
         'calling it close it', 'wrapping up close it', 'wrap it up close it',
+        'i wont be needing it', 'i wont need it', 'wont be needing it',
+        'i dont need it anymore', 'dont need it anymore',
+        'i no longer need it', 'no longer needed close it',
+        'not needed anymore close it', 'no use for it anymore',
+        'its no longer needed', 'i have no use for it',
+        'served its purpose close it', 'purpose served close it',
+        'close it if its not too much trouble',
+        'close it if its no bother', 'close it if thats ok',
+        'close it if thats okay', 'close it if it isnt too much trouble',
+        'close it if its not a bother', 'close it if its no trouble at all',
+        'close it if you wouldnt mind', 'close it if it suits you',
+        'close it if its convenient for you',
         'dont you think we should close it',
         'dont you think you should close it',
         '閉じてもらえそうな',
@@ -7160,6 +7181,7 @@ export class VoiceCommands {
         '開いたままだった', '開いたまま残ってた', '開きっぱなしのまま',
         '閉じましたよね', '閉じましたよ', '閉じてくれましたか',
         '閉じてくれたよね', '閉じましたっけ', '閉じたんだっけ',
+        '閉じたのだ', '閉じたんだよ', '閉じたんだが', '閉じたのね',
         '閉じられましたか', '閉じれましたか', '閉じてもらいましたか',
         '閉じるとこだった', '閉じるとこでした', '閉じる寸前だった',
         '閉じる寸前でした', '閉じそうだった', '閉じそうでした',
