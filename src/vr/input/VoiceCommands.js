@@ -15,6 +15,7 @@ export class VoiceCommands {
     // Command registry
     this.commands = new Map();
     this.aliases = new Map();
+    this._startedAt = Date.now();
 
     // Optional volume-change handler (0..1 gain delta). The volume-up/down
     // commands are registered unconditionally (they exist regardless of a
@@ -94,6 +95,8 @@ export class VoiceCommands {
     this._onHeadingHere = null;
     this._onArticleSummary = null;
     this._onShare = null;
+    this._onDismissNotify = null; // () => truthy — clears pending captions/toasts
+    this._onReadNotify = null; // () => string|null — newest caption line
     this._onSessionClear = null;
 
     // Language settings
@@ -292,6 +295,111 @@ export class VoiceCommands {
   }
 
   /**
+   * First-match dispatch against the command map, then the alias map.
+   * Returns { command, key } or null.
+   */
+  _matchCommand(normalized) {
+    for (const [key, command] of this.commands) {
+      if (command.patterns.some(pattern => {
+        if (typeof pattern === 'string') {
+          return normalized === pattern.toLowerCase();
+        } else if (pattern instanceof RegExp) {
+          return pattern.test(normalized);
+        }
+        return false;
+      })) {
+        return { command, key };
+      }
+    }
+    for (const [alias, commandKey] of this.aliases) {
+      if (normalized.includes(alias.toLowerCase())) {
+        return { command: this.commands.get(commandKey), key: commandKey };
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Casual-form variants of a polite utterance, tried in order when the raw
+   * transcript matched nothing. Japanese:
+   *   閉じてください/頂戴/ほしい/くれ/もらえますか → 閉じて   (て/で + request suffix)
+   *   戻ります/閉じます/探します/止めなさい → 戻って/閉じて/探して/止めて (ます形→て形)
+   *   今何時ですか → 今何時                        (です/でしょう ending)
+   * English:
+   *   'please scroll down' / 'can you go back' / 'close the tab please'
+   */
+  _politeVariants(normalized) {
+    const variants = [];
+    const seen = new Set([normalized]);
+    const push = (s) => {
+      if (s && !seen.has(s)) {
+        seen.add(s);
+        variants.push(s);
+      }
+    };
+
+    // て/で-form + request suffix → bare て/で-form. Longest suffixes first.
+    push(normalized.replace(/(て|で)(?:いただけますか|いただけませんか|いただいて|もらえますか|もらえませんか|もらって|くれますか|くれませんか|ください|下さい|ちょうだい|頂戴|ほしいです|ほしい|くれない|くれ)[。！？!?]?$/u, '$1'));
+
+    // ます形 → て形: godan stem-final kana map (行きます → 行って is the one
+    // common exception); anything else takes stem + て (ichidan).
+    // (Past/negative forms ました/ません are NOT stripped — '閉じました'
+    // means "I closed it", not a request.)
+    const m = normalized.match(/^(.*?)(?:ましょう|ませんか|ますか|ます|なさい)[。！？!?]?$/u);
+    if (m && m[1]) {
+      const stem = m[1];
+      const GODAN_TE = { う: 'って', つ: 'って', る: 'って', い: 'って', ち: 'って', り: 'って',
+        き: 'いて', く: 'いて', ぎ: 'いで', ぐ: 'いで',
+        し: 'して', す: 'して',
+        ぬ: 'んで', ぶ: 'んで', む: 'んで', び: 'んで', み: 'んで' };
+      if (stem === '行き') {
+        push('行って');
+      }
+      const last = stem.slice(-1);
+      push(GODAN_TE[last] ? stem.slice(0, -1) + GODAN_TE[last] : stem + 'て');
+    }
+
+    // です/でしょう question ending → bare stem: '今何時ですか' → '今何時'
+    push(normalized.replace(/(?:ですかね|でしょうか|ですか|でしょう|です)[。！？!?]?$/u, ''));
+
+    // Sentence-final particles (口語/方言): '閉じてよ' → '閉じて',
+    // '読んでね' → '読んで', '待ってな' → '待って'. Terminal-only strip —
+    // a stripped variant that matches nothing is simply skipped.
+    push(normalized.replace(/(?:よね|なあ|ねえ|よ|ね|(?<![うくぐすつぬぶむる])な|ぞ|ぜ|わ|とも|さ)[。！？!?]?$/u, ''));
+
+    // Colloquial/dialect suffixes: permissive 'てもいい(かな)'/'ていいかな' →
+    // bare て; volitional 'たい(んだけど)' → て; Kansai 'といて' → て;
+    // 'ちゃって' → 'てしまって'; archaic 'たまえ'/'なさい' → て; question tails
+    // 'かな'/'かしら' and concessive 'けど/んだけど' drop cleanly.
+    push(normalized.replace(/(て|で)も?いい(?:かなー?|か|よ|ね)?[。！？!?]?$/u, '$1'));
+    push(normalized.replace(/たい(?:んだけど|んですが|んだが|んですけど|んです|けど|です)?[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/といて(?:ね|よ|な)?[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ちゃって[。！？!?]?$/u, 'てしまって'));
+    push(normalized.replace(/(?:たまえ|なさい)[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/(?:かなー?|かしら)[。！？!?]?$/u, ''));
+    push(normalized.replace(new RegExp('(?:んだけど|んですけど|んですが|だけど|' +
+      'けれども|けれど|けど)[。！？!?]?$', 'u'), ''));
+    // Discourse/urgency prefixes: 'えっと閉じて'→'閉じて', 'すぐ止めて'→'止めて'.
+    const prefixRe = new RegExp('^(?:今すぐ|すぐさま|すぐに|すぐ|さっそく|早速|ちょっと|' +
+      'ちょいと|とりあえず|とりま|一応|いったん|えっと|えーっと|えーと|あのー|あの|まあ|なんか|ところで)[、\\s]*', 'u');
+    push(normalized.replace(prefixRe, ''));
+
+    // EN wrappers: leading 'please', 'can/could/would you (please)', trailing
+    // 'please' — applied cumulatively so 'could you please go back' works.
+    const en = normalized
+      .replace(/^please[,\s]+/i, '')
+      .replace(/^(?:can|could|would|will|may) you[,\s]+(?:please[,\s]+)?/i, '')
+      .replace(/^(?:i (?:want|wanna|need)(?: na| to)?|i'?m gonna|let me|let'?s|may i)[,\s]+/i, '')
+      .replace(/^(?:hey|ok|okay|so|now)[,\s]+/i, '')
+      .replace(/[,\s]+please[.!?]?$/i, '');
+    push(en);
+    push(normalized.replace(/^please[,\s]+/i, ''));
+    push(normalized.replace(/[,\s]+please[.!?]?$/i, ''));
+
+    return variants;
+  }
+
+  /**
    * Check if transcript contains wake word
    */
   containsWakeWord(transcript) {
@@ -310,43 +418,31 @@ export class VoiceCommands {
     // Normalize transcript
     const normalized = transcript.toLowerCase().trim();
 
-    // Find matching command
-    let matchedCommand = null;
-    let matchedKey = null;
+    // Find matching command (first-match wins in registration order)
+    let found = this._matchCommand(normalized);
+    let dispatchText = transcript;
 
-    // Check exact matches
-    for (const [key, command] of this.commands) {
-      if (command.patterns.some(pattern => {
-        if (typeof pattern === 'string') {
-          return normalized === pattern.toLowerCase();
-        } else if (pattern instanceof RegExp) {
-          return pattern.test(normalized);
-        }
-        return false;
-      })) {
-        matchedCommand = command;
-        matchedKey = key;
-        break;
-      }
-    }
-
-    // Check aliases
-    if (!matchedCommand) {
-      for (const [alias, commandKey] of this.aliases) {
-        if (normalized.includes(alias.toLowerCase())) {
-          matchedCommand = this.commands.get(commandKey);
-          matchedKey = commandKey;
+    // Polite-speech retry — ONLY on a miss, so the raw transcript's
+    // first-match semantics are untouched: '閉じてください' → '閉じて',
+    // '戻ります' → '戻って', 'can you go back' → 'go back'.
+    if (!found) {
+      for (const variant of this._politeVariants(normalized)) {
+        found = this._matchCommand(variant);
+        if (found) {
+          dispatchText = variant;
           break;
         }
       }
     }
+    const matchedCommand = found ? found.command : null;
+    const matchedKey = found ? found.key : null;
 
     // Execute command if found
     if (matchedCommand) {
       console.debug(`VoiceCommands: Executing command "${matchedKey}"`);
 
       try {
-        const result = matchedCommand.action(transcript, confidence);
+        const result = matchedCommand.action(dispatchText, confidence);
         this.lastCommand = { key: matchedKey, transcript, confidence, result, timestamp: Date.now() };
         if (matchedKey !== 'repeat-command') {
           this._repeatableTranscript = transcript;
@@ -393,7 +489,8 @@ export class VoiceCommands {
     this.registerCommand('video-seek', {
       patterns: [/(\d+)\s*秒\s*(戻|進)/, '動画を戻して', '動画を進めて', '巻き戻して',
         '巻き戻し', '巻き戻す', '早送り', '早送りして', '動画を早送り',
-        '少し戻して',
+        '少し戻して', '動画をスキップ', '動画を早送りして',
+        'ビデオを早送り', 'ビデオを巻き戻し', 'ビデオを進めて', 'ビデオを戻して',
         /seek\s+(forward|back)/i, /rewind/i, /fast ?forward/i],
       action: (transcript) => {
         const m = transcript.match(/(\d+)/);
@@ -416,6 +513,9 @@ export class VoiceCommands {
       patterns: ['設定を開いて', '設定を開く', '設定を閉じて', '設定を閉じる', '設定パネル',
         '設定を見せて', '設定を表示', '設定画面', '設定画面を開いて', '環境設定',
         'オプション', 'オプションを開いて', 'プリファレンス',
+        'メニュー', 'メニューを開いて', 'メニューを表示', 'メニューを見せて',
+        'メニュー画面', '設定を表示して', '設定を見せて', '設定を出して',
+        'open the menu', 'show menu', /^menu$/i,
         /open\s+settings/i, /close\s+settings/i, /show\s+settings/i,
         /^options$/i, /^preferences$/i],
       action: (transcript) => {
@@ -570,7 +670,7 @@ export class VoiceCommands {
     // Japanese ordinal select — '一番目のタブ'. Hoisted: tab-by-name's
     // (.+)のタブ capture would otherwise treat '一番目' as a title query.
     this.registerCommand('tab-select-ordinal', {
-      patterns: [/([一二三四五六七八九])番目のタブ/],
+      patterns: [/([一二三四五六七八九])番目のタブ(?!を閉じ)/],
       action: (transcript) => {
         const ORD = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
         const m = transcript.match(/([一二三四五六七八九])番目/);
@@ -648,12 +748,13 @@ export class VoiceCommands {
     // swallow '30行進む'.
     this.registerCommand('reader-scroll-lines', {
       patterns: [/(\d+)\s*行\s*(進|戻)/,
+        /(\d+)\s*行\s*(?:下|上)(?:に|へ)?/,
         /(\d+)\s*lines?\s+(forward|back)/i,
         /scroll\s+(?:forward|down|back|up)\s+(\d+)\s*lines?/i],
       action: (transcript) => {
         const m = transcript.match(/(\d+)/);
         const n = m ? Number(m[1]) : 0;
-        const back = /戻|back|up/i.test(transcript);
+        const back = /戻|back|up|上/i.test(transcript);
         const delta = back ? -n : n;
         const moved = this._onReaderScroll ? this._onReaderScroll(delta) : false;
         this.speak(moved ? `${n}行${back ? '戻り' : '進み'}ました`
@@ -683,6 +784,8 @@ export class VoiceCommands {
     // would claim as a real search term.
     this.registerCommand('find-query', {
       patterns: ['検索語は', '何を検索している', '何を検索中', '検索語を教えて',
+        '最後の検索', '前の検索', '前に検索した言葉', '検索した言葉',
+        '最後に検索した言葉', '検索している言葉',
         /what (am i |are we )?searching for/i, /find query/i, /search query/i],
       action: () => {
         const q = this._onFindQuery ? this._onFindQuery() : null;
@@ -698,6 +801,7 @@ export class VoiceCommands {
     // the question phrases otherwise — verified by dispatch check).
     this.registerCommand('back-status', {
       patterns: ['戻れますか', '戻れる', '戻ることができますか', 'もっと戻れる',
+        '戻れます', '戻れない', '戻れません', '戻らない',
         '前に戻れますか', 'can we go back', 'can i go back',
         /can (we|i) go back/i],
       action: () => {
@@ -710,6 +814,7 @@ export class VoiceCommands {
     });
     this.registerCommand('forward-status', {
       patterns: ['進めますか', '進める', '進むことができますか', '前に進めますか',
+        '進めない', '進めません', '進まない',
         'can we go forward', 'can i go forward',
         /can (we|i) go forward/i],
       action: () => {
@@ -721,6 +826,114 @@ export class VoiceCommands {
       description: 'Announce whether forward is possible'
     });
 
+    // history DEPTH status — how many pages remain in each direction, not
+    // just can/can't. 'あと何ページ戻れる' otherwise hits back's /戻[るれ]/
+    // regex (a question EXECUTING navigation — probe-verified) and
+    // 'あと何ページ進める' hits navigate's /進[むめ]/. Register here, ahead
+    // of both.
+    this.registerCommand('history-depth', {
+      patterns: ['あと何ページ戻れる', '何ページ戻れる', 'どこまで戻れる',
+        'どのくらい戻れる', 'どれだけ戻れる', 'どれくらい戻れる',
+        '履歴はあといくつ', '履歴はあと何ページ', '履歴はいくつ',
+        'あと何ページ進める', '何ページ進める', 'どこまで進める',
+        'どのくらい進める', 'どれだけ進める', 'どれくらい進める',
+        /how (far|many pages) (back|forward)/i,
+        /how many pages (can |do )?(we|i) (go )?(back|forward)/i],
+      action: (transcript) => {
+        const p = this._tabManager?.getActiveTab?.();
+        if (!p) {
+          this.speak('タブがありません');
+          return { action: 'history-depth', direction: null, pages: null };
+        }
+        const fwd = /進|forward/i.test(transcript);
+        const n = fwd
+          ? Math.max(0, (p.history?.length || 0) - 1 - (p.historyIdx || 0))
+          : Math.max(0, p.historyIdx || 0);
+        this.speak(n === 0
+          ? (fwd ? '進める履歴はありません' : '戻れる履歴はありません')
+          : `あと${n}ページ${fwd ? '進めます' : '戻れます'}`);
+        return {
+          action: 'history-depth',
+          direction: fwd ? 'forward' : 'back',
+          pages: n
+        };
+      },
+      description: 'Announce how many pages of history remain in each direction'
+    });
+
+    // Multi-step back/forward — Chrome's repeated Alt+←/→ and Voice Access
+    // 'go back N pages'. Bare '一つ戻って' stays `back`; digits, kanji
+    // numerals, and the 'history start' forms land here and loop the panel's
+    // own goBack/goForward — stopping early announces the shortfall honestly.
+    // Registered BEFORE `back`: its /戻[るれ]/ regex owns '…に戻る' endings
+    // ('最初まで戻る' was probe-verified to execute a single back step).
+    // The 'start' regexes require ページ/履歴/まで context so '最初のタブに
+    // 戻る' still falls through to `back`.
+    this.registerCommand('nav-steps', {
+      patterns: [
+        /([0-9]+)\s*(?:ページ|つ|回|コ)\s*(?:分)?\s*(?:戻って|戻る|戻り)/,
+        /([二三四五六七八九]+)\s*(?:ページ|つ|回|コ)\s*(?:分)?\s*(?:戻って|戻る|戻り)/,
+        '一番最初に戻って', '一番最初に戻る', '最初のページに戻って',
+        '最初のページに戻る', '履歴の最初に戻って', '履歴の最初に戻る',
+        '履歴の最初まで戻って', '履歴の最初まで戻る', '最初まで戻って',
+        '履歴の最初', '履歴の一番最初',
+        '最初まで戻る', '一番最初まで戻る', '一番最初まで戻って',
+        /履歴の最初[^進]{0,4}戻/, /(?:一番)?最初のページ[^進]{0,4}戻/,
+        /(?:一番)?最初に戻/, /(?:一番)?最初まで戻/,
+        /([0-9]+)\s*(?:ページ|つ|回|コ)\s*(?:分)?\s*(?:進んで|進む|進み)/,
+        /([二三四五六七八九]+)\s*(?:ページ|つ|回|コ)\s*(?:分)?\s*(?:進んで|進む|進み)/,
+        /(?:go )?back (\d+|two|three|four|five) pages?/i,
+        /(?:go )?forward (\d+|two|three|four|five) pages?/i,
+        /back to the (start|beginning)/i],
+      action: (transcript) => {
+        const p = this._tabManager?.getActiveTab?.();
+        if (!p) {
+          this.speak('タブがありません');
+          return { action: 'nav-steps', moved: 0 };
+        }
+        const fwd = /進|forward/i.test(transcript);
+        const toStart = !fwd && /最初|start|beginning/i.test(transcript);
+        const KANJI = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
+        const EN = { two: 2, three: 3, four: 4, five: 5 };
+        const m = transcript.match(/([0-9]+)/);
+        const km = transcript.match(/([一二三四五六七八九])/);
+        const em = transcript.match(/(two|three|four|five)/i);
+        // '履歴の最初' asks for unbounded back-steps; cap the loop so a
+        // goBack implementation that never reports exhaustion cannot hang
+        // the recognizer thread.
+        const requested = toStart
+          ? 50
+          : m
+            ? parseInt(m[1], 10)
+            : km
+              ? KANJI[km[1]]
+              : em
+                ? EN[em[1].toLowerCase()]
+                : 1;
+        const step = fwd
+          ? () => p.goForward?.() || false
+          : () => p.goBack?.() || false;
+        let moved = 0;
+        while (moved < requested && step()) {
+          moved++;
+        }
+        if (moved === 0) {
+          this.speak(fwd ? '進める履歴がありません' : '戻れる履歴がありません');
+        } else if (moved < requested) {
+          this.speak(`${moved}ページ${fwd ? '進み' : '戻り'}ました（これ以上${fwd ? '進め' : '戻れ'}ません）`);
+        } else {
+          this.speak(`${moved}ページ${fwd ? '進み' : '戻り'}ました`);
+        }
+        return {
+          action: 'nav-steps',
+          direction: fwd ? 'forward' : 'back',
+          requested: toStart ? 'start' : requested,
+          moved
+        };
+      },
+      description: 'Navigate several history steps at once'
+    });
+
     // Home — Chrome's Home button. There is no homepage URL: the new-tab
     // surface (top sites) is home, so it opens a fresh tab like the button's
     // 'open in new tab' variant. Hoisted before `back`: its /戻[るれ]/ regex
@@ -728,7 +941,8 @@ export class VoiceCommands {
     this.registerCommand('home', {
       patterns: ['ホームに戻る', 'ホームへ', 'ホーム', 'ホームページ',
         'トップページ', '開始ページ', 'トップページに戻る',
-        /^go (to )?home$/i, /^home( page)?$/i],
+        /^go (to )?home$/i, /^home( page)?$/i, /^go to the home$/i,
+        /^go to (the )?home ?page$/i],
       action: () => {
         const p = this._tabManager?.newTab?.();
         this.speak(p ? 'ホームに戻りました' : 'タブをこれ以上開けません');
@@ -739,7 +953,8 @@ export class VoiceCommands {
 
     // Navigation commands
     this.registerCommand('navigate', {
-      patterns: ['進む', '次へ', 'すすむ', '次に進んで', /進[むめ]/,
+      patterns: ['進む', '次へ', 'すすむ', '次に進んで', /(?<!どうやって)進む|進め(?!る|な|ま)/,
+        '進んで', '進みたい', '次のページに進んで', '一つ進んで', 'ひとつ進んで',
         'forward', /go forward/i],
       action: () => {
         window.history.forward();
@@ -750,7 +965,12 @@ export class VoiceCommands {
     });
 
     this.registerCommand('back', {
-      patterns: ['戻る', '前へ', 'もどる', /(?<!先頭に)(?<!一番上に)(?<!トップに)戻[るれ]/],
+      patterns: ['戻る', '前へ', 'もどる',
+        /(?<!先頭に)(?<!一番上に)(?<!トップに)(?<!モードに)(?<!どうやって)(?:戻る|戻れ(?!る|な|ま))/,
+        '戻って', '戻ってきて', '戻りたい', '一つ戻って', 'ひとつ戻って',
+        '前のページに戻って', 'さっきのページ', 'さっきのページに戻って',
+        '一つ前に戻って', 'もっと戻って', 'もっと前に戻って',
+        'さっき見たページ', 'さっき見てたページ', 'もう一個戻って'],
       action: () => {
         window.history.back();
         return { action: 'navigate', direction: 'back' };
@@ -803,8 +1023,12 @@ export class VoiceCommands {
     this.registerCommand('vr-exit', {
       patterns: ['VR終了', 'VRやめる', '通常モード', 'ブラウザを終了', 'アプリを終了',
         '終了して', 'VRを終了', 'VRをやめる', 'VRを終わる', 'VRを出る',
+        '終了', 'アプリを閉じて', 'ブラウザを閉じて', 'ブラウザを終了して',
+        'アプリを終了して', 'アプリを閉じる', 'ブラウザを閉じる',
         '全画面をやめて', 'フルスクリーンをやめて', '全画面解除', 'フルスクリーン解除',
-        /^quit$/i, /exit (the )?(app|browser|vr)/i, /exit full ?screen/i],
+        '全画面を閉じて', '全画面を解除して', 'フルスクリーンを閉じて',
+        /^quit$/i, /^exit$/i, 'shut down', 'shutdown', 'close the app',
+        /exit (the )?(app|browser|vr)/i, /exit full ?screen/i],
       action: () => {
         // Would exit VR mode
         return { action: 'vr', enabled: false };
@@ -825,6 +1049,9 @@ export class VoiceCommands {
     this.registerCommand('volume-up', {
       patterns: ['音量上げる', '音量アップ', 'ボリュームアップ', '音量を上げて',
         '音を大きく', '音量を大きく', '音を上げて',
+        '音が小さすぎる', '声が小さい', '声が小さすぎる', '小さな声で',
+        '声を大きく', '大きな声で', '音量を大きくして', '音を大きくして',
+        'louder', 'speak up', 'turn it up', 'crank it up',
         /volume (up|raise|increase|louder)/i],
       action: () => {
         if (this._onVolume) {
@@ -840,6 +1067,10 @@ export class VoiceCommands {
       patterns: ['音量下げる', '音量ダウン', 'ボリュームダウン', '音量を下げて',
         '音を小さく', '音量を小さく', '音を下げて',
         'うるさい', '音が大きい', '音がうるさい',
+        'うるさすぎる', '声が大きい', '声を小さく', '声を小さくして',
+        '音量を小さくして', '音を小さくして',
+        '静かにしろ', '音を小さくしろ',
+        'quieter', 'turn it down', 'speak softer', 'tone it down',
         /volume (down|lower|decrease|quieter)/i],
       action: () => {
         if (this._onVolume) {
@@ -855,6 +1086,7 @@ export class VoiceCommands {
     // undefined (no change), so the host exposes a dedicated getter.
     this.registerCommand('volume-status', {
       patterns: ['音量は', '今の音量', '音量を教えて', '音量いくつ', '音量はいくつ',
+        /^volume$/i, 'how loud', 'what volume',
         /current volume/i, /volume (status|level)/i, /what('s| is)? (the )?volume/i],
       action: () => {
         const v = this._onVolumeStatus ? this._onVolumeStatus() : null;
@@ -894,6 +1126,8 @@ export class VoiceCommands {
     // hosted by the app via onCaptionScale/onDwellTime.
     this.registerCommand('caption-size-up', {
       patterns: ['キャプションを大きく', '字幕を大きく', 'キャプションを大きくして',
+        '字幕を大きくして', '字幕のサイズを大きくして', '字幕のサイズを大きく',
+        'キャプションサイズを大きくして', 'キャプションサイズを大きく',
         /larger captions/i, /bigger captions/i, /increase caption( size)?/i, /caption (size )?up/i],
       action: () => {
         const v = this._onCaptionScale ? this._onCaptionScale(0.25) : null;
@@ -905,6 +1139,8 @@ export class VoiceCommands {
 
     this.registerCommand('caption-size-down', {
       patterns: ['キャプションを小さく', '字幕を小さく', 'キャプションを小さくして',
+        '字幕を小さくして', '字幕のサイズを小さくして', '字幕のサイズを小さく',
+        'キャプションサイズを小さくして', 'キャプションサイズを小さく',
         /smaller captions/i, /decrease caption( size)?/i, /caption (size )?down/i],
       action: () => {
         const v = this._onCaptionScale ? this._onCaptionScale(-0.25) : null;
@@ -947,6 +1183,7 @@ export class VoiceCommands {
         '拡大',
         'フォントを大きくして', 'フォントを拡大', 'フォントサイズを上げる',
         '文字が小さい', '字が小さい', '文字が読めない', '読みにくい',
+        '文字が見にくい', '字が見にくい', '字が見えにくい', '大きくして',
         /larger (article|reader) text/i, /bigger (article|reader) text/i,
         /increase (article|reader) text size/i, /zoom in/i],
       action: () => {
@@ -979,10 +1216,22 @@ export class VoiceCommands {
     // (NVDA rate step vs. value setting): '読み上げ速度2倍' lands the
     // rate directly instead of repeating ±0.25 steps.
     this.registerCommand('speech-rate-set', {
-      patterns: [/読み上げ速度([0-9.]+)倍/, /(speech|talk|reading) (rate|speed) (to )?([0-9.]+)/i],
+      patterns: [/読み上げ速度([0-9.]+)倍/, /([0-9一二三四五六七八九.]+)倍速/,
+        '半分の速さ', '半分の速度', '倍速で',
+        /(speech|talk|reading) (rate|speed) (to )?([0-9.]+)/i],
       action: (transcript) => {
+        // JA multiplier idioms: '2倍速' lands directly; kanji numerals and
+        // '半分の速さ' are folded to their decimal equivalent.
+        const KANJI = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
+        const km = transcript.match(/([一二三四五六七八九])倍速/);
         const m = transcript.match(/[0-9.]+/);
-        const rate = m ? this.setSpeechRate(parseFloat(m[0])) : this._speechRate;
+        const rate = /半分/.test(transcript)
+          ? this.setSpeechRate(0.5)
+          : km
+            ? this.setSpeechRate(KANJI[km[1]])
+            : /倍速/.test(transcript) && !m
+              ? this.setSpeechRate(2)
+              : m ? this.setSpeechRate(parseFloat(m[0])) : this._speechRate;
         this.speak(`読み上げ速度 ${rate.toFixed(2)}倍`);
         return { action: 'speech-rate-set', rate };
       },
@@ -1003,6 +1252,40 @@ export class VoiceCommands {
       description: 'Announce the current time'
     });
 
+    // Session elapsed time — digital-wellbeing 'screen time' parity. A
+    // headset hides OS clocks; asking how long you've been inside should
+    // answer honestly from the constructor timestamp.
+    this.registerCommand('session-time', {
+      patterns: ['どれくらい使ってる', '使い始めてから', '起動してから',
+        '使用時間', '経過時間', 'セッション時間', 'セッション時間は',
+        '使ってからどれくらい', 'どれくらい経った', '使い始めてどれくらい',
+        /screen time/i, /how long (have i been|has it been|since)/i,
+        /session time/i, /uptime/i],
+      action: () => {
+        const mins = Math.floor((Date.now() - this._startedAt) / 60000);
+        this.speak(mins < 1
+          ? '起動してから1分未満です'
+          : `起動してから約${mins}分です`);
+        return { action: 'session-time', minutes: mins };
+      },
+      description: 'Announce elapsed session time'
+    });
+
+    // About — Chrome's About page by voice. No version string is exposed to
+    // this layer, so the honest answer names the product.
+    this.registerCommand('about', {
+      patterns: ['バージョンは', 'バージョンを教えて', 'バージョン情報',
+        'ブラウザの名前', '何のブラウザ', 'このアプリは何', 'アプリの名前',
+        'このブラウザは何', 'ブラウザ名', 'アプリ名',
+        /what browser/i, /browser version/i, /what version/i,
+        /about( this)? browser/i],
+      action: () => {
+        this.speak('このブラウザはQui-Browserです');
+        return { action: 'about' };
+      },
+      description: 'Name the browser'
+    });
+
     // Voice picker — NVDA's voice-selection atom. SpeechSynthesis engines ship
     // several voices; cycling lands on the next one and announces its name so
     // the user can keep cycling until a voice they can parse comes up. Keeps
@@ -1010,6 +1293,8 @@ export class VoiceCommands {
     this.registerCommand('select-voice', {
       patterns: ['声を変えて', '読み上げ音声を変えて', '声を変える',
         '音声を変えて', '別の声', '別の声にして', '違う声にして',
+        '別の声で', '女性の声で', '男性の声で', '高い声で', '低い声で',
+        '別の声に変更', '声を変えてほしい',
         /change (the )?voice/i, /next voice/i],
       action: () => {
         const voices = this.synthesis?.getVoices?.() || [];
@@ -1063,7 +1348,16 @@ export class VoiceCommands {
       patterns: ['ヘルプ', '助けて', '使い方', '何ができる',
         '困った', 'わからない', 'ヘルプミー', '使い方を教えて',
         'コマンド一覧を読み上げて', 'ヘルプを読み上げて', 'ヘルプを見せて',
-        'コマンド一覧を表示', 'コマンドを表示', /read commands/i],
+        'コマンド一覧を表示', 'コマンドを表示',
+        '操作方法', 'できること', 'コマンドを教えて', 'コマンドを読み上げて',
+        'コマンド一覧を読んで', 'ヘルプを読んで', '聞き方を教えて', '音声ガイド',
+        '使い方は', '何ができますか', 'コマンド一覧',
+        '教えて', '教えてほしい',
+        'どうすればいい', 'どうすれば', 'なんとかして',
+        /^どうやって/,
+        /^help( me)?$/i,
+        /^how (do|can|to) i/i,
+        /read commands/i],
       action: () => {
         const phrases = Array.from(this.commands.values())
           .map((cmd) => this._spokenExample(cmd))
@@ -1080,10 +1374,12 @@ export class VoiceCommands {
     // registry by a topic term instead of reading every phrase. Matches the
     // term against each command's name, description and literal patterns.
     this.registerCommand('scoped-help', {
-      patterns: [/(.+)について教えて/, /help (?:with |about )?(.+)/i],
+      // 'help me'/'help me please' are cries for help itself, not a topic
+      // query — the (?!me) lookahead passes them to the 'help' command.
+      patterns: [/(.+)について教えて/, /help (?!me\b)(?:with |about )?(.+?)(?:\s+please)?$/i],
       action: (transcript) => {
         const m = transcript.match(/(.+)について教えて/) ||
-          transcript.match(/help (?:with |about )?(.+)/i);
+          transcript.match(/help (?!me\b)(?:with |about )?(.+?)(?:\s+please)?$/i);
         const term = (m ? m[1] : '').toLowerCase();
         const hits = [];
         for (const [name, cmd] of this.commands) {
@@ -1135,6 +1431,8 @@ export class VoiceCommands {
       patterns: ['バッテリーは', 'バッテリー残量', '電池は',
         '充電は', '充電中ですか', '充電してる',
         '電池残量', '充電残量', '残量は', '電源は', 'バッテリーの残り', '電池残り',
+        '充電がない', '電池が切れそう', '電池がない', 'バッテリーがない',
+        'バッテリー切れ', 'バッテリーが切れそう',
         /battery (level|status|percentage)/i, /battery left/i,
         /charging|charge status/i],
       action: () => {
@@ -1160,14 +1458,19 @@ export class VoiceCommands {
     // 'go to X' catch-all owns the EN phrase otherwise.
     this.registerCommand('percent-jump', {
       patterns: [/(\d+)%\s*(へ|に)/, /(\d+)\s*(?:パーセント|%)\s*(?:の位置|へ|に)/,
-        /^(\d+)%(に)?$/, /(\d+)割/,
+        /^(\d+)%(に)?$/, /(\d+)割/, '半分まで', '真ん中まで', '中間まで',
+        '半分のところ', '中間のところ', '真ん中に移動', '中央に移動',
+        '中間に移動', 'ページの真ん中', '真ん中へ', '中間地点', '真ん中',
         /(?:go to |jump to )?(\d+)\s*percent/i],
       action: (transcript) => {
+        // '半分/真ん中/中間' carry no digits — they mean the midpoint (50%).
         const wari = transcript.match(/(\d+)割/);
         const m = transcript.match(/(\d+)/);
-        const pct = m
-          ? Math.min(100, Math.max(0, parseInt(m[1], 10) * (wari ? 10 : 1)))
-          : 0;
+        const pct = /半分|真ん中|中間|中央/.test(transcript)
+          ? 50
+          : m
+            ? Math.min(100, Math.max(0, parseInt(m[1], 10) * (wari ? 10 : 1)))
+            : 0;
         const done = this._onReaderPercent ? this._onReaderPercent(pct) : null;
         this.speak(done
           ? `${pct}%に移動しました`
@@ -1181,6 +1484,8 @@ export class VoiceCommands {
     // rate AND pitch to 1.0 (resetting each via steppers is 8+ commands).
     this.registerCommand('speech-reset', {
       patterns: ['速度をリセット', '声をリセット', '読み上げをリセット',
+        '元の速度に戻して', '通常の速度', '標準速度', '元の速さに戻して',
+        '普通に読んで', '普通の速度', 'いつもの速度', 'デフォルトの速度',
         /reset speech/i, /speech reset/i, /normal speed/i, /normal voice/i],
       action: () => {
         this._speechRate = 1.0;
@@ -1243,7 +1548,11 @@ export class VoiceCommands {
     // returns null there, so a dedicated getter reports the scale).
     this.registerCommand('reader-scale-status', {
       patterns: ['記事の文字サイズは', '文字サイズは', '記事の文字は',
-        /reader (text )?(size|scale)/i, /text size/i],
+        'フォントサイズ', 'フォントサイズは', '文字サイズ', 'フォントサイズはいくつ',
+        'ズームレベルは', 'ズームは何倍', '今のズーム', 'ズーム倍率', 'ズーム倍率は',
+        'ズーム', /^zoom$/i,
+        /reader (text )?(size|scale)/i, /text size/i,
+        /what(?:'?s| is)? (the )?(current )?zoom( level)?/i, /zoom level/i],
       action: () => {
         const v = this._onReaderScaleStatus ? this._onReaderScaleStatus() : null;
         this.speak(v
@@ -1259,6 +1568,8 @@ export class VoiceCommands {
     this.registerCommand('online-status', {
       patterns: ['オンラインか', 'オフラインか', 'ネットに繋がっている',
         'Wi-Fiは', '接続状態', 'ネットワーク状態',
+        'つながらない', '繋がらない', 'ネットが切れた', '圏外',
+        'ネットにつながらない', 'つながってる', '繋がってる',
         /are we online/i, /are we offline/i, /online status/i, /internet status/i,
         /wi-?fi/i],
       action: () => {
@@ -1295,14 +1606,31 @@ export class VoiceCommands {
         'マイクをミュート', 'マイクオフ', 'マイクを止めて',
         'マイクを切って', 'マイクをオフにして', 'マイク停止', '聞き取りをやめて',
         '聞き取り停止', '聞くのをやめて', '音声認識を止めて', '音声認識を終了',
-        /mute (the )?mic(raphone)?/i, /mic off/i, /stop listening/i,
+        '聞かないで', '聞かない', '聞くなよ',
+        /\bmute (the )?mic(raphone)?/i, /mic off/i, /stop listening/i,
         /turn (off )?(the )?mic(raphone)?( off)?/i],
       action: () => {
         this.stop();
         return { action: 'stop' };
       },
       confirmationText: '音声認識を停止します',
-      description: 'Stop listening'
+      description: 'Stop listening (mic off)'
+    });
+
+    // mic-on — stop's counterpart. 'unmute mic' previously hit stop's loose
+    // /mute mic/ (the 'mute' inside 'unmute') and switched the mic OFF.
+    this.registerCommand('mic-on', {
+      patterns: ['マイクをオン', 'マイクをつけて', 'マイクをオンにして',
+        'マイクを付けて', '聞き取りを再開', '音声認識を再開', '音声認識を始めて',
+        '音声認識を再開して', 'マイクを始めて', 'マイクオン',
+        /mic on/i, /unmute (the )?mic/i, /start listening/i,
+        /turn on (the )?mic/i, /unmute mic/i],
+      action: () => {
+        this.start();
+        this.speak('音声認識を再開します');
+        return { action: 'mic-on' };
+      },
+      description: 'Resume listening (mic on)'
     });
 
     // Trouble report — a voice-only user whose panels vanished can't see the
@@ -1310,11 +1638,19 @@ export class VoiceCommands {
     this.registerCommand('trouble', {
       patterns: ['反応しない', '反応がない', '応答しない', '真っ暗', '画面が見えない',
         'なにも表示されない', '動かない', '動作が遅い', 'ページが重い', '重い', '遅い',
+        '遅すぎる', '動作が重い', '遅すぎ', '重すぎる',
         'カクカクする', 'フリーズした', '固まった', '画面が固まった',
         '何も見えない', '真っ白', '画面が白い', '映らない', '固まる', '落ちた',
         'クラッシュした', 'クラッシュ', '画面が落ちた', 'アプリが落ちた',
         '耳が痛い', '酔った', '気分が悪い', '目が疲れた', '滑らかじゃない',
         'ヘッドセットが暑い', 'ネットが遅い', '見えにくい', '見にくい', '画面が見にくい',
+        '目が痛い', '頭が痛い', '疲れた', '休みたい', '吐き気がする', '乗り物酔い',
+        '休憩したい', '一休みしたい', '気持ち悪い', 'クラクラする',
+        '頭がクラクラする', 'めまいがする', '目眩がする', '気分が悪くなった',
+        '目を休めたい', '目を休める', '少し休みたい', '疲れてきた',
+        '押せない', '押せません', '選べない', '選べません', '触れない',
+        'クリックできない', 'タップできない', '押しても反応しない', '動きません',
+        '暗い', '画面が暗い', '見えない', '画面が暗くて見えない',
         /not responding/i, /screen is (dark|black|blank)/i,
         /^nothing (happens|works)/i, /i can'?t see/i],
       action: () => {
@@ -1337,6 +1673,163 @@ export class VoiceCommands {
         return { action: 'audio-trouble' };
       },
       description: 'Spoken recovery guidance when the user cannot hear audio'
+    });
+
+    // Honest-absence cluster II: surfaces a web-layer browser cannot reach.
+    // A spoken refusal (with a pointer at what IS possible) beats NO-MATCH,
+    // where 'command not recognised' is indistinguishable from a bad phrase.
+    // `links` registers before go-to so 'リンクに移動' cannot literal-navigate.
+    this.registerCommand('links', {
+      patterns: ['リンクを開いて', 'リンクを開く', 'リンクに移動', 'リンク一覧',
+        'リンクの一覧', '最初のリンク', '最後のリンク', '次のリンク',
+        'リンクを選んで', 'リンクを教えて', 'どんなリンクがある',
+        'ボタン一覧', 'ボタンを押して', 'リンクをクリック', 'ボタンをクリック',
+        /list (the )?links/i, /open (the |a )?link/i, /click (the |a )?(link|button)/i],
+      action: () => {
+        this.speak('リンクやボタンの直接選択はまだできません。「読み上げ」で内容を聞けます');
+        return { action: 'links' };
+      },
+      description: 'Explain link/button selection is unavailable'
+    });
+    this.registerCommand('input-methods', {
+      patterns: ['音声入力', '音声で入力', '手で操作', 'ジェスチャーで操作',
+        'ジェスチャー', 'ハンドトラッキング', '視線で選択', '目で選ぶ',
+        '目で操作して', 'コントローラーで操作', 'ポインターはどこ',
+        'マウスカーソル', 'カーソルはどこ', 'カーソル',
+        /^controllers?$/i, /use (the )?controller/i, /hand tracking/i],
+      action: () => {
+        this.speak('視線と音声、コントローラーで操作できます。見つめて選ぶこともできます');
+        return { action: 'input-methods' };
+      },
+      description: 'Explain the available input methods'
+    });
+    this.registerCommand('text-style', {
+      patterns: ['フォントを変えて', '書体を変更', '書体を変えて', '明朝体にして',
+        '明朝体', 'ゴシック体にして', '行間を広げて', '行間を狭めて', '行間',
+        '余白を広げて', '余白を増やして', '字間を広げて',
+        /change (the )?font/i, /different font/i],
+      action: () => {
+        this.speak('フォントや行間の変更はまだできません。「文字を大きく」でサイズは変えられます');
+        return { action: 'text-style' };
+      },
+      description: 'Explain font/leading changes are unavailable'
+    });
+    this.registerCommand('settings-reset', {
+      patterns: ['設定をリセット', '設定を初期化', '設定を元に戻して',
+        '初期設定に戻して', '設定を全部元に戻して', '工場出荷',
+        /reset (the |all |my )?settings/i, /factory reset/i],
+      action: () => {
+        this.speak('設定の一括リセットはまだできません。各項目は設定パネルで変更できます');
+        return { action: 'settings-reset' };
+      },
+      description: 'Explain settings cannot be reset in bulk'
+    });
+    this.registerCommand('privacy-clean', {
+      patterns: ['キャッシュを消して', 'キャッシュをクリア', 'キャッシュを削除',
+        'キャッシュクリア', 'キャッシュ', 'Cookieを消して', 'Cookieを削除',
+        'Cookieをクリア', 'クッキーを消して', 'クッキーを削除',
+        /clear (the )?cache/i, /(clear|delete) (the )?cookies?/i],
+      action: () => {
+        this.speak('キャッシュとCookieの削除はまだできません。「履歴を消して」で履歴は消せます');
+        return { action: 'privacy-clean' };
+      },
+      description: 'Explain cache/cookie clearing is unavailable, point at history'
+    });
+    this.registerCommand('download', {
+      patterns: ['ダウンロードして', 'ダウンロードしたい', 'ダウンロードはどこ',
+        'ダウンロード', 'アップロードして', 'アップロード',
+        'ファイルをダウンロード', 'ファイルを保存',
+        /^downloads?$/i, /download (this|it|the file)/i, /^upload/i],
+      action: () => {
+        this.speak('ダウンロードはまだできません。「ページを保存」でブックマークはできます');
+        return { action: 'download' };
+      },
+      description: 'Explain downloading is unavailable'
+    });
+    this.registerCommand('sleep-mode', {
+      patterns: ['スリープして', 'スリープモード', '省電力モード', '省エネモード',
+        '電源を切って', '電源を落として', '本体を休ませて',
+        'sleep', 'wake', 'wake up', 'lock', 'standby', 'put it to sleep',
+        /sleep mode/i, /power (saving|saver|off)/i],
+      action: () => {
+        this.speak('スリープや電源はヘッドセット本体のボタンで操作してください');
+        return { action: 'sleep-mode' };
+      },
+      description: 'Explain sleep/power lives on the headset'
+    });
+
+    // scroll-horizontal — panels scroll vertically only; say so instead of
+    // silently scrolling down or falling to 認識できませんでした.
+    this.registerCommand('scroll-horizontal', {
+      patterns: ['左にスクロール', '右にスクロール', '左へスクロール', '右へスクロール',
+        '横にスクロール', '横スクロール',
+        /scroll (left|right)/i, /scroll horizontally/i],
+      action: () => {
+        this.speak('左右のスクロールはできません。「上」「下」または「3行下」で縦に動けます');
+        return { action: 'scroll-horizontal' };
+      },
+      description: 'Explain panels scroll vertically only'
+    });
+
+    // window-state — desktop minimize/maximize has no panel equivalent; the
+    // panel-size twin is the distance commands.
+    this.registerCommand('window-state', {
+      patterns: ['最小化', '最大化', 'ウィンドウを最小化', 'ウィンドウを最大化',
+        'パネルを最小化', 'パネルを最大化', '元のサイズに戻して',
+        'minimize', 'maximize', 'minimize the window', 'maximize the window',
+        /restore (the )?window/i],
+      action: () => {
+        this.speak('パネルの最小化や最大化はありません。「パネルを大きく」「パネルを小さく」で距離を変えられます');
+        return { action: 'window-state' };
+      },
+      description: 'Explain panels have no minimize/maximize state'
+    });
+
+    // device-apps / media-search: phones and TVs have these apps — a web
+    // browser shell does not. Answer honestly and point at go-to/search.
+    // Registered before go-to so 'メモを開いて' cannot literal-navigate.
+    this.registerCommand('device-apps', {
+      patterns: ['メモして', 'メモを取って', 'メモを開いて', 'メモを見せて',
+        'タイマー', 'タイマーをセット', 'タイマーをかけて', 'アラーム',
+        'アラームをセット', 'ストップウォッチ', 'カレンダー',
+        'カレンダーを開いて', '予定を教えて', 'リマインダー', '電話',
+        '電話をかけて', '電話して', '連絡先', 'メール', 'メールを開いて',
+        'メールをチェック', 'メールを見て', '受信トレイ', '計算機',
+        '音楽を再生', '音楽を聴きたい', '音楽をかけて', 'ラジオ',
+        'テレビを見て', 'ラジオをつけて',
+        /^(set|start) (a )?timer/i, /^(open|check) (my )?(email|mail|calendar)/i,
+        /call \w+/i],
+      action: () => {
+        this.speak('そのアプリはこのブラウザにはありません。サイトを開くか検索はできます');
+        return { action: 'device-apps' };
+      },
+      description: 'Explain phone-style apps are unavailable'
+    });
+    this.registerCommand('media-search', {
+      patterns: ['画像検索', '動画検索', '画像を検索', '動画を検索',
+        '画像検索して', '動画検索して', '地図を検索', '画像を探して',
+        '動画を探して',
+        /image search/i, /video search/i, /search (for )?(images|videos)/i],
+      action: () => {
+        this.speak('画像検索や動画検索の専用モードはまだできません。通常の検索はできます');
+        return { action: 'media-search' };
+      },
+      description: 'Explain there is no image/video search mode'
+    });
+
+    // ack — 'ありがとう'/'わかった'/'got it' are social acknowledgements, not
+    // commands: answer politely instead of the 認識できませんでした error.
+    // Thanks get どういたしまして; plain confirmations get 承知しました.
+    this.registerCommand('ack', {
+      patterns: ['ありがとう', 'ありがとうございます', 'ありがと', 'さんきゅー', 'サンキュー',
+        'わかった', 'わかりました', '了解', 'りょうかい', 'OK', 'オーケー', 'おけ',
+        'thank you', 'thanks', 'thank you very much', 'got it', 'understood', 'roger'],
+      action: (t) => {
+        const thanks = /ありがと|さんきゅ|サンキュ|thank/i.test(t);
+        this.speak(thanks ? 'どういたしまして' : '承知しました');
+        return { action: 'ack' };
+      },
+      description: 'Acknowledge thanks/confirmation'
     });
   }
 
@@ -1581,7 +2074,7 @@ export class VoiceCommands {
     onSentence, onSentenceStatus, onLastParagraph, onReadParagraphAt,
     onSearchEngineStatus, onCharStep, onWord, onSpellWord,
     onHeadingHere, onArticleSummary, onShare, onSessionClear,
-    onContrastStatus, onDwellTimeStatus, onSessionSave } = {}) {
+    onContrastStatus, onDwellTimeStatus, onSessionSave, onDismissNotify, onReadNotify } = {}) {
     this._tabManager = tabManager || null;
     if (onVolume) {
       this._onVolume = onVolume;
@@ -1751,6 +2244,12 @@ export class VoiceCommands {
     if (onShare) {
       this._onShare = onShare;
     }
+    if (onDismissNotify) {
+      this._onDismissNotify = onDismissNotify;
+    }
+    if (onReadNotify) {
+      this._onReadNotify = onReadNotify;
+    }
     if (onSessionClear) {
       this._onSessionClear = onSessionClear;
     }
@@ -1805,16 +2304,55 @@ export class VoiceCommands {
     if (onArticleSummary) {
       this._onArticleSummary = onArticleSummary;
     }
+    // close-tab-ordinal — the positional twin of tab-close-n ('2番目の
+    // タブを閉じて'/'close the last tab'). Registered BEFORE
+    // close-tab-by-name: its free-form name capture otherwise answers
+    // '「2番目」のタブがありません' and 'close the first tab' searches for
+    // a tab literally named 'first' (dispatch-verified).
+    this.registerCommand('close-tab-ordinal', {
+      patterns: [/([0-9一二三四五六七八九]+)番目のタブを閉じて/,
+        '最初のタブを閉じて', '一番目のタブを閉じて', '最後のタブを閉じて',
+        '先頭のタブを閉じて', '末尾のタブを閉じて',
+        /^close the (first|last) tab$/i],
+      action: (transcript) => {
+        const ORD = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
+        const tabs = tabManager?.tabs || [];
+        const m = transcript.match(/([0-9一二三四五六七八九]+)番目/);
+        let n = 0;
+        if (m) {
+          n = /^[0-9]+$/.test(m[1]) ? parseInt(m[1], 10) : (ORD[m[1]] || 0);
+        } else if (/最初|一番|先頭|first/i.test(transcript)) {
+          n = 1;
+        } else if (/最後|末尾|last/i.test(transcript)) {
+          n = tabs.length;
+        }
+        const t = tabs[n - 1];
+        if (!t) {
+          this.speak(`タブ${n}はありません`);
+          return { action: 'close-tab-ordinal', index: -1 };
+        }
+        const title = t.currentTitle || t.currentUrl || `タブ${n}`;
+        if (!tabManager.closeTab(n - 1)) {
+          this.speak('ピン留めされたタブは閉じられません');
+          return { action: 'close-tab-ordinal', index: n - 1, closed: false };
+        }
+        this.speak(`${title}を閉じました`);
+        return { action: 'close-tab-ordinal', index: n - 1, closed: true };
+      },
+      description: 'Close the tab at an ordinal position'
+    });
     // close-tab-by-name — tab-by-name's destructive sibling ('Xのタブを
     // 閉じて'/'close the news tab'). Registered BEFORE close-tab: its
     // /close\s+tab/i prefix owns the EN phrase otherwise (dispatch-verified).
     this.registerCommand('close-tab-by-name', {
-      patterns: [/^(?!(?:この|あの|その|さっき|最後|最初|前|次|ピン|すべて|全て|他|右|右側|左|左側|秘密|シークレット))(.+)のタブを閉じて/,
-        /^close (?:the )?(?!active\b|current\b|other\b|all\b|tabs\b|this\b)(.+) tab$/i,
+      patterns: [/^(?!(?:この|あの|その|さっき|最後|最初|前|次|ピン|すべて|全て|他|右|右側|左|左側|秘密|シークレット|残り|[^の]*番目))(.+)のタブを閉じて/,
+        /^close (?:the )?(?!active\b|current\b|other\b|all\b|tabs\b|this\b|first\b|last\b|the\b)(.+) tab$/i,
         /^close tab (?:named|called) (.+)$/i],
       action: (transcript) => {
+        const enClose = new RegExp('^close (?:the )?(?!active\\b|current\\b|other\\b|all\\b|tabs\\b' +
+          '|this\\b|first\\b|last\\b|the\\b)(.+) tab$', 'i');
         const m = transcript.match(/^(.+)のタブを閉じて/) ||
-          transcript.match(/^close (?:the )?(?!active\b|current\b|other\b|all\b|tabs\b|this\b)(.+) tab$/i) ||
+          transcript.match(enClose) ||
           transcript.match(/^close tab (?:named|called) (.+)$/i);
         const term = (m ? m[1] : '').toLowerCase().trim();
         const tabs = tabManager?.tabs || [];
@@ -1864,11 +2402,37 @@ export class VoiceCommands {
       },
       description: 'Pin or unpin a tab by title or URL'
     });
+    // pin-active — unpin-active's one-direction twin: 'ピンして' always
+    // pins, never accidentally unpins (pin-tab toggles).
+    this.registerCommand('pin-active', {
+      patterns: ['ピンして', 'ピン留めして', 'ピンを付けて', 'ピンを付ける',
+        'ピンを付けてください', 'ピンを立てて', /^pin it$/i, /^pin this$/i],
+      action: () => {
+        const tabs = tabManager?.tabs || [];
+        const i = tabManager?.activeIndex ?? -1;
+        const p = i >= 0 ? tabs[i] : null;
+        if (!p) {
+          this.speak('タブがありません');
+          return { action: 'pin-active' };
+        }
+        if (p.pinned) {
+          this.speak('すでにピン留めされています');
+          return { action: 'pin-active', pinned: true };
+        }
+        tabManager.togglePin(i);
+        this.speak('ピン留めしました');
+        return { action: 'pin-active', pinned: true };
+      },
+      description: 'Pin the active tab'
+    });
     // unpin-active — the explicit one-direction twin: 'ピンを外して' never
     // accidentally pins (pin-tab toggles). Honest when nothing is pinned.
     this.registerCommand('unpin-active', {
       patterns: ['ピンを外して', 'ピン留めを外して', '固定を外して',
-        /unpin (this|the tab|it)/i],
+        'ピンを取って', 'ピンを取り外して', '固定解除', 'ピンを解除して',
+        'ピンを外す', 'ピンを取る', 'ピンを解除', 'ピン解除',
+        'ピン留めを解除', 'ピン留め解除して',
+        /^unpin( (this|it|the tab|tab))?$/i],
       action: () => {
         const tabs = tabManager?.tabs || [];
         const i = tabManager?.activeIndex ?? -1;
@@ -1886,6 +2450,29 @@ export class VoiceCommands {
         return { action: 'unpin-active', pinned: false };
       },
       description: 'Unpin the active tab'
+    });
+    // unpin-all — the strip-wide sweep ('ピンを全部外して'). Iterates
+    // togglePin so the strip redraw and any pin bookkeeping stay identical
+    // to a per-tab unpin. Registered before pin-tab-by-name so '全部' is
+    // never searched as a tab name.
+    this.registerCommand('unpin-all', {
+      patterns: ['ピンを全部外して', 'ピンをすべて外して', 'すべてのピンを外して',
+        '全部のピンを外して', 'ピン留めを全部解除', 'ピン留めをすべて解除',
+        'ピンを全部解除', 'ピンをすべて解除', '全ピン解除', 'ピンを全解除',
+        /unpin all( tabs)?/i],
+      action: () => {
+        const tabs = tabManager?.tabs || [];
+        let n = 0;
+        tabs.forEach((t, i) => {
+          if (t.pinned && tabManager.togglePin) {
+            tabManager.togglePin(i);
+            n++;
+          }
+        });
+        this.speak(n ? `${n}個のタブのピンを外しました` : 'ピン留めされたタブはありません');
+        return { action: 'unpin-all', count: n };
+      },
+      description: 'Unpin every pinned tab'
     });
     // reload-tab-n — reload-all's indexed sibling ('タブNをリロード').
     // Registered BEFORE tab-select: its /タブ(\d+)/ prefix-match owns the
@@ -1929,7 +2516,8 @@ export class VoiceCommands {
     // actually moved (controller faceB/faceA parity); a static
     // confirmationText would claim '戻ります' even at the earliest entry.
     this.registerCommand('navigate', {
-      patterns: ['進む', '次へ', 'すすむ', '次に進んで', /進[むめ]/,
+      patterns: ['進む', '次へ', 'すすむ', '次に進んで', /(?<!どうやって)進む|進め(?!る|な|ま)/,
+        '進んで', '進みたい', '次のページに進んで', '一つ進んで', 'ひとつ進んで',
         'forward', /go forward/i],
       action: () => {
         const moved = tabManager?.getActiveTab?.()?.goForward?.() || false;
@@ -1940,7 +2528,13 @@ export class VoiceCommands {
     });
 
     this.registerCommand('back', {
-      patterns: ['戻る', '前へ', 'もどる', /(?<!先頭に)(?<!一番上に)(?<!トップに)戻[るれ]/],
+      patterns: ['戻る', '前へ', 'もどる',
+        /(?<!先頭に)(?<!一番上に)(?<!トップに)(?<!モードに)(?<!どうやって)(?:戻る|戻れ(?!る|な|ま))/,
+        '戻って', '戻ってきて', '戻りたい', '一つ戻って', 'ひとつ戻って',
+        '前のページに戻って', 'さっきのページ', 'さっきのページに戻って',
+        '一つ前に戻って', 'もっと戻って', 'もっと前に戻って',
+        'さっき見たページ', 'さっき見てたページ', 'もう一個戻って',
+        'back', 'go back', 'backward', 'go backwards', 'step back'],
       action: () => {
         const moved = tabManager?.getActiveTab?.()?.goBack?.() || false;
         this.speak(moved ? '戻ります' : '戻れません');
@@ -1955,6 +2549,8 @@ export class VoiceCommands {
       patterns: ['更新', '再読み込み', 'リフレッシュ', 'こうしん', 'リロード',
         'ページを更新', '更新して', 'ページを更新して',
         '再起動して', 'ブラウザを再起動', '再起動', 'ブラウザを再起動して',
+        'ページを再読み込み', '読み込み直して', 'もう一度読み込んで',
+        'リフレッシュして', '再読み込みして', 'リロードして',
         /reload(\s+(the|this)\s+page)?$/i, /^refresh(\s+the\s+page)?$/i,
         /^refresh\s+page$/i, /^restart(\s+the)?\s+(browser|page)$/i],
       action: () => {
@@ -1974,6 +2570,7 @@ export class VoiceCommands {
       patterns: [
         '履歴を消去', '履歴を削除', '履歴クリア', '履歴を消す', 'りれきを消去',
         '閲覧履歴を消して', '検索履歴を消して',
+        '履歴を消して', '履歴をリセット', '今日の履歴を消して',
         '閲覧履歴を全部消して', '履歴を全部消して', '履歴を全部消す',
         /履歴を?(消去|削除|クリア|消す)/,
         /clear\s+(browsing\s+)?history/i, /delete\s+history/i
@@ -2018,7 +2615,11 @@ export class VoiceCommands {
     const SCROLL_LINES = 8;
     this.registerCommand('scroll-down', {
       patterns: ['下にスクロール', '下', 'した', 'スクロールダウン',
-        'ちょっと下', 'ちょっと下へ', '少し下', '少し下へ', 'もう少し下'],
+        'ちょっと下', 'ちょっと下へ', '少し下', '少し下へ', 'もう少し下',
+        'スクロール', 'スクロールして', 'ページをめくって', 'めくって',
+        '少しスクロール', 'ちょっとスクロール', 'もっと下', 'さらに下',
+        'ぐっと下', '一気に下', 'もっと下へ', 'さらに下へ',
+        /scroll down/i, /scroll downwards?/i, /^go down$/i],
       action: () => {
         if (onScrollContent) {
           onScrollContent(SCROLL_LINES);
@@ -2030,7 +2631,9 @@ export class VoiceCommands {
 
     this.registerCommand('scroll-up', {
       patterns: ['上にスクロール', '上', 'うえ', 'スクロールアップ',
-        'ちょっと上', 'ちょっと上へ', '少し上', '少し上へ', 'もう少し上'],
+        'ちょっと上', 'ちょっと上へ', '少し上', '少し上へ', 'もう少し上',
+        'もっと上', 'さらに上', 'ぐっと上', '一気に上', 'もっと上へ', 'さらに上へ',
+        /scroll up/i, /scroll upwards?/i, /^go up$/i],
       action: () => {
         if (onScrollContent) {
           onScrollContent(-SCROLL_LINES);
@@ -2077,6 +2680,14 @@ export class VoiceCommands {
     this.registerCommand('new-tab', {
       patterns: ['新しいタブ', '新しいタブを開く', '新規タブ', '新しいウィンドウ',
         'ウィンドウを増やして', '新しいタブで開いて', '新しいウィンドウで開いて',
+        'もう一個タブ', 'タブを増やして', 'もう一枚', 'タブ追加',
+        'タブをもう一個', 'もう一つタブ', 'タブを一個増やして',
+        '新しいタブを開いて', '新しいタブを開けて', '新しいタブを作って',
+        'タブを開いて', 'タブを開けて', 'タブを作って', 'タブを開く',
+        'タブを増やす', 'タブを追加して', 'タブを追加',
+        '新しいページを開いて', '新しいページを開けて', '新しいページを開く',
+        'open a new tab', 'open new tab', 'add a tab', 'create a tab',
+        'make a tab',
         /new\s+tab/i, /new\s+window/i],
       action: () => {
         tabManager?.newTab?.();
@@ -2089,6 +2700,14 @@ export class VoiceCommands {
     this.registerCommand('close-tab', {
       patterns: ['タブを閉じる', 'タブを閉じて', 'このタブを閉じる', 'このタブを閉じて',
         'ウィンドウを閉じて', 'このウィンドウを閉じて', 'ページを閉じて', 'サイトを閉じて',
+        'このページを閉じて', 'このページを閉じる', 'このサイトを閉じて',
+        'タブを消して', '閉じて', '閉じる', 'タブを消す', 'ページを消して',
+        'パネルを閉じて', 'パネルを消して', 'ウィンドウを閉じる',
+        '閉めて', 'タブを閉めて', 'ページを閉めて', 'このページを閉めて',
+        'パネルを閉めて', 'タブを閉める', 'ページを閉める',
+        'タブを減らして', 'タブを減らす',
+        '閉じろ', '消えろ', 'とじろ', '閉じてしまって',
+        'close it', 'close this one', 'close the one', 'close',
         /close\s+(?:this\s+|the\s+)?tab\b(?!\s*\d)/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -2114,7 +2733,9 @@ export class VoiceCommands {
     this.registerCommand('pin-tab', {
       patterns: ['タブをピン留め', 'ピン留め', 'このタブを固定', 'タブを固定',
         'ピン留め解除', '固定を解除',
-        /pin (this |the )?tab(?!\s*\d)/i, /unpin (this |the )?tab(?!\s*\d)/i],
+        'ピンを付けて', 'ピンを刺して', 'ピンを立てて', 'タブを固定して',
+        'このタブをピン留め', 'ピン留めして', '固定して',
+        /(?<!un)pin (this |the )?tab(?!\s*\d)/i],
       action: () => {
         const state = tabManager?.togglePin?.(tabManager.activeIndex) || null;
         if (state === null) {
@@ -2133,6 +2754,8 @@ export class VoiceCommands {
     this.registerCommand('move-tab-left', {
       patterns: ['タブを左に移動', 'タブを左へ', 'タブを左に動かして',
         'このタブを左へ', 'このタブを左に移動', '左に移動', 'タブを左に',
+        'タブを左に移動して', 'このタブを左に移動して', 'タブを左に送って',
+        '左に送って', '左にずらして',
         /move (the |this )?tab left/i, /move it left/i],
       action: () => {
         const moved = tabManager?.moveTab?.(tabManager.activeIndex, -1) || false;
@@ -2145,6 +2768,8 @@ export class VoiceCommands {
     this.registerCommand('move-tab-right', {
       patterns: ['タブを右に移動', 'タブを右へ', 'タブを右に動かして',
         'このタブを右へ', 'このタブを右に移動', '右に移動', 'タブを右に',
+        'タブを右に移動して', 'このタブを右に移動して', 'タブを右に送って',
+        '右に送って', '右にずらして',
         /move (the |this )?tab right/i, /move it right/i],
       action: () => {
         const moved = tabManager?.moveTab?.(tabManager.activeIndex, 1) || false;
@@ -2155,7 +2780,9 @@ export class VoiceCommands {
     });
 
     this.registerCommand('next-tab', {
-      patterns: ['次のタブ', '右のタブ', '次のタブに移動', /next\s+tab/i, /right\s+tab/i],
+      patterns: ['次のタブ', '右のタブ', '次のタブに移動', '右のタブに移動',
+        '右のタブに', '右隣のタブ', '隣のタブ', '一つ右のタブ', 'ひとつ右のタブ',
+        /next\s+tab/i, /right\s+tab/i],
       action: () => {
         tabManager?.nextTab?.();
         return { action: 'next-tab' };
@@ -2165,7 +2792,9 @@ export class VoiceCommands {
     });
 
     this.registerCommand('prev-tab', {
-      patterns: ['前のタブ', '左のタブ', '前のタブに移動', /previous\s+tab|prev\s+tab/i, /left\s+tab/i],
+      patterns: ['前のタブ', '左のタブ', '前のタブに移動', '左のタブに移動',
+        '左のタブに', '左隣のタブ', '一つ左のタブ', 'ひとつ左のタブ',
+        /previous\s+tab|prev\s+tab/i, /left\s+tab/i],
       action: () => {
         tabManager?.prevTab?.();
         return { action: 'prev-tab' };
@@ -2177,6 +2806,9 @@ export class VoiceCommands {
     this.registerCommand('reopen-tab', {
       patterns: [
         'タブを開き直す', '閉じたタブを開き直す', '開き直す',
+        '閉じたタブを開き直して', '開き直して', 'タブを開き直して',
+        '閉じたタブをもう一度開いて', '閉じたタブを元に戻して',
+        'さっき閉じたタブを開いて',
         '元に戻して', '取り消して', '閉じたタブをもう一度', '閉じたタブを開いて',
         'もとに戻して', '取り消し', '取り消して',
         /reopen(?:\s+closed)?\s+tab/i, /restore\s+tab/i, /^undo/i
@@ -2227,7 +2859,7 @@ export class VoiceCommands {
     this.registerCommand('private-mode', {
       patterns: [
         'プライベートモード', 'プライベートモードにして',
-        /private\s+mode/i, /incognito(?!\s+tabs?)/i
+        /(?<!exit )private\s+mode(?!\s+off)/i, /(?<!exit )incognito(?!\s+tabs?)/i
       ],
       action: () => {
         if (onTogglePrivateMode) {
@@ -2239,6 +2871,30 @@ export class VoiceCommands {
       description: 'Toggle private mode'
     });
 
+    // private-mode-off — the one-direction twin: 'を終了' must never turn
+    // private mode ON when it was already off. Reads the manager's flag
+    // (newTab's privateMode default) and only toggles when actually on.
+    this.registerCommand('private-mode-off', {
+      patterns: ['プライベートモードを終了', 'プライベートモードをやめて',
+        'シークレットモードを終了', 'シークレットモードをやめて',
+        'プライベートをやめて', 'プライベートモードを終わって',
+        'シークレットモードを終わって', 'プライベートを終了',
+        'シークレットを終了', '通常モードに戻して', '通常モードに戻る',
+        /private mode (off|end|exit)/i, /exit (private|incognito)/i],
+      action: () => {
+        if (!tabManager?._privateMode) {
+          this.speak('プライベートモードはオフです');
+          return { action: 'private-mode-off', off: true };
+        }
+        if (onTogglePrivateMode) {
+          onTogglePrivateMode();
+        }
+        this.speak('プライベートモードをオフにします');
+        return { action: 'private-mode-off', off: false };
+      },
+      description: 'Leave private mode'
+    });
+
     // Reader Home/End atoms — the reader viewport is the only scrollable
     // surface in VR, so top/bottom jump commands target it directly.
     this.registerCommand('scroll-top', {
@@ -2246,7 +2902,8 @@ export class VoiceCommands {
         'ページの先頭へ', '最初のページ', 'トップへ',
         '先頭に戻る', '先頭に戻って', '一番上に戻る', '一番上に戻って',
         'トップに戻る', 'トップに戻って', 'ページの先頭に戻る',
-        /scroll (to )?top/i, /top of (the )?page/i, /^first page$/i],
+        /scroll (to )?top/i, /top of (the )?page/i, /^first page$/i,
+        /^go to (the )?top$/i],
       action: () => {
         tabManager?.getActiveTab?.()?.scrollToTop?.();
         return { action: 'scroll-top' };
@@ -2257,8 +2914,10 @@ export class VoiceCommands {
 
     this.registerCommand('scroll-bottom', {
       patterns: ['末尾へ', '最後まで', 'ページの最後', '一番下', '一番下へ',
-        'ページの最後へ', '最後のページ',
-        /scroll (to )?bottom/i, /end of (the )?page/i, /^last page$/i],
+        'ページの最後へ', '最後のページ', 'ページの末尾', '末尾', '末尾まで',
+        'ページの末尾へ', '終わりまで', 'ページの終わり',
+        /scroll (to )?bottom/i, /end of (the )?page/i, /^last page$/i,
+        /^go to (the )?bottom$/i],
       action: () => {
         tabManager?.getActiveTab?.()?.scrollToBottom?.();
         return { action: 'scroll-bottom' };
@@ -2271,6 +2930,7 @@ export class VoiceCommands {
     // atom on the canvas; these give hands-free users the same jump.
     this.registerCommand('next-page', {
       patterns: ['次のページ', '次のページへ', '次ページ', 'ページダウン', '下のページ',
+        '次のページを読んで',
         /next\s+page/i, /page\s+down/i],
       action: () => {
         tabManager?.getActiveTab?.()?.scrollContentPage?.(1);
@@ -2282,6 +2942,7 @@ export class VoiceCommands {
 
     this.registerCommand('prev-page', {
       patterns: ['前のページ', '前のページへ', '前ページ', 'ページアップ', '上のページ',
+        '前のページを読んで',
         /previous\s+page|prev\s+page|page\s+up/i],
       action: () => {
         tabManager?.getActiveTab?.()?.scrollContentPage?.(-1);
@@ -2301,10 +2962,13 @@ export class VoiceCommands {
         'このページを読んで', 'ページを読み上げて', '記事を読み上げて',
         'このページを読み上げて', 'ページ全体を読み上げて',
         '最初から読み上げ', '最初から読み上げて', 'もう一回読んで',
-        '全部読んで', '全て読んで', '最初から読んで',
+        '全部読んで', '全て読んで', '最初から読んで', '読んで', '読んでね',
+        '読め', '読み上げろ', '読んでよ',
         /read\s+aloud/i, /read\s+(this|the)\s+(page|article)/i, /^read this$/i,
         /^read (all|everything|it all)$/i, /from the (top|beginning|start)/i,
-        /listen\s+to\s+(this|the)\s+(page|article)/i
+        /listen\s+to\s+(this|the)\s+(page|article)/i,
+        'start reading', 'read page', /^read (the )?page$/i,
+        /^read it$/i, /^start reading$/i
       ],
       action: () => {
         const chunks = onReadAloud ? onReadAloud() : null;
@@ -2315,7 +2979,15 @@ export class VoiceCommands {
     });
 
     this.registerCommand('stop-reading', {
-      patterns: ['読み上げを止めて', '読み上げ停止', '読み上げ中止', /stop\s+reading/i, /stop\s+narrat/i],
+      patterns: ['読み上げを止めて', '読み上げ停止', '読み上げ中止',
+        '読み上げをやめる', '読み上げをやめて', '読むのをやめて',
+        '読み上げを止める', '読み上げを終了',
+        'おしゃべりを止めて', '喋らないで', 'しゃべらないで', 'しゃべるな',
+        '読まないで', 'もう読まなくていい',
+        '黙って', '黙れ', 'だまって', '黙りなさい', 'うるさいから止めて',
+        'ナレーションを止めて', 'ナレーションをやめて', 'ナレーション停止',
+        '読書をやめて', '読書を止めて',
+        /stop\s+reading/i, /stop\s+narrat/i],
       action: () => {
         this.stopSpeaking();
         return { action: 'stop-reading' };
@@ -2330,7 +3002,9 @@ export class VoiceCommands {
     this.registerCommand('pause-reading', {
       patterns: ['読み上げを一時停止', '読み上げを中断して', '読み上げ中断',
         '読み上げを中断', '中断して', '読み上げを中断する',
-        /pause\s+(the\s+)?(reading|narration|article)/i],
+        '一旦停止', '一旦止めて', 'ちょっと止めて', '一旦中断',
+        '待って', 'ちょっと待って', '少し待って',
+        /pause\s+(the\s+)?(reading|narration|article)/i, /^pause$/i, /^pause it$/i],
       action: () => {
         this.pauseSpeaking();
         return { action: 'pause-reading' };
@@ -2341,7 +3015,10 @@ export class VoiceCommands {
 
     this.registerCommand('resume-reading', {
       patterns: ['読み上げを再開', '読み上げを続けて', '読み上げ再開',
-        /resume\s+(the\s+)?(reading|narration|article)/i],
+        '読み上げを再開して', '読書を再開', '読書を再開して', '読書を続けて',
+        '読み上げを続けてください',
+        /resume\s+(the\s+)?(reading|narration|article)/i, /^resume$/i,
+        /^continue$/i, /^continue reading$/i],
       action: () => {
         this.resumeSpeaking();
         return { action: 'resume-reading' };
@@ -2357,6 +3034,10 @@ export class VoiceCommands {
         '早く読んで', '速く読んで',
         '読み上げ速度を上げて', '読み上げの速度を上げて', '話す速度を上げて',
         '話すスピードを上げて', '読み上げスピードを上げて', '速読して',
+        '読み上げが遅い', '読み上げが遅すぎる', 'ナレーションが遅い',
+        '読み上げが遅い', '読み上げが遅すぎる', '速く読み上げて',
+        '早口で', 'もっと早く', '早口にして',
+        '早くしろ', '速くしろ', 'もっと早くしろ',
         /speak faster|talk faster/i, /speed up (speech|reading|talk)/i,
         /speed up (the )?reading/i,
         /increase (speech|talk|reading) (rate|speed)/i, /read faster/i],
@@ -2373,6 +3054,12 @@ export class VoiceCommands {
         'ゆっくり読んで', '遅く読んで',
         '読み上げ速度を下げて', '読み上げの速度を下げて', '話す速度を下げて',
         '話すスピードを下げて', '読み上げスピードを下げて', 'ゆっくり',
+        '早すぎる', '早すぎ', 'ゆっくり言って', 'ゆっくり話して',
+        'もっとゆっくり', 'もっとゆっくり話して', '聞き取れない', '聞き取りにくい',
+        '読み上げが速い', '読み上げが速すぎる', '聞き取りやすくして',
+        'はっきり読んで', 'ゆっくり読み上げて', 'ゆっくりめに読んで',
+        'もっとゆっくり', 'もう少しゆっくり', 'ゆっくりめに',
+        '遅くしろ', 'ゆっくりしろ', 'ゆっくりと読んで',
         /speak slower|talk slower/i, /slow down (speech|reading|talk)/i,
         /slow down (the )?reading/i,
         /decrease (speech|talk|reading) (rate|speed)/i, /read slower/i],
@@ -2389,6 +3076,9 @@ export class VoiceCommands {
     this.registerCommand('toc', {
       patterns: ['目次', '目次を読み上げ', '見出し一覧', '章立て',
         '見出しを全部読んで', '全見出し', 'すべての見出し', '章一覧', '目次を読んで',
+        '目次一覧', '目次を見せて', '見出しを一覧', 'アウトライン',
+        'ページ構造', '構造を教えて', 'このページの構成', 'コンテンツ一覧',
+        'ヘッダー一覧', '目次を読み上げて', '目次を教えて', 'ページの目次',
         /table of contents/i, /read (the )?(contents|toc|outline)/i,
         /read (all )?(the )?headings/i, /chapter list/i],
       action: () => {
@@ -2411,7 +3101,9 @@ export class VoiceCommands {
     // the query command's /(.+?)を探して/ would otherwise steal '次を探して'
     // and '前を探して' as queries.
     this.registerCommand('find-next', {
-      patterns: ['次を探して', '次の候補', /find\s+next/i, /next\s+match/i],
+      patterns: ['次を探して', '次の候補', '次のマッチ', '次のヒット',
+        '次の検索結果', 'マッチを進めて', 'ヒットを進めて',
+        /find\s+next/i, /next\s+match/i],
       action: () => {
         const r = tabManager?.getActiveTab?.()?.findNextMatch?.() || null;
         this.speak(r ? `${r.index}/${r.total}件目` : '見つかりませんでした');
@@ -2421,7 +3113,9 @@ export class VoiceCommands {
     });
 
     this.registerCommand('find-prev', {
-      patterns: ['前を探して', '前の候補', '前のヒット', /find\s+prev/i,
+      patterns: ['前を探して', '前の候補', '前のヒット', '前のマッチ',
+        '前の検索結果', 'マッチを戻して', 'ヒットを戻して', '前のヒットへ',
+        /find\s+prev/i,
         /prev(?:ious)?\s+match/i],
       action: () => {
         const r = tabManager?.getActiveTab?.()?.findPrevMatch?.() || null;
@@ -2431,12 +3125,79 @@ export class VoiceCommands {
       description: 'Jump to the previous find match'
     });
 
+    // Re-run the last find query — repeat-command's find twin (it replays
+    // the transcript; this replays the active query itself). Hoisted before
+    // find-in-page: its /find (.+)/ would otherwise search for 'again'.
+    this.registerCommand('find-again', {
+      patterns: ['もう一度検索', 'もう一回検索', '再検索', '同じ検索をもう一度',
+        'もう一度調べて', /^find again$/i, /^search again$/i,
+        /repeat (the )?(find|search)/i],
+      action: () => {
+        const q = this._onFindQuery ? this._onFindQuery() : null;
+        if (!q) {
+          this.speak('検索していません');
+          return { action: 'find-again', count: 0 };
+        }
+        const count = tabManager?.getActiveTab?.()?.findInReader?.(q) || 0;
+        this.speak(count ? `「${q}」を再検索：${count}件見つかりました`
+          : '見つかりませんでした');
+        return { action: 'find-again', count };
+      },
+      description: 'Repeat the last find-in-page query'
+    });
+
+    // tab-search — Chrome "Search tabs" parity ('タブを探して'/'find tab X').
+    // Probe-verified misroutes fixed by registering before find-in-page:
+    // 'タブを検索して' was searching the WEB for 'タブ' (web-search owned
+    // /を検索/), and 'Xのタブを探して'/'find the news tab' were searching the
+    // PAGE for the phrase via find-in-page's /を探して/ and /find (.+)/.
+    // Bare forms prompt for a title; term forms switch to the match.
+    this.registerCommand('tab-search', {
+      patterns: ['タブを検索', 'タブを検索して', 'タブを探して', 'タブをさがして',
+        'タブを調べて', 'タブを探す', 'タブサーチ',
+        /(?!閉じた)(.+)のタブを(?:探して|さがして|探す|さがす|検索して|検索)/,
+        /タブ(?:を|の中)(?:から|で)\s*(.+?)(?:を)?(?:探して|さがして|探す|検索して|検索)/,
+        /^find (?:a |the |my )?tabs?$/i, /^tab search$/i, /^search (?:my |the )?tabs$/i,
+        /find (?:the |a |my )?(.+?) tab/i,
+        /search (?:my |the )?tabs? for (.+)/i],
+      action: (transcript) => {
+        const m = transcript.match(/(?!閉じた)(.+)のタブを(?:探して|さがして|探す|さがす|検索して|検索)/)
+          || transcript.match(/タブ(?:を|の中)(?:から|で)\s*(.+?)(?:を)?(?:探して|さがして|探す|検索して|検索)/)
+          || transcript.match(/find (?:the |a |my )?(.+?) tab/i)
+          || transcript.match(/search (?:my |the )?tabs? for (.+)/i);
+        const term = (m && m[1] ? m[1] : '').toLowerCase().trim();
+        if (!term) {
+          this.speak('タブの名前を言ってください');
+          return { action: 'tab-search', index: -1 };
+        }
+        const tabs = tabManager?.tabs || [];
+        const i = tabs.findIndex((t) => {
+          const hay = `${t.currentTitle || ''} ${t.currentUrl || ''}`.toLowerCase();
+          return hay.includes(term);
+        });
+        if (i < 0) {
+          this.speak(`「${term}」のタブがありません`);
+          return { action: 'tab-search', index: -1 };
+        }
+        tabManager.setActive(i);
+        const p = tabs[i];
+        this.speak(`タブ${i + 1}に切り替えました。${p.currentTitle || p.currentUrl}`);
+        return { action: 'tab-search', index: i };
+      },
+      description: 'Search open tabs by title or URL'
+    });
+
     this.registerCommand('find-in-page', {
       // 'find in page X' is a separate pattern so the optional prefix can't
       // backtrack into the query; the plain form only steps aside for the
       // two complete endpoint utterances ('find first'/'find last'), not
-      // for multiword queries like 'find first aid'.
+      // for multiword queries like 'find first aid'. The '…を開いて' forms
+      // were literal-navigating via go-to's catch-all (probe-verified);
+      // they land in the bare/no-term branch, which asks for a query.
       patterns: ['ページ内検索', 'ページ内を検索', 'ページ内で検索',
+        'ページ内検索を開いて', 'ページ内検索を開く', '検索を開いて',
+        '検索を開く', '検索バーを開いて', '検索バーを開く', '検索バーを出して',
+        '検索を始めて', '検索をはじめて', '検索モード',
         'この中から検索', '探して', '検索して',
         /find\s+in\s+(?:this\s+)?page\s+(.+)/i,
         /find\s+(?!in\s+(?:this\s+)?page\b)(?!first\s*$|last\s*$)(.+)/i,
@@ -2465,6 +3226,7 @@ export class VoiceCommands {
     // VoiceOver rotor). The article title counts as heading zero.
     this.registerCommand('next-heading', {
       patterns: ['次の見出し', '見出しへ', '次の見出しを読んで', '次のセクション',
+        '次の章', '次のチャプター', '次の項目',
         /next\s+heading/i],
       action: () => {
         const r = tabManager?.getActiveTab?.()?.nextHeading?.(1) || null;
@@ -2475,7 +3237,8 @@ export class VoiceCommands {
     });
 
     this.registerCommand('prev-heading', {
-      patterns: ['前の見出し', '前のセクション', /prev(?:ious)?\s+heading/i],
+      patterns: ['前の見出し', '前のセクション', '前の章', '前のチャプター',
+        '前の項目', /prev(?:ious)?\s+heading/i],
       action: () => {
         const r = tabManager?.getActiveTab?.()?.prevHeading?.() || null;
         this.speak(r ? `${r.index}番目の見出し（全${r.total}）` : '見出しがありません');
@@ -2503,6 +3266,7 @@ export class VoiceCommands {
     // toggles the whole panel; these phrases mean "open history".
     this.registerCommand('history', {
       patterns: ['履歴を開いて', '履歴を見て', '履歴を表示', '履歴を見せて',
+        '読んだ履歴', '読書履歴', '閲覧した履歴', '訪れたページ',
         /open\s+(?:the\s+)?history/i, /show\s+(?:the\s+)?history/i],
       action: () => {
         if (bookmarkPanel) {
@@ -2524,6 +3288,10 @@ export class VoiceCommands {
       patterns: ['もう一度', 'もう一回', '聞き直し', 'もう一度言って', '再読み上げ',
         'もう一回聞いて', '聞き直して', 'もう一回言って', '今の行をもう一度',
         'もう一度再生',
+        '繰り返して', 'もう一度お願い',
+        '聞き取れなかった', '聞き取れませんでした', 'もう一度聞かせて',
+        '復唱して', '言い直し', '読み直して', 'もう一度読み直して',
+        '聞いて', '聞かせて',
         /repeat( that)?/i, /say (that )?again/i, /read (it|that) again/i,
         /listen again/i],
       action: () => {
@@ -2536,8 +3304,13 @@ export class VoiceCommands {
     this.registerCommand('where-am-i', {
       patterns: ['どこ', 'どこにいる', '今どこ', '現在地', '現在のページ', 'このページは', '今どこにいる',
         'ここは', 'ここはどこ', 'フォーカスはどこ', 'どこにフォーカス',
+        'フォーカスは', '選択中は', '選択中のもの', '選択されているもの',
+        '今いる場所', 'この場所は', 'いまいる場所',
+        'どこにいるの', '今どこにいるの', 'どこにいますか', 'どこだっけ',
         /where\s+am\s+i/i, /what(?:'s| is) (?:this|the) (?:page|site)/i, /what is here/i,
-        /what has focus/i, /focused element/i],
+        /what has focus/i, /focused element/i,
+        'what page is this', 'what page am i on', 'which page is this',
+        'what site is this', 'which site is this'],
       action: () => {
         const tab = tabManager?.getActiveTab?.();
         this.speak(tab
@@ -2555,8 +3328,15 @@ export class VoiceCommands {
         'タブの一覧', 'タブリスト', 'タブ全部', '開いてるのは', '開いてるもの',
         'すべてのタブを教えて', 'タブを全部読んで', '一覧を読んで',
         'すべてのタブを読んで', '全部のタブ',
+        '何が開いてる', '何が開いてますか', '今何が開いてる',
+        '開いているものは', 'ぜんぶのタブ', 'すべてのタブは',
+        '開いてるウィンドウ', '開いているウィンドウ',
+        'タブを見せて', 'タブ一覧を見せて', 'タブを見せてほしい',
+        'タブを表示して', '開いているものを読んで',
+        '見せて', '一覧を見せて', '一覧を出して', '一覧を教えて', '一覧',
+        'list all tabs', 'show all tabs', 'all tabs', 'my tabs',
         /list\s+tabs/i, /how many tabs/i, /what tabs/i,
-        /read (the )?tabs/i],
+        /read (the )?tabs/i, /show (the |me )?(the )?tabs/i],
       action: () => {
         const tabs = tabManager?.tabs || [];
         if (!tabs.length) {
@@ -2579,6 +3359,8 @@ export class VoiceCommands {
     this.registerCommand('video-toggle', {
       patterns: ['一時停止', '動画を一時停止', '再生を再開', '再開して',
         '動画を再生', '再生して', 'ポーズ', '再生を再開して',
+        'ビデオを再生', 'ビデオを一時停止', 'ビデオをポーズ', 'ビデオを再開',
+        '動画をポーズ', 'ビデオを再生して',
         /pause\s+video/i, /resume\s+video/i, /play\s+video/i],
       action: () => {
         const state = onVideoToggle ? onVideoToggle() : null;
@@ -2591,7 +3373,8 @@ export class VoiceCommands {
 
     this.registerCommand('video-stop', {
       patterns: ['動画を止めて', '動画停止', 'ビデオを止めて', '再生を止めて',
-        '動画を停止', /stop\s+(the\s+)?video/i],
+        '動画を停止', '再生を停止', '曲を止めて', '音楽を止めて', 'メディアを止めて',
+        '映像を止めて', /stop\s+(the\s+)?video/i],
       action: () => {
         const stopped = onVideoStop ? onVideoStop() : false;
         this.speak(stopped ? '動画を停止します' : '再生中の動画がありません');
@@ -2603,7 +3386,14 @@ export class VoiceCommands {
     // Bulk close atoms (Chrome tab-strip menu). closeTab keeps the
     // closed-stack rules — private/blank tabs still aren't recorded.
     this.registerCommand('close-other-tabs', {
-      patterns: ['他のタブを閉じて', '他のタブを閉じる', /close\s+other\s+tabs/i],
+      patterns: ['他のタブを閉じて', '他のタブを閉じる',
+        '他のタブを全部閉じて', 'ほかのタブを全部閉じて',
+        'このタブだけ残して', 'このタブだけを残して',
+        'このタブ以外を閉じて', 'このタブ以外を全部閉じて',
+        'このタブ以外のタブを閉じて', 'このタブ以外をすべて閉じて',
+        '残りのタブを閉じて', '残りのタブを全部閉じて',
+        'このタブだけ', 'このタブだけ残す', '他を全部閉じて', '他のタブを全部閉めて',
+        /close\s+other\s+tabs/i, /close all (the )?other tabs/i],
       action: () => {
         tabManager?.closeOtherTabs?.();
         return { action: 'close-other-tabs' };
@@ -2636,9 +3426,54 @@ export class VoiceCommands {
       description: 'Close every tab to the left of the active one'
     });
 
+    // Dedupe the strip — "close duplicate tabs" extension parity: tabs
+    // showing the same URL as an earlier tab close; the first stays.
+    this.registerCommand('close-duplicate-tabs', {
+      patterns: ['重複タブを閉じて', '重複したタブを閉じて', '同じタブを閉じて',
+        '同じページを閉じて', '重複を閉じて', '重複タブを消して',
+        /close duplicate tabs/i, /close duplicated tabs/i],
+      action: () => {
+        const n = tabManager?.closeDuplicateTabs?.() ?? 0;
+        this.speak(n ? `${n}個の重複タブを閉じました` : '重複するタブはありません');
+        return { action: 'close-duplicate-tabs', closed: n };
+      },
+      description: 'Close tabs that duplicate an earlier tab'
+    });
+
+    // Inverse of close-all for pinned-app users (Chrome "close unpinned tabs"
+    // extension parity): pinned tabs survive, the rest close.
+    this.registerCommand('close-unpinned-tabs', {
+      patterns: ['ピン留め以外を閉じて', 'ピン以外を閉じて', 'ピン留め以外のタブを閉じて',
+        'ピンしていないタブを閉じて', 'ピン留めしていないタブを閉じて',
+        '固定以外を閉じて', '固定していないタブを閉じて',
+        /close unpinned tabs/i, /close (all )?unpinned/i],
+      action: () => {
+        const n = tabManager?.closeUnpinnedTabs?.() ?? 0;
+        this.speak(n ? `${n}個のタブを閉じました` : 'ピン留め以外のタブはありません');
+        return { action: 'close-unpinned-tabs', closed: n };
+      },
+      description: 'Close every unpinned tab'
+    });
+
+    // The normal-browsing twin of close-private-tabs.
+    this.registerCommand('close-normal-tabs', {
+      patterns: ['通常タブを全部閉じて', '通常のタブを閉じて', '通常タブを閉じて',
+        'プライベート以外を閉じて', 'プライベート以外のタブを閉じて',
+        'プライベートタブ以外を閉じて',
+        /close (all )?(normal|non-?private) tabs/i],
+      action: () => {
+        const n = tabManager?.closeNormalTabs?.() ?? 0;
+        this.speak(n ? `${n}個の通常タブを閉じました` : '通常タブはありません');
+        return { action: 'close-normal-tabs', closed: n };
+      },
+      description: 'Close every non-private tab'
+    });
+
     // Duplicate the active tab (Chrome's "Duplicate tab" context-menu atom).
     this.registerCommand('duplicate-tab', {
       patterns: ['タブを複製', 'タブを複製して', 'タブをコピー', '複製', '複製して',
+        'このタブをもう一つ', '同じタブをもう一つ', 'もう一つ同じタブを',
+        '今のタブをコピー', 'このタブをコピー',
         /duplicate (this )?tab/i, /^duplicate$/i],
       action: () => {
         tabManager?.duplicateTab?.();
@@ -2655,7 +3490,9 @@ export class VoiceCommands {
         'このページをブックマーク', 'ブックマークに追加', 'ブックマークする',
         'ブックマークして', 'ページを保存', 'ページを保存して', 'このページを保存して',
         'お気に入りに追加', 'お気に入り登録', 'お気に入りに登録',
+        'しおりを挟んで', '栞を挟んで', 'しおりを挟む',
         '後で読む', 'あとで読む', '読書リストに追加',
+        '保存して', 'ブックマークに保存', '保存しておいて',
         /bookmark (this|this page|the page|page)/i,
         /add (this|page) (to )?(bookmarks?|favo?rites)/i, /save (this|the) page/i
       ],
@@ -2671,7 +3508,9 @@ export class VoiceCommands {
 
     // Bookmark panel toggle
     this.registerCommand('bookmarks', {
-      patterns: ['ブックマーク', 'お気に入り', '履歴'],
+      patterns: ['ブックマーク', 'お気に入り', '履歴',
+        'ブックマークを閉じて', 'ブックマークパネルを閉じて',
+        'ブックマーク一覧を閉じて', 'お気に入りを閉じて'],
       action: () => {
         bookmarkPanel?.toggle?.();
         return { action: 'bookmarks' };
@@ -2685,7 +3524,9 @@ export class VoiceCommands {
     this.registerCommand('bookmarks-open', {
       patterns: ['ブックマークを開いて', 'ブックマークを見て', 'ブックマークを表示',
         'ブックマークを見せて', 'お気に入りを見せて', 'お気に入りを開いて',
-        'お気に入り一覧', '読書リスト', '読書リストを開いて',
+        'お気に入り一覧', 'お気に入り一覧を開いて',
+        'ブックマーク一覧を開いて', 'ブックマークの一覧を開いて',
+        '読書リスト', '読書リストを開いて',
         /open (the )?bookmarks/i, /show (the )?bookmarks/i],
       action: () => {
         if (bookmarkPanel) {
@@ -2698,6 +3539,40 @@ export class VoiceCommands {
       },
       confirmationText: 'ブックマークを開きます',
       description: 'Open the bookmarks panel'
+    });
+
+    // Open ALL bookmarks as tabs — Chrome's "open all bookmarks" context
+    // entry. Iterates onBookmarkList and stops at the tab cap honestly
+    // ('上限のため残りは開けません'). Registered before go-to's 'を開いて'
+    // catch-all.
+    this.registerCommand('open-all-bookmarks', {
+      patterns: ['お気に入りをすべて開いて', 'お気に入りを全部開いて',
+        'ブックマークをすべて開いて', 'ブックマークを全部開いて',
+        '全部のブックマークを開いて', 'すべてのブックマークを開いて',
+        'ブックマークを全部ひらいて',
+        /open all (the |my )?bookmarks/i, /open every bookmark/i],
+      action: () => {
+        const list = this._onBookmarkList ? this._onBookmarkList() : null;
+        if (!list || !list.length) {
+          this.speak(list ? 'ブックマークがありません' : 'ブックマーク一覧が利用できません');
+          return { action: 'open-all-bookmarks', opened: 0 };
+        }
+        let opened = 0;
+        for (const b of list) {
+          const url = typeof b === 'string' ? b : (b && b.url);
+          if (!url || !tabManager?.newTab?.(url)) {
+            break;
+          }
+          opened++;
+        }
+        const left = list.length - opened;
+        this.speak(opened
+          ? (left ? `${opened}個のブックマークを開きました（上限で残り${left}件は開けません）`
+            : `${opened}個のブックマークを開きました`)
+          : 'タブを開けません');
+        return { action: 'open-all-bookmarks', opened, remaining: left };
+      },
+      description: 'Open every bookmark as a tab'
     });
 
     // Keyboard toggle
@@ -2783,7 +3658,8 @@ export class VoiceCommands {
     // the browser was navigating to the literal text 'open tab 3').
     // Registered before go-to so the specific shape wins.
     this.registerCommand('open-tab-n', {
-      patterns: [/^(?:open|switch to)\s+tab\s+([0-9]+)/i, /タブ([0-9]+)を開(?:く|いて)/],
+      patterns: [/^(?:open|switch to)\s+tab\s+([0-9]+)/i, /タブ([0-9]+)を開(?:く|いて)/,
+        /タブの?\s*([0-9]+)番目/, /タブ\s*([0-9]+)\s*に(?:移動|行って|行く)/],
       action: (transcript) => {
         const m = transcript.match(/([0-9]+)/);
         const n = m ? parseInt(m[1], 10) : 0;
@@ -2800,17 +3676,94 @@ export class VoiceCommands {
       description: 'Switch to tab N by name'
     });
 
+    // Move the active/indexed tab to a strip edge — Chrome drag-to-edge by
+    // voice. Hoisted before go-to: its /に移動/ catch-all owns '右端に移動'
+    // and would navigate to the literal phrase (misroute — probe-verified).
+    this.registerCommand('move-tab-start', {
+      patterns: ['先頭に移動', '左端に移動', '一番左に移動', '最初に移動',
+        'タブを先頭に', 'タブを先頭に移動', 'タブを左端に', 'タブを左端に移動',
+        'このタブを一番左へ', 'このタブを左端へ', 'このタブを先頭に',
+        'タブを先頭に持ってきて', '先頭に持ってきて', '一番左に持ってきて',
+        '先頭に移動して', '左端に移動して', '一番左に移動して', '最初に移動して',
+        '先頭に送って', '左端に送って', '一番左に送って',
+        /move (this )?tab to (the )?(start|beginning|first|left)/i],
+      action: (transcript) => {
+        const m = transcript.match(/タブ(\d+)/);
+        const idx = m ? Number(m[1]) - 1 : (tabManager?.activeIndex ?? -1);
+        const moved = idx >= 0 && !!tabManager && tabManager.moveTabToStart(idx);
+        this.speak(moved ? 'タブを先頭に移動しました' : '移動できませんでした');
+        return { action: 'move-tab-start', moved };
+      },
+      description: 'Move the tab to the start of the strip'
+    });
+
+    this.registerCommand('move-tab-end', {
+      patterns: ['最後に移動', '右端に移動', '一番右に移動', '末尾に移動',
+        'タブを最後に', 'タブを最後に移動', 'タブを右端に', 'タブを右端に移動',
+        'このタブを一番右へ', 'このタブを右端へ', 'このタブを最後に',
+        'タブを最後に持ってきて', '最後に持ってきて', '一番右に持ってきて',
+        '最後に移動して', '右端に移動して', '一番右に移動して', '末尾に移動して',
+        '最後に送って', '右端に送って', '一番右に送って', '末尾に送って',
+        /move (this )?tab to (the )?(end|last|right)/i],
+      action: (transcript) => {
+        const m = transcript.match(/タブ(\d+)/);
+        const idx = m ? Number(m[1]) - 1 : (tabManager?.activeIndex ?? -1);
+        const moved = idx >= 0 && !!tabManager && tabManager.moveTabToEnd(idx);
+        this.speak(moved ? 'タブを最後に移動しました' : '移動できませんでした');
+        return { action: 'move-tab-end', moved };
+      },
+      description: 'Move the tab to the end of the strip'
+    });
+
+    // Move the active tab to an ordinal strip position — the indexed twin of
+    // move-tab-start/end (Voice Access 'move to position N' parity). Hoisted
+    // before go-to: its /に移動/ catch-all owns '2番目に移動して' and would
+    // navigate to the literal text (misroute — probe-verified).
+    this.registerCommand('move-tab-to-n', {
+      patterns: [/([0-9一二三四五六七八九]+)番目に(?:移動|動か|し)/,
+        /move (?:the |this )?tab to (?:position |number )?([0-9]+)/i],
+      action: (transcript) => {
+        const ORD = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
+        const m = transcript.match(/([0-9一二三四五六七八九]+)番目/)
+          || transcript.match(/([0-9]+)/);
+        const n = m
+          ? (/^[0-9]+$/.test(m[1]) ? parseInt(m[1], 10) : (ORD[m[1]] || 0))
+          : 0;
+        const tabs = tabManager?.tabs || [];
+        const cur = tabManager?.activeIndex ?? -1;
+        if (n < 1 || n > tabs.length || cur < 0) {
+          this.speak(`タブ${n || ''}には移動できません`);
+          return { action: 'move-tab-to-n', index: -1 };
+        }
+        if (n - 1 === cur) {
+          this.speak(`すでにタブ${n}番目です`);
+          return { action: 'move-tab-to-n', index: cur, moved: false };
+        }
+        const moved = tabManager.moveTab(cur, n - 1 - cur);
+        this.speak(moved ? `タブを${n}番目に移動しました` : '移動できませんでした');
+        return { action: 'move-tab-to-n', index: n - 1, moved };
+      },
+      description: 'Move the active tab to position N'
+    });
+
+    // '前回…を開いて'/'閉じたタブを開いて' are session-restore/reopen
+    // intents, and 'タブ/メニュー/設定…を開いて' are UI opens, not literal
+    // site names — both are passed through via lookaheads.
+    const goToJp = new RegExp(
+      '^(?!(?:前回|セッション|閉じた))' +
+      '(?!.*(?:タブ|メニュー|設定|オプション|環境設定|キーボード|パネル|履歴|ブックマーク|お気に入り)を開)' +
+      '(.+)(?:を開く?|に(?:行く|移動(?:する)?))'
+    );
     this.registerCommand('go-to', {
       patterns: [
-        // '前回…を開いて'/'閉じたタブを開いて' are session-restore/reopen
-        // intents, not literal site names — pass them through.
-        /^(?!(?:前回|セッション|閉じた))(.+)(?:を開く?|に(?:行く|移動(?:する)?))/,
-        /^(?:open|go to|navigate to)\s+(.+)/i
+        goToJp,
+        /^(?:open|go to|navigate to)\s+(?!the (?:top|bottom|home)\b|top\b|bottom\b|home\b|back\b)(.+)/i
       ],
       action: (transcript) => {
         const t = transcript.toLowerCase().trim();
-        const jpMatch = t.match(/^(?!(?:前回|セッション|閉じた))(.+)(?:を開く?|に(?:行く|移動(?:する)?))/);
-        const enMatch = t.match(/^(?:open|go to|navigate to)\s+(.+)/);
+        const jpMatch = t.match(goToJp);
+        const enMatch = t.match(new RegExp('^(?:open|go to|navigate to)\\s+' +
+          '(?!the (?:top|bottom|home)\\b|top\\b|bottom\\b|home\\b|back\\b)(.+)', 'i'));
         const query = ((jpMatch && jpMatch[1]) || (enMatch && enMatch[1]) || '').trim();
         if (onGoTo && query) {
           onGoTo(query);
@@ -2831,8 +3784,11 @@ export class VoiceCommands {
     // without leaving immersion. Bare 'ハイコントラスト' toggles; explicit
     // オン/オフ (EN on/off/enable/disable) sets directly.
     this.registerCommand('high-contrast', {
-      patterns: [/ハイコントラスト/, /高コントラスト/,
-        /high contrast/i],
+      // 'ハイコントラストは…'/'is high contrast on?' are questions — the
+      // lookaheads keep them on contrast-status instead of toggling
+      // (dispatch-verified).
+      patterns: [/ハイコントラスト(?!は(?:$|どう|か|今|現在|です)|か(?:$|。|？|です))/, /高コントラスト/,
+        /(?<!is )high contrast(?!.*(?:is (?:on|off|enabled)))\?*/i],
       action: (transcript) => {
         let want;
         if (/オフ|無効|off|disable/i.test(transcript)) {
@@ -2874,7 +3830,8 @@ export class VoiceCommands {
       // and eat the status query ('検索エンジンは' → 'その検索エンジンは使え
       // ません', a wrong-answer lie). The status twin owns the query form.
       patterns: [/検索エンジンを(.+)/, /検索エンジン(.+)に/,
-        /(use|switch to|change to|set) (google|bing|duckduckgo|ecosia)/i],
+        /(use|switch to|change to|set) (google|bing|duckduckgo|ecosia)/i,
+        /(グーグル|google|ビング|bing|ヤフー|yahoo|ダックダックゴー|duckduckgo|エコシア|ecosia)(?:にして|に変更|を使って|で検索|で調べて)/i],
       action: (transcript) => {
         const ALIASES = {
           google: 'google', 'グーグル': 'google',
@@ -2915,7 +3872,7 @@ export class VoiceCommands {
       if (/オフ|無効|消して|off|disable/i.test(transcript)) {
         return false;
       }
-      if (/オン|有効|つけて|on|enable/i.test(transcript)) {
+      if (/オン|有効|つけて|見せて|出して|on|enable/i.test(transcript)) {
         return true;
       }
       return undefined;
@@ -2995,6 +3952,9 @@ export class VoiceCommands {
 
     toggleCmd('captions-toggle', 'enableCaptions', 'キャプション',
       [/キャプションを(オン|オフ|つけて|消して|出して|見せて)/, /字幕を(つけて|消して|オン|オフ|出して|見せて)/,
+        /字幕(?:を)?(?:オン|オフ)/, /キャプション(?:を)?(?:オン|オフ)にして/,
+        /字幕(?:を)?消(?:して|す)/, /キャプション(?:を)?消(?:して|す)/,
+        /字幕(?:を)?(?:出して|見せて)/, /キャプション(?:を)?(?:出して|見せて)/,
         /(captions|subtitles) (on|off)/i, /(enable|disable|turn on|turn off) captions/i],
       'Toggle captions');
     toggleCmd('haptics-toggle', 'enableHaptics', 'ハプティック',
@@ -3063,7 +4023,10 @@ export class VoiceCommands {
         /(パネル|画面|ウィンドウ)が?(遠い|遠すぎ|近い|近すぎ)/,
         /(画面|ウィンドウ)を(近づけて|遠ざけて|近く|遠く)/,
         /(パネル|画面|ウィンドウ)を?(大きく|小さく)(して|にして)?/,
-        '遠すぎる', '近すぎる', '遠すぎ', '近すぎ', /too (far|close)/i,
+        '遠すぎる', '近すぎる', '遠すぎ', '近すぎ',
+        '近づけて', '遠ざけて', '近くして', '遠くして', 'もっと近く', 'もっと遠く',
+        '大きく見せて', '小さく見せて', '近くにして', '遠くにして',
+        /too (far|close)/i,
         /panel (closer|nearer|further|farther|away|bigger|smaller)/i],
       action: (transcript) => {
         // '遠い'/'遠すぎ'/'大きく' are complaints of distance → bring it nearer;
@@ -3152,7 +4115,7 @@ export class VoiceCommands {
     // unambiguous). Chrome's Ctrl+1..8 reaches them by position; voice needs
     // the semantic name.
     this.registerCommand('pin-select', {
-      patterns: ['ピン留めのタブ', 'ピンのタブ', /pinned tab/i],
+      patterns: ['ピン留めのタブ', 'ピンのタブ', /^pinned tab$/i],
       action: () => {
         const tabs = tabManager?.tabs || [];
         const i = tabs.findIndex((t) => t.pinned);
@@ -3186,9 +4149,12 @@ export class VoiceCommands {
     // Registered AFTER pin-select: its generic /(.+)のタブ/ would steal
     // 'ピン留めのタブ' otherwise.
     this.registerCommand('tab-by-name', {
-      patterns: [/^(?!(?:さっき|最後|最初|前|次|ピン|左|右|何番目|何枚目|何個目|現在|このタブ|秘密|シークレット|プライベート|一番左|一番右))(.+)のタブ(?!を|に|は|のタイトル)/,
-        /^tab (?:named|called) (.+)$/i,
-        /^switch to (?:the )?(?!last\b|first\b|next\b|previous\b)(.+) tab$/i],
+      patterns: [new RegExp('^(?!(?:さっき|最後|最初|前|次|ピン|左|右|何番目|何枚目|何個目|現在|このタブ|秘密|シークレット|プライベート|一番左|一番右' +
+        '|一つ右|一つ左|ひとつ右|ひとつ左|右隣|左隣|隣))(.+)のタブ(?!を|に|は|のタイトル)'),
+      /^tab (?:named|called) (.+)$/i,
+      /^switch to (?:the )?(?!last\b|first\b|next\b|previous\b)(.+) tab$/i,
+      /(.+)のタブを(?:開いて|開けて|開く)/,
+      /^open (?:the )?(.+) tab$/i],
       action: (transcript) => {
         const m = transcript.match(/^(.+)のタブ/) ||
           transcript.match(/^tab (?:named|called) (.+)$/i) ||
@@ -3216,6 +4182,12 @@ export class VoiceCommands {
       patterns: ['このタブについて', 'このタブは', 'タブの状態', 'ページ情報',
         'このページの情報', 'サイト情報', 'このサイトの情報',
         'このサイトについて', 'このタブについて教えて',
+        'どんなサイト', 'どんなタブ', 'どんなところ', 'どんなページは',
+        'ウィンドウについて', 'このウィンドウについて', 'ウィンドウの情報',
+        '画面を説明して', '画面の説明', '何が表示されてる', '何が表示されている',
+        '画面の内容', '何が見える', 'ページの内容', 'どんなページ',
+        'これは何のページ', '何のサイト', 'サイト名', 'サイトの名前',
+        '画面について', '何が表示されてますか',
         /describe (the )?tab/i, /^page info$/i, /^site info$/i],
       action: () => {
         const tabs = tabManager?.tabs || [];
@@ -3274,6 +4246,8 @@ export class VoiceCommands {
     this.registerCommand('title', {
       patterns: ['タイトル', 'このページのタイトル', 'ページ名', 'ページの名前',
         'ページタイトル', '今のページ', 'タブのタイトルは',
+        'タブの名前', 'タブ名', 'サイトのタイトル', 'ページ名を教えて',
+        'タイトルは',
         /page title/i, /^this page$/i, /^current page$/i,
         /what('s| is|s) (the |this )?(page|title)/i,
         'タイトルを読んで', 'タイトルを教えて',
@@ -3297,6 +4271,12 @@ export class VoiceCommands {
     this.registerCommand('mute-toggle', {
       patterns: ['ミュート', 'ミュートを解除', '消音', '消音を解除', '音を消して',
         '静かにして', '無音にして', '静音にして',
+        '静音', 'サイレント', 'サイレントモード', '無音', '無音モード',
+        '音なし', '音を出さないで', '音を出さない', '音を消す', '消音モード',
+        'タブのミュート', 'このタブをミュート', 'タブをミュート', 'タブを消音',
+        'このページをミュート', 'ページをミュート', 'サイトをミュート',
+        '全部ミュート', '全体をミュート', '消音して', 'ミュートして',
+        '音消して', '声を消して', '声を出さないで', '黙らせて',
         // 'mute the mic' = stop listening; 'mute other tabs' has no per-tab
         // surface — neither should toggle the master volume.
         /(un)?mute(?!\s+(?:other\s+tabs?|the\s+mic|mic\b|microphone))/i],
@@ -3404,6 +4384,7 @@ export class VoiceCommands {
         'URLを表示', 'アドレスを読んで', 'URLは',
         'このページのURL', 'ページのアドレス', 'このページのアドレス', 'URLを言って',
         '今のページのアドレス', '今のページのURL', 'ページURL', 'アドレスを言って',
+        '今のURL', '現在のURL', 'アドレスは', 'URLは何',
         /(read|say|what is|what's|whats) (the |this )?(url|address)/i,
         /(page|tab) (url|address)/i],
       action: () => {
@@ -3419,7 +4400,12 @@ export class VoiceCommands {
     // when only pinned tabs remain.
     this.registerCommand('close-all-tabs', {
       patterns: ['すべてのタブを閉じて', 'すべてのタブを閉じる', '全部のタブを閉じて',
-        '全て閉じて', '全部閉じて', /close\s+all\s+tabs/i],
+        '全て閉じて', '全部閉じて', 'タブを全部閉じる', '全部のタブを閉じる',
+        '全部タブを閉じて', 'タブを全て閉じて', '全部のタブを消して',
+        '全部閉めて', 'すべて閉めて', '全部のタブを閉めて', '全て閉める',
+        'タブを全部閉じて', '全タブを閉じて', 'タブ全部閉じて', 'タブをすべて閉じて',
+        'タブ全部閉めて', '全タブを閉めて', '全てのタブを閉じて',
+        /close\s+all\s+tabs/i],
       action: () => {
         if (!tabManager) {
           this.speak('タブがありません');
@@ -3504,6 +4490,7 @@ export class VoiceCommands {
       'Read the bookmark list');
     listCmd('history-list', '履歴', this._onHistoryList,
       ['履歴一覧', '履歴を読み上げ', '履歴を読んで', '履歴を読み上げて',
+        '閲覧履歴', 'ブラウザ履歴', 'ウェブ履歴', '検索履歴', '閲覧履歴を読んで',
         /list\s+(my\s+)?history/i],
       'Read the history list');
 
@@ -3523,10 +4510,12 @@ export class VoiceCommands {
     countCmd('bookmark-count', 'ブックマーク', '個', '_onBookmarkList',
       ['ブックマークは何個', 'ブックマークの数', 'ブックマークはいくつ',
         'お気に入りは何個', 'お気に入りの数', 'お気に入りはいくつ',
+        'ブックマークいくつ', 'お気に入りいくつ',
         /how many bookmarks/i, /bookmark count/i],
       'Announce the bookmark count');
     countCmd('history-count', '履歴', '件', '_onHistoryList',
       ['履歴は何件', '履歴は何個', '履歴の数', '履歴はいくつ',
+        '履歴いくつ', '履歴の件数',
         /how many (history|entries)/i, /history count/i],
       'Announce the history count');
 
@@ -3535,6 +4524,8 @@ export class VoiceCommands {
     // video). Each half reports what it actually stopped.
     this.registerCommand('stop-everything', {
       patterns: ['すべて止めて', '全部止めて', 'すべてを止めて',
+        'キャンセル', 'キャンセルして', '中止して', '止めて', '停止して',
+        /^cancel( that| it)?$/i,
         /stop everything/i, /stop all/i],
       action: () => {
         const speaking = !!this.synthesis?.speaking || !!this.synthesis?.pending;
@@ -3553,7 +4544,9 @@ export class VoiceCommands {
     // secure'/'このページは安全ですか' answers from the scheme, honestly.
     this.registerCommand('security-status', {
       patterns: ['このページは安全ですか', '安全かどうか', '安全ですか', 'httpsか',
-        '証明書は', '証明書はどう', /certificate/i,
+        '証明書は', '証明書はどう', 'HTTPSですか', '安全なサイトですか',
+        'セキュリティ状態', '危険なサイト', 'セキュアですか',
+        /certificate/i,
         /is (it|this) secure/i, /is this (safe|https)/i, /secure connection/i],
       action: () => {
         const url = tabManager?.getActiveTab?.()?.currentUrl;
@@ -3573,7 +4566,8 @@ export class VoiceCommands {
     // 'ドメインは'/'hostname' answers the bare host, not the URL string.
     this.registerCommand('hostname', {
       patterns: ['ドメインは', 'どこのサイト', 'サイト名は', /hostname/i,
-        'サイトを教えて', 'サイト名を教えて', 'このサイトのドメイン'],
+        'サイトを教えて', 'サイト名を教えて', 'このサイトのドメイン',
+        'ドメイン名', 'ホスト名', 'サイトのドメイン名', 'ドメインを教えて'],
       action: () => {
         const url = tabManager?.getActiveTab?.()?.currentUrl;
         let host = null;
@@ -3600,7 +4594,10 @@ export class VoiceCommands {
     });
     // copy-article — the whole-article sibling: reader text to clipboard.
     this.registerCommand('copy-article', {
-      patterns: ['記事をコピー', '本文をコピー', /copy (the )?article/i],
+      patterns: ['記事をコピー', '本文をコピー',
+        '全部コピー', 'すべてコピー', 'ページ全体をコピー', '全体をコピー',
+        '見えている部分をコピー', 'この部分をコピー',
+        /copy (the )?article/i, /copy all/i, /copy (the )?(whole|entire) page/i],
       action: () => {
         const chars = this._onCopyArticle ? this._onCopyArticle() : null;
         this.speak(chars
@@ -3642,7 +4639,8 @@ export class VoiceCommands {
     // heading TEXT itself (NVDA 'read current heading' parity).
     this.registerCommand('read-heading', {
       patterns: ['この見出しを読み上げ', '見出しを読んで', '見出しは何',
-        '見出しを読み上げて', '見出しを読み上げ',
+        '見出しを読み上げて', '見出しを読み上げ', '何見出し目', '見出し番号は',
+        '今は何番目の見出し',
         /read (the |current |this )?heading/i, /what('s| is) the heading/i],
       action: () => {
         const h = tabManager?.getActiveTab?.()?.headingHere?.() || null;
@@ -3817,6 +4815,27 @@ export class VoiceCommands {
       },
       description: 'Announce pinned tab count'
     });
+    // pin-list — the readout twin of pin-count (tabs-list for the pinned
+    // cluster). Chrome pins have no separate UI surface, so enumerating
+    // their titles is the only way a voice user learns what is pinned.
+    this.registerCommand('pin-list', {
+      patterns: ['ピン留め一覧', 'ピン留めのタブ一覧', 'ピン留めタブ一覧',
+        'ピンの一覧', 'ピンを一覧', 'ピン留めを読んで', 'ピン留めを教えて',
+        'ピン留めのタブを読んで', 'ピン留めされたタブ',
+        /pinned tabs/i, /list (the )?pinned/i, /read (the )?pinned tabs/i,
+        /what tabs are pinned/i],
+      action: () => {
+        const pinned = (tabManager?.tabs || []).filter((t) => t.pinned);
+        if (!pinned.length) {
+          this.speak('ピン留めタブはありません');
+          return { action: 'pin-list', count: 0 };
+        }
+        const names = pinned.map((t) => t.currentTitle || t.currentUrl || 'タイトルなし');
+        this.speak(`ピン留めは${pinned.length}個。${names.join('、')}`);
+        return { action: 'pin-list', count: pinned.length };
+      },
+      description: 'Read the pinned tab titles aloud'
+    });
     // mic-status — 'is the mic on' answers the recognizer's isListening flag
     // (wake-word users can't see the OS mic indicator inside the headset).
     this.registerCommand('mic-status', {
@@ -3831,6 +4850,8 @@ export class VoiceCommands {
     // history-latest — history-list's 'most recent' twin.
     this.registerCommand('history-latest', {
       patterns: ['最新の履歴', '履歴の最新', '最後に見たページ',
+        'さっきの記事', '開いたばかりのページ', 'さっき開いたページ',
+        'さっき見た記事', 'さっき読んでたページ',
         /latest history/i, /most recent (page|history|visit)/i],
       action: () => {
         const items = this._onHistoryList ? this._onHistoryList() : null;
@@ -3860,6 +4881,9 @@ export class VoiceCommands {
     // loading' answers only the flag (privacy-status parity).
     this.registerCommand('loading-status', {
       patterns: ['読み込み中ですか', '読み込みましたか', 'まだ読み込み中',
+        '読み込み終わった', '読み込み完了', '更新中ですか', 'まだ読み込んでる',
+        '読み込み中？', '読み込みは終わった', '読み込んでいる',
+        '読み込んでいますか', '読み込んでる', '読み込み中です', 'まだ読み込み中ですか',
         /is (it|the page) (still )?loading/i, /has it loaded/i],
       action: () => {
         const loading = !!tabManager?.getActiveTab?.()?.loading;
@@ -3898,7 +4922,11 @@ export class VoiceCommands {
     // parity. readAloud owns the start/nothing-to-read announcements.
     this.registerCommand('read-here', {
       patterns: ['ここから読み上げ', 'ここから読み上げて', 'ここから読んで',
+        'ここを読んで', 'この辺を読んで',
         '続きを読んで', '続きから読んで',
+        '残りを読んで', '残り全部読んで', '残りを全部読んで',
+        '続きを全部読んで', 'あとの文を読んで',
+        'つづきから', 'つづきから読んで', '途中から読んで', 'つづきを読んで',
         /read\s+from\s+here/i, /read\s+from\s+(the\s+)?current/i,
         /continue reading/i],
       action: () => {
@@ -3914,15 +4942,20 @@ export class VoiceCommands {
     // '検索'/'調べて' here instead.
     this.registerCommand('history-search', {
       patterns: [
-        /履歴(?:から|で)\s*(.+?)\s*(?:を)?(?:検索|調べて?)/,
+        /履歴(?:から|で|を)\s*(.+?)\s*(?:を|で)?(?:検索|調べて?)/,
+        /履歴(?:の中)?(?:から|を|で)?\s*(?:検索|調べ)/,
         /history\s+search\s+(?:for\s+)?(.+)/i,
         /search\s+history\s+(?:for\s+)?(.+)/i
       ],
       action: (transcript) => {
-        const m = transcript.match(/履歴(?:から|で)\s*(.+?)\s*(?:を)?(?:検索|調べて?)/)
+        const m = transcript.match(/履歴(?:から|で|を)\s*(.+?)\s*(?:を|で)?(?:検索|調べて?)/)
           || transcript.match(/history\s+search\s+(?:for\s+)?(.+)/i)
           || transcript.match(/search\s+history\s+(?:for\s+)?(.+)/i);
         const term = (m && m[1] ? m[1] : '').trim();
+        if (!term) {
+          this.speak('履歴で検索する語を言ってください');
+          return { action: 'history-search', term: '', count: 0 };
+        }
         const res = this._onHistorySearch ? this._onHistorySearch(term) : null;
         this.speak(res
           ? `${res.count}件見つかりました。最近: ${res.title}`
@@ -3936,6 +4969,7 @@ export class VoiceCommands {
     this.registerCommand('reader-progress', {
       patterns: ['進捗', '何%読んだ', 'どれくらい読んだ', 'どのくらい読んだ',
         'どこまで読んだ', '読了ですか', 'スクロール位置', '今どのあたり', 'どのあたり',
+        'ページ数は', '全部で何ページ', '何ページある', 'ページ数を教えて',
         /reading\s+progress/i, /how\s+much\s+(have\s+i\s+)?(read|left)/i,
         /scroll position/i],
       action: () => {
@@ -3950,15 +4984,20 @@ export class VoiceCommands {
     // Bookmark search — history-search's pair over the saved list.
     this.registerCommand('bookmark-search', {
       patterns: [
-        /ブックマーク(?:から|で)\s*(.+?)\s*(?:を)?(?:検索|調べて?)/,
+        /ブックマーク(?:から|で|を)\s*(.+?)\s*(?:を|で)?(?:検索|調べて?)/,
+        /ブックマーク(?:の中)?(?:から|を|で)?\s*(?:検索|調べ)/,
         /bookmark\s+search\s+(?:for\s+)?(.+)/i,
         /search\s+bookmarks?\s+(?:for\s+)?(.+)/i
       ],
       action: (transcript) => {
-        const m = transcript.match(/ブックマーク(?:から|で)\s*(.+?)\s*(?:を)?(?:検索|調べて?)/)
+        const m = transcript.match(/ブックマーク(?:から|で|を)\s*(.+?)\s*(?:を|で)?(?:検索|調べて?)/)
           || transcript.match(/bookmark\s+search\s+(?:for\s+)?(.+)/i)
           || transcript.match(/search\s+bookmarks?\s+(?:for\s+)?(.+)/i);
         const term = (m && m[1] ? m[1] : '').trim();
+        if (!term) {
+          this.speak('ブックマークを検索する語を言ってください');
+          return { action: 'bookmark-search', term: '', count: 0 };
+        }
         const res = this._onBookmarkSearch ? this._onBookmarkSearch(term) : null;
         this.speak(res
           ? `${res.count}件見つかりました。最初: ${res.title}`
@@ -3988,7 +5027,11 @@ export class VoiceCommands {
     // Remaining reading time — getReadingTimeMinutes scaled by progress.
     this.registerCommand('remaining-time', {
       patterns: ['あと何分', '残り何分', 'どれくらい残り', 'あとどれくらい',
-        'あとどのくらい', '残り時間は',
+        'あとどのくらい', '残り時間は', '残り時間', '残りはどれくらい',
+        'どれくらい残ってる', 'あとどのくらい残ってる', 'あとどれくらい残ってる',
+        '読了まで', '読み終わるまで', 'あとどれくらいで終わる', '終わるまであと',
+        'あと何分で読み終わる', '読み終わりまで', 'あと何分で終わる', '残りの時間',
+        'あとどのくらいで終わる',
         /how much longer/i, /time left/i, /minutes left/i],
       action: () => {
         const mins = this._onRemainingTime ? this._onRemainingTime() : null;
@@ -4021,6 +5064,9 @@ export class VoiceCommands {
     // find-in-page — searching for the word is a legitimate query.
     this.registerCommand('find-status', {
       patterns: ['何件目', 'ヒットは何件', '何件ヒット',
+        '見つからなかった', '見つからない', 'ヒットしない', '何件見つかった',
+        'ヒット数', '見つかった数', 'ヒットは何個',
+        '検索結果は何件', '件数は', '検索ヒット数', '検索結果の数',
         /how many (matches|hits)/i],
       action: () => {
         const res = this._onFindStatus ? this._onFindStatus() : null;
@@ -4060,6 +5106,7 @@ export class VoiceCommands {
     // parity (say-again reads the caption, this reads the article).
     this.registerCommand('read-line', {
       patterns: ['この行を読んで', '今の行を読んで', '現在の行を読み上げ',
+        '行を読んで', '今の行を読み上げて', '今の行を読み上げ',
         /read (the )?(current )?line/i],
       action: () => {
         const line = this._onReadLine ? this._onReadLine() : null;
@@ -4073,14 +5120,36 @@ export class VoiceCommands {
     // wrap-and-announce shape as next-heading.
     this.registerCommand('next-paragraph', {
       patterns: ['次の段落', '段落を進め', '読み上げをスキップ', '次をスキップ',
+        // 'skip ahead' is end-anchored so 'skip ahead 4 paragraphs' reaches
+        // paragraph-skip-n instead of stepping once.
         'スキップして', '先読みして', '読み飛ばして',
-        /next\s+paragraph/i, /skip ahead/i],
+        'もう一段落', 'もう一段落読んで', '次の段落を読んで',
+        /next\s+paragraph/i, /skip ahead\s*$/i],
       action: () => {
         const r = this._onParagraphStep ? this._onParagraphStep(1) : null;
         this.speak(r ? `${r.index}番目の段落（全${r.total}）` : '段落がありません');
         return { action: 'next-paragraph', ...r };
       },
       description: 'Jump to the next paragraph'
+    });
+
+    // 'Nつ先/前の段落' — next/prev-paragraph's counted sibling (Voice Access
+    // 'skip ahead N' parity). Same relative stepper, just N steps.
+    this.registerCommand('paragraph-skip-n', {
+      patterns: [/([0-9]+|[一二三四五六七八九])\s*(?:つ|個)?先の段落/,
+        /([0-9]+|[一二三四五六七八九])\s*(?:つ|個)?前の段落/,
+        /skip (?:ahead|forward) (\d+) paragraphs?/i,
+        /go back (\d+) paragraphs?/i],
+      action: (transcript) => {
+        const KANJI = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
+        const m = transcript.match(/([0-9]+|[一二三四五六七八九])/);
+        const n = m ? (KANJI[m[1]] || Number(m[1])) : 0;
+        const back = /前の段落|back/i.test(transcript);
+        const r = this._onParagraphStep ? this._onParagraphStep(back ? -n : n) : null;
+        this.speak(r ? `${r.index}番目の段落（全${r.total}）` : '段落がありません');
+        return { action: 'paragraph-skip-n', ...r };
+      },
+      description: 'Skip N paragraphs ahead or back'
     });
 
     this.registerCommand('prev-paragraph', {
@@ -4144,7 +5213,9 @@ export class VoiceCommands {
 
     this.registerCommand('paragraph-status', {
       patterns: ['何段落', '段落はいくつ', 'どの段落', 'この段落は', '現在の段落は',
-        '段落は', /which paragraph/i, /paragraph (count|position|status)/i],
+        '段落は', '全部で何段落', 'この記事は何段落', '総段落数', '段落数は',
+        '何段落目', '現在何段落', '段落番号は', '今の段落は', '今は何段落目',
+        /which paragraph/i, /paragraph (count|position|status)/i],
       action: () => {
         const res = this._onParagraphStatus ? this._onParagraphStatus() : null;
         this.speak(res ? `全${res.total}段落の${res.index}段落目`
@@ -4194,7 +5265,8 @@ export class VoiceCommands {
     // empty-list (title region / no article) announce itself.
     this.registerCommand('read-paragraph', {
       patterns: ['この段落を読み上げ', '現在の段落を読み上げ', '段落を読んで',
-        '今の段落を読んで', 'この段落を読み上げて',
+        '今の段落を読んで', 'この段落を読み上げて', 'その段落を読んで',
+        'その段落を読み上げて',
         /read (the )?(current )?paragraph/i],
       action: () => {
         const chunks = this._onReadParagraph ? this._onReadParagraph() : [];
@@ -4208,7 +5280,8 @@ export class VoiceCommands {
     // source-block sentences (a sentence spanning display lines is still
     // spoken whole); the scroll follows the line holding its start.
     this.registerCommand('next-sentence', {
-      patterns: ['次の文', '文を次へ', '一文進め', /next sentence/i],
+      patterns: ['次の文', '文を次へ', '一文進め', 'もう一文',
+        'もう一文読んで', '一文進んで', /next sentence/i],
       action: () => {
         const r = this._onSentenceStep ? this._onSentenceStep(1) : null;
         this.speak(r ? r.sentence : 'これ以上進めません');
@@ -4218,7 +5291,8 @@ export class VoiceCommands {
     });
     this.registerCommand('prev-sentence', {
       patterns: ['前の文', '前の文を読んで', '文を前へ', '一文戻し',
-        'さっきの文', 'さっきの文を読んで',
+        'さっきの文', 'さっきの文を読んで', '前の文に戻って', '文を戻して',
+        '一文戻って',
         /prev(?:ious)? sentence/i, /read (the )?prev(?:ious)? sentence/i],
       action: () => {
         const r = this._onSentenceStep ? this._onSentenceStep(-1) : null;
@@ -4231,6 +5305,7 @@ export class VoiceCommands {
     // Read the sentence under the scroll — read-line's sentence sibling.
     this.registerCommand('read-sentence', {
       patterns: ['この文を読んで', 'この文を読み上げ', '文を読んで', '現在の文',
+        '今の文を読み直して', 'この文を読み直して', '文を読み直して',
         /read (this |the |current )?sentence/i],
       action: () => {
         const r = this._onSentence ? this._onSentence() : null;
@@ -4241,6 +5316,7 @@ export class VoiceCommands {
     });
     this.registerCommand('sentence-status', {
       patterns: ['何文目', '現在何文目', 'どの文', 'この文は', '文は',
+        '全部で何文', 'この記事は何文', '総文数', '文数は',
         /which sentence/i, /sentence (position|status)/i],
       action: () => {
         const res = this._onSentenceStatus ? this._onSentenceStatus() : null;
@@ -4275,6 +5351,9 @@ export class VoiceCommands {
     // Read/spell the word under the caret — NVDA numpad-5 (+double) parity.
     this.registerCommand('read-word', {
       patterns: ['この単語を読んで', '単語を読んで', '現在の単語', 'この単語',
+        '文字を読んで', 'この字', '今の字', 'この漢字', '漢字を読んで',
+        '読み方を教えて', 'この漢字の読み方', 'ふりがな', '字を読んで',
+        '発音して', '発音を教えて', 'この発音',
         /read (this |the |current )?word/i, /current word/i],
       action: () => {
         const r = this._onWord ? this._onWord() : null;
@@ -4285,7 +5364,8 @@ export class VoiceCommands {
     });
     this.registerCommand('spell-word', {
       patterns: ['この単語をスペル', 'スペル読み', 'つづり', 'スペルで読んで',
-        'スペルを教えて', /spell (this |the )?word/i, /spell it/i],
+        'スペルを教えて', 'スペル', 'スペルは', 'つづりを教えて',
+        /spell (this |the )?word/i, /spell it/i],
       action: () => {
         const r = this._onSpellWord ? this._onSpellWord() : null;
         this.speak(r ? r.spelled : '単語がありません');
@@ -4374,6 +5454,9 @@ export class VoiceCommands {
     this.registerCommand('article-summary', {
       patterns: ['この記事について', '記事の概要', '記事の情報',
         '要約して', 'このページを要約', 'ページを要約して', '概要は', '記事を要約',
+        'ページの概要', '概要を教えて', '概要は何', 'このページの概要',
+        'ここに書いてあること', 'ここに何が書いてある', '何が書かれてる',
+        '何が書いてある', '内容を教えて', 'ページの内容を教えて',
         /describe (the )?(page|article)/i, /page info|article info/i,
         /summari[sz]e/i, /sum (it|this) up/i],
       action: () => {
@@ -4467,7 +5550,11 @@ export class VoiceCommands {
     this.registerCommand('contrast-status', {
       // 'ハイコントラスト…'/'high contrast…' belong to the high-contrast
       // toggle (registered earlier), so the query keeps disambiguated forms.
-      patterns: ['コントラストは', /contrast status/i],
+      patterns: ['コントラストは', 'ハイコントラストは', 'ハイコントラストはどう',
+        'ハイコントラストか', 'ハイコントラストは今', 'ハイコントラストですか',
+        'ハイコントラストかどうか', 'コントラストモードは',
+        /ハイコントラストは(?:どう|か|今|現在)/,
+        /is high contrast (on|off|enabled)/i, /contrast status/i],
       action: () => {
         const v = this._onContrastStatus ? this._onContrastStatus() : null;
         this.speak(v === null ? 'コントラストを確認できません'
@@ -4536,6 +5623,9 @@ export class VoiceCommands {
         '今どこを読んでる', 'どこまで読んでる', '読み上げ位置',
         '読み上げ中の行', '読み上げ中の場所', '現在位置', '今の位置',
         '読み上げ中', '読み上げの位置',
+        '全部で何行', 'この記事は何行', '総行数', '行数は', '何行ある',
+        '読んでいたところ', 'どこまで読んでた', '読み上げ位置に戻って',
+        '今何行目', '現在の行', '行番号は', '今の行は', '現在の行番号', '今は何行目',
         /line (number|position)/i],
       action: () => {
         const res = this._onLineStatus ? this._onLineStatus() : null;
@@ -4553,6 +5643,9 @@ export class VoiceCommands {
         '何個目のタブ', 'タブは何番目', 'タブの順番', 'このタブの位置',
         '現在のタブ番号', 'タブの位置',
         'タブの数', 'ウィンドウの数', 'タブの枚数',
+        'タブは何枚', '何タブ', 'タブいくつ', '何個タブ', 'タブはいくつ開いてる',
+        'いくつ開いてる', '何個開いてる', '全部で何タブ', 'タブ何個',
+        'タブをいくつ開いてる', 'いくつタブを開いてる',
         /how many tabs/i, /which tab/i, /tab (count|position)/i],
       action: () => {
         const res = this._onTabStatus ? this._onTabStatus() : null;
@@ -4568,8 +5661,11 @@ export class VoiceCommands {
     // unambiguous: 'プライベートモード'/'プライベートタブ'/'ピン留め' are
     // owned by private-mode / private-tab / pin-tab respectively.
     this.registerCommand('privacy-status', {
-      patterns: ['プライベートかどうか', /private mode (status|on|off)/i,
-        /is (this|it) private/i],
+      patterns: ['プライベートかどうか', 'シークレットですか',
+        'プライベートですか', 'プライベートモードは', 'シークレットモードは',
+        'シークレットモードですか', 'プライベートモードですか',
+        'プライベートタブですか',
+        /private mode (status|on|off)/i, /is (this|it) private/i],
       action: () => {
         const priv = this._onPrivacyStatus ? this._onPrivacyStatus() : null;
         this.speak(priv === null ? 'タブがありません'
@@ -4609,13 +5705,136 @@ export class VoiceCommands {
     // Chrome's Esc — dismiss the find bar's highlights.
     this.registerCommand('clear-find', {
       patterns: ['検索を解除', 'ハイライトを消して', 'ハイライトを消す',
-        '検索をクリア', /clear (the )?(search|find)/i, /clear highlights?/i],
+        '検索をクリア', '検索を閉じて', '検索バーを閉じて', '検索窓を閉じて',
+        '検索を消して', '検索を終了', '検索を終了して', 'ハイライトを解除',
+        '検索をやめる', '検索をキャンセル', '検索を中止', '検索をキャンセルして',
+        'ハイライトを外して', 'ハイライトを取り除いて', '検索をやめて',
+        '強調を消して', '蛍光ペンを消して', '選択を解除', '選択解除',
+        '選択をやめて', '選択を解除して',
+        /clear (the )?(search|find)/i, /clear highlights?/i],
       action: () => {
         const cleared = this._onClearFind ? this._onClearFind() : false;
         this.speak(cleared ? 'ハイライトを消しました' : '検索をしていません');
         return { action: 'clear-find', cleared };
       },
       description: 'Dismiss the find highlights'
+    });
+
+    // Dismiss pending notifications — toasts/captions auto-expire, but a
+    // voice user who wants the display clear NOW needs the manual twin
+    // (Chrome notification '×' parity). The hook clears the caption queue;
+    // without it the honest answer is that they expire on their own.
+    this.registerCommand('dismiss-notify', {
+      patterns: ['通知を消して', '通知を閉じて', '通知を消去', 'トーストを消して',
+        'メッセージを消して', 'メッセージを閉じて', 'ダイアログを閉じて',
+        '警告を消して', '表示を消して', '通知はいい', '通知を全部消して',
+        '消して', '消えて', '消してほしい',
+        /dismiss (the )?(notification|toast|alert|message)s?/i,
+        /clear (the )?notifications?/i, /close (the )?notification/i],
+      action: () => {
+        const done = this._onDismissNotify ? this._onDismissNotify() : false;
+        this.speak(done ? '通知を消去しました' : '表示は自動で消えます');
+        return { action: 'dismiss-notify', done };
+      },
+      description: 'Dismiss pending notifications'
+    });
+    // read-notify — the readout twin of dismiss-notify: '最新の通知'/
+    // 'read the notification' re-speaks the newest caption line via the
+    // onReadNotify hook (CaptionSystem.lastLine), so a voice user who
+    // heard a chime can ask what it said after the toast expired.
+    this.registerCommand('read-notify', {
+      patterns: ['通知を読んで', '通知を読み上げて', '最新の通知', '最近の通知',
+        '最後の通知', '何を通知した', '通知は何', '通知の内容', '今の通知',
+        '通知を見せて', '通知を表示して', '通知を確認',
+        '通知はある', '通知がある', '通知がきた', '通知きた', '新しい通知',
+        /read (the |my )?(last |latest )?notifications?/i,
+        /last notification/i, /latest notification/i,
+        /what('s| was)? (the |that )?(last )?notification/i],
+      action: () => {
+        const t = this._onReadNotify ? this._onReadNotify() : null;
+        this.speak(t || '通知はありません');
+        return { action: 'read-notify', text: t || null };
+      },
+      description: 'Read the newest notification aloud'
+    });
+
+    // Honest-absence cluster — phrases whose surface deliberately does not
+    // exist, answered plainly instead of NO-MATCH ('認識できませんでした'
+    // leaves the user guessing whether the phrase or the feature failed).
+    // reader-mode: every article already renders via the reader extractor,
+    // so the toggle is an always-on answer.
+    this.registerCommand('reader-mode', {
+      patterns: ['リーダー表示', 'リーダーモード', 'リーダーモードにして',
+        'リーダー表示にして', 'シンプルな表示', '簡易表示', '簡易表示にして',
+        /reader mode/i, /easy reading/i, /simplified view/i],
+      action: () => {
+        this.speak('記事は常にリーダー表示で開きます');
+        return { action: 'reader-mode' };
+      },
+      description: 'Explain that articles always render in reader view'
+    });
+    // dark-mode: the only theme variant is high-contrast, so point there
+    // instead of pretending.
+    this.registerCommand('dark-mode', {
+      patterns: ['ダークモード', 'ダークモードにして', 'ダークモードをオン',
+        'ナイトモード', '夜モード', '暗いテーマ',
+        '背景を暗く', '目に優しく', '目に優しいモード', 'ブルーライト',
+        'ブルーライトカット', '夜用モード', 'ダークテーマ',
+        /dark mode/i, /night mode/i, /dark theme/i],
+      action: () => {
+        this.speak('ダークモードはありません。ハイコントラストモードが使えます');
+        return { action: 'dark-mode' };
+      },
+      description: 'Explain there is no dark mode and point at high-contrast'
+    });
+    // brightness: panel luminance is the headset's OS domain — the browser
+    // layer has no brightness surface to drive.
+    this.registerCommand('brightness', {
+      patterns: ['明るくして', '暗くして', '明るさを上げて', '明るさを下げて',
+        '画面を明るく', '画面を暗く', '輝度を上げて', '輝度を下げて', '輝度',
+        '明るすぎる', '眩しい', 'まぶしい', 'まぶしすぎる', '暗すぎる',
+        '画面が明るい', '画面が眩しい',
+        /brightness/i, /^brighter$/i, /^dimmer$/i,
+        /make (it|the screen) (brighter|dimmer|darker)/i],
+      action: () => {
+        this.speak('明るさはヘッドセット本体の設定で変更してください');
+        return { action: 'brightness' };
+      },
+      description: 'Explain brightness lives in headset settings'
+    });
+    // print / screenshot: no print dialog or capture pipeline exists in the
+    // VR layer — honest refusal beats a silent failure or a fake success.
+    this.registerCommand('print', {
+      patterns: ['印刷して', 'プリントして', '印刷', 'プリント',
+        'このページを印刷', '印刷したい', 'プリントしたい', /print/i],
+      action: () => {
+        this.speak('このブラウザでは印刷できません');
+        return { action: 'print' };
+      },
+      description: 'Explain printing is unavailable'
+    });
+    this.registerCommand('screenshot', {
+      patterns: ['スクリーンショット', 'スクショ', '画面を撮って', '写真を撮って',
+        '画面をキャプチャ', /screenshot/i, /take a (screenshot|picture|photo)/i,
+        /capture the screen/i],
+      action: () => {
+        this.speak('このブラウザではスクリーンショットを撮影できません');
+        return { action: 'screenshot' };
+      },
+      description: 'Explain screenshots are unavailable'
+    });
+    // sort-tabs: no auto-sort surface — point at the ordinal-move atom that
+    // does exist ('N番目に移動して' → move-tab-to-n).
+    this.registerCommand('sort-tabs', {
+      patterns: ['タブを並び替えて', 'タブを並べ替えて', 'タブをソート',
+        'タブをソートして', 'タブを順番に', 'タブ順を整えて',
+        'タブを並べて', 'タブを左右に', 'タブを整列', 'タブ順を変えて',
+        /sort (the |my )?tabs/i, /reorder (the |my )?tabs/i],
+      action: () => {
+        this.speak('自動並び替えはありません。N番目に移動して、と言ってください');
+        return { action: 'sort-tabs' };
+      },
+      description: 'Point at ordinal move instead of auto-sort'
     });
 
     // Chrome "Paste and go" — clipboard URL → navigate. The hook resolves
@@ -4642,6 +5861,7 @@ export class VoiceCommands {
     this.registerCommand('share-page', {
       patterns: ['共有して', 'このページを共有', 'このページを共有して',
         'ページを共有', 'ページを共有して', 'ツイートして', 'メールで送って',
+        '共有したい', 'シェアしたい',
         'リンクを送って', 'SNSで共有',
         /^share( this page| it)?$/i, /share (the )?(page|url|link)/i,
         /tweet (this|it)/i, /email (this|it|the link)/i, /share (on|via) \w+/i],
@@ -4680,6 +5900,8 @@ export class VoiceCommands {
 
     this.registerCommand('read-clipboard', {
       patterns: ['クリップボードを読み上げ', 'クリップボードを読んで',
+        '何をコピーした', 'コピーした内容', 'コピーしたもの', 'コピー内容',
+        'コピーしたものは', 'コピーしたものを読んで',
         /read (the )?clipboard/i, /what('s| is) (in|on) (the )?clipboard/i],
       action: () => {
         const p = this._onReadClipboard
@@ -4772,6 +5994,8 @@ export class VoiceCommands {
     // voice. The hook also fires its own caption via recenter().
     this.registerCommand('recenter', {
       patterns: ['リセンター', '中央に戻して', 'センタリング',
+        '正面に戻して', '向きをリセット', '向きを戻して',
+        'カメラをリセット', '視点をリセット', '正面を向いて',
         /recenter/i, /center (the )?(view|position)/i],
       action: () => {
         const ok = this._onRecenter ? this._onRecenter() : false;
@@ -4800,6 +6024,30 @@ export class VoiceCommands {
         return { action: 'video-status', position: st.t };
       },
       description: 'Announce the video position'
+    });
+
+    // Recently-closed list — Chrome history "recently closed" parity: the
+    // LIFO stack's read-only twin (nothing is reopened or popped). The
+    // closed stack stores URLs only, so the readout speaks URLs; private
+    // tabs never enter the stack, so they never appear here either.
+    this.registerCommand('closed-list', {
+      patterns: ['閉じたタブの一覧', '最近閉じたタブ', '最近閉じたタブを読んで',
+        '最近閉じたタブを教えて', '閉じたタブを読んで', '閉じたタブは何',
+        'さっき閉じたタブは何', 'さっき閉じたタブを教えて',
+        '何個閉じた', 'いくつ閉じた', '何個タブを閉じた',
+        /recently closed/i, /closed tabs/i, /what did i (just )?close/i],
+      action: () => {
+        const list = tabManager?.closedTabs?.() || [];
+        if (!list.length) {
+          this.speak('閉じたタブはありません');
+          return { action: 'closed-list', count: 0 };
+        }
+        const shown = list.slice(0, 3).join('、');
+        const more = list.length > 3 ? `、他${list.length - 3}件` : '';
+        this.speak(`${list.length}個のタブを閉じました。最近から: ${shown}${more}`);
+        return { action: 'closed-list', count: list.length };
+      },
+      description: 'Announce recently closed tabs'
     });
 
     // Reopen every closed tab — reopen-tab's bulk variant (Ctrl+Shift+T held
@@ -4911,6 +6159,9 @@ export class VoiceCommands {
         'ブックマークを削除して', 'ブックマークを消して', 'ブックマークを削除',
         'ブックマークから消して', 'お気に入りから消して', 'お気に入りを外して',
         'ブックマークから外して',
+        'お気に入りを削除', 'お気に入りを削除して', 'お気に入りから削除して',
+        'お気に入りから削除', 'ブックマークから削除', 'お気に入りを消して',
+        'ブックマークを消す', 'お気に入りから外して',
         /remove (this |the )?bookmark/i, /unbookmark/i],
       action: () => {
         const active = tabManager?.getActiveTab?.();
@@ -4973,7 +6224,8 @@ export class VoiceCommands {
     // the line it lands on (the spoken line is the whole point); honest when
     // the reader can't move or nothing is on that line.
     this.registerCommand('next-line', {
-      patterns: ['次の行', '次の行を読んで', '行を進め', /next line/i],
+      patterns: ['次の行', '次の行を読んで', '行を進め', 'もう一行',
+        'もう一行読んで', '次の行を進めて', /next line/i],
       action: () => {
         const t = tabManager?.getActiveTab?.();
         if (!t?.scrollContent?.(1)) {
@@ -5025,12 +6277,19 @@ export class VoiceCommands {
     // doesn't cover. 履歴/ブックマーク searches are claimed by their own
     // commands, so exclude them from the term.
     this.registerCommand('web-search', {
-      patterns: [/^(?!履歴|ブックマーク|ページ)(.+?)を検索して?/,
-        /(.+?)について検索/, /search (?:the web |web )?for (.+)/i,
-        /web search (?:for )?(.+)/i],
+      patterns: [/^(?!履歴|ブックマーク|ページ|設定|メニュー)(.+?)を検索して?/,
+        /(.+?)について検索/,
+        // 'ニュースを見せて'/'写真が見たい' — content intent, so search the
+        // web. Panel-scoped '見せて' phrases (履歴/ブックマーク/タブ/設定/
+        // 通知) all live on earlier registrations and keep winning.
+        /(?!何)(.+?)(?:を見せて|を見せてほしい|を見せてくれ|が見たい|を見たい)/,
+        /search (?:the web |web )?for (.+)/i,
+        /web search (?:for )?(.+)/i,
+        '音声検索'],
       action: (transcript) => {
-        const m = transcript.match(/^(?!履歴|ブックマーク|ページ)(.+?)を検索/)
+        const m = transcript.match(/^(?!履歴|ブックマーク|ページ|設定|メニュー)(.+?)を検索/)
           || transcript.match(/(.+?)について検索/)
+          || transcript.match(/(?!何)(.+?)(?:を見せて|を見せてほしい|を見せてくれ|が見たい|を見たい)/)
           || transcript.match(/search (?:the web |web )?for (.+)/i)
           || transcript.match(/web search (?:for )?(.+)/i);
         const term = (m && m[1] ? m[1] : '').trim();
@@ -5054,6 +6313,8 @@ export class VoiceCommands {
     // effectiveType + downlink when the host exposes them.
     this.registerCommand('connection-status', {
       patterns: ['回線速度', '通信速度', 'ネットの速度', 'ネット速度', '通信状態',
+        '回線が悪い', '電波が悪い', '通信が遅い', '速度が遅い', '回線が遅い',
+        'ネットが重い', '回線が弱い', '電波が弱い',
         /connection (speed|status|type)/i, /network (speed|status)/i, /how fast/i],
       action: () => {
         const c = (typeof navigator !== 'undefined') ? navigator.connection : null;
@@ -5077,6 +6338,8 @@ export class VoiceCommands {
     this.registerCommand('say-last-transcript', {
       patterns: ['何と言った', '今何と言いました', '何と言いました',
         '何と聞き取った', '何を言った', '何を聞き取った', '今何を言った',
+        '今なんて言った', 'なんて言った', 'なんていった', '今何と言った',
+        'なんて言ってた',
         /what did i say/i, /what did you hear/i],
       action: () => {
         const t = this._prevTranscript;
@@ -5084,6 +6347,29 @@ export class VoiceCommands {
         return { action: 'say-last-transcript', transcript: t || null };
       },
       description: 'Echo the last recognized transcript'
+    });
+
+    // negate — 'Xしないで'/'やめておいて'/'never mind' is a request to do
+    // NOTHING: acknowledge instead of answering 認識できませんでした (which
+    // wrongly suggests the phrasing failed, not that no action was wanted).
+    // Registered LAST of all: every concrete command wins first — e.g.
+    // '読まないで' must keep reaching stop-reading (stop the narration),
+    // '聞かないで' stays on 'stop'.
+    this.registerCommand('negate', {
+      patterns: [/ないで(ください|ね|よ|ー)?$/, /やめてお(?:いて|く|きましょう)/,
+        /やめといて/, /やめとく/, /しなくて(?:も)?いい/, /なくていい/,
+        /do(?:n't| not) (?:do )?(?:that|it)/i, /^never ?mind$/i, /cancel that/i,
+        /^forget it$/i,
+        '違う', 'そうじゃない', 'そうじゃなくて', '間違えた', '間違い', 'ちがう', '違います',
+        'ええよ', 'もういい', 'いいよ', 'いいから', 'もういいから', '結構です', 'もう結構',
+        '大丈夫です', 'もう大丈夫', 'いらない', 'もういらない', 'ほっといて', '放っといて',
+        'そのままで', 'そのまま', 'そのままでいい',
+        /keep it/i, /leave it(?: be| alone)?/i, /as you were/i],
+      action: () => {
+        this.speak('承知しました。実行しません');
+        return { action: 'negate' };
+      },
+      description: 'Acknowledge a do-not request without acting'
     });
 
     console.debug('VoiceCommands: Browser integration connected');
