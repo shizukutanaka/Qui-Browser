@@ -1727,6 +1727,18 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 
 - R281 skip: 'call the tab off' は device-apps（'call'=電話 alias、登録順 ~3892 < close ~5609）が先勝ち — close literal 追加は無効。裸 'spent'/'used up'/'old news' はタブ参照なし曖昧で null 維持。
 
+- R282 skip: 'go pound sand' は go-to（/go / 先頭一致・登録順 go-to < negate）が先勝ち — negate literal 追加無効、拒絶意図だが navigate 誤ルート継続。'into next week'/'kick it into next week' は date ピン維持（時間読み）。
+
+- R283 skip: 'take care of it' は ack・'im done here' は vr-exit が登録順先勝ち — close 向け裸形追加は誤ルートのため不採用（'take care of that|the tab' / 'done here' / 'we are done here' は close-tab 登録済み）。
+- R283 skip: '閉じとる*' 族（とるがよ|ばい|わい|ぞよ|っちゃ）— 九州進行「閉じておる」報告にも命令にも読める曖昧形 → null 維持（'閉じとるで'→describe ピン整合のため）。
+- R283 pin: '閉じとるけんね'→negate・'閉じなきゃいけないんだよ'→trouble・'閉じないといけないことになってる'→negate — 確立ピン維持。
+
+- R284 pin: `閉じてくれないの`→null 維持（springer 確立: 反報 vs 依頼で曖昧）。`scrub it`/`wreck it`/`crush it`→null 維持 — タブ明示形のみ登録。
+- R284 fix: `閉じんでな`→negate（'閉じな' close literal の variant 残置が開放依頼を横取りしていた — raw literal 化で先勝ち固定）。`take it out back`→close-tab（'back' で reopen に誤ルートしていた慣用句）。
+- R284 note: `閉じんなってば` は既存 close literal 維持（方言命令 vs 禁止で曖昧 — 変更は別途判断）。
+- R285 pin: `flush it`/`hang it up`→null 維持（granular 確立: 曖昧）。`閉じてんで`→describe 不採用 — `_politeVariants` の てみ→んで 変換が 閉じてみ* close ピン21形を横取りしたため（variant 残置衝突は describe 側に限定）。
+- R286 pin: `write it off`→null 維持（granular 確立: 経理 euphemism 曖昧）。`open fire on it`→go-to 誤ルートを close 修正（'open' keyword 先勝ち → リテラル化で先勝ち固定）。`閉じるべきかと思う`→help ピン維持。
+
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。
