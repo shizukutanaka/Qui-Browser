@@ -137,6 +137,17 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice 'why dontcha close it'/"whyn't you"/'i command/order you to'/'i hereby request/ask that you'/'the move is to'/'best move is'/'be an angel and' が NO-MATCH~~ — **Session 199 で実装**（ENPRE VIII）
 - ~~voice 'close it if you could possibly'/'please sir'/"if it's not too much trouble"/"if it isn't too much to ask"/'closing it is the way to go'/'closing it would be the move' が NO-MATCH~~ — **Session 199 で実装**（EN語尾）
 - ~~voice 'デカくして'/'小さめにして'/'読み上げ止めて'/'どこ読んでる' が NO-MATCH~~ — **Session 199 で実装**（リテラル）
+- ~~voice '閉じてくれちゃったら/ちゃおう'/'もらうに限る/べきかな/しかない'/'いただくに限る'/'もいいかと(存じます)' の受益残置が NO-MATCH~~ — **Session 208 で実装**（TAIL_TE XXVI）
+- ~~voice '閉じるままにして/ついでに/がてら/際に/時点で/ようにしといて' の dict 残置が NO-MATCH~~ — **Session 208 で実装**（FR XVIII）
+- ~~voice 'i demand/require you to'/'provided/providing/assuming'/'on the condition that'/'in exchange for' が NO-MATCH~~ — **Session 208 で実装**（ENPRE XVII）
+- ~~voice '閉じてもらうべきかな' が help 誤ルート・'if you would be so good' が `if you would` 先食い~~ — **Session 208 で解消**（help lookbehind + 最長一致）
+- ~~voice '閉じてもらう方向で/ことで'/'閉じていただければ幸甚です'/'もらえますでしょうかね' の受益残置が NO-MATCH~~ — **Session 207 で実装**（TAIL_TE XXV）
+- ~~voice '閉じることで/ことにより/こととします/ことになります'/'のですがね'/'のもありな気がする'/'んでしょうか/んだろう' の dict 残置が NO-MATCH~~ — **Session 207 で実装**（FR XVII）
+- ~~voice 'do you think you can/we could'/'say we'/'hows about we'/'why do we not'/'lets go for'/'supposing you could' が NO-MATCH~~ — **Session 207 で実装**（ENPRE XVI）
+- ~~voice '閉じてみぃ/みい/みようや/みるわい'/'てしまいな/しまうがよい'/'ておくがよい/んじゃ/のがいい'/'おけばいい' の残置が NO-MATCH~~ — **Session 206 で実装**（TM/TAIL_TE XXIV）
+- ~~voice '閉じときな/ときんしゃい/とけば(いい)'/'閉じちゃいな/ちゃうといい/べき/がよろしい' が NO-MATCH~~ — **Session 206 で実装**
+- ~~voice '閉じるものだな/ですが'/'んすよ/ね/けど/が'/'がいいのでは'/'わけね/さ'（ack誤ルート）の dict 残置が NO-MATCH/誤ルート~~ — **Session 206 で実装**（FR XVI）
+- ~~voice 'here's a thought/what you do'/'picture|envision it closed'/'the goal|aim|objective is to'/'mission|goal|task close it'/'step one|first step'/'the ask is' が NO-MATCH~~ — **Session 206 で実装**（ENPRE XV）
 - ~~voice '閉じてくれよな/よわ'/'くれんかい/くれんけ/くれんね'/'もらおうかな/かね'/'くださいませんかい/かなあ' の受益残置が NO-MATCH~~ — **Session 205 で実装**（TAIL_TE XXIII）
 - ~~voice '閉じるってさ/とかさあ/んではないか/んじゃないかなあ/んですかね/のでよろしいか/のもいいかもね/べきと思います' の dict 残置が NO-MATCH~~ — **Session 205 で実装**（FR XV）
 - ~~voice 'i think/believe/feel (like) you should|could X'/'it seems like'/'figure/reckon/guessing/bet/suspect/trust/clearly you can'/'you probably should'/'might/may as well' が NO-MATCH~~ — **Session 205 で実装**（ENPRE XIV）

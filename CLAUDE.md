@@ -1720,6 +1720,32 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 208
+
+- ✨ 受益尾XXVI・て許可残置: TAIL_TE — くれよかった/くれちゃったら/くれちゃうか/くれちゃおう・もらいとう/もらうとか/もらうに限る/もらうべきかな/もらうしかない/もらうほかない・いただくに限る/べきかと/以外ない/ほかない・もよろしいかと/もいいかと(思う|んではないかと|存じます) → 実行。
+- ✨ dict残置XVIII: FR — ままにして/ままで/ついでに/がてら/ながらに/とともに/と同時に/のと一緒に/際に(は)/時点で/段階で/ようにできる/ようにやって/ようにしといて/ようになさって/ようになって/ようにしてもらって → 実行。
+- ✨ EN前置詞XVII: 'i hereby order/demand/require you (to)'・'im requiring/ordering you to'・'as long as you are at it'・'provided/providing you'・'assuming you can'・'on the condition that you'・'so long as you'・'in exchange/return for'・'for the sake of it' → 実行。
+- 🐛 誤ルート2件消化: help `/べき(?:かな|…)$/` が 'てもらうべきかな' 奪取 → `(?<![てで](?:もらう|いただく|くれ))べき` lookbehind で保全；ENPRE 裸 `if you would` が 'if you would be so good' 先食い → 前置化。
+- ✅ tests/manner-frame-atoms.test.js +58（実装前46件赤確認）、計11130全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 207
+
+- ✨ て受益残置XXV: TAIL_TE — もらう方向で/かなと/ことで・もらえますでしょうかね・いただけますことでしょうか/いただければ幸甚(でございます)/いただけましたら幸いに存じます → 実行。
+- ✨ dict残置XVII: FR — ことで/により/とします/にするよ/にしますよ/になります/もあります/もあるよ/ですね/かと・のですがね/のですよね/のも悪くないね/のもありな気がする・んでしょうか/ね/でしょ/んだろう(ね)/んでしょう → 実行。
+- ✨ EN前置詞XVI: 'do you think (you|we) (can|could|might)'（982行正規表現に can|we 拡張）・'say we'・'hows about we'・'why do we not'・'lets go for'・'supposing you could' → 実行。
+- 🐛 教訓再確認: 裸 `do`/`lets`/`how about`/`what say` の前置詞先食い — 長形は先勝ち位置へ移動（ENPRE は位置的最長一致）。
+- ✅ tests/nominal-residue-atoms.test.js +51（実装前30件赤確認）、計11072全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 206
+
+- ✨ てみる/しまう/おく残置: TM + みぃ/みい/みようや/みるわい；TAIL_TE + しまいな/しまうがよい/おくがよい/おくんじゃ/おくのがいい/おいたほうが/おけばよい/おけばいい → 実行。
+- ✨ とく/ちゃ残置II: とけば(いい)/ときな/ときんしゃい→て；ちゃいな/ちゃうといい/ちゃうべき/ちゃうがよろしい → 実行。
+- ✨ dict残置XVI: FR — ものだな/ものですが/んだってさ/のわよ/のわさ/んすよ/んすね/んすけど/んすが/がいいと思う/がよいと思う/がよろしいかと/がいいのでは + わけね/わけさ/わけだ（ack `/るわけ$/` 誤ルート解消 — FR 剥がしが variant 先勝ち）→ 実行。
+- ✨ EN前置詞XV: 'here is a thought'/'here's an idea/a thought/what you do'/'what if we'/'imagine we'/'picture|envision it'/'the goal|aim|objective is to'/'mission|objective|goal'/'step one|first step'/'your job|task is to'/'task'/'the ask (here) is'/'the request is' → 実行。
+- 🐛 教訓再確認: 裸 `first` が 'first step' 先食い → 前置化（最長一致）。
+- 📌 '閉じるところです/かな/だが' は describe-tab 既存意味論（"about to close" 報告）をピン維持 — 実行化せず。
+- ✅ tests/teoku-residue-atoms.test.js +64（実装前52件赤確認）、計11021全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
 ### Session 205
 
 - ✨ 受益尾XXIII・て強調残置: TAIL_TE — くれよな/くれよわ・くれんかい/くれんけ/くれんね・もらおうかな/かね・くださいませんかい/かなあ → 実行。
