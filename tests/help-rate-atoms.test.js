@@ -165,7 +165,7 @@ describe('mute forms', () => {
 describe('coexistence guards', () => {
   test.each([['音量を上げて', 'volume-up'], ['音量を下げて', 'volume-down'],
     ['ミュート', 'mute-toggle'], ['閲覧履歴', 'history-list'],
-    ['読み直して', 'say-again'], ['続きを読んで', 'read-here'],
+    ['読み直して', 'read-aloud'], ['続きを読んで', 'read-here'],
     ['このページは', 'where-am-i'],
     ['内容を教えて', 'article-summary'],
     ['音量を半分', 'volume-set']])('"%s" stays with %s', (p, want) => {
