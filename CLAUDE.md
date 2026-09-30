@@ -1720,7 +1720,7 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 292
+### Session 291
 
 - ✨ JA: てくださり残置（幸いです/助かります/と幸甚です）・dict急所名詞尾XI（のが急所と考えております 等6形）→ 実行。
 - ✨ EN CI: 'i would be happy|delighted|pleased|glad|willing|ready to' 前置 → 実行。
