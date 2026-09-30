@@ -952,6 +952,12 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - ~~**'to the top/bottom'・'go back up'・'move it closer'/'push it away'/'shrink the window'・'read this faster'/'speed it up'/'slow down'・'press enter'/'エンターを押して'・'its not working'/'cant see anything'/'見えない'/'動いてない'・'cant hear anything' が未認識**~~ — **Session 156 で実装**: scroll-top/bottom/panel-distance/speech-faster/slower/input-methods/trouble/audio-trouble へ（'can see' 系は audio-trouble でなく trouble へ）。
 - ~~**'microphone' が (raphone)? typo で未認識**~~ — **Session 156 で修正**: mic-on/mic-off/mic-status 全4箇所を (rophone)? へ。
 - ~~**'find my tab' が 'my' を検索語にしていた**~~ — **Session 156 で修正**: tab-search の term 抽出に my/the/a 単独ストップワード除外（→ 'タブの名前を言ってください' プロンプト）。
+- ~~**'reopen my last tab' が last-tab で右端タブに切り替わり、'close the tab i just closed' がアクティブタブを閉じていた**~~ — **Session 157 で修正**: reopen-tab を /reopen(?!.*\ball\b).*\btab\b/ 化 + 'bring back my tab'/'the tab i closed'/'ctrl z'/'ctrl+z' 追加、close-tab に i\b lookahead。
+- ~~**'今のタブを閉じて'/'幾つのタブ'/'違うタブ' が by-name の term 誤検索・未認識**~~ — **Session 157 で修正**: close-tab-by-name/tab-by-name の stoplist に 今|幾つ|何個|違う 追加 → close-tab/tab-status/next-tab へ。
+- ~~**'help please' が scoped-help で '「please」のコマンドは0個' と誤答**~~ — **Session 157 で修正**: scoped-help に (?!please\b)（既存 (?!me\b) と並置）→ polite 層経由で help へ。
+- ~~**'tomorrow'/'明日は何日'/'next week'/'来月'/'今年'/'whats the date' 等の相対日付が未認識**~~ — **Session 157 で実装**: date アクションが明日(+1)/明後日(+2)/来週(+7)/来月/来年/今年を計算して応答。
+- ~~**'level two heading'/'h2'/'heading level 2' が未認識**~~ — **Session 157 で実装**: `heading-level` 誠実不在原子（→'「2番目の見出し」で順番に選べます'）+ heading-select に first–tenth の EN 序数（action で単語→数値マップ）。
+- ~~**'go youtube'/'youtube に行って'/'close app'/'switch tabs'/'be quiet'/'move up'/'cancel all'/'真っ暗だ'/'最大化して'/'what should i say'/'もっと早く読んで'/'読み続ける' 等が未認識**~~ — **Session 157 で実装**: goToEn bare 'go X'（方向/ホーム語は stoplist で除外）+ goToJp 'に行って'/'へ行って' 尾、vr-exit/next-tab/mute-toggle/scroll/stop-everything/trouble/window-state/help/speech-faster/resume-reading へ各形追加。
 
 ---
 

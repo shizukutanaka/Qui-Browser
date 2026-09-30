@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 157: 相対日付/参照句原子 — reopen/close 参照句の誤ルート修正 + heading-level 誠実原子 + date 相対日付計算
+外部基準: Chrome 'reopen closed tab' の Ctrl+Shift+T・macOS 'bring back'、Voice Access 'switch tabs'、カレンダー系質問（'what's tomorrow'）への回答義務。
+- 🐛 **参照句の誤ルート3系**（実測捕捉）: 'reopen my last tab'→last-tab 切替（reopen-tab を /reopen(?!.*\ball\b).*\btab\b/ 化して先取）、'close the tab i just closed'→close-tab がアクティブタブ閉鎖（i\b lookahead で reopen-tab へ）、'今のタブを閉じて'→close-tab-by-name の term 誤検索（stoplist に 今|幾つ|何個|違う → close-tab/tab-status/next-tab へ）。
+- 🐛 **'help please' が scoped-help で '「please」のコマンドは0個'** → (?!please\b) で help へ透過。
+- ✨ **date 相対日付**: 'tomorrow'/'明日は何日'(+1)、'明後日'/'day after tomorrow'(+2)、'next week'/'来週'(+7)、'next month'/'来月'、'next year'/'来年'、'今年' を計算応答 + 'whats the date'/"today's date"/'the date'/'今日何日'/'何日ですか'。
+- ✨ **heading-level 誠実不在原子**: 'h2'/'level two heading'/'heading level 2'/'見出しレベル' → '「2番目の見出し」で順番に選べます'。heading-select へ first–tenth EN 序数（action 単語→数値マップ）。
+- ✨ **エイリアス第37弾**: goToEn bare 'go X'（stoplist で back/forward/up/down/away/off/home 等を除外）、goToJp 'に行って'/'へ行って'、next-tab 'switch tabs'/'change tab'/'swap tabs'/'the other tab'/'タブを切り替え'/'違うタブ'、mute-toggle 'be quiet'/'shut up'/'be silent'/'quiet please'/'silence'、stop-everything 'cancel all'/'全部キャンセル'/'全てやめて'、vr-exit 'close app'/'close browser'、window-state '最大化して'/'最小化して'、trouble '真っ暗だ'/'真っ黒'、help 'what should i say'/'使い方がわからない'、scroll 'move up/down'/'a bit'/'little scroll'、speech-faster 'もっと早く読んで'/'早く読んで'、resume-reading '読み続ける'。
+- ✅ **テスト +96（git stash で80件赤確認、残りは共存ガードの設計上緑）**: Total 5423 tests (131 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
 ### Session 156: 質問形/位置句原子 — 質問が実行する誤ルート3系 + 'go to X tab' 奪取修正 + EN 自然句群
 外部基準: Voice Access/Chrome の 'am I muted?' が状態質問である慣例（toggle でない）、スクリーンリーダーの問い合わせ形、英語圏の 'take me back'/'skip ahead 30 seconds' 口語。
 - 🐛 **質問形が実行していた3系**（実測捕捉）: 'did i bookmark this'→bookmark-page トグル・'am i muted'→mute-toggle トグル・'is the mic on'→mic-on 起動 → それぞれ (?<!did i )・(?!d\b)・(?<!the ) で status 系へ透過（mute-status/bookmark-status/mic-status へ質問形追加）。
