@@ -192,6 +192,72 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice '閉じるのが礎だ/大黒柱だ' の礎名詞尾が NO-MATCH~~
 - ~~voice '閉じてくれませんものか' が negate 誤ルート~~
 - ~~voice '閉じるのが急所ですか/勘所だね' の急所名詞尾IIが NO-MATCH~~
+- ~~voice '閉じてもらいますわ' のもらいます残置が NO-MATCH~~
+- ~~voice '閉じるのが急所かも/狙い目です' の急所名詞尾IIIが NO-MATCH~~
+- ~~voice '閉じてくださいますかしら/ませんでしょうか' のくださいます残置が NO-MATCH~~
+- ~~voice '閉じるのが急所だと思います/勘所と考えます' の急所名詞尾IVが NO-MATCH~~
+- ~~voice '閉じておかれますか' が help 誤ルート~~
+- ~~voice '閉じるのが急所べきだ' の急所名詞尾Vが NO-MATCH~~
+- ~~voice '閉じるのが急所級だ' の急所名詞尾VIが NO-MATCH~~
+- ~~voice 'i would hate for you to close it' が未ルート（婉曲拒否）~~
+- ~~voice '閉じてくださったら幸いです' の kudasattara 残置が NO-MATCH~~
+- ~~voice '閉じるのが急所かと存じます' の急所名詞尾VIIIが NO-MATCH~~
+- ~~voice '閉じてくださいましたら嬉しいです' の kudasaimashitara 残置が NO-MATCH~~
+- ~~voice '閉じるのが急所なわけです' の急所名詞尾IXが NO-MATCH~~
+- ~~voice '閉じるのが急所と存じ上げます' の急所名詞尾Xが NO-MATCH~~
+- ~~voice '閉じてくださり幸いです' の kudasari 残置が NO-MATCH~~
+- ~~voice '閉じるのが急所と考えております' の急所名詞尾XIが NO-MATCH~~
+- ~~voice '閉じてくださったでしょうか' の kudasatta 残置が NO-MATCH~~
+- ~~voice '閉じるのが急所に存じ上げます' の急所名詞尾XIIが NO-MATCH~~
+- ~~voice '閉じてもらうのが一番です' の morau 名詞尾Vが NO-MATCH~~
+- ~~voice '閉じるのが急所と言います' の急所名詞尾XIIIが NO-MATCH~~
+- ~~voice '閉じるのが急所かと思い上げます' の急所名詞尾XIVが NO-MATCH~~
+- ~~voice '閉じてくださるようお願いします' の kudasaru-you 残置が NO-MATCH~~
+- ~~voice '閉じるのが急所と考え上げます' の急所名詞尾XVが NO-MATCH~~
+- ~~voice '閉じてくださるなら幸いです' の kudasaru-nara 残置が NO-MATCH~~
+- ~~voice '閉じるのが急所かと心得ております' の急所名詞尾XVIが NO-MATCH~~
+- ~~voice '閉じるのが急所と見受けられます' が help 誤ルート~~
+- ~~voice '閉じるのが急所と思われます' の急所名詞尾XVIIが NO-MATCH~~
+- ~~voice '閉じてもらうと助かります' の morau-to 残置VIが NO-MATCH~~
+- ~~voice '閉じるのが急所という見解です' の急所名詞尾XVIIIが NO-MATCH~~
+- ~~voice '閉じてくださいますれば幸いです' の kudasaimasureba 残置が NO-MATCH~~
+- ~~voice '閉じるのが急所と確信しています' の急所名詞尾XIXが NO-MATCH~~
+- ~~voice '閉じるのが急所と認識しています' の急所名詞尾XXが NO-MATCH~~
+- ~~voice '閉じてもらったら幸いです' の morattara 残置が NO-MATCH~~
+- ~~voice '閉じるのが急所と考察します' の急所名詞尾XXIが NO-MATCH~~
+- ~~voice '閉じるのが急所と断定します' の急所名詞尾XXIIが NO-MATCH~~
+- ~~voice '閉じるのが急所と主張します' の急所名詞尾XXIIIが NO-MATCH~~
+- ~~voice '閉じるのが急所と推奨します' の急所名詞尾XXIVが NO-MATCH~~
+- ~~voice '閉じるのが急所と進言します' の急所名詞尾XXVが NO-MATCH~~
+- ~~voice '閉じるのが急所と提案します' の急所名詞尾XXVIが NO-MATCH~~
+- ~~voice '閉じるのが急所という所見です' の急所名詞尾XXVIIが NO-MATCH~~
+- ~~voice 'you could probably|conceivably|potentially' の中置副詞が NO-MATCH~~
+- ~~voice 'do you think you could conceivably|probably|potentially' の副詞挿入が NO-MATCH~~
+- ~~voice 'do you think you would|might be able to' の think-able 枠が NO-MATCH~~
+- ~~voice 'would you be a dear|an angel|a love|a pal|a sport|a darling to' の be-a-X 枠が NO-MATCH~~
+- ~~voice 'might|may you be so kind|good|sweet|gracious to' の might-so 枠が NO-MATCH~~
+- ~~voice 'would you kindly|please be so kind|good to' の入れ子前置が NO-MATCH~~
+- ~~voice 'could you be so good|sweet|lovely|gracious|nice to' の could-so-Adj 枠が NO-MATCH~~
+- ~~voice 'would you be so sweet|lovely|gracious|nice to' の so-Adj-to 枠が NO-MATCH~~
+- ~~voice 'id be much|deeply obliged to' の obliged-to 短縮枠が NO-MATCH~~
+- ~~voice 'i would be much|deeply obliged to' の obliged-to 自発枠が NO-MATCH~~
+- ~~voice 'id be most happy|glad|delighted|pleased|willing|ready to' の id-most 枠が NO-MATCH~~
+- ~~voice 'i would be most happy|glad|delighted|pleased|willing|ready to' の most-X-to 枠が NO-MATCH~~
+- ~~voice 'id be ever so happy|glad|delighted|pleased|willing|ready to' の ever-so 自発枠が NO-MATCH~~
+- ~~voice 'id be only too happy|glad|delighted|pleased|willing|ready to' の id-only-too 枠が NO-MATCH~~
+- ~~voice 'i would be only too happy|glad|delighted|pleased|willing|ready to' の only-too 枠が NO-MATCH~~
+- ~~voice 'id be more than happy|delighted|pleased|glad|willing|ready to' の強調自発枠が NO-MATCH~~
+- ~~voice 'i would be happy|delighted|pleased|glad|willing|ready to' の自発枠が NO-MATCH~~
+- ~~voice 'if you would be so good|kind enough as to' の重丁寧枠が NO-MATCH~~
+- ~~voice 'i would not mind|object if you closed it' の同意枠が NO-MATCH~~
+- ~~voice 'i would prefer|appreciate if you closed it' の希望枠が NO-MATCH~~
+- ~~voice 'i would love|like for it to be closed' の for-it 目的格が NO-MATCH~~
+- ~~voice '閉じるのが急所だと思うんです' の急所名詞尾VIIが NO-MATCH~~
+- ~~voice 'i would be much|deeply obliged if youd' の obliged 変体IIが NO-MATCH~~
+- ~~voice 'i would be ever so grateful|obliged if youd' の重感謝枠IIが NO-MATCH~~
+- ~~voice 'could you conceivably' の推測枠が NO-MATCH~~
+
+- ~~voice 'would you be opposed|averse|reluctant to' の反対枠が NO-MATCH~~
 - ~~voice 'would|might you be inclined|willing to' の意向枠が NO-MATCH~~
 - ~~voice 'i wonder if you would mind|i am wondering if you could' の wondering 変体が NO-MATCH~~
 - ~~voice 'may i implore|request you to' の懇願枠が NO-MATCH~~
