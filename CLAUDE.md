@@ -1720,8 +1720,8 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 283
 
+### Session 283
 - 🐛 誤ルート: '閉じてくれませんものか'（依頼）が negate 誤ルート → `ものか` lookbehind に `ません` 追加。
 - ✨ JA: てくれません残置（かねぇぇ/ものか）・dict急所名詞尾II（のが急所ですか/核心だね/肝心です/急所かな/要諦でしょう/勘所だね）→ 実行。
 - ✨ EN XCII: 'would|might you be inclined|willing|disposed to' + be-X-to 残置 → 実行（'would you care to|be amenable to' は既ルート緑）。
