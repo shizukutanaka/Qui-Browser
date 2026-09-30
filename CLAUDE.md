@@ -1720,8 +1720,24 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 254
+### Session 260
+### Session 258
 
+- ✨ JA: てちゃって/てじゃって残置（ちゃってね・ちゃってよ・じゃって・じゃってよ — CHA 層に併合）・てくれ方言残置（くれぞ・くれわ・くれが）・dict心がけ名詞尾（のが心がけだ・心掛けだ・心得です・心持ちだ・気構えだ・覚悟です）→ 実行。
+- ✨ EN LXIX: 'while|since youre in there'・'as long as youre at it' 前置 → 実行。
+- ✅ tests/while-in-there-atoms.test.js +25（実装前15件赤確認）、計12968全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 259
+- ✨ JA: ておくんや関西残置（おくんや・おくんやで・おくんですから）・dict手筈名詞尾（のが手はずです・手筈だ・筋書きだ・手順書だ・決まりごとだ・決まりだ）→ 実行。
+- ✨ EN LXVIII: 'when you get a free moment|second' 前置 → 実行（'when you get a moment/second/minute/chance' は既ルート緑）。
+- ✅ tests/free-moment-atoms.test.js +24（実装前11件赤確認）、計12943全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 258
+- ✨ JA: てみるわ・てもろうて残置（みるわよ・みるわね・みたらどうかね・みたらどうかなあ・もろうてええか）・dict件名詞尾（のが件だ・件です・件につき・話だ・話です・お話だ）→ 実行。
+- ✨ EN LXVII: 'id be much obliged|in your debt|most grateful if youd'・'youd have my gratitude if youd'・'id thank you kindly|take it kindly if youd' 前置 → 実行。
+- ✅ tests/gratitude-if-atoms.test.js +25（実装前17件赤確認）、計12919全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 257
 - ✨ JA: てくださいゃ・てほしくて残置（くださいましょうか・くださいませね・くださいなし・ほしくてね・ほしくてな・ほしくてならないのです）・dict理名詞尾（のが理だ・理義だ・筋目だ・良識だ・判明だ）→ 実行。
 - ✨ EN LXVI: 'herewith'/'hereby'・'i hereby instruct/direct you to'・'i instruct/direct you to'・'i bid you' 前置 → 実行。
 - ✅ tests/hereby-atoms.test.js +25（実装前18件赤確認）、計12894全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
@@ -1731,7 +1747,7 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 - ✨ EN LXV: 'out of respect for me'・'out of deference to me'・'out of courtesy to me'・'as a courtesy to me'・'in deference to my wishes'・'in consideration of me' 前置 → 実行。
 - ✅ tests/deference-atoms.test.js +24（実装前18件赤確認）、計12869全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
 
-### Session 255
+### Session 254
 - 🐛 先食い: ENPRE 裸 `do`（filler語クラス）が 'do us both a favor and' を先食い → 長形を同行の `do` 前方に配置して最長一致。
 - ✨ JA: しまえば・てまえ残置（しまえばいいよ・しまえば良いではないか・しまったらどうですかね・てまえよ）・dict仕事名詞尾（のが済ませ物だ・仕事だ・用だ・用事だ・仕事です・頼みだ）→ 実行。
 - ✨ EN LXIV: 'do us both a favor and'・'grant/confer upon me the favor and' 前置 → 実行。
