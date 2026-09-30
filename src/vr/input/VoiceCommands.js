@@ -3493,7 +3493,7 @@ export class VoiceCommands {
         /と思ったのに[。！？!?]?$/, /てもまだ.*ない[。！？!?]?$/, /どころか[。！？!?]?$/,
         /[てで]ばっかり(?:だ|です|なん|なんだ|なの)?[。！？!?]?$/, /はずがまだ/, /はずなのにまだ/,
         /閉じ(?:た|てある|ている)と思っ?(?:た|てた|ていた)(?:けど|のに)?[。！？!?]?$/,
-        '閉じそびれた', '閉じそびれたよ', '閉じ残した', '閉じてなかった',
+        '閉じそびれた', '閉じそびれたよ', '閉じ残した', '閉じてなかった', '閉じてないまま', '閉じてないままだ',
         '勝手に閉じる', '勝手に閉じられた', '自動で閉じた', '急に閉じた',
         'いきなり閉じた', '勝手に消えた', '勝手に閉じてきた', 'it crashed again',
         'really slow', 'super slow', 'pretty slow', 'very slow', 'way slow',
@@ -5666,6 +5666,11 @@ export class VoiceCommands {
         '言った通り閉じろ', '言う通りに閉じろ', '言ったように閉じろ', '言う通り閉じて',
         '頼んだ通り閉じろ', '注文通り閉じろ', '言われた通りに閉じろ',
         'もういいから閉じろ', 'ええから閉じなさい', 'もういいから閉じなさい',
+        // pass CCLXXII: vocative commands + JA present-tense forgot reports
+        'dear close it', 'love close it', 'honey close it', 'sweetie close it',
+        'pal close it', 'chief close it', 'boss close it', 'sport close it', 'champ close it',
+        'おい閉じろ', 'おい閉じて', 'こら閉じろ', 'こら閉じて', 'やあ閉じて', 'よう閉じて', 'よお閉じて',
+        '閉じ忘れてる', '閉じ忘れてるよ', '閉じるのを忘れてる', '閉じるの忘れてる',
         // pass CCLXVIII: demand/court-order frames (i {want,need,demand,order,command,decree,require,expect} OBJ {closed,gone,dead,...}; court/bench verdicts; stands condemned; outlawed/recalled declaratives)
         'i command it closed', 'i command it dead', 'i command it destroyed', 'i command it discarded',
         'i command it eliminated', 'i command it ended', 'i command it erased', 'i command it finished',
@@ -17337,7 +17342,7 @@ export class VoiceCommands {
     );
     const goToEn = new RegExp('^(?:open|go(?:\\s+to)?(?!\\s+forth\\b)|navigate to|fire up|pull up|bring up|open up)\\s+' +
         '(?!the (?:top|bottom|home|end|beginning|dev tools|devtools|downloads?|trash|dock)\\b|top\\b|bottom\\b|' +
-        'home\\b|end\\b|beginning\\b|back\\b|settings\\b|to\\b|forward\\b|up\\b|down\\b|away\\b|off\\b|here\\b|there\\b|now\\b|ahead\\b|right\\b|for\\b|on\\b|' +
+        'home\\b|end\\b|beginning\\b|back\\b|settings\\b|to\\b|forward\\b|up\\b|down\\b|away\\b|off\\b|here\\b|there\\b|now\\b|ahead\\b|right\\b|for\\b|on\\b|huh\\b|i see\\b|' +
         'inside\\b|outside\\b|tabs\\b|devtools?\\b|dev tools\\b|downloads?\\b|' +
         'inspect(?:ing)?\\b|source\\b|finder\\b|explorer\\b|file\\b|task\\b|' +
         'trash\\b|spotlight\\b|dock\\b|launchpad\\b|live\\b|' +
@@ -17998,6 +18003,10 @@ export class VoiceCommands {
         'where did the tab go', 'what happened to the tab', 'where is my tab',
         'why is it still open', 'why is the tab still open', 'its still there',
         'how come its open', 'how come it is open', 'how come the tab is open', 'how come its still open',
+        'still open huh', 'still there i see', 'still up i see', 'open i see', 'open huh',
+        'i see its still open', 'i see its open', 'its open i see',
+        'you left it open', 'you left the tab open', 'left it open again',
+        '開きっぱなしのままだ', '開きっぱなしのままだった',
         'it hasnt been closed yet', 'it has not been closed yet','it remains open', 'its yet to be closed', 'it is yet to be closed','the tab remains open',
         'the tab is still there', 'why is it still there', 'it keeps coming back',
         'was it open', 'is it gone', 'its back', 'it came back',
@@ -20613,7 +20622,7 @@ export class VoiceCommands {
         'let it stay open', 'let it keep going', 'let it run',
         'let it sit', 'let it hang',
         '閉じないままおく', '閉じないでおく',
-        '閉じずにいる', '閉じずにいるつもり',
+        '閉じずにいる', '閉じずにいるつもり', '閉じないでいる', 'kept it open', 'kept the tab open',
         'change of plans', 'forget this', 'think about it later',
         'もうやだ', 'いやだ', 'やだ', '嫌だ', 'もういいのか', 'もういいかな',
         /んと(?:いて|く|きましょう|いてね)[。！？!?]?$/u,
