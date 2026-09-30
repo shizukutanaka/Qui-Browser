@@ -1720,6 +1720,32 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 178
+
+- ✨ 受益・依頼複合尾の完成形 (TAIL_TE II): `(て|で)(くれ|くれればいい|くれさえすれば|さえくれれば|くれよお|くださると.*|もらえ.*|いただ.*|ほしい.*|もいいんですか?|も大丈夫ですか?|よお)` — '閉じてくれよお'/'閉じてほしいわー'/'閉じてくださると助かります'/'閉じてもらえますでしょうか'/'閉じていただくことはできますか'/'閉じてさえくれれば'→close-tab。`たら(どう|いかが)` 提案尾 stemTe（'閉じたらいかがですか'→close-tab）。
+- ✨ 義務・必要尾 (IKE II): `ないとまずい|なきゃまずい|なくてはまずい|ないと困る|なきゃ困る|ないとやばい|なきゃやばい|ないとだめだ|なきゃだめだ` + `んだ/んです/んだよ` コーダ（'閉じないとまずい'→close-tab）。`て形+(さえしてくれれば|さえすれば|すればいい|さえして|なよね|ないでどうする|なくてどうする|ずにどうする)` 尾。
+- ✨ 前置・引用の残弾: HP 'あのね/ねえ/そういえば/いいから/いい加減|この場で|今'。QUOTE '言ってる/言ってんのに/言ったじゃん/言ったでしょ/言ってくれ'。pushes `よお|ってばよ|ってよ|だって`。
+- ✨ EN 前置連鎖の宣言・強調層: 'i told you to|i asked nicely|didn't i say|for the last time|i'm gonna|i gotta|i hafta|i'd like to|allow me to|may i please|might i|for goodness/heavens/gods sake|jesus|god|ffs|come on|c'mon|like|you know|i mean|sort of|kind of|basically|actually|literally|seriously|honestly|frankly|really|definitely|absolutely|totally|be a doll and' — ENPRE 二重適用で 'god just close it'/'may i please close it' の積層前置詞を剥がし、'do (us|me|everyone)( all)? a favor' を 'do' より先置き。
+- ✨ EN 尾剥がしII: タグ質問 `(would|will|won't|can't|could|can|might|shall|must) (you|ya|we)` + `immediately|right away|this instant|at once`。
+- ✨ 新規誠実不在アトム `screen-record`: '画面を録画して'/'配信して'/'ライブ配信'/'画面共有して' + EN record/livestream/share-screen → 「録画・配信・画面共有はこのブラウザにありません」（'キャプチャして'→screenshot は維持）。
+- ✨ 原子拡充: mute-status did/get 系・vr-exit 'leave fullscreen'・defer '明日/tonight/later today'・working-status did-it/still 系・ack thank-you/lifesaver・privacy-clean クリップボード・window-state half/quarter/tile/cascade/arrange・device-apps OSアプリ（finder/explorer/task manager/trash/spotlight/dock/launchpad/desktop/clipboard history）・describe-tab still-open/did-it-open + JA閉じ系・reader-progress halfway/読み終わった・speaking-status まだ読んでるの・bookmark-status 保存できた・negate もういい・read-aloud read the text/words/content/body/main・trouble JA苦情尾+ffs裸化。
+- 🐛 実害修正: trouble の `/^ffs\b/` が 'ffs close it' を raw パスで奪取 → `/^ffs[.!?]?$/i` 裸のみ。refresh（早期登録1506行）の `/reload$/` が 'did it reload' を working-status から奪取 → `(?<!did |has |is |it )` 後読み。意志形マップ `ろ→って` が '閉じたろ'→'閉じたって' を生成し describe-tab へ誤ルート → `(?<![ただ])ろ` で 'たろ/だろ' 除外（559行目の `たろ→て` 規則へ委譲）。defer `/^明日(?!の)/` が '明日は何日' を奪取 → `(?!の|は)`。
+- ✅ tests/quotative-status-atoms.test.js +293（実装前の13件赤 + 途中回帰を全消化）、計8254全緑・lint 0エラー（警告137=baseline）・build green・FFFD 0件。
+
+### Session 177
+
+- ✨ 許可・敬語尾の実行化 II: て形+`も構いません/もよろしい/差し支え/もよい/ええよ/くれぬか/くれへんの/くださいますか/ほしいの`（TAIL_TE 拡張 — '閉じても構いません'→close-tab）。dict+`のがいい/のはどう`→dictTe（'閉じるのはどう'→close-tab）。`んか` 西部依頼（一段 stemTe + 五段 NAKYA: '読まんか'→'読んで'）。
+- ✨ 義務否定の実行化（IKE 層）: `なきゃいけない/ないといけない/なければいけない/ないとダメ/ねばならない/んといかん` 尾を五段は NAKYA・一段はて形へ（'閉じなきゃいけない'→close-tab、'読まなきゃいけない'→read-aloud）。
+- ✨ EN 許可疑問→help（実行しない）: `/^(?:could|should|shall|would) i\b/` + 'is it ok/okay/alright to' — 'could i close it'→help（R97 設計の can i / do i 系と整合）。
+- ✨ EN 礼儀・へッジ前置詞II: 'would you mind awfully/terribly'、'be a dear and'、'i beg you to'、'for the love of god'、'pretty please with a cherry on top' を剥がし。
+- ✨ 故障・不満質問→trouble: JA `なんで/どうして~ないんだけど/ないの`、EN 'why wont/didnt/isnt it' + 'screw this'/'grr'/'bleh'/'dang it'/'dammit'/'gosh darn' 系。
+- ✨ 挨拶・反応→ack: JA おはよう/こんにちは/こんばんは/はじめまして/元気/ひさしぶり/そういうこと/いいの/ラジャー/オッケーです、EN good morning/evening/howdy/hey there + 俗語肯定（cool beans/rad/epic/legendary/much obliged/thanks a million/cheers mate/ta/np/yw）+ 呼びかけ（my dude/bro/dude）+ 反応（seriously/for real/no shot→negate? いや no shot は negate、alright then/fine/chill→ack）。アンカー済み正規表現を2分割で max-len 遵守。
+- ✨ リーダー・ブラウザ原子拡充: reader-size-up 'bigger please/larger text'、read-aloud 'read it to me/read the whole thing'、resume-reading 'where was i/lost my place'、read-here 'その続き'、reader-progress 'あと半分/あと一ページ/残りあと少し/もう読んだ/読書中'、repeat-command 'do over/encore'、bookmark-page 'bookmark it/remember this/stash it'、screenshot 'capture this'、download 'open my downloads'+(export/import bookmarks)、device-apps 'アンインストール/ホーム画面に追加/add to home screen/install it'、account 'sign me out/log me in'、privacy-clean 'Cookie消して/clear my cache'、stop-everything 'emergency stop/abort'、close-tab 'nuke it/ax it/put it away'、vr-exit 'close the whole thing'。
+- ✨ 新規誠実不在アトム `devtools`: 'view source'/'inspect element'/'devtools'/'開発者ツール'/'要素を検証' → 「開発者ツールはこのブラウザにありません」。goToEn に devtools/downloads/on/source/inspect 除外を追加し 'open devtools'/'open my downloads'/'go on then' のリテラルナビゲート誤ルートを封殺。
+- 🐛 修正: `も構い` が 'も構わない'（構わ）と不一致で MISS → `も構.*|もかま.*` 化（構いません/構わない両対応）。'あとちょっと'/'あとどのくらい' が reader-progress に奪取 → 登録順で先勝ちの remaining-time へ戻し（既存テスト維持）。
+- ✅ tests/permission-report-atoms.test.js +186（実装前154件赤確認）、計7961全緑・lint 0エラー（警告137=baseline）・build green・FFFD 0件。
+
+
 ### Session 176
 
 - ✨ 状態報告・拒否原子 (pass LVI): ておきます/なさいますか/いただきたく/させていただければ の残置・敬語尾を実行化。引用命令 '閉じろと言った'/'閉じてって言った'（引用尾剥がし→再帰）、関西 'てはよ'、'てったら'、'早よ' 開放子、裸 ろ命令 stemTe。
