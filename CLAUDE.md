@@ -1720,10 +1720,61 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 263
-### Session 262
-### Session 260
+### Session 273
+### Session 271
+### Session 267
 
+- 🐛 誤ルート: '閉じてほしいものかな'（希望形）が negate の `ものかな?$` にヒット → lookbehind に `ほしい` 追加（'閉じるものか' 否定ピン維持）。
+- ✨ JA: てくるのがいい・くるべきだ・くる方向だ残置。dict好機名詞尾（のが絶好だ/恰好だ/好機だ/機会だ/潮時です/旬だ）→ 実行。
+- ✨ EN LXXXII: 'wed be grateful|appreciate it|we would be grateful|appreciate it|most grateful|ever so grateful if youd' 前置 → 実行。
+- ✅ tests/wed-be-grateful-atoms.test.js +24（実装前16件赤確認）、計13280全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 272
+- ✨ JA: ておけば大丈夫です・おけば間違いない・おけば正解だ残置。dict体面名詞尾（のが格だ/格式だ/体だ/体面だ/面目だ/意地だ）→ 実行。
+- ✨ EN LXXXI: 'id (really |truly |surely )?appreciate it if youd' 前置 → 実行（if you would|could は既ルート緑）。
+- ✅ tests/appreciate-it-atoms.test.js +24（実装前13件赤確認）、計13256全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 271
+- ✨ JA: ておくに限ります・おくのが得になる・おくべきですか残置。dict本道名詞尾（のが源流だ/本筋です/本道だ/正道だ/真っ当だ）→ 実行。
+- ✨ EN LXXX: 'how say you'・'what do ya say we' 前置 → 実行（what say we/say we/whaddya say we は既ルート緑）。
+- ✅ tests/say-we-atoms.test.js +24（実装前10件赤確認）、計13232全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 270
+- ✨ JA: てしまうのが最善・しまうのが得策残置。dict恒例名詞尾（のが恒例だ/習わしだ/慣習です/しきたりだ/お約束だ/仕来りだ）→ 実行。
+- ✨ EN LXXIX: 'id be grateful|thankful|appreciative|so grateful|mighty grateful|real grateful if youd' 前置 → 実行。
+- ✅ tests/id-be-grateful-atoms.test.js +24（実装前14件赤確認）、計13208全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 269
+- ✨ JA: てみたほうがいいかも・みるのがいいかも・みるのもいいかも残置。dict信念名詞尾（のが信念だ/信条です/主義だ/宗旨だ/所信だ/譲れない線だ）→ 実行。
+- ✨ EN LXXVIII: 'could i trouble you for a' 前置 → 実行（trouble you to 系は既ルート緑）。
+- ✅ tests/trouble-you-atoms.test.js +24（実装前10件赤確認）、計13184全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 268
+- ✨ JA: ておくのが吉だ・おくのが得だ・おくのが上策だ残置。dict配慮名詞尾（のが気遣いだ/配慮だ/心配りだ/思いやりだ/優しさだ/親切だ）→ 実行。
+- ✨ EN LXXVII: 'would you be gracious|sweet|nice|lovely enough to' 前置 → 実行（kind|good enough は既ルート緑）。
+- ✅ tests/sweet-enough-atoms.test.js +24（実装前13件赤確認）、計13160全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 267
+- ✨ JA: てくれませんかねえ・くれませんの残置。dict利益名詞尾（のが利益だ/便宜だ/便益だ/徳だ/好都合だ）→ 実行。'is it possible to X it' は help ピン確立済みのため維持。
+- ✅ tests/is-it-possible-atoms.test.js +24（実装前8件赤確認）、計13136全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 266
+- ✨ JA: ておくのを忘れ報告 → 語幹忘れstrip で実行化（のを忘れ辞書strip拡張 + ておくのを忘れ語幹strip）。ておくと良かった・おくんだったわ残置。dict礼式名詞尾（のが礼式だ/敬意だ/義理だ/道義だ/礼儀です 等6形）→ 実行。
+- ✨ EN LXXV: 'id be obliged|honored|thrilled|delighted|chuffed|tickled pink if youd' 前置 → 実行。
+- ✅ tests/tickled-pink-atoms.test.js +24（実装前15件赤確認）、計13112全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 265
+- ✨ JA: てくださいよお・てしまおう残置（しまおうぞ・しまおうね）・dict裁量名詞尾（のが任意だ/随意だ/裁量だ/自由だ/お任せだ/一任だ）→ 実行。
+- ✨ EN LXXIV: 'if you could bring yourself to/manage to'・'if youd be kind|good enough to' 前置 → 実行。
+- ✅ tests/free-discretion-atoms.test.js +24（実装前13件赤確認）、計13088全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 264
+- 🐛 誤ルート: '閉じるのが進め方だ' → navigate（名詞 '進め方' にヒット → lookahead に `方` 追加、2箇所）。
+- ✨ JA: てもいいか残置（もいいかしらね・もいいかなって）・dict流儀名詞尾（のが流儀だ/です・やり甲斐だ・仕方だ・遣り方だ・進め方だ）→ 実行。
+- ✨ EN LXXIII: 'if youd be so kind|good as to'・'if youd be a dear|angel|love|pal and' 前置 → 実行。
+- ✅ tests/be-a-pal-atoms.test.js +24（実装前14件赤確認）、計13064全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 263
 - ✨ JA: ておくのも残置（おくのも手かも・おくのもありかと・おくのもいいかもしれん）・dict必須名詞尾（のが必須だ/です・必要だ/です・必然だ・不可欠だ）→ 実行（'ていただくという形で/いただくようお願いする' は既ルート緑）。
 - ✨ EN LXXII: 'ill thank you kindly if you' 前置 + 'thank you|thanks kindly for closing it'・'thanking you in advance for closing it' スワップ → 実行。
 - ✅ tests/thank-you-kindly-atoms.test.js +24（実装前13件赤確認）、計13040全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
@@ -1763,7 +1814,7 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 - ✨ EN LXV: 'out of respect for me'・'out of deference to me'・'out of courtesy to me'・'as a courtesy to me'・'in deference to my wishes'・'in consideration of me' 前置 → 実行。
 - ✅ tests/deference-atoms.test.js +24（実装前18件赤確認）、計12869全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
 
-### Session 254
+### Session 255
 - 🐛 先食い: ENPRE 裸 `do`（filler語クラス）が 'do us both a favor and' を先食い → 長形を同行の `do` 前方に配置して最長一致。
 - ✨ JA: しまえば・てまえ残置（しまえばいいよ・しまえば良いではないか・しまったらどうですかね・てまえよ）・dict仕事名詞尾（のが済ませ物だ・仕事だ・用だ・用事だ・仕事です・頼みだ）→ 実行。
 - ✨ EN LXIV: 'do us both a favor and'・'grant/confer upon me the favor and' 前置 → 実行。
