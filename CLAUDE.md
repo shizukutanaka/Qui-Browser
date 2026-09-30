@@ -1720,6 +1720,19 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 197
+
+- ✨ 受益尾XV: TAIL_TE — '閉じてくれますの/くださるかな'、'閉じてほしいんだよね/のよ/ところです'、'閉じてもらいたいんだ/ところ'、'閉じてもらえると助かる/ありがたい'、'閉じてくれてもいいんです/かまいません'、'閉じてもらっちゃおう/つもり/予定'、'閉じておきたいところ/おくことにする/おきましょうかね' → 実行。
+- ✨ dict提案・方針残置: FR VII — '閉じるのもいいんじゃない/ことにしておく(こう)/のが無難だ/定石だ/賢明だろう/常套手段だ/セオリーだ/本筋だ/筋だと思う/ほうが無難/という選択もある/という手がありますね/のも検討事項だ/ことも視野に入れて/ようにしてくださいね/ようにお願いね/としておく/こととする/でよろしいか' + 方針語彙 '方向で(いこう)/系で/感じでいこう/案で/プランで/作戦で' → 実行。
+- ✨ ちゃ残置II: '閉じちゃうのもありか/方向で/べきかも/のが正解'・'閉じちゃえば済む話/いい話'・'閉じちゃって結構です/よろしい'（じゃ対応は で 変換）。
+- ✨ とく残置II: '閉じとくのがいい/つもり/ときなさいよ/とけばいい/といてほしいんだ/もらいたい/もらえると/とこうかなと思って' → て（ど列→で）。
+- ✨ EN hedged-report残置: 'i was (kinda) hoping/had hoped/would have thought/expected you to/assumed you would/supposedly|apparently|presumably|obviously|surely you can' + 後置タグ 'i was thinking/hoping/wondering/thought/guess' + 敬意枠 'do the honors/honours and'/'have the courtesy/decency to'/'extend (me) the courtesy of'/'grant/afford me the favor of'/'oblige me by'/'humor me and'。
+- ✨ EN gerund主語スワップ: 'the tab closing would help'/'it closing would help'/'getting it closed would be nice' → gerund/past→stem変換 + 主客体交換。'i need it/this/that closed' → 'close it'（ENPRE need/want剥がし + 既存swapの having/getting 拡張）。
+- 🐛 回帰消化: help の `/のが正解(?:かな|か|ですか)?$/` が '閉じちゃうのが正解' を先勝ち奪取 → `(?<!ちゃう)(?<!じゃう)` lookbehind で実行経路を保全（'のが正解かな' の help ピン維持）。
+- ✨ リテラル: reader-progress に 'まだ読んでる途中'/'読み途中'/'途中まで読んだ'/'ここ読んでる'/'今読んでるとこ'/'読んでる途中'、describe-tab に 'このページ見せて/見て'/'ページの内容教えて'/'閉じる寸前'/'閉じるところです'。'読みかけ' は resume-reading 既存ルートを確認してピン。
+- ⚠️ 教訓: リテラル string は完全一致のみ — '読みかけ' のような曖昧形は実行系コマンドのリテラルが先勝ちし得る（test で実測ピン推奨）。
+- ✅ tests/benefactive-tail-atoms.test.js +117（実装前86件赤確認）、計10570全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
 ### Session 196
 
 - ✨ 受益残置尾: TAIL_TE XIV — '閉じてくれるんだけど/んだよね'、'閉じてくれたっていい'、'閉じてもらうんだ/んだけど/ことになって'、'閉じてやるから/あげるから'、'閉じてくださったなら'、'閉じてくれさえすればいい/くれりゃいい/くれたなら/くれればいいのに' → 実行。

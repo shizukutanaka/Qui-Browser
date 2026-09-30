@@ -133,6 +133,12 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 エラーではなく、明示的にオフにしたユーザーの選択は永続値が勝つ。**戻すのは1行**だが、
 戻す者は上記4条件のどれが再発したかを言えること（`tests/vr-app-wiring.test.js` がこの既定を固定）。
 
+- ~~voice '閉じてくれますの'/'閉じてほしいんだよね'/'閉じてもらえると助かる'/'閉じてくれてもいいんです'/'閉じてもらっちゃおう'/'閉じておきたいところ'/'閉じておきましょうかね' の受益残置尾が NO-MATCH~~ — **Session 197 で実装**（TAIL_TE XV）
+- ~~voice '閉じるのもいいんじゃない'/'閉じるのが無難だ'/'閉じるのがセオリーだ'/'閉じるという選択もある'/'閉じるとしておく'/'閉じるでよろしいか'/'閉じる方向でいこう'/'閉じる案で'/'閉じる作戦で' のdict提案・方針残置が NO-MATCH~~ — **Session 197 で実装**（FR VII）
+- ~~voice '閉じちゃうのもありか'/'閉じちゃえば済む話'/'閉じちゃって結構です'/'閉じとくのがいい'/'閉じときなさいよ'/'閉じとこうかなと思って' のちゃ/とく残置が NO-MATCH~~ — **Session 197 で実装**（ちゃ/とく push 拡張）
+- ~~voice 'i was hoping/kinda hoping/had hoped/would have thought you could'、'supposedly/apparently/presumably/obviously you can'、'do the honors and'、'have the courtesy to'、'extend/grant/afford me the courtesy/favor of'、'oblige me by'、'humor me and' が NO-MATCH~~ — **Session 197 で実装**（ENPRE VI）
+- ~~voice 'closing it would be great'/'having it closed would help'/'the tab closing would be ideal'/'i need it closed'/'i want that closed' の gerund/受動残置が NO-MATCH~~ — **Session 197 で実装**（gerund主語スワップ + having/getting 拡張）
+- ~~voice 'まだ読んでる途中'/'読み途中'/'ここ読んでる'/'読みかけ'/'このページ見せて'/'ページの内容教えて'/'閉じる寸前' が NO-MATCH~~ — **Session 197 で実装**（reader-progress/describe-tab リテラル）
 - ~~voice '閉じてくれるんだけど'/'閉じてくれたっていい'/'閉じてもらうんだ'/'閉じてもらうことになって'/'閉じてやるから'/'閉じてくださったなら'/'閉じてくれさえすればいい'/'閉じてくれりゃいい'/'閉じてくれたなら'/'閉じてくれればいいのに' の受益残置尾が NO-MATCH~~ — **Session 196 で実装**（TAIL_TE XIV）
 - ~~voice '閉じるといいですよ'/'閉じるがよかろう'/'閉じるんじゃないかな'/'閉じるのも悪くない'/'閉じる以外ない'/'閉じるのが一番だ'/'閉じるに越したことはない'/'閉じるべきだろうね'/'閉じちゃうのも手だ'/'閉じちゃうしかないか'/'閉じちゃったほうが早い' のdict提案・判断残置が NO-MATCH~~ — **Session 196 で実装**（FR VI + ちゃう残置push）
 - ~~voice 'i was thinking/figured/reckoned you could X'、'imagine/pretend you closed it'、'close it kind sir'、'close it would you be so kind'、'close it at your earliest' が NO-MATCH~~ — **Session 196 で実装**（ENPRE V + 語尾後置strip）
