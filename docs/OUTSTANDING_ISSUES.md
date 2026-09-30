@@ -137,6 +137,12 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice 'why dontcha close it'/"whyn't you"/'i command/order you to'/'i hereby request/ask that you'/'the move is to'/'best move is'/'be an angel and' が NO-MATCH~~ — **Session 199 で実装**（ENPRE VIII）
 - ~~voice 'close it if you could possibly'/'please sir'/"if it's not too much trouble"/"if it isn't too much to ask"/'closing it is the way to go'/'closing it would be the move' が NO-MATCH~~ — **Session 199 で実装**（EN語尾）
 - ~~voice 'デカくして'/'小さめにして'/'読み上げ止めて'/'どこ読んでる' が NO-MATCH~~ — **Session 199 で実装**（リテラル）
+- ~~voice '閉じておけ/おけよ' のておけ命令が裸 おけ 否定パターンで negate 誤ルート~~
+- ~~voice 'お閉じいたします/お閉じお願いします' のお+ます語幹謙譲命令が NO-MATCH~~
+- ~~voice 'at the earliest opportunity/next chance you get' の機会時前置枠が NO-MATCH~~
+- ~~voice '閉じてきてくれ/きなさい' のてきて方向命令が NO-MATCH~~
+- ~~voice '閉じる意向です/つもりで進める' の意図・方針名詞尾が NO-MATCH（進めるは navigate 誤ルート）~~
+- ~~voice 'if it is within your power/if that works for you' の能力・都合前置枠が NO-MATCH~~
 - ~~voice '閉じる段取りで/手はずで' の手配・段取尾が NO-MATCH~~
 - ~~voice 'if you see fit/should you feel so inclined' の適意・意向前置枠が NO-MATCH~~
 - ~~voice '閉じてしまうことを勧める/しまうことにしようか' のてしまう判定尾が NO-MATCH~~
