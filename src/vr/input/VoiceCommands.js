@@ -7115,6 +7115,7 @@ export class VoiceCommands {
         // prompts ('検索語がありません') instead of searching for the verb itself.
         /^(調べて|調べたい|調べもの|検索させて|調べてほしい|調べろ|調べなさい)$/,
         /^(google|グーグル)\s*で検索/, /で検索してほしい/,
+        /^(調べて|調べたい|調べもの|検索させて|調べてほしい)$/,
         /search (?:the web |web )?for (.+)/i,
         /web search (?:for )?(.+)/i,
         '音声検索'],
