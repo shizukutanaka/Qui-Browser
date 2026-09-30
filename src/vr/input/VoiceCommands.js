@@ -2746,6 +2746,10 @@ export class VoiceCommands {
         '声を下げて', '声を小さくして', 'ボリュームを下げて',
         'less volume', 'lower the volume', 'lower your voice',
         'turn it down a notch', 'a bit quieter', 'bit quieter', 'quieter',
+        // pass CCLXXVII
+        'ボリューム下げて', 'ボリュームさげて', '音量下げてちょうだい',
+        'turn it down a bit', 'a notch lower', 'down a notch',
+        '音ちょっと小さく', 'ちょっと下げて音量',
         'volume down', 'turn the volume down', 'lower it a bit',
         '音量をさげる', '音量を下げる', 'ボリュームを下げる', '音を下げる', '声を下げる',
         'ボリュームを小さく', 'ボリュームダウン', '音を下げて',
@@ -2906,6 +2910,8 @@ export class VoiceCommands {
       patterns: ['記事の文字を小さく', '記事を小さく', 'リーダーの文字を小さく', '記事の文字を小さくして',
         'ズームアウト', '文字を小さく', '文字を小さくして', '縮小して', 'もっと小さく',
         '字を小さく', '字を小さくして', '文字を小さめに', '字を小さめに',
+        // pass CCLXXVII
+        'ちょっと小さく', '文字ちょっと小さく',
         'フォントを小さく', 'フォントサイズを下げて', '文字サイズを下げて',
         'ズームアウトして', 'ページを縮小', '文字を縮小',
         '縮小',
@@ -5196,6 +5202,8 @@ export class VoiceCommands {
         'i want it dead', 'get rid of that', 'get it out of here', 'get it outta here',
         'tie it off', 'take the tab down', 'take the tab out', 'put the tab away', 'end it', 'end this', 'end the tab', 'end it now', 'end this thing', 'off this', 'off the tab', 'done with this', 'over this tab', 'halt it', 'cease it', 'snip it', 'snip the tab', 'chop it', 'chop the tab', 'slice it', 'murder it', 'slay it', 'smite it', 'smite the tab', 'cut the tab', 'needs to go', 'it needs to go', 'has to go', 'it gotta go', 'time for it to go', 'time to close it', 'time to close this', 'about time to close it', 'go close it', 'go and close it', 'come close it', 'bye tab', 'goodbye tab', 'goodbye to the tab', 'say goodbye to the tab', 'through with this', 'finished with this', 'finished with the tab', 'wrap the tab up', 'pack it up', 'pack it away', 'do it in', 'do the tab in', 'tear it down', 'rip it down', 'pull it down', 'put an end to it', 'put an end to this', 'put it to rest', 'lay it to rest', 'retire it', 'retire the tab', 'put it out of its misery', 'down with this tab', 'away with the tab', 'out with the tab', 'out with it', 'out with this', 'over and done with it', 'be through with it', 'be through with this', 'be through with the tab', 'be done with this', 'be done with the tab', 'get this out of here', 'get this tab out of here', 'get this thing out of here', 'get rid of it', 'get rid of this thing', 'rid me of this tab', 'dispose of it', 'dispose of this tab', 'dispose of the tab', 'toss the tab', 'toss this tab', 'yeet the tab', 'yeet this', 'get shut of it', 'get shot of it', 'destroy it', 'destroy this tab', 'destroy the tab', 'obliterate it', 'obliterate the tab', 'polish it off', 'polish this off', 'polish off the tab', 'finish it off', 'finish this off', 'finish the tab off', 'finish off the tab', 'finish this tab off', 'close it up', 'close this up', 'say bye to the tab', 'wave goodbye to the tab', 'kiss it goodbye', 'kiss the tab goodbye', 'ice it', 'ice this tab', 'ice the tab', 'smoke it', 'smoke this tab', 'smoke the tab', 'can this tab', 'can the tab', 'eighty-six it', 'eighty six it', '86 it', 'deep-six it', 'deep six it', 'nix the tab', 'scrub the tab', 'see ya tab', 'put it down', 'put this tab down', 'put the tab down', 'put this away', 'tuck it away', 'drop the tab', 'be through with this tab', 'boot it', 'boot the tab', 'eject it', 'eject the tab', 'bounce it', 'bounce the tab', 'send it packing', 'pack it off', 'kick it out', 'kick the tab out', 'roll it up', 'roll the tab up', 'fold it up', 'fold it', 'fold the tab', 'fold the tab up', 'collapse it', 'collapse the tab', 'strike it', 'strike the tab', 'strike it off', 'sack the tab', 'terminate the tab',
         'toss this', 'bin this thing', 'tuck this away', 'stash this', 'purge the tab', 'wipe this tab', 'delete this page', 'axe this one', 'zap this tab', 'chuck it out', 'toss it overboard', 'fling it out', 'hurl it out', 'sling it out', 'jettison it', 'jettison the tab', 'send it off', 'send it away', 'ship it off', 'bounce this', 'boot this', 'eject this', 'close this sucker', 'close this puppy', 'shut it for good', 'close it for good', 'be rid of it', 'good riddance to this tab', 'slam it shut', 'snap it shut', 'slap it shut', 'weld it shut', 'seal it shut', 'fold it away', 'fold this up', 'wrap this thing up', 'wrap up the tab', 'roll this up', 'deep six this tab', '86 this tab', '86 this thing', 'give it the axe', 'give it the boot', 'give it the heave-ho', 'shut it completely', 'close it entirely', 'close it fully', 'fully close the tab', 'be done with this tab', 'tear this down',
+        // pass CCLXXVII
+        'this one is done', 'im finished with this', 'done with this page',
         'sayonara tab', 'adios tab', 'ciao tab', 'ta ta tab', 'toodles tab',
         'bye bye tab', 'goodnight tab', 'night night tab', 'lights out for this tab',
         'lights out tab', 'curtains for this tab', 'curtains tab',
@@ -16392,7 +16400,9 @@ export class VoiceCommands {
         /next\s+page/i, /page\s+down/i,
         /next (article|post|part|section)/i,
         /flip (?:the |this )?page/i, /flip (?:the |this |it )?over/i,
-        /turn (the|this) page/i, /turn it over/i],
+        /turn (the|this) page/i, /turn it over/i,
+        // pass CCLXXVII
+        'page over', 'flip forward', 'めくって次', '次のページいって'],
       action: () => {
         tabManager?.getActiveTab?.()?.scrollContentPage?.(1);
         return { action: 'next-page' };
@@ -16407,7 +16417,9 @@ export class VoiceCommands {
         '前の記事', '前の記事へ', '前の記事を読んで',
         '記事を戻して', 'めくり戻して', 'ページをめくり戻して',
         /previous\s+page|prev\s+page|page\s+up/i,
-        /previous (article|post|part|section)/i, /flip back/i],
+        /previous (article|post|part|section)/i, /flip back/i,
+        // pass CCLXXVII
+        'page back', '前のページいって'],
       action: () => {
         tabManager?.getActiveTab?.()?.scrollContentPage?.(-1);
         return { action: 'prev-page' };
@@ -16489,6 +16501,8 @@ export class VoiceCommands {
         '読み上げを止める', '読み上げを終了',
         'おしゃべりを止めて', '喋らないで', 'しゃべらないで', 'しゃべるな',
         '読まないで', 'もう読まなくていい',
+        // pass CCLXXVII
+        '読むの止めて',
         '黙って', '黙れ', 'だまって', '黙りなさい', 'うるさいから止めて',
         'ナレーションを止めて', 'ナレーションをやめて', 'ナレーション停止',
         '黙読する', '黙読', '黙読したい', '黙読します', '黙読するわ', '自分で読む',
@@ -16515,6 +16529,9 @@ export class VoiceCommands {
         'ポーズして', '一時停止して', '止まって', '途中でやめて', '途中で止める',
         '読み上げを中断', '中断して', '読み上げを中断する',
         '一旦停止', '一旦止めて', 'ちょっと止めて', '一旦中断',
+        // pass CCLXXVII
+        '読み上げ一時停止', '一旦読むの止めて', 'hold the reading',
+        'hold up on reading', '読むの一休み', '読み上げとめて', 'ナレーション止めて',
         '待って', 'ちょっと待って', '少し待って', '待て', 'ちょっと待て', '待ってくれ',
         'hang on', 'hold up', 'wait up', 'wait a sec', 'one sec', 'gimme a sec',
         'hold on a sec', 'wait a moment', 'just a sec', 'hold on',
@@ -16588,6 +16605,8 @@ export class VoiceCommands {
         '読み上げを早送り', '読み上げ早送り', '読み上げを早送りして',
         '早口で読んで', '早口で', '速めで読んで', '速めに読んで',
         'faster faster', 'speed it up', 'double time',
+        // pass CCLXXVII
+        'a little faster', 'もう少し速く',
         /speak faster|talk faster/i, /speed up (speech|reading|talk)/i, 'make it faster',
         'way faster', 'much faster', 'way quicker', 'a lot faster', 'faster please',
         'too slow', 'way too slow', 'so slow', 'its too slow', 'a bit too slow',
@@ -16626,6 +16645,8 @@ export class VoiceCommands {
         'slightly slower', 'a bit slower', 'bit slower', 'way slower', 'much slower',
         'too fast', 'way too fast', 'so fast', 'its too fast', 'a bit too fast',
         'little too fast', 'slower still',
+        // pass CCLXXVII
+        'a little slower',
         'slower please', 'slow down please',
         /slow down (the )?reading/i,
         /decrease (speech|talk|reading) (rate|speed)/i, /read slower/i, /^slower$/i, /^more slowly$/i, /slow (it )?down/i,
@@ -16672,6 +16693,8 @@ export class VoiceCommands {
     this.registerCommand('find-next', {
       patterns: ['次を探して', '次の候補', '次のマッチ', '次のヒット',
         '次の検索結果', 'マッチを進めて', 'ヒットを進めて',
+        // pass CCLXXVII
+        'find the next one', 'go to next result', '次の結果', 'ひとつ次',
         /find\s+next/i, /next\s+match/i],
       action: () => {
         const r = tabManager?.getActiveTab?.()?.findNextMatch?.() || null;
@@ -16684,6 +16707,8 @@ export class VoiceCommands {
     this.registerCommand('find-prev', {
       patterns: ['前を探して', '前の候補', '前のヒット', '前のマッチ',
         '前の検索結果', 'マッチを戻して', 'ヒットを戻して', '前のヒットへ',
+        // pass CCLXXVII
+        '前のを探して', 'go back a match',
         /find\s+prev/i,
         /prev(?:ious)?\s+match/i],
       action: () => {
@@ -16770,6 +16795,8 @@ export class VoiceCommands {
       // capture re-match below without exceeding max-len.
       patterns: ['ページ内検索', 'ページ内を検索', 'ページ内で検索', '探せ', '探してみて',
         '探しろ', '検索しろ',
+        // pass CCLXXVII
+        'このページを検索', 'search in page', '文中を検索して',
         /^find$/i, /^search$/i, /^search this page$/i,
         'ページ内検索を開いて', 'ページ内検索を開く', '検索を開いて',
         '検索を開く', '検索バーを開いて', '検索バーを開く', '検索バーを出して',
@@ -16971,6 +16998,9 @@ export class VoiceCommands {
         '動画を再生', '再生して', 'ポーズ', '再生を再開して',
         'ビデオを再生', 'ビデオを一時停止', 'ビデオをポーズ', 'ビデオを再開',
         '動画をポーズ', 'ビデオを再生して',
+        // pass CCLXXVII
+        'pause the video', 'play the video', 'resume the video',
+        '動画を再生して', 'ビデオ再生', '動画一時停止',
         /pause\s+video/i, /resume\s+video/i, /play\s+video/i],
       action: () => {
         const state = onVideoToggle ? onVideoToggle() : null;
@@ -16984,7 +17014,7 @@ export class VoiceCommands {
     this.registerCommand('video-stop', {
       patterns: ['動画を止めて', '動画停止', 'ビデオを止めて', '再生を止めて',
         '動画を停止', '再生を停止', '曲を止めて', '音楽を止めて', 'メディアを止めて',
-        '映像を止めて', /stop\s+(the\s+)?video/i],
+        '映像を止めて', '動画止めて', 'ビデオ止めて', /stop\s+(the\s+)?video/i],
       action: () => {
         const stopped = onVideoStop ? onVideoStop() : false;
         this.speak(stopped ? '動画を停止します' : '再生中の動画がありません');
@@ -18207,6 +18237,7 @@ export class VoiceCommands {
         '音消して', '声を消して', '声を出さないで', '黙らせて',
         // pass CCLXXV: explicit audio-intent forms
         'make it quiet', 'ミュートにして', '消音にして', 'うるさいから消して',
+        '動画の音消して',
         '音を切って', '音を切る', 'ミュート解除して', 'ミュートを外して',
         /be quiet/i, /shut up/i, /be silent/i, /^(quiet|silence)( please)?$/i,
         '静かにお願い', '静かにお願いします', '静かにお願いね',
@@ -20578,6 +20609,7 @@ export class VoiceCommands {
         'ええよ', 'もういい', 'いいよ', 'いいから', 'もういいから', '結構です', 'もう結構',
         'もう結構です', 'もうええ', 'もうええわ', 'もうええよ', 'もういいわ', 'もういいです',
         '大丈夫です', 'もう大丈夫', 'いらない', 'もういらない', 'ほっといて', '放っといて',
+        'このタブいらない',
         'そのままで', 'そのまま', 'そのままでいい',
         '置いといて', '置いとく', '置いておいて', '置いておく', 'このまま', 'このままで',
         '読まずに', '閉じずに', '戻らずに', '進まずに', '消さずに', '開かずに', /ずに$/, /ずに(?:おいて|おきましょう|おこう|おいてね)[。！？!?]?$/,
