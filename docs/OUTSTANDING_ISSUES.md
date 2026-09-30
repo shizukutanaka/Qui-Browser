@@ -593,6 +593,11 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**'もう一度再生'/'リプレイ'/'play it again' が +10秒スキップしていた**~~ — **Session 154 で修正**: video-seek の restart 判定に もう一?回|もう一度|リプレイ|play (it )?again を追加し冒頭へシーク。
 - ~~**'what page'/'what site'・'am i online'・'whats playing'・'go offline' が未認識**~~ — **Session 154 で実装**: describe-tab（'…is this' は where-am-i 維持）/online-status/video-status/device-settings へ。
 - ~~**'clear my history'・'too small'/'make it bigger'・'im stuck'/'it froze'・'聞こえにくい' が未認識**~~ — **Session 154 で実装**: clear-history/reader-size/trouble/audio-trouble へ + panel-distance 'もうちょっと大きく'・stop-everything 'やめさせて'。
+- ~~**'go to main content'/'next landmark' が literal ナビゲート/未認識**~~ — **Session 155 で修正**: `landmarks` 誠実不在原子（go-to 前登録）→ '「目次」で見出しを確認できます'。
+- ~~**'next link'/'前のリンク'・'next field'/'テキストボックス'・'all caps'/'大文字にして'・'select all'/'テキストをコピー' が未認識**~~ — **Session 155 で実装**: links/input-methods/text-style/copy-selection 誠実応答へ。
+- ~~**'redo'/'やり直して' が未認識（undo の双子なし）**~~ — **Session 155 で実装**: `redo` 誠実不在原子 → '「元に戻して」で閉じたタブを開き直せます'。
+- ~~**'search the page for X'/'look for X' が未認識**~~ — **Session 155 で実装**: find-in-page へ EN capture 形2系。
+- ~~**'what can you do'/'command list'・'what word/letter is this'・'how is it spelled'・'what speed'・'where is the panel'・'am i at the top'・'where i left off' 等が未認識**~~ — **Session 155 で実装**: help/word-status/char-status/spell-word/speech-rate-status/recenter/reader-progress/resume-reading へ + 'quit the app'→vr-exit、'restart the app'/'reboot'→device-settings、'magnify'→reader-size-up、'拡大率'→reader-scale-status、微量スクロール形。
 
 ---
 
@@ -937,6 +942,28 @@ WCAG 3.1.1 / 3.1.2 の観点で、Phase 1 が閉じたと記録していたの�
 **修正**: 14キーを en/ja 両方に追加し3面を配線。あわせて**日本語版が実測の列幅予算に収まることを
 テストで固定**した —— 全角は 1 em なので、英語で収まる翻訳が日本語で溢れるのは
 Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928px。
+- ~~**'did i bookmark this' がブックマークをトグルし、'am i muted' がミュートをトグルし、'is the mic on' がマイクを起動していた（質問形が実行していた）**~~ — **Session 156 で修正**: bookmark-page に (?<!did i )、mute-toggle に (?!d\b)、mic-on に (?<!the )…(rophone)? を付与し各 status 系へ透過（mute-status 'ミュートしてる'/'am i muted'/'are we muted'、bookmark-status 'did i bookmark'/'have i bookmarked'/'ブックマークした'、mic-status 'mic check'）。
+- ~~**'close the tab on the right/left' がアクティブタブを閉じていた**~~ — **Session 156 で修正**: close-tab の lookahead を (?!\s*(?:\d|on\b|to\b)) 化し位置句では実行しない（誤閉じより未認識が安全）。
+- ~~**'go to my email tab'/'open X tab'/'open my settings' が go-to で literal ナビゲート**~~ — **Session 156 で修正**: goToEn lookahead に settings\b と 'tab' 語尾除外を追加 → tab-by-name へ /^(go to|jump to|open) (the |my )?(.+?) tab$/、settings-toggle へ /open (my |the )?settings/・/settings please/・/^settings$/。device-apps の /(email|mail)/ が 'open my mail tab' を奪っていたのも (?!.*\btab\b) で修正。
+- ~~**'go forward 30 seconds'/'skip ahead 30 seconds'/'jump forward 5 minutes' が navigate または NO-MATCH**~~ — **Session 156 で実装**: video-seek へ単位付き skip/jump/go forward N sec/min 形（'skip ahead 4 paragraphs' は paragraph-skip-n 維持）+ EN minutes の分計算。
+- ~~**'close the other tabs'/'close my tabs'/'close everything' が未認識**~~ — **Session 156 で実装**: close-other-tabs の /close\s+(the |all the |all )?other tabs/ 化、close-all-tabs へ /close (all )?my tabs/・/^close everything$/。
+- ~~**'take/send/bring me back'・'forward a page'/'one page forward' が未認識**~~ — **Session 156 で実装**: back へ /(take|send|bring) me back/（両コピー）、navigate へ /forward (a|one|the) page/・/one page forward/（'go forward' は (?! \d) で維持）。
+- ~~**'tell me the time'/'時計'・'whats my battery'・'version number'/'who made this'/'バージョン番号'・'when did i visit'/'have i been here'/'前に来たことある' が未認識**~~ — **Session 156 で実装**: time/battery-status/about/history-latest へ。
+- ~~**'to the top/bottom'・'go back up'・'move it closer'/'push it away'/'shrink the window'・'read this faster'/'speed it up'/'slow down'・'press enter'/'エンターを押して'・'its not working'/'cant see anything'/'見えない'/'動いてない'・'cant hear anything' が未認識**~~ — **Session 156 で実装**: scroll-top/bottom/panel-distance/speech-faster/slower/input-methods/trouble/audio-trouble へ（'can see' 系は audio-trouble でなく trouble へ）。
+- ~~**'microphone' が (raphone)? typo で未認識**~~ — **Session 156 で修正**: mic-on/mic-off/mic-status 全4箇所を (rophone)? へ。
+- ~~**'find my tab' が 'my' を検索語にしていた**~~ — **Session 156 で修正**: tab-search の term 抽出に my/the/a 単独ストップワード除外（→ 'タブの名前を言ってください' プロンプト）。
+- ~~**'reopen my last tab' が last-tab で右端タブに切り替わり、'close the tab i just closed' がアクティブタブを閉じていた**~~ — **Session 157 で修正**: reopen-tab を /reopen(?!.*\ball\b).*\btab\b/ 化 + 'bring back my tab'/'the tab i closed'/'ctrl z'/'ctrl+z' 追加、close-tab に i\b lookahead。
+- ~~**'今のタブを閉じて'/'幾つのタブ'/'違うタブ' が by-name の term 誤検索・未認識**~~ — **Session 157 で修正**: close-tab-by-name/tab-by-name の stoplist に 今|幾つ|何個|違う 追加 → close-tab/tab-status/next-tab へ。
+- ~~**'help please' が scoped-help で '「please」のコマンドは0個' と誤答**~~ — **Session 157 で修正**: scoped-help に (?!please\b)（既存 (?!me\b) と並置）→ polite 層経由で help へ。
+- ~~**'tomorrow'/'明日は何日'/'next week'/'来月'/'今年'/'whats the date' 等の相対日付が未認識**~~ — **Session 157 で実装**: date アクションが明日(+1)/明後日(+2)/来週(+7)/来月/来年/今年を計算して応答。
+- ~~**'level two heading'/'h2'/'heading level 2' が未認識**~~ — **Session 157 で実装**: `heading-level` 誠実不在原子（→'「2番目の見出し」で順番に選べます'）+ heading-select に first–tenth の EN 序数（action で単語→数値マップ）。
+- ~~**'go youtube'/'youtube に行って'/'close app'/'switch tabs'/'be quiet'/'move up'/'cancel all'/'真っ暗だ'/'最大化して'/'what should i say'/'もっと早く読んで'/'読み続ける' 等が未認識**~~ — **Session 157 で実装**: goToEn bare 'go X'（方向/ホーム語は stoplist で除外）+ goToJp 'に行って'/'へ行って' 尾、vr-exit/next-tab/mute-toggle/scroll/stop-everything/trouble/window-state/help/speech-faster/resume-reading へ各形追加。
+- ~~**'今の音量を教えて' が web-search で '音量' を検索していた**~~ — **Session 158 で修正**: volume-status の exact literal '音量を教えて' に '今の' 前置形が無かった → '今の音量を教えて'/'音量を確認'/'声の大きさ'/'音量を変えて'（数値なしの変更要求は status 応答で現量提示 — volume-set へ流すと missing digit が 0 に coerce される）追加。
+- ~~**'読み直して'/'頭から読み直して' が say-again で直前発話のリプレイのみ**~~ — **Session 158 で修正**: 読み直しは「ページを読み返す」意図 → read-aloud へ移動（'もう一度' は say-again 維持）。
+- ~~**'左側のタブ'/'もっと左のタブ'/'真ん中のタブ' が by-name でタイトル誤検索**~~ — **Session 158 で修正**: prev/next-tab に 左側/右側/もっと左/もっと右 形追加、tab-by-name stoplist に 真ん中|左側|右側|もっと → '真ん中のタブ' は誠実な NO-MATCH。
+- ~~**'わからん'/'使い方教えて'/'どうする'/'操作がわからない' が未認識、褒め句('すごい'/'いいね'/'great')が未認識**~~ — **Session 158 で実装**: help に迷子句9形、ack に感謝強形 + 褒め句（→'ありがとうございます' 応答分岐）。
+- ~~**'天気は'/'ニュースを聞かせて'/'調べて'/'検索させて'/'google で検索して' が未認識**~~ — **Session 158 で実装**: web-search に話題 alternation（天気/気温/湿度/ニュース形）+ 非 capture の裸動詞形（調べて/検索させて → '検索語がありません' プロンプト、term を動詞自身にしない）。
+- その他 fill: read-aloud '読みたい'/'読んでほしい'、first/last-tab '最初のやつ'/'最後のやつ'、text-style '文字を変えて'、reader-size-up '読みやすくして'/'見やすくして'、trouble '眠い'/'頭痛い'/'めまい'/'ふらつく'。
 
 ---
 
