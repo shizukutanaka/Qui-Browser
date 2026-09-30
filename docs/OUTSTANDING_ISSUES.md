@@ -1738,6 +1738,7 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - R284 note: `閉じんなってば` は既存 close literal 維持（方言命令 vs 禁止で曖昧 — 変更は別途判断）。
 - R285 pin: `flush it`/`hang it up`→null 維持（granular 確立: 曖昧）。`閉じてんで`→describe 不採用 — `_politeVariants` の てみ→んで 変換が 閉じてみ* close ピン21形を横取りしたため（variant 残置衝突は describe 側に限定）。
 - R286 pin: `write it off`→null 維持（granular 確立: 経理 euphemism 曖昧）。`open fire on it`→go-to 誤ルートを close 修正（'open' keyword 先勝ち → リテラル化で先勝ち固定）。`閉じるべきかと思う`→help ピン維持。
+- R290: `go easy on it`/`commute*`（mute 部分一致）/`see it through`/`stick with it`→go-to/mute-toggle/describe/resume 先勝ち（'leave the tab'/'drop it like its hot' null ピン維持・'unclose the tab'/'unshut the tab' は close 部分一致先勝ちで裸形のみ reopen）。
 - R289: `pitch it aside`/`pitch it out`→speech-pitch-status 先勝ち（'pitch' パターン・literal 化不可）・`undo it*`/`ctrl z*`→reopen-tab は正セマンティクス維持・`bail it out` rescue 両義で不採用。
 - R288: `gut it`/`fire the tab`→null 確立ピン維持（'gut the tab' は採用・'fire it' 未採用）。'cleave it*'→negate ピン（cleave は split/cling 両義）。'mute it*'→mute-toggle 正解維持。
 - R287: `call checkmate`→device-apps 先勝ち（'call' 部分一致パターンは literal より先に評価 → literal 化でも解決不可・不採用）。`stash it away for good`/`stash it permanently`→bookmark-page 誤ルートを close 修正。`畳め` 裸形のみ不採用（畳む系は close-all-tabs 所有・単タブへ混入しないよう未登録） — 実害なし。
