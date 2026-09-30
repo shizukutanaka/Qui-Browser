@@ -3492,6 +3492,8 @@ export class VoiceCommands {
         /(?<!言っ|いっ)[ただ]はず(?:だった|なのに|のに)?[。！？!?]?$/, 'it crashed on me',
         /と思ったのに[。！？!?]?$/, /てもまだ.*ない[。！？!?]?$/, /どころか[。！？!?]?$/,
         /[てで]ばっかり(?:だ|です|なん|なんだ|なの)?[。！？!?]?$/, /はずがまだ/, /はずなのにまだ/,
+        /閉じ(?:た|てある|ている)と思っ?(?:た|てた|ていた)(?:けど|のに)?[。！？!?]?$/,
+        '閉じそびれた', '閉じそびれたよ', '閉じ残した', '閉じてなかった',
         '勝手に閉じる', '勝手に閉じられた', '自動で閉じた', '急に閉じた',
         'いきなり閉じた', '勝手に消えた', '勝手に閉じてきた', 'it crashed again',
         'really slow', 'super slow', 'pretty slow', 'very slow', 'way slow',
@@ -4692,13 +4694,13 @@ export class VoiceCommands {
         '((?:(?!(?:この|その|あの)タブ).)+)のタブを閉じて'),
       new RegExp('^close (?:the )?(?!active\\b|current\\b|other\\b|all\\b|tabs\\b|this\\b|first\\b|last\\b' +
           '|the\\b|damn\\b|damned\\b|stupid\\b|bloody\\b|fucking\\b|freakin\\b|goddamn\\b|number\\b' +
-          '|every\\b|each\\b|both\\b|those\\b|these\\b' +
+          '|every\\b|each\\b|both\\b|those\\b|these\\b|da\\b|de\\b|dis\\b|dat\\b|tha\\b' +
           '|(?:' + EN_NUM + ')(?:st|nd|rd|th)?\\s+tab\\b)(.+) tab$', 'i'),
       /^close tab (?:named|called) (.+)$/i],
       action: (transcript) => {
         const enClose = new RegExp('^close (?:the )?(?!active\\b|current\\b|other\\b|all\\b|tabs\\b|this\\b|first\\b|last\\b' +
           '|the\\b|damn\\b|damned\\b|stupid\\b|bloody\\b|fucking\\b|freakin\\b|goddamn\\b|number\\b' +
-          '|every\\b|each\\b|both\\b|those\\b|these\\b' +
+          '|every\\b|each\\b|both\\b|those\\b|these\\b|da\\b|de\\b|dis\\b|dat\\b|tha\\b' +
           '|(?:' + EN_NUM + ')(?:st|nd|rd|th)?\\s+tab\\b)(.+) tab$', 'i');
         const m = transcript.match(/^(.+)のタブを閉じて/) ||
           transcript.match(enClose) ||
@@ -5645,6 +5647,19 @@ export class VoiceCommands {
         'shoulda junked it', 'shoulda killed it', 'shoulda killed off it', 'shoulda put away it',
         'shoulda put out of its misery it', 'shoulda put to rest it', 'shoulda removed it', 'shoulda scrapped it',
         'shoulda shut down it',
+        // pass CCLXX: rebuke/expectation frames + ASR mishears of "close"
+        'its as good as done', 'done deal close it', 'understood close it',
+        'you were supposed to close it', 'i thought i told you to close it',
+        'you were meant to close it', 'you had one job close it', 'how many times close it',
+        'i begged you to close it', 'werent you told to close it', 'were you not told to close it',
+        'you havent closed it', 'you still havent closed it', 'still not closed',
+        'the tab is closed', 'that tab is closed',
+        'clothes the tab', 'clothes this tab', 'clothes it', 'clothe this tab', 'clothe the tab',
+        'close the tap', 'close the tab', 'klose the tab', 'klose this tab', 'close the table',
+        'close the tablet', 'clothes tab', 'close da tab',
+        '閉じろといった', '閉じろって言ったのに', '閉じろと言ったのに', '閉じよと言ったのに',
+        '閉じてと頼んだのに', '閉じてと言ったのに', '閉じなさいと言ったのに',
+        '閉じるつもりだった', '閉じるつもりだったよ', '閉じるつもりだったのに', '閉じるつもりだったんだ',
         // pass CCLXVIII: demand/court-order frames (i {want,need,demand,order,command,decree,require,expect} OBJ {closed,gone,dead,...}; court/bench verdicts; stands condemned; outlawed/recalled declaratives)
         'i command it closed', 'i command it dead', 'i command it destroyed', 'i command it discarded',
         'i command it eliminated', 'i command it ended', 'i command it erased', 'i command it finished',
@@ -17976,6 +17991,7 @@ export class VoiceCommands {
         'did i close it', 'did i just close it', 'where did it go',
         'where did the tab go', 'what happened to the tab', 'where is my tab',
         'why is it still open', 'why is the tab still open', 'its still there',
+        'how come its open', 'how come it is open', 'how come the tab is open', 'how come its still open',
         'it hasnt been closed yet', 'it has not been closed yet','it remains open', 'its yet to be closed', 'it is yet to be closed','the tab remains open',
         'the tab is still there', 'why is it still there', 'it keeps coming back',
         'was it open', 'is it gone', 'its back', 'it came back',
