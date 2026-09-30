@@ -581,6 +581,16 @@ export class VoiceCommands {
         push(YR[1].slice(0, -1) + MASU_TE[c] + 'る');
       }
     }
+    // Honorific request: 'お読みください' → '読んで'; extended tails:
+    // 'お読みいただけますか'/'お読みなさい'/'お読みくださいませ'/'お読みおくれ'
+    push(normalized.replace(/^(お|ご)(.{1,10}?)(?:くださいませ|ください|下さい|いただけ(?:ますか|ます|る|るか)|なさい|おくれ)[。！？!?]?$/u,
+      (m, p, stem) => MASU_TE[stem.slice(-1)] ? stem.slice(0,-1) + MASU_TE[stem.slice(-1)] : stem + 'て'));
+    // Casual imperative masu-stem+な: '閉じな'→'閉じて', '読みな'→'読んで'
+    push(normalized.replace(/^(.{1,10}?)な[。！？!?]?$/u,
+      (m, stem) => MASU_TE[stem.slice(-1)] ? stem.slice(0,-1) + MASU_TE[stem.slice(-1)] : stem + 'て'));
+    // 'なさい' with trailing particle: '読みなさいよ'→'読んで'
+    push(normalized.replace(/^(.{1,10}?)(?:なさい|なされ)(?:よ|な)?[。！？!?]?$/u,
+      (m, stem) => MASU_TE[stem.slice(-1)] ? stem.slice(0,-1) + MASU_TE[stem.slice(-1)] : stem + 'て'));
     // です/でしょう question ending → bare stem: '今何時ですか' → '今何時'
     push(normalized.replace(/(?:ですかね|でしょうか|ですか|でしょう|です)[。！？!?]?$/u, ''));
 
@@ -683,6 +693,13 @@ export class VoiceCommands {
     push(normalized.replace(/(て|で)(?:はる|はって|もろて|くれはるか|くれはる|くれへん|くれん|くれない|もらっといて|もらっとく|へんの|へん|ひん|やって|やれ|よか|おくれ|らっしゃい|ちょ|や)[。！？!?]?$/u, '$1'));
     // っす casual: 'わかったっす' → 'わかった'.
     push(normalized.replace(/っす[。！？!?]?$/u, ''));
+    push(normalized.replace(/といて(?:ね|よ|な)?[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/(て|で)み(?:る|た|よう|ます|ましょう)?[。！？!?]?$/u, '$1'));
+    push(normalized.replace(/(?:ちゃ|じゃ)(?:う|った|って|います)[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/(て|で)(?:あげて|あげる|あげます|くれる|くださる|くださいます)[。！？!?]?$/u, '$1'));
+    push(normalized.replace(/ちゃお[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/じゃお[。！？!?]?$/u, 'で'));
+    push(normalized.replace(/(て|で)(?:はる|や|もろて|くれへん|くれん|くれない|へん|ひん)[。！？!?]?$/u, '$1'));
     push(normalized.replace(/ちゃって[。！？!?]?$/u, 'てしまって'));
     push(normalized.replace(/(?:たまえ|なさい)[。！？!?]?$/u, 'て'));
     push(normalized.replace(/(?:かなー?|かしら)[。！？!?]?$/u, ''));
@@ -721,6 +738,8 @@ export class VoiceCommands {
       .replace(/^(?:be so kind(?: as to)?|be a dear|kindly)[,\s]+(?:and[,\s]+)?/i, '')
       .replace(/^(?:you (?:have|need|got) to|you gotta|you shoulda|you coulda|you oughta|you ought to|you should|you could|you might)[,\s]+/i, '')
       .replace(/^(?:(?:and|then|thank you|thanks)[,\s]+)+/i, '')
+      .replace(new RegExp("^(?:i (?:want|wanna|need)(?: na| to)?|i'm gonna|" +
+        "gonna|wanna|gotta|gimme|lemme|imma|let me|let's|may i)[,\\s]+", 'i'), '')
       .replace(/^(?:hey|ok|okay|so|now)[,\s]+/i, '')
       .replace(/[,\s]+please[.!?]?$/i, '')
       .replace(/[,\s]+for (?:me|us)[.!?]?$/i, '')
@@ -759,6 +778,9 @@ export class VoiceCommands {
     // hyper-polite wraps: 'be so kind as to X' / 'X, if you please' / 'X, pretty please'
     push(normalized.replace(/^(?:be so kind as to|be a dear and|kindly|if you please|pretty please)[,\s]+/i, ''));
     push(normalized.replace(/[,\s]+(?:if you please|pretty please(?: with sugar on top)?|be a dear)[.!?]?$/i, ''));
+    push(normalized.replace(/^(?:(?:would|do) you )?mind[,\s]+/i, '')
+      .replace(GERUND_STEM, (m, stem) => ({ clos: 'close', stopp: 'stop', mut: 'mute',
+        paus: 'pause', mak: 'make', tak: 'take', giv: 'give' })[stem.toLowerCase()] || stem));
 
     return variants;
   }
@@ -1189,7 +1211,6 @@ export class VoiceCommands {
         /is (it |this |the )?muted/i, /mute status/i, /am i muted/i,
         /are we muted/i, /is it quiet/i,
         /did it (go )?mute/i, /did it get muted/i, /was (it|this|the tab) muted/i],
-
       action: () => {
         const v = this._onMuteStatus ? this._onMuteStatus() : null;
         this.speak(v === null ? '確認できません'
@@ -1516,6 +1537,7 @@ export class VoiceCommands {
         '静かすぎる', '静かすぎ', '静かすぎるよ', '小さすぎる', '声が小さすぎるよ',
         'speak up a bit', 'bit louder', 'louder still',
         'louder please', 'volume up', 'volume up please',
+        'louder', 'speak up', 'turn it up', 'crank it up',
         /volume (up|raise|increase|louder)/i],
       action: () => {
         if (this._onVolume) {
@@ -1549,6 +1571,7 @@ export class VoiceCommands {
         'whisper', 'deafening', 'painfully loud', 'ear splitting', 'too loud for me',
         'too much volume', 'blaring', 'blasting',
         'turn down the volume', 'crank it down', 'make it quieter',
+        'quieter', 'turn it down', 'speak softer', 'tone it down',
         /volume (down|lower|decrease|quieter)/i],
       action: () => {
         if (this._onVolume) {
@@ -3571,6 +3594,7 @@ export class VoiceCommands {
         'ほんのちょっと下', 'move down', 'down a bit', 'little scroll', 'scroll some', 'scroll a bit', 'a little more', 'bit more', 'tiny bit more', 'partway down', 'a bit more down',
         'scroll on down', 'keep on scrolling', 'ごく少し下',
         'scroll', /^down$/i,
+        '少しだけ下', 'ちょびっと下', 'もう少しだけ下', 'move down', 'down a bit', 'little scroll', 'scroll some', 'scroll a bit', 'ごく少し下',
         /scroll down/i, /scroll downwards?/i, /^go down$/i,
         /scroll (a )?little( bit)?( down)?/i, /tiny scroll/i, /a little bit down/i],
       action: () => {
@@ -3590,6 +3614,7 @@ export class VoiceCommands {
         '少しだけ上', 'ちょびっと上', 'もう少しだけ上', 'ごく少し上', 'ほんの少し上',
         'ほんのちょっと上', 'partway up',
         'move up', 'up a bit', 'go up a bit', 'もうちょい上', 'もうちょい上へ', 'ぐいっと上',
+        '少しだけ上', 'ちょびっと上', 'もう少しだけ上', 'ごく少し上',
         'もっと上に', '上に行って', '上に向かって',
         'scroll on up', 'keep scrolling up',
         /scroll up/i, /scroll upwards?/i, /^go up$/i,
@@ -3680,6 +3705,7 @@ export class VoiceCommands {
         'done with it', 'over it', 'through with it', 'finished with it',
         'close this down', 'close this up', 'close that up', 'close that down',
         'get rid of it', 'get rid of this', 'ditch this', 'ditch that',
+        '閉じろ', '消えろ', 'とじろ', '閉じてしまって',
         /close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -4452,6 +4478,7 @@ export class VoiceCommands {
         'pull up the tabs', 'pull up tabs', 'bring up the tabs', 'bring up tabs',
         'every tab', 'all of the tabs', 'all of my tabs', 'each tab', 'each of the tabs',
         '全部タブ', 'タブ全部を読んで', 'タブの全部',
+        'give me the tabs', 'list em for me',
         /list\s+tabs/i, /how many tabs/i, /what tabs/i,
         /read (the )?tabs/i, /show (the |me )?(the )?tabs/i],
       action: () => {
@@ -5499,6 +5526,7 @@ export class VoiceCommands {
         'what is this', 'whats this', 'what am i looking at',
         'lemme see', 'let me see', 'lemme see it', 'let me see it', 'see it', 'see this',
         'lemme see that',
+        'lemme see', 'let me see',
         'アクティブなタブ', '使用中のタブ', '今のタブ', '最近のタブ',
         '閉じてる', '閉じている', '閉じたか', '閉じましたか', '開いてる', '開いている',
         '今見てるタブ', '今見ているタブ', '今開いてるタブ', '選択中のタブ',
@@ -7705,6 +7733,7 @@ export class VoiceCommands {
         '読んでる', '読んでいる', '読み上げてる', '読み上げている', '読みっぱなし',
         '読んでたっけ', '読んでいたっけ', '読んでたかな', '喋ってたっけ',
         '読みつつある', '読みつつあります', '喋りつつある',
+        '読んでる', '読んでいる', '読み上げてる', '読み上げている',
         /are you (still )?speaking/i, /is it (still )?speaking/i,
         /is it (still )?reading/i, /still reading/i],
       action: () => {
