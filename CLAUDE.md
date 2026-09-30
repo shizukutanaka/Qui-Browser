@@ -252,6 +252,14 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 137: 訴え形/誠実不在原子 II — 否定・可能形の誤実行修正 + バッキング無し7系 + 言い換え句第20弾
+外部基準: Voice Access の「不満句は実行しない」原則（complaint ≠ command）、Chrome 系の未実装面の明示応答、NVDA の counted-nav。
+- 🐛 **否定/可能形がナビゲートを実行する実害修正**（実測捕捉）: '戻れない'/'戻れません'/'進めない' が back/navigate の loose `/戻[るれ]/`・`/進[むめ]/` で goBack/goForward を実行 → 両 regex に 〜ない/〜ません/〜ます の lookahead（registerDefaultCommands と connectBrowser の両コピー）、`back-status`/`forward-status` に '戻れない/ません/ます'・'進めない/ません' を追加。bare '戻れ'/'進めて' は従来通り実行。
+- ✨ **paragraph-skip-n**: 'Nつ先/前の段落'（数字+漢数字）・'skip ahead N paragraphs'/'go back N paragraphs' → `_onParagraphStep(±N)`（next/prev-paragraph と同じ相対ステッパー）。**回帰捕捉**: next-paragraph の loose `/skip ahead/` が 'skip ahead 4 paragraphs' を1歩だけ実行 → `/skip ahead\s*$/` にアンカー。
+- ✨ **誠実不在クラスタII**: `links`（'リンクを開いて'/'リンクに移動'/'ボタンを押して' → 直接選択不可 + 読み上げ誘導。go-to 前に登録して literal ナビゲートを封殺）、`input-methods`（'音声入力'/'ジェスチャー'/'視線で選択'/'マウスカーソル' → 利用可能な入力面を応答）、`text-style`（'フォントを変えて'/'明朝体'/'行間' → 文字サイズへの誘導）、`settings-reset`・`privacy-clean`（キャッシュ/Cookie → '履歴を消して' 誘導）・`download`（→'ページを保存'=ブックマーク誘導）・`sleep-mode`（→本体ボタン）。
+- ✨ **エイリアス第20弾**: reader-scroll-lines に 'N行下/上に'、trouble に '押せない/選べない/触れない/クリックできない'、brightness に訴え形（'明るすぎる'/'眩しい'/'暗すぎる'）、dark-mode に '背景を暗く'/'目に優しく'/'ブルーライト'/'夜用モード'、stop-reading に 'おしゃべりを止めて'/'喋らないで'、mute-toggle に '静音'/'サイレント'/'音なし'/'無音モード'、duplicate-tab に 'このタブをもう一つ'/'今のタブをコピー'、close-tab に 'タブを減らして'、print/share-page に '〜したい' 形、article-summary に 'ここに書いてあること'/'何が書かれてる'/'内容を教えて'。
+- ✅ **テスト +91（git stash で82件赤確認、9件は共存ガード設計上緑）**: Total 3815 tests (111 suites); 0 lint errors（警告 132 = baseline 同一）; build green・FFFD 0件。
+
 ### Session 136: 敬体リトライ原子 — JA 敬語尾/ます形・EN please/can-you のバリアント探索 + 言い換え句第19弾
 外部基準: 日本語音声 UI の敬体カバー（Voice Access 系は request 語尾を正規化）、godan ます→て 変換表、スマートスピーカーの 'please' 除去。
 - ✨ **敬体リトライ層**（`_politeVariants`）: `processCommand` が生フレーズの first-match を試し、NO-MATCH 時のみ variant 群（て/で尾 + ください/頂戴/くれ/もらえ/いただけ 剥がし → ます→て godan 変換 → です/でしょう 剥がし → EN please/can-you 剥がし）を順次再マッチ。生優先で既存ルーティング不変、マッチした variant を action へ渡すので capture group も正しい。`lastCommand.transcript` は生 transcript を保持。
