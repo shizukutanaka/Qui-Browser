@@ -133,6 +133,12 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 エラーではなく、明示的にオフにしたユーザーの選択は永続値が勝つ。**戻すのは1行**だが、
 戻す者は上記4条件のどれが再発したかを言えること（`tests/vr-app-wiring.test.js` がこの既定を固定）。
 
+- ~~voice '閉じてから次へ'/'戻ってから閉じて'/'読んでから続けて' の てから順序接続が NO-MATCH~~ — **Session 187 で実装**（TAIL_TE `から[^。！？!?]*` ブランチ — `|` 欠落による分岐癒合を捕捉・修正）
+- ~~voice '閉じておきますね'/'閉じておきましょう'/'閉じておきたい'/'閉じておくつもり'/'閉じておくことにします'/'閉じておいてほしい'/'閉じておこうと思います'/'閉じてしまってよい' の ておく残置群が NO-MATCH~~ — **Session 187 で実装**（TAIL_TE 拡張）
+- ~~voice '閉じてお願い申し上げます'/'閉じてお願いいたします'/'閉じてくださいますと'/'閉じていただけましたら'/'閉じてくださいな'/'閉じてくださいましね'/'閉じてちょうだいね'/'閉じてくれますよう' の受益・敬語残置が NO-MATCH~~ — **Session 187 で実装**（TAIL_TE 拡張）
+- ~~voice '閉じたほうがよろしいと存じます'/'閉じられればいい' の判定・残基尾が NO-MATCH~~ — **Session 187 で実装**（FR 追加 + `れ$`→stemTe 残基行）
+- ~~voice '閉じとこう'/'閉じといて'/'閉じちゃいなさい'/'閉じちゃってください'/'閉じちゃってもいい'/'閉じじまえ'/'読んじゃえ' の とく/ちゃ残置が NO-MATCH~~ — **Session 187 で実装**（双push て+で / ちゃ尾拡張）
+- ~~voice 'i would be grateful if you closed it'/"i'd be obliged if you"/'i would appreciate it if you'/'extend the courtesy of closing it'/'afford me the courtesy'/'suppose you closed it'/'say you could close it'/'if you could just possibly close it'/'if you could just go ahead and close it' の EN 礼儀深掘りII が NO-MATCH~~ — **Session 187 で実装**（chain1 grateful-if-you・courtesy・suppose/say 枠 + `if you could` 前置配置で最長一致解消）
 - ~~voice '閉じるようお願いします'/'閉じるよう頼みます'/'閉じる要請'/'閉じるお願い'/'閉じる希望'/'閉じる依頼' の よう依頼・名詞型依頼が NO-MATCH~~ — **Session 185 で実装**（FR 尾 よう+依頼名詞枠 + bare名詞尾）
 - ~~voice '閉じてくださいまし'/'閉じてくださいますよう'/'閉じてくれますかね'/'閉じてくれりゃ'/'閉じてくれないかなあ'/'閉じてくれるのでしょうか'/'閉じてくれるかどうか'/'閉じてくださったら'/'閉じてもらったら'/'閉じてもらうよう'/'閉じて頂戴いたします'/'閉じてお願い申し上げます'/'閉じてお願いいたします' のて受益残置IIIが NO-MATCH~~ — **Session 185 で実装**（TAIL_TE 拡張）
 - ~~voice '閉じることはできますか'/'閉じるべきではある'/'閉じるべきもの'/'閉じるべきかもしれない'/'閉じるのが良い'/'閉じるのが望ましい'/'閉じるほうがよろしい'/'閉じる必要があろう'/'閉じる必要性がある'/'閉じる必要ありそう' の判断枠が NO-MATCH~~ — **Session 185 で実装**（FR 尾拡張。'べきではないか'→negate 維持）

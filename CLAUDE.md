@@ -1720,6 +1720,16 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 187
+- ラウンド113: 残余・複合原子層（tests/remainder-compound-atoms.test.js、+198件 / 実装前143件赤）
+  - JA て受益残置V・複合尾: TAIL_TE に `お願い申し上げます|お願いいたします|お願い致します` + ておく残置群（`おきますね|おきましょう|おきたい|おくつもり|おく予定|おくことにする/した|おくね|おいてほしい/くれ/くださいね|おこうと思います/思って|しまってよい`）+ `くれますよう|ますと系|ましたら系|くださいな|くださいましね|ちょうだいな/ね` + **`から[^。！？!?]*`**（てから順序接続: '閉じてから次へ'→close-tab）
+  - JA 判定枠II: FR に `ほうがよろしいと存じます` + FR 残基 `れ$`→stemTe 行追加（'閉じられればいい'→close-tab）
+  - JA とく/ちゃ残置: `とこう|といて`（て+で双push）、`ちゃ(?:いなさい|ってください|ってもいい|っていい)`→て / `じゃ`→で / `じまえ・じゃえ` 双push
+  - JA お敬語拡張: `いただきたい` 追加 + 長尺化（lint 対応で `new RegExp` 連結化）
+  - EN 礼儀深掘りII: chain1 に `be a X` 系・courtesy・grateful-if-you 群（`(?:i'd|id|i would) be (?:grateful|obliged|thankful|...) if you` / `appreciate it if you`）+ `extend/afford/grant (me)? the courtesy of` + `suppose you/we|say you` + `if you'd just go ahead and|if you could just go ahead and|if you could just possibly`（裸 `if you could` より前置配置）
+  - 教訓: TAIL_TE 編集時 `から[^。！？!?]*` に `|` 欠落で次分岐と癒合（`から[^...]*くれますれば` 巨大ブランチ化）— 編集後は必ずコンパイル済み .source を検証。また `_politeVariants` 透過再帰により pushed variant も再ストリップされる（'possibly close it'→'close it'）
+  - 9518→9716テスト全緑 / lint 0エラー136警告=baseline / build green / FFFD 0件
+
 ### Session 186
 - ラウンド112: 条件・許可原子層（tests/conditional-request-atoms.test.js、+194件 / 実装前172件赤）
   - JA て受益残置IV: TAIL_TE に `くれますれば|くれれば幸い|助かります|嬉しい|助かるんだ` + もらえれば/いただければ系
