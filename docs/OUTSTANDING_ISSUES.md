@@ -133,6 +133,44 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 エラーではなく、明示的にオフにしたユーザーの選択は永続値が勝つ。**戻すのは1行**だが、
 戻す者は上記4条件のどれが再発したかを言えること（`tests/vr-app-wiring.test.js` がこの既定を固定）。
 
+- ~~voice '閉じてくれますの'/'閉じてほしいんだよね'/'閉じてもらえると助かる'/'閉じてくれてもいいんです'/'閉じてもらっちゃおう'/'閉じておきたいところ'/'閉じておきましょうかね' の受益残置尾が NO-MATCH~~ — **Session 197 で実装**（TAIL_TE XV）
+- ~~voice '閉じるのもいいんじゃない'/'閉じるのが無難だ'/'閉じるのがセオリーだ'/'閉じるという選択もある'/'閉じるとしておく'/'閉じるでよろしいか'/'閉じる方向でいこう'/'閉じる案で'/'閉じる作戦で' のdict提案・方針残置が NO-MATCH~~ — **Session 197 で実装**（FR VII）
+- ~~voice '閉じちゃうのもありか'/'閉じちゃえば済む話'/'閉じちゃって結構です'/'閉じとくのがいい'/'閉じときなさいよ'/'閉じとこうかなと思って' のちゃ/とく残置が NO-MATCH~~ — **Session 197 で実装**（ちゃ/とく push 拡張）
+- ~~voice 'i was hoping/kinda hoping/had hoped/would have thought you could'、'supposedly/apparently/presumably/obviously you can'、'do the honors and'、'have the courtesy to'、'extend/grant/afford me the courtesy/favor of'、'oblige me by'、'humor me and' が NO-MATCH~~ — **Session 197 で実装**（ENPRE VI）
+- ~~voice 'closing it would be great'/'having it closed would help'/'the tab closing would be ideal'/'i need it closed'/'i want that closed' の gerund/受動残置が NO-MATCH~~ — **Session 197 で実装**（gerund主語スワップ + having/getting 拡張）
+- ~~voice 'まだ読んでる途中'/'読み途中'/'ここ読んでる'/'読みかけ'/'このページ見せて'/'ページの内容教えて'/'閉じる寸前' が NO-MATCH~~ — **Session 197 で実装**（reader-progress/describe-tab リテラル）
+- ~~voice '閉じてくれるんだけど'/'閉じてくれたっていい'/'閉じてもらうんだ'/'閉じてもらうことになって'/'閉じてやるから'/'閉じてくださったなら'/'閉じてくれさえすればいい'/'閉じてくれりゃいい'/'閉じてくれたなら'/'閉じてくれればいいのに' の受益残置尾が NO-MATCH~~ — **Session 196 で実装**（TAIL_TE XIV）
+- ~~voice '閉じるといいですよ'/'閉じるがよかろう'/'閉じるんじゃないかな'/'閉じるのも悪くない'/'閉じる以外ない'/'閉じるのが一番だ'/'閉じるに越したことはない'/'閉じるべきだろうね'/'閉じちゃうのも手だ'/'閉じちゃうしかないか'/'閉じちゃったほうが早い' のdict提案・判断残置が NO-MATCH~~ — **Session 196 で実装**（FR VI + ちゃう残置push）
+- ~~voice 'i was thinking/figured/reckoned you could X'、'imagine/pretend you closed it'、'close it kind sir'、'close it would you be so kind'、'close it at your earliest' が NO-MATCH~~ — **Session 196 で実装**（ENPRE V + 語尾後置strip）
+- ~~voice 'あと少し大きく'/'音量もう少し上げて'/'もうちょい読んで'/'ゆっくり読み直して'/'画面を元に戻して'/'全てのタブを畳んで'/'このタブ残して'/'このタブ以外閉じて'/'残りは閉じて'/'残り全部閉じて' が NO-MATCH~~ — **Session 196 で実装**（リテラル補充）
+- ~~voice '閉じてもいいんですけど'/'閉じても結構ですよ'/'閉じても差し支えないです'/'閉じても問題ないです'/'閉じてもいいんではないか'/'閉じてもいいと思うんだけどね'/'閉じちゃっていいかもしれない'/'閉じたっていいですよ' の許可・断定残置尾が NO-MATCH~~ — **Session 195 で実装**（TAIL_TE XIII + CHA拡張 + たっていい先行push）
+- ~~voice '閉じようと思うのですが'/'閉じようと思ってる'/'戻ろうと思ってる'/'閉じたいと思っています'/'閉じたい感じがする'/'閉じたい場面です' の意向・たい報告尾が NO-MATCH/describe-tab 誤ルート~~ — **Session 195 で実装**（FR V + OM再帰 'と思って(る|いる)?'）
+- ~~voice '閉じてみようかな'/'閉じてみたらどうかな'/'閉じてみてほしい'/'閉じてちょっと'/'閉じてるべき'/'閉じとくべき'/'閉じとこうぜ'/'読んどこうか' の てみる・とく残置が NO-MATCH~~ — **Session 195 で実装**
+- ~~voice 'i guess/suppose you could X'/'i could use you to X'/'close it please and thanks'/'thanks a bunch'/'much obliged' が NO-MATCH~~ — **Session 195 で実装**（ENPRE V + 感謝語尾チェーン）
+- ~~voice '閉じると決めた'/'閉じることに決めた'/'閉じるつもりですが'/'閉じる予定なんです'/'閉じるはずなんです'/'閉じるようにしました' の決意・予定報告尾が NO-MATCH~~ — **Session 194 で実装**（FR IV）
+- ~~voice '閉じてほしくないの'/'閉じずにおいて'/'閉じないままにして'/'閉じるつもりはありません' の不要宣言が NO-MATCH~~ — **Session 194 で実装**（negate II）
+- ~~voice '閉じてみせる'/'閉じてみましょうか'/'閉じてもらいたく存じます'/'閉じておくれる'/'閉じてくださいませんかね' の受益・意向残置が NO-MATCH~~ — **Session 194 で実装**（TAIL_TE XII）
+- ~~voice '閉じたと思ったのに'/'閉じてもまだ閉じない'/'閉じるどころか'/'閉じてばっかり' の苦情枠が NO-MATCH~~ — **Session 194 で実装**（trouble II）
+- ~~voice 'it needs closing'/'it needs to be closed'/'this tab needs to go'/'i want you closing it'/'may/might i suggest'/'could you be so kind to'/'go for it'/'i dare you to'/'close it whenever possible'/'at your discretion' が NO-MATCH〜誤ルート~~ — **Session 194 で実装**（ENPRE IV + 受動needs枠 + 尾剥がし）
+- ~~voice 'dont be shy, close it' が negate 誤奪取~~ — **Session 194 で修正**（`^don'?t` lookahead に ` be\b` 除外）
+- ~~voice '閉じてお願いね'/'閉じてお願い申し上げたく'/'閉じてくれたら助かる'/'閉じてもらいたいんですが'/'閉じていただければ幸いでございます' の受益・へりくだり深残置が NO-MATCH~~ — **Session 193 で実装**（TAIL_TE XI）
+- ~~voice '閉じるとありがたい'/'閉じれば幸いです'/'閉じることは可能でしょうか'/'閉じるという選択肢もあります'/'閉じる必要あるかな' のdict確信・感謝尾が NO-MATCH~~ — **Session 193 で実装**（FR III）
+- ~~voice '閉じたいなあ'/'閉じたい気がする'/'閉じたい時は'/'閉じた方がいい気がする'/'閉じたほうがよさそう' のたい気持ち残置が NO-MATCH~~ — **Session 193 で実装**（FR たい尾一括）
+- ~~voice 'would you consider/amenable to X'・'might/may i ask that you X'・'can/could/may i trouble you to X'・'i was wondering whether/if you could possibly X'・'is it within your power to X'・'how would you feel about/what do you think about X' が NO-MATCH〜help 誤ルート~~ — **Session 193 で実装**（ENPRE 位置最長一致 + help lookahead 拡張 + `en` パイプラインの possibly 残基剥がし）
+- ~~voice '開発者モードにして'/'キャッシュクリアして'/'拡張機能を管理して'/'ピクチャーインピクチャーにして'/'アップデートして'/'画面を最大化して'/'this tab sucks' が NO-MATCH~~ — **Session 193 で実装**（devtools/privacy-clean/device-apps/window-state/trouble リテラル拡充）
+- ~~voice '閉じるよう伝えて'/'閉じるって言ってるでしょ'/'閉じてくれるよう言って' の伝達命令残置が NO-MATCH~~ — **Session 192 で実装**（FR 伝達尾）
+- ~~voice '閉じなきゃダメだっけ'/'閉じなきゃなんないわ'/'閉じなきゃいかんのか'/'閉じなくてはいかんか'/'閉じなきゃならんかった' の方言義務尾が NO-MATCH~~ — **Session 192 で実装**（IKE 拡張）
+- ~~voice '閉じましょうか'/'戻りましょうか'/'読んであげましょうか'（shall-we 意向質問）が NO-MATCH~~ — **Session 192 で実装**（FR `ましょうか`+TAIL_TE `あげましょうか`）
+- ~~voice '閉じる方がいいかな'/'戻った方がいいんじゃないか'/'読むとしよう'/'閉じるべきかと存じます'/'閉じるだけで結構です' 等のdict提案・確信尾が NO-MATCH~~ — **Session 192 で実装**（FR II）
+- ~~voice '閉じてくれませんかな'/'くれますかい'/'もらえますかね'/'ほしいです'/'ちょ'/'閉じといてくださいね'/'閉じとこかな'/'タブ閉じちゃってもいいかい' が NO-MATCH~~ — **Session 192 で実装**（TAIL_TE X + とく残置 + タブ前置剥がし）
+- ~~voice '速度を落として'/'もっとスローで'/'もうちょいゆっくりお願い'/'早めに読んで'/'ピン外して'/'もう少しだけ大きくしてもらえますかね' が NO-MATCH~~ — **Session 192 で実装**（speech-slower/faster・volume-up・unpin-active リテラル拡充）
+- ~~voice 'you have my permission/blessing to X'・'i would ask that you X' が NO-MATCH~~ — **Session 192 で実装**（ENPRE chain1）
+- ~~voice '閉じてよろしくお願いします'/'閉じておねがいします'/'閉じて頼む'/'閉じてもらえないものか'(negate誤ルート) のて受益・依頼残置が NO-MATCH~~ — **Session 191 で実装**（TAIL_TE IX + negate ものか に `もらえない` lookbehind）
+- ~~voice '閉じるのもあり'/'閉じるってのもあり'/'閉じるという手もある'/'閉じるといいんじゃない'/'閉じるとよいでしょう'/'閉じるとよろしい' のdict提案残置が NO-MATCH~~ — **Session 191 で実装**（FR 拡張）
+- ~~voice '閉じるしかないな'/'閉じるっきゃないな'/'閉じるよりほかない'/'閉じるほかないだろう'/'閉じるほかあるまい'(後2件は negate 誤ルート) の義務残置が NO-MATCH~~ — **Session 191 で実装**（NEC/FR 拡張 + negate まい に `ほかある|ください|くれ|もらえ` lookbehind）
+- ~~voice '閉じるようにする'/'閉じるようにしてください'/'閉じたらいかがでしょうか'/'閉じたらどうでしょうか'/'閉じてもええんちゃう'/'閉じてもいいんじゃないか' が NO-MATCH~~ — **Session 191 で実装**（FR + TAIL_TE + ら提案尾）
+- ~~voice '閉じるかどうか'/'閉じるか迷ってる'/'閉じるべきかどうか迷って'/'閉じた方がいいのかな'/'閉じるのが正解かな' の判断質問が NO-MATCH／'戻るかどうか迷ってる' が back 誤実行~~ — **Session 191 で実装**（help かどうか・ contemplation regex + 戻る に か lookahead）
+- ~~voice 'go on and X'/'by all means X'/'you're welcome to X'/'i give you permission to'/'what say you/we'/'whaddya say we' が NO-MATCH、'is it true you can'/'can it be closed'/'is it closable'/'any idea how to' が NO-MATCH~~ — **Session 191 で実装**（ENPRE chain1 + help capability regex）
 - ~~voice '閉じてくれんかね'/'閉じてくれますかねえ'/'閉じてもらってよろしいか'/'閉じてもらいますか'/'閉じてはくれませんか'/'閉じておきませんか'/'閉じてしまおうかな'/'閉じてくれないものか'/'閉じて結構ですか'/'閉じて構いませんか' のて受益・依頼残置が NO-MATCH~~ — **Session 190 で実装**（TAIL_TE VIII 拡張）
 - ~~voice '閉じちゃうかな'/'閉じちゃってもよろしいですか'/'閉じてもろてええか' のちゃ・関西もろて残置が NO-MATCH~~ — **Session 190 で実装**（ちゃうかな系 push + よろしい追加 + TAIL_TE もろて）
 - ~~voice '閉じることか'/'閉じるってことで'/'閉じるということでよろしいですか'/'閉じるものなら'/'閉じるのならば'/'閉じるのであったら'/'閉じるんだったらね' のdict条件・引用残置が NO-MATCH~~ — **Session 190 で実装**（FR 拡張）

@@ -1720,6 +1720,80 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 197
+
+- ✨ 受益尾XV: TAIL_TE — '閉じてくれますの/くださるかな'、'閉じてほしいんだよね/のよ/ところです'、'閉じてもらいたいんだ/ところ'、'閉じてもらえると助かる/ありがたい'、'閉じてくれてもいいんです/かまいません'、'閉じてもらっちゃおう/つもり/予定'、'閉じておきたいところ/おくことにする/おきましょうかね' → 実行。
+- ✨ dict提案・方針残置: FR VII — '閉じるのもいいんじゃない/ことにしておく(こう)/のが無難だ/定石だ/賢明だろう/常套手段だ/セオリーだ/本筋だ/筋だと思う/ほうが無難/という選択もある/という手がありますね/のも検討事項だ/ことも視野に入れて/ようにしてくださいね/ようにお願いね/としておく/こととする/でよろしいか' + 方針語彙 '方向で(いこう)/系で/感じでいこう/案で/プランで/作戦で' → 実行。
+- ✨ ちゃ残置II: '閉じちゃうのもありか/方向で/べきかも/のが正解'・'閉じちゃえば済む話/いい話'・'閉じちゃって結構です/よろしい'（じゃ対応は で 変換）。
+- ✨ とく残置II: '閉じとくのがいい/つもり/ときなさいよ/とけばいい/といてほしいんだ/もらいたい/もらえると/とこうかなと思って' → て（ど列→で）。
+- ✨ EN hedged-report残置: 'i was (kinda) hoping/had hoped/would have thought/expected you to/assumed you would/supposedly|apparently|presumably|obviously|surely you can' + 後置タグ 'i was thinking/hoping/wondering/thought/guess' + 敬意枠 'do the honors/honours and'/'have the courtesy/decency to'/'extend (me) the courtesy of'/'grant/afford me the favor of'/'oblige me by'/'humor me and'。
+- ✨ EN gerund主語スワップ: 'the tab closing would help'/'it closing would help'/'getting it closed would be nice' → gerund/past→stem変換 + 主客体交換。'i need it/this/that closed' → 'close it'（ENPRE need/want剥がし + 既存swapの having/getting 拡張）。
+- 🐛 回帰消化: help の `/のが正解(?:かな|か|ですか)?$/` が '閉じちゃうのが正解' を先勝ち奪取 → `(?<!ちゃう)(?<!じゃう)` lookbehind で実行経路を保全（'のが正解かな' の help ピン維持）。
+- ✨ リテラル: reader-progress に 'まだ読んでる途中'/'読み途中'/'途中まで読んだ'/'ここ読んでる'/'今読んでるとこ'/'読んでる途中'、describe-tab に 'このページ見せて/見て'/'ページの内容教えて'/'閉じる寸前'/'閉じるところです'。'読みかけ' は resume-reading 既存ルートを確認してピン。
+- ⚠️ 教訓: リテラル string は完全一致のみ — '読みかけ' のような曖昧形は実行系コマンドのリテラルが先勝ちし得る（test で実測ピン推奨）。
+- ✅ tests/benefactive-tail-atoms.test.js +117（実装前86件赤確認）、計10570全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 196
+
+- ✨ 受益残置尾: TAIL_TE XIV — '閉じてくれるんだけど/んだよね'、'閉じてくれたっていい'、'閉じてもらうんだ/んだけど/ことになって'、'閉じてやるから/あげるから'、'閉じてくださったなら'、'閉じてくれさえすればいい/くれりゃいい/くれたなら/くれればいいのに' → 実行。
+- ✨ dict提案・判断残置: FR VI — '閉じるといいですよ/がよかろう/んじゃないかな/こともできるし/ということもある/のも悪くない/のでいいんじゃない/以外ない/のほかない/のが一番だ/といいかもね/のが早い/に越したことはない/べきだろうね/でいいのかな/のでいいですか' + ちゃう残置 '閉じちゃうのも手だ/しかないか/ちゃったほうが早い'（て/で 両変換）→ 実行。
+- ✨ EN hedged-report枠: 'i was thinking/figured/reckoned/thought you could X'（ENPRE前置 + 語尾後置両対応）+ 'imagine/pretend you closed it' + 語尾 'kind sir/would you be so kind/at your earliest' → 実行。
+- ✨ リテラル: 'あと少し大きく'/'音量もう少し上げて'→volume-up、'もうちょい読んで'/'ゆっくり読み直して'→read-aloud、'画面を元に戻して'→reader-scale-reset、'全てのタブを畳んで'→close-all-tabs、'このタブ残して'/'このタブ以外閉じて'/'残りは閉じて'/'残り全部閉じて'→close-other-tabs。
+- 🐛 回帰消化: 'ゆっくり読んで' は speech-slower の既存ピン — read-aloud リテラル追加が奪取 → 該当リテラルは read-aloud 側では 'ゆっくり読み直して' のみ（'ゆっくり読んで' は speech-slower 維持）。
+- ⚠️ 教訓: `vc.commands` の Map は `connectBrowser()` 呼出後にしか populate されない（6447 行付近のブロックは connectBrowser 内）— probe で 'close-all-tabs' が不在に見えたのは connect 前のため。リテラル string パターンは完全一致、alias は includes 部分一致。
+- ✅ tests/benefactive-residue-atoms.test.js +55（実装前54件赤確認）、計10453全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 195
+
+- ✨ **JA 許可も尾**: TAIL_TE XIII に 'もいいんですけど/も結構ですよ/も差し支えないです/も問題ないです/もいいんではないか/もいいと思うんだけど(ね|よ)/もいいんじゃないの/も大丈夫' + 裸 'いいですよ/いいかもしれない/いいんではないか' 系（'閉じてもいいんですけど'→close-tab）。'ちゃっていいかもしれない/ちゃっていいんじゃない/ちゃったほうがいいんじゃない' を CHA 枠へ追加。'たっていいですよ/ちゃったっていい' 系は TAIL_TE より前に push — 変体 '閉じたって' が describe-tab リテラル奪取するのを順序で解消（describe-tab 側も ^…$ アンカー化）。
+- ✨ **意向報告 II**: FR V に 'たいと思っています/たいと思ってる/たい感じがする/たい場面です' + 'ようと思うのですが/ようと思ってる/ようと考えてる' + 汎用 'と思ってる'/'と考えてる'。'戻ろうと思ってる'/'読もうと思ってる' は OM ブロックの 'と思っ?て(る|いる)?' カバー拡張で五段意向形まで再帰到達。
+- ✨ **てみる残置**: 'てみようかな/てみようではないか/てみたらどうかな/てみてほしい/てちょっと/てるべき' → '閉じて' 系へ（'閉じてみようかな'→close-tab、'読んでみてほしい'→read-aloud）。
+- ✨ **とく残置**: 'とくべき/とくか/とこうぜ/どこうか' → とく系収縮ルールへ（'閉じとくべき'→close-tab、'読んどこうか'→read-aloud）。
+- ✨ **EN**: 'i guess/suppose you could|i could use you to' を ENPRE V へ、感謝語尾 'please and thanks/thanks a bunch/thanks a million/much obliged/much appreciated'（thanks-strip を (?:please|and)* チェーン化）。
+- ✅ tests/permissive-residue-atoms.test.js +49（実装前44件赤確認）、計10397全緑・lint 0エラー/警告136=baseline・build green・FFFD 0件。
+
+### Session 194
+- ラウンド120: 決意報告・不要宣言原子層（tests/decision-report-atoms.test.js、+80件 / 実装前74件赤）
+  - JA dict決意・予定尾（FR IV）: `と決めた|ことに決めた|ことを決めた|つもりですが|つもりなんです|つもりでいる|予定なんです|予定です|予定なので|はずなんです|はずです|ようにしました|と思うんだけど|と思いますので|のが賢明かと|ほうがいいのでは|こともできる|のもいいですね|たらどうかと思う|たらいいと思います|たほうがいいと思うのですが|たいんだけれど|たいですわ|たく思います|たくなってきた`
+  - JA て受益残置XII（TAIL_TE）: `もらいたく存じます|くれたならば|おくれる|やってもらえる|もらいますので|くださいませんかね|くださいましな|くださいませますか|もいいですかね|みせる|みましょうか`
+  - JA negate II: `ほしくな(?:い|く)`（'閉じてほしくないの' 不要宣言）、`ずに(?:おいて|おきましょう)`、'ないままにして/でいて'、`つもりはありません`
+  - JA trouble II: `と思ったのに`/`てもまだ.*ない`/`どころか`/`てばっかり`/`はずがまだ`（'閉じたと思ったのに'→trouble）
+  - EN IV: ENPRE `could you be so kind to|may/might i suggest (?:you|that you)|i would like for you to|i was hoping for you to|i would like it if you|go for it|i dare you to|dont be shy` — `may i suggest` は裸 `may i`（941行）より**前置必須**、'i was hoping for you to' は裸 'i was hoping'（942行）より前置；受動needs枠 literals（'it needs closing'/'this has got to go'）、尾 `at your discretion|whenever possible|when you get the chance`
+  - リテラル: close-tab 名詞依頼（閉鎖を願います/廃棄してください/閉じる操作をして）、早く opener、ゆっくりめで→speech-slower、'kind of low'→volume-up、'a bit loud'/'turn the volume way down'→volume-down、'どこまで読んだっけ'/'半分くらい読んだ'→reader-progress
+  - **回帰消化**: 'way down' は scroll-bottom 維持（volume-down リテラル競合を除去）、'keep on reading' は resume-reading 維持、'閉じるべきかと思います' は既存テストが help を固定（私の実装を合わせて撤回 — 'べきかと思います' は contemplation、'べきかと存じます' のみ実行）
+
+### Session 193
+- ラウンド119: 感謝・確信フレーム残置原子層（tests/gratitude-frame-atoms.test.js、+79件 / 実装前54件赤）
+  - JA て受益残置XI（TAIL_TE）: `お願いね|お願いできるかな|お願いしてもいいかな|お願いしてもらえますか|お願いしたいのですが|お願いしたく存じます|お願い申し上げたく|もらえたなら|くれたら助かる|くれないですかね|くれないかなあ|くれると助かるわ|くれたらいいのに|くれさえすれば|もらいたいん(ですが|のですが)|もらうのは無理ですか|あればいい|いただけると(大変ありがたい|ありがたく存じ)ます|いただければ幸いでございます|いただけますようお願い申し上げます`
+  - JA dict確信・感謝尾（FR III）: `とありがたい(です)?|と助かります|(ば|れば)ありがたい|れば(幸いです|助かる)|ならありがたい|こと(は|が)可能で(しょう|す)か|ことが望ましいかと|という(選択肢もあります|手があります)|必要あるかな|必要ありそう`
+  - JA たい気持ち尾（FR）: `たいんですが(ね|けども)|たいなあ|たい気がする|たいと思ってるんです|たい気分です|たい(時|場合)は|た方がいい(気がする|と思うんです)|たほうが(よさそう|良いと思う)|た状態(にして|でいて)`
+  - EN 深礼儀IV（ENPRE）: `would you (consider|be amenable to|be so good to)`、`(might|may) i ask that you` — **裸 `may i` より前置必須**、`(can|could|may) i trouble you to`、`i was wondering (whether|if) you could`、`is it within your power to`、`how would you feel about|what do you think about|do you think you might`
+  - help lookahead 拡張: `could/should/shall/would i` に `trouble you|ask that you` 除外、`can i` に同（execute 枠を保持）
+  - en パイプライン: `^possibly|maybe|perhaps` 先行副詞剥がしを追加（'i was wondering if you could possibly X' の残基 — ENPRE は `^` アンカーのみ、中間副詞は残余側で処理）
+  - リテラル: devtools `開発者モード(にして)?`、privacy-clean `キャッシュクリア(して)?`、vr-enter `全画面表示にして`、window-state `画面を(最大化|最小化)して`（既存 '最大化して'→window-state 期待と整合）、device-apps `拡張機能を管理して|ピクチャーインピクチャー(にして)?|アップデートして`、trouble `this (tab|page|thing)? ?sucks|it sucks|this is (garbage|trash|useless)`
+  - 教訓: ENPRE の `^` 結合は先頭のみ—中間に挟まる副詞（possibly）は「先行側の剥がし後の残基」として en パイプラインで別途処理；ヘルプ regex の先行除外を広げる時は `(?!get|ask|trouble) you` 系と ` ask that you` の両形を列挙
+
+### Session 192
+- ラウンド118: 伝達・義務残置原子層（tests/relay-obligation-atoms.test.js、+85件 / 実装前59件赤）
+  - JA 伝達命令（FR）: `よう(に)?伝えて(ください)?|ようお伝えください|くれるよう言って(ほしい)?|って言ってる(でしょ|よ)?|って何回も言ってる` — '閉じるようお伝えください'→close-tab
+  - JA 方言義務尾（IKE）: `なきゃダメだっけ|なきゃだよね|なきゃなんない(わ|んだ)?|なきゃいかん(のか)?|なきゃまずいかな|なきゃならんかった|なくてはいかん(か|のか)?`
+  - JA shall-we 意向質問: FR `ましょうか(ね)?`（'閉じましょうか'→close-tab — EN 'shall we X' 実行と同値化）+ TAIL_TE `あげましょうか`
+  - JA dict提案尾II（FR）: `(方|ほう)がいいかな|(方|ほう)がいいんじゃないか|としよう(か|な)?|といいでしょう|といいんじゃないの|べきかと存じます|べきかと思われます|ことが望ましいのでは|のが良いと存じます|ことをお願い(申し上げます|いたします)|だけで結構です|だけでいいです|しかないと思う`
+  - JA て受益残置X（TAIL_TE）: `くれませんかな|くれませんかい|くれますかい|もいいかい|ほしいです|ほしいんだ|もらえますか(ね)?|ちょ|いただけますでしょうか|いただければと存じます|いただけましたら幸甚です|くださると大変助かります|くだされば幸いに存じます|(くれる|くださる)ようお願い(いたします|します)|頂くわけにはいきませんか|頂いても宜しいでしょうか|くれるだけでいい|あげ(ましょうか|る)?|もいいんじゃないですか|もいいと思うよ|も差し支えなければ|はいかがかと`
+  - JA とく残置・タブ前置: `[とど]いて(ください|くれ|もらえ(ます|ません)か|ほしい)?(ね)?→て`、`[とど]こ(かな|か|う)?→て`、`^タブ(?=閉じ|複製|開|消)` 前置剥がし — **variants は再展開されない**ため 'タブ閉じちゃってもいいかい' はちゃ尾剥がし後にチェーンで前置剥がし
+  - リテラル: 速度を落と(して|す)→speech-slower、もっとスロー/もうちょいゆっくり→speech-slower、早めに読んで→speech-faster、もう少し(だけ)?大きくして→volume-up、ピン外し(て|す)→unpin-active
+  - EN: ENPRE `you have my (permission|blessing) to|i would ask that you`
+  - 教訓: `_politeVariants` の push 済み候補は再度ルール展開されない — 前置+後置の複合剥がしは1本のチェーンで書く
+
+### Session 191
+- ラウンド117: 提案・疑問残置原子層（tests/suggestion-residue-atoms.test.js、+93件 / 実装前76件赤）
+  - JA て受益残置IX: TAIL_TE `よろしくお願い(します|致します)|おねがいします|頼みます|頼む|もらえないものか(しら)?|もええんちゃう|もええんですか|もいいんじゃない(か)?`
+  - JA dict提案・義務（FR/NEC）: `のもあり|のもいい|のも手だ|ってのもあり|というのもあり|という手もある|といいんじゃない(か)?|とよいでしょう|とよろしい|とよいです|ようにする|ようにしてください|ほかないだろう|ほかあるまい|らよいのではないか|らいかがでしょう(か)?|らどう(でしょうか|ですか)` + NEC `しかないな|っきゃないな|よりほかない(な)?`
+  - JA 判断質問→help: `(べき|る|ます|た|だ)(かどうか|か(迷って|悩んで|考えて))` — request-verb `くれる|もらえる|いただけ|くださ` を lookbehind で除外（'閉じてくれるかどうか'=依頼は実行維持、'プライベートかどうか'=状態質問は privacy-status 維持）
+  - JA 誤ルート修正: '閉じるほかないだろう'/'閉じるほかあるまい'（義務）が negate → 実行化（`まい` regex lookbehind）; '閉じてもらえないものか'（依頼）が negate → `ものか` lookbehind 拡張; '戻るかどうか迷ってる' が back → `戻る(?!か)` lookahead
+  - EN: chain1 `go on and|go right ahead and|by all means|i give you permission to|permission granted to|feel/you're welcome to|what say (you|we)|what do you say we|whaddya say we` + help `/^(can|could|would|might|will) it be (?!too much|possible)/`（request 枠を保持）+ `is it closable|is it true|any idea how to` 系
+  - 教訓: lookbehind は match 位置の**直前のみ**を見る—`(?<!くれる)` ではなく `(?<!くれ)` + 後続 `る` の形で書く
+
 ### Session 190
 - ラウンド116: フレーム残置原子層（tests/frame-residue-atoms.test.js、+77件 / 実装前68件赤）
   - JA て受益残置VIII: TAIL_TE `くれんかね|くれますかねえ|もらってよろしいか|もらいますか|おいていただけると|はくれませんか|はくれないか|おきませんか|おきますか|しまおうかな|くれないものか|結構ですか|構いませんか|もろて(ええか|よろしいか|いいか|ええ|よろしい)`
