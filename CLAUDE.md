@@ -1720,8 +1720,29 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 271
 ### Session 267
 
+- ✨ JA: ておくに限ります・おくのが得になる・おくべきですか残置。dict本道名詞尾（のが源流だ/本筋です/本道だ/正道だ/真っ当だ）→ 実行。
+- ✨ EN LXXX: 'how say you'・'what do ya say we' 前置 → 実行（what say we/say we/whaddya say we は既ルート緑）。
+- ✅ tests/say-we-atoms.test.js +24（実装前10件赤確認）、計13232全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 270
+- ✨ JA: てしまうのが最善・しまうのが得策残置。dict恒例名詞尾（のが恒例だ/習わしだ/慣習です/しきたりだ/お約束だ/仕来りだ）→ 実行。
+- ✨ EN LXXIX: 'id be grateful|thankful|appreciative|so grateful|mighty grateful|real grateful if youd' 前置 → 実行。
+- ✅ tests/id-be-grateful-atoms.test.js +24（実装前14件赤確認）、計13208全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 269
+- ✨ JA: てみたほうがいいかも・みるのがいいかも・みるのもいいかも残置。dict信念名詞尾（のが信念だ/信条です/主義だ/宗旨だ/所信だ/譲れない線だ）→ 実行。
+- ✨ EN LXXVIII: 'could i trouble you for a' 前置 → 実行（trouble you to 系は既ルート緑）。
+- ✅ tests/trouble-you-atoms.test.js +24（実装前10件赤確認）、計13184全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 268
+- ✨ JA: ておくのが吉だ・おくのが得だ・おくのが上策だ残置。dict配慮名詞尾（のが気遣いだ/配慮だ/心配りだ/思いやりだ/優しさだ/親切だ）→ 実行。
+- ✨ EN LXXVII: 'would you be gracious|sweet|nice|lovely enough to' 前置 → 実行（kind|good enough は既ルート緑）。
+- ✅ tests/sweet-enough-atoms.test.js +24（実装前13件赤確認）、計13160全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 267
 - ✨ JA: てくれませんかねえ・くれませんの残置。dict利益名詞尾（のが利益だ/便宜だ/便益だ/徳だ/好都合だ）→ 実行。'is it possible to X it' は help ピン確立済みのため維持。
 - ✅ tests/is-it-possible-atoms.test.js +24（実装前8件赤確認）、計13136全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
 
