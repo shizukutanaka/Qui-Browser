@@ -504,6 +504,10 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**'メモして'/'タイマー'/'メールを開いて'/'音楽を再生'/'テレビを見て' 等のデバイスアプリ句が NO-MATCH または literal ナビゲート**~~ — **Session 138 で実装**: `device-apps` 誠実不在原子（go-to 前に登録）。
 - ~~**'画像検索'/'動画を検索' が語そのものの検索または NO-MATCH**~~ — **Session 138 で実装**: `media-search` 誠実不在原子（専用モード欠如を応答）。
 - ~~**'早すぎる'/'ゆっくり言って'/'聞き取れない'/'音が小さすぎる'/'声を小さく'/'うるさすぎる'/'あと何分で読み終わる'/'ページ数は'/'さっきの記事'/'通知はある'/'女性の声で'/'タブを並べて' 等が未認識**~~ — **Session 138 で実装**: speech-slower/faster、volume-up/down、remaining-time、reader-progress、history/history-latest、sort-tabs、read-notify、select-voice へのエイリアス拡充。
+- ~~**'タブを全部閉じて'/'全タブを閉じて'/'このタブだけ'/'他を全部閉じて' が NO-MATCH**~~ — **Session 139 で修正**: close-all-tabs に て/閉め 形、close-other-tabs に 'だけ' 形追加。
+- ~~**'Googleにして'/'Bingで検索'/'グーグルを使って' のエンジン名短縮形が NO-MATCH**~~ — **Session 139 で実装**: search-engine に `名+にして/を使って/で検索/で調べて` パターン。
+- ~~**'履歴の最初' が goBack を無限ループさせうる**~~ — **Session 139 で修正**: nav-steps の unbounded リクエストを 50 にキャップ（テストで捕捉）。
+- ~~**'検索をやめる'/'検索をキャンセル'/'音声検索'/'ページの末尾'/'フォーカスは'/'今何行目'/'何段落目'/'何見出し目'/'その段落を読んで'/'前の文に戻って'/'もう一行'/'もう一段落'/'もう一文'/'読み込んでいる' 等が未認識**~~ — **Session 139 で実装**: clear-find/web-search/scroll-bottom/where-am-i/line-status/paragraph-status/read-heading/next・prev caret/read-paragraph/nav-steps/loading-status へのエイリアス拡充。
 
 
 ---

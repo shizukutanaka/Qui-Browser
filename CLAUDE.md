@@ -252,6 +252,15 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 139: エンジン短縮/コレクション動詞原子 — 一括閉じ句・エンジン名短縮・caret「もう一X」形 + 言い換え句第22弾
+外部基準: Chrome「search with X」エンジン短縮、NVDA の読み上げ caret 進行句、Voice Access の dismiss/cancel 動詞。
+- 🐛 **一括閉じ句が NO-MATCH**（実測捕捉）: close-all-tabs は する/る 語幹のみで 'タブを全部閉じて'/'全タブを閉じて' が未認識 → て/て閉め 形追加。close-other-tabs に 'このタブだけ'/'このタブだけ残す'/'他を全部閉じて'。
+- 🐛 **nav-steps の無限ループ耐性**: '履歴の最初' の `requested=Infinity` を `50` にキャップ — 枯渇を報告しない goBack 実装で認識スレッドがハングする経路をテストが捕捉。
+- ✨ **search-engine 短縮形**: 'Googleにして'/'Googleを使って'/'グーグルで検索'/'Bingで検索' 等の `名+にして/を使って/で検索/で調べて` 形（未対応の Yahoo は従来通り誠実拒否）。'検索エンジンは' ステータス形は維持。
+- ✨ **web-search '音声検索'**: 語欠如で '検索語がありません' プロンプト（VOICE-first の入口）。
+- ✨ **エイリアス第22弾**: clear-find に '検索をやめる'/'検索をキャンセル'/'検索を中止'、loading-status に '読み込んでいる'/'まだ読み込み中ですか'、where-am-i に 'フォーカスは'/'選択中は'/'選択されているもの'、line-status に '今何行目'/'現在の行'/'行番号は'、paragraph-status に '何段落目'/'今は何段落目'、read-heading に '何見出し目'/'見出し番号は'、next-line/paragraph/sentence に 'もう一行/一段落/一文'、prev-sentence に '前の文に戻って'/'文を戻して'、read-paragraph に 'その段落を読んで'、nav-steps に '履歴の最初'、scroll-bottom に 'ページの末尾'/'末尾'/'終わりまで'。
+- ✅ **テスト +53（git stash で47件赤確認、6件は共存ガード設計上緑）**: Total 3943 tests (113 suites); 0 lint errors（警告 132 = baseline 同一）; build green・FFFD 0件。
+
 ### Session 138: 位置指定タブ/アプリ原子 — 右左のタブ句の誤ルート修正 + device-apps/media-search 誠実不在 + 言い換え句第21弾
 外部基準: Voice Access の位置指示子（'right tab' は隣接切替であって並び替えではない）、スマートスピーカーの「アプリ欠如は誠実応答」原則、NVDA counted select。
 - 🐛 **位置句の誤ルート3系修正**（実測捕捉）: '右のタブに移動'/'右隣のタブ'/'一つ右のタブ' が go-to literal ナビゲートまたは tab-by-name の「一つ右」誤答 → next-tab/prev-tab に位置句追加 + tab-by-name stoplist 拡張（一つ右/一つ左/右隣/左隣/隣/ひとつ〜）。'タブ3に移動'/'タブの3番目' が literal ナビゲート → open-tab-n に索引形追加。'タブを右に移動'（並び替え）・'3番目に移動して'（move-tab-to-n）・'メモのタブ'（名指し検索）は共存テストで維持を断言。
