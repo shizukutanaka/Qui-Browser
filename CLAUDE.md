@@ -1720,8 +1720,14 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 217
+### Session 218
 
+- ✨ dict残置XXVII: べき正式宣言（べきであります/でありましょう/と考えております/と心得ます/と心得ております/べきものと心得ております）+ こと-demand動詞（ことを要請|要求|依頼|希望いたします/期待しております/願い出ます/お願い申し上げる/お願い致したく/ことが必須であります/ことが要件です）→ 実行。
+- ✨ TAIL_TE残置: てなさいませ・てくれはりますか・てもらえると(+ありがたいんです)・てもらいたいものですね → 実行。
+- ✨ EN XXVII: 目的格スワップ 'i want|need it|this|the tab (gone|shut)'→'close it' + 語尾 'i owe ya'/'and i owe you'/'youll be doing me a favor'。
+- ✅ tests/formal-demand-atoms.test.js +44（実装前23件赤確認）、計11690全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 217
 - ✨ dict残置XXVI: べきかと思いますよ/べきなので/べきですので + 意向報告（ようと思うので/ようとしている/ようとする/ようかと思っています/ようかと考えています/ようと思っております/ようとします/ようとしますので）→ 実行。
 - ✨ masu残置: ますれば(幸い|よろしい)/まする/ませうか/ますわよ/ますこと/ますのよ → stemTe で実行。
 - ✨ す-語幹 irregular: '閉じしてくれ/してもらって/しといて/しとこう/して' → て形。
