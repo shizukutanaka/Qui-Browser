@@ -1720,6 +1720,83 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 183: 残置フレーム原子 — 複合義務尾・受動スワップIII・序数/量指定子II
+外部基準: JA double-negative obligation (ないわけにはいかない/なくちゃいけない = 実行)、
+tentative affirmative processing (Norrick '79)、EN imperative suffix adverbs
+(close it slowly/gently)、ordinal tab addressing (Chrome Ctrl+1..8 parity)、
+accident-report reopening (human-in-the-loop error recovery, Rasmussen SRK)。
+- ✨ **FR複合尾拡張**: `ほうがいい(ね|かも)?`・`ほうがマシ(だ|です)?`・`必要が(ある|あります|ありそう)`・
+  `べきです|べきなのに` → dictTe/stemTe。た形幹 '閉じたほうがいいね' → 先行て形 push で
+  describe-tab 誤ルート回避（'閉じた' 生幹より '閉じて' を先に積む）。
+- ✨ **一段否定義務の最優先て形化**: '閉じないわけにはいかない'/'閉じなくちゃいけない'/
+  '閉じないとダメ' → negob ブロックで '閉じて' を最初の変体として push
+  （'閉じないで' 変体が negate を拾う前に）。五段はインライン NAKYA 等価マップで
+  '読まないわけにはいかない'→'読んで'→read-aloud。
+- ✨ **CHA尾**: `ちゃっていい(よ|か|ね)?` 追加（'閉じちゃっていい'→close-tab）。
+- ✨ **SE_TAIL**: `いただくね|いただくよ|いただけるかな`（'閉じさせていただくね'→close-tab）。
+- ✨ **EN語尾副詞・前置詞**: tail regex に `for me thanks|for me|thanks|soon|slowly|
+  carefully|gently|quietly`（'close it gently'→close-tab）、ENPRE に
+  `do go and|go and|very well|fine|right|sure|cant you|could you`。
+- ✨ **bare序数タブ**: 'the fifth tab'/'fifth tab'/'tab number five'/'third tab'
+  →tab-select-ordinal。first/last は既存 first-tab/last-tab、数字は tab-select を維持。
+- ✨ **nav-steps EN**: 'go back three'/'back twice'/'forward once'（'a|an' を除外して
+  'forward a page'→navigate 維持）。
+- ✨ **量・副詞系**: close-other-tabs に 残りを/他を/ほかを/他のを/残りだけ閉じて、
+  volume-down に 音量さげて/音おとして/音を下げて、mute-toggle に 音なしにして、
+  speech-faster/slower に はやくして/ゆっくりして/速度を上げて・下げて、
+  reader-size-down に 字を小さく、percent-jump に 中ほどへ/半分へ/真ん中へ、
+  pause/resume に ポーズして/一時停止して/止まって/続きを/続けて、
+  negate に おけ尾・'止めておけ'/'やめておけ'、read-aloud に '続き読んで'。
+- 🐛 **回帰消化**: '続きを読んで'→read-here、'聞かせて'→say-again、'it reopened'→reopen-tab、
+  '止まって'→pause-reading、'tab 3'/'tab number 2'→tab-select、'first tab'→first-tab、
+  '閉じより'→describe-tab（より尾は辞書形語尾のみ）、'forward a page'→navigate 維持。
+
+### Session 182: 願望/報告原子 — たい尾・はず二方向・EN削除動詞・事故報告
+外部基準: JA desire morphology (たい+接続助詞)、expectation reports vs commands (るはず vs たはず)、
+permission/capability questions (てもいいでしょうか / られますか)、EN disposal verbs
+(shut/drop/lose/remove/delete/kill/nuke/scrap/get-rid-of)、accidental-close recovery
+(Chrome 'Reopen closed tab' 報告経路)。
+- ✨ **たい願望尾**: `たい(のに|んだ|んです|ので|から|っす|なあ|んや|わ|よ|ね|んだけど)`→stemTe
+  — '閉じたいのに'/'戻りたいので'/'読みたいんだ' 各コマンドへ。`たくない`は negate で先勝ち。
+- ✨ **dict+はず 期待実行**: 五段終止のみ `dict+はず(だ|です)?`→dictTe（'閉じるはず'→close-tab）。
+  過去 `たはず(だった|なのに|のに)?` は『閉じたはずなのに』苦情報告 → trouble で先勝ち分離。
+- ✨ **意向報告**: QC_TAIL に `と思います|と思う|と考えて|のでは|のである|のだ`（長形優先: `の` の前に配置）。
+- ✨ **許可・敬語尾II**: TAIL_TE に `も?大丈夫|も?問題ありませんか?|も?構いません|もいいでしょうか|
+  いいでしょうか|いいっす|いいよね|ええんか?|くださいますと.*|くだされば.*|くれますと.*`。
+- ✨ **といて/させて尾**: といて + `ほしい|くれ|もらう|もらえる`（'閉じといてほしい'→close-tab）、
+  SE_TAIL に `もらいます|もらうね|もらうわ`（'閉じさせてもらいます'→close-tab）。
+- ✨ **能力・協議質問→help**: `べきか(どうか)?`、`(?<!く)られるか?`、`(?<!く)られますか?`、
+  `(?<!く)れますか`（'閉じられますか'→help；'閉じてくれますか' の奪取を lookbehind で解消）。
+- 🐛 **回帰修正**: 初期版 `/れますか$/` が '閉じてくれますか' の 'くれますか' を能力質問に誤食
+  → `(?<!く)` lookbehind で受益くれを除外。
+- ✨ **EN 削除動詞**: shut this/that/the tab、drop this/the tab、lose this、remove/delete
+  this/the tab、kill this/kill it dead、nuke this/the tab、scrap it/this、get rid of the
+  tab/this one、close it away → close-tab。
+- ✨ **受動目的語II**: swap を `make|like` 動詞 + `them` 目的語 + `shut` 分詞へ拡張、
+  bare swap に `it` 追加（'it closed'→'close it'）、ENPRE に `i'?d like`+`merely|no|nah|
+  wait|so yeah|ok then|alright then` — 'id like it closed'→close-tab、'wait close it'→close-tab。
+- ✨ **事故報告→reopen-tab**: 'it closed on me/itself'/'it disappeared'/'it went away'/
+  'its gone now'/'消えたよ'/'閉じちゃいました'/'閉じちゃったから'/'閉じられたんだ'。
+  不随意報告→trouble: 'it crashed on me'/'勝手に閉じる'/'自動で閉じた'/'急に閉じた'。
+- ✨ **状態質問→describe-tab**: 'is it closing'/'has it closed'/'was it closed|open'/
+  'is it gone'/'its back'/'it came back'。**negate**: `べきでは(ない)?`/`気(が)?ない`/
+  `つもり(は)?ない`/`たくない`（'閉じるべきでは'/'閉じたくない'→negate）。
+- ✅ tests/desire-report-atoms.test.js +142（実装前108件赤）、計8797全緑・lint 0エラー
+  （警告136=baseline）・build green・FFFD 0件。
+
+### Session 181
+
+- ✨ JA ます+終助詞・口語尾: 汎用規則 `ま(っか|す(よ|ね|わ|から|けど|が|さ|ぞ|な|んだけど|んですが)?)` →stemTe（'閉じますよ'→close-tab、'読みまっか'→read-aloud、'戻りますよ'→back、'進みますよ'→navigate）。'閉じましょか' は既存ましょ規則維持。
+- ✨ 引用命令の拡張: `([ろれめせけげべねぜじ])(って|と)[ばよ]?` → 命令形素（'読めって'→read-aloud、'閉じろと'→close-tab、'探せって'→find-in-page）。
+- ✨ dict+目的/説明/疑問尾: QC_TAIL += `のか|こと|ように|んだよ|んやで`（'閉じること'/'閉じるように'/'閉じるんだよ'→close-tab、'戻るんやで'→back）。
+- ✨ とけ/とこ方言尾+助詞: とけ[よな]?・とき[よな]?・とこ[よな]?（'閉じとけよ'/'閉じとこな'→close-tab、'読みときよ'→read-aloud）。て+長音/方言尾: `(て|で)(や[あよー]?|な[あー]?|やよ)`（'閉じてやー'/'閉じてやよ'→close-tab）。
+- ✨ HP開放詞 += あのさ(あ)?。
+- ✨ EN 受動目的語スワップ: `(get|have|need|want) (it|this|that) X-ed` → 'X it'（'get this closed'→close-tab、'get this pinned'→pin-active）+ bare `(this|that) X-ed` → 'i want this closed'/'i need this closed'→close-tab（ENPRE 先剥がし後の 'this closed' を原形化）。'id like this muted' は mute-status、'i want it muted' は mute-toggle 既存維持。
+- ✨ EN前置詞IV: `be (kind|nice) and`/`you (can|may|will)`/`yo`/`quickly|slowly|carefully|gently|quietly`/`hurry (up )?and`。
+- ✨ help 能力疑問 += `^how (might|may|would|could|should) i`（'how might i close this'→help）。
+- ✨ 拒否・充足→ack: 'im good( thanks)?'/'im fine( thanks)?'/'im okay( thanks)?'/'im alright'/'all good'。
+- ✨ リテラル補充: working-status 'still going'/'you alive'/'you still there'/'are you alive'/'still running'/'still up'、voice-name '誰が話してる'/'誰の声(ですか)?'/'どなたの声'/'誰が喋ってる'、tabs-list 'タブ教えて'、where-am-i 'ここどこ'/'ここはどこ'、describe-tab 'what am i on'/'what tab is this'/'what is this tab'/'なんのページ'、reader-progress '読み切った(よ)?'/'読み切りました'/'読了しました'、stop-reading 'thats enough (reading|of this)'/'enough reading'/'もう読まない'/'読むのやめる'/'読むのやめた'/'読み止め'。
+
 ### Session 180
 
 - ✨ JA 残置・願望尾II: べきだった/んだった/忘れてた系→stemTe・dictTe（'閉じるべきだった'→close-tab、'閉じるんだった'→close-tab、'読むの忘れてた'→read-aloud）、Kansai 意向 `([おこごそとのぼもろほ])う(かいな|かい|けん|けんね)`→て形（'閉じようかい'→close-tab）、`よか(な|ろう)?` 尾、ときなさい。
