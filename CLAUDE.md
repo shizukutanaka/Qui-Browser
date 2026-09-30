@@ -1720,8 +1720,13 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
-### Session 276
+### Session 277
 
+- ✨ JA: てくれません残置（くれませんだろうか/かねええ/でしょうかな）・dict要旨名詞尾（のが要旨だ/趣旨だ/主眼だ/本旨だ/旨趣だ/神髄ですね）→ 実行。
+- ✨ EN LXXXVI: 'id be ever so obliged|most obliged|deeply obliged|so obliged|truly obliged if youd' 前置 → 実行（'id be much obliged if youd' は既ルート緑）。
+- ✅ tests/be-obliged-atoms.test.js +24（実装前14件赤確認）、計13376全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 276
 - ✨ JA: dict勘所名詞尾（のが勘所だ/急所だ/急所です/急務です/眼目だ/狙い目だ）→ 実行。
 - ✨ EN LXXXV: 'would you do me the courtesy of|the honor of' 前置 → 実行（could you do me the courtesy|kindness of、would you do me the favor of は既ルート緑）。
 - ✅ tests/do-me-the-atoms.test.js +24（実装前8件赤確認）、計13352全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
