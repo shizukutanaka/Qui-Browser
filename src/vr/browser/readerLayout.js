@@ -143,10 +143,13 @@ export function layoutReaderLines(blocks, opts = {}) {
   const scale = opts.scale > 0 ? opts.scale : 1;
   const lines = [];
 
-  const push = (text, style) => lines.push({ text, style });
-  const blank = () => {
+  // `block` carries the source-block index on every line (title lines leave
+  // it undefined) so a visible position maps back to the article structure —
+  // read-from-here chunks resume at the block under the scroll offset.
+  const push = (text, style, block) => lines.push({ text, style, block });
+  const blank = (block) => {
     if (lines.length) {
-      push('', 'blank');
+      push('', 'blank', block);
     }
   };
 
@@ -156,14 +159,16 @@ export function layoutReaderLines(blocks, opts = {}) {
     }
   }
 
-  for (const b of Array.isArray(blocks) ? blocks : []) {
+  const all = Array.isArray(blocks) ? blocks : [];
+  for (let i = 0; i < all.length; i++) {
+    const b = all[i];
     if (!b || !b.text) {
       continue;
     }
-    blank();
+    blank(i);
     const style = b.type === 'h' ? 'h' : 'p';
     for (const row of wrapTextToWidth(b.text, measureEmForStyle(style, scale))) {
-      push(row, style);
+      push(row, style, i);
     }
   }
 

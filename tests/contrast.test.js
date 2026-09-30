@@ -25,7 +25,7 @@ const {
   contrastRatio, wcagMinimum, apcaLc
 } = require('../src/vr/ui/contrast.js');
 const { bookmarkPanelColors } = require('../src/vr/browser/bookmarkLayout.js');
-const { webChromeColors, webContentColors } = require('../src/vr/browser/chromeColors.js');
+const { webChromeColors, webContentColors, tabStripColors } = require('../src/vr/browser/chromeColors.js');
 const { imeBadgeColors, imeColors } = require('../src/vr/input/keyboardLayout.js');
 const { toggleIndicatorColors, buttonBg } = require('../src/vr/ui/buttonStyle.js');
 const { securityIndicator } = require('../src/vr/browser/urlDisplay.js');
@@ -160,6 +160,7 @@ function palettePairs(hc) {
   const bm = bookmarkPanelColors(hc);
   const ch = webChromeColors(hc);
   const ct = webContentColors(hc);
+  const ts = tabStripColors(hc);
   const bmBack = hc ? '#000000' : '#000000'; // panel sits on the dark scene
   const bmBg = compositeOver(bm.bg, bmBack);
   const pairs = [];
@@ -200,6 +201,18 @@ function palettePairs(hc) {
   add('reader progress', ct.progress, ct.bg, { fontPx: 16 });
   add('reader arrow active', ct.arrowActiveText, ct.arrowActiveBg, { fontPx: 34, bold: true }, ct.bg);
   add('reader arrow idle', ct.arrowIdleText, ct.arrowIdleBg, { fontPx: 34, bold: true }, ct.bg);
+  add('topsite tile initial', ct.tileText, ct.tileBg, { fontPx: 26, bold: true });
+  add('topsite tile host', ct.tileText, ct.tileBg, { fontPx: 17 });
+  add('topsite tile border', ct.tileBorder, ct.tileBg, { nonText: true });
+
+  // Tab strip (TabManager._drawStrip — extracted in the browser-atoms round;
+  // it was the last canvas surface still painting hard-coded literals)
+  add('strip tab active title', ts.tabActiveText, ts.tabActiveBg, { fontPx: 22 });
+  add('strip tab inactive title', ts.tabInactiveText, ts.tabInactiveBg, { fontPx: 22 });
+  add('strip tab close', ts.closeText, ts.closeBg, { fontPx: 22 });
+  add('strip new tab +', ts.newTabText, ts.newTabBg, { fontPx: 40, bold: true });
+  add('strip private chip', ts.privateText, ts.privateBg, { fontPx: 20, bold: true });
+  add('strip private dot', ts.privateText, ts.tabInactiveBg, { fontPx: 22 });
 
   // Japanese IME — badge glyph, and the badge rectangle as an indicator
   for (const mode of ['hiragana', 'katakana', 'kanji']) {

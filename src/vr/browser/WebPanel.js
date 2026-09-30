@@ -29,6 +29,9 @@ import {
   visibleLinesFor, fontPxFor, LINE_H, CONTENT_PAD,
   readerHitTest, pageJumpLines, ARROW_W, ARROW_H, ARROW_Y0, ARROW_UP_X0, ARROW_DN_X0
 } from './readerLayout.js';
+import { topSiteTiles, hitTestTopSites, TILE_TOP } from './topSitesLayout.js';
+import { narrationChunks, narrationFromLine, splitSentences } from './readerNarration.js';
+import { t } from '../../i18n/i18n.js';
 import { prefersHighContrast } from '../../a11y/accessibility.js';
 import { webChromeColors, webContentColors } from './chromeColors.js';
 import {
@@ -85,11 +88,16 @@ export class WebPanel {
    *   surface a status message (WCAG 4.1.3) instead of silently doing nothing.
    * @param {number} [opts.readerScale=1] — text-size multiplier for the reader
    *   viewport (compose with a11y largeTextScale at the call site).
+   * @param {boolean} [opts.privateMode=false] — mark this panel private at
+   *   creation (incognito-window semantics): private panels write no history
+   *   and are excluded from tab-session persistence.
+   * @param {Function} [opts.topSitesProvider] — () => [{url,title,host}];
+   *   supplies the new-tab tile grid (getTopSites frecency). Null = no tiles.
    */
   constructor({ scene, registerInteractable, unregisterInteractable, onNavigate,
     onUrlInputRequested, searchEngine, isBookmarked, onToggleBookmark, onLoadError,
     onHoverCaption, onGrabRequested, onMoveBarHoverCaption, onBlockedNavigation,
-    readerScale = 1, readerProxyUrl = '' }) {
+    readerScale = 1, readerProxyUrl = '', privateMode = false, topSitesProvider = null }) {
     this.scene = scene;
     this.registerInteractable = registerInteractable;
     this.unregisterInteractable = unregisterInteractable;
@@ -128,7 +136,27 @@ export class WebPanel {
     this._readerLines = [];
     this._readerScroll = 0;
     this._readerScale = readerScale > 0 ? readerScale : 1;
+    // Source blocks + title are retained after layout so live changes
+    // (setReaderScale) and read-aloud (getReaderNarration) can rebuild the
+    // line list without refetching the article.
+    this._readerBlocks = null;
+    this._readerTitle = '';
+    // Find-in-page state: line indices matching the last findInReader query
+    // and the cursor into them for findNextMatch/findPrevMatch.
+    this._findMatches = [];
+    this._findIndex = -1;
+    this._lastFindQuery = null; // Ctrl+F bar's query text — cleared by Esc/load
+    this._scrollMark = null; // Vim `` mark — scrollContentTo records pre-jump
+    this._wordCaret = null; // {line, idx} NVDA word-nav caret; null = at scroll
+    this._charCaret = null; // {line, idx} NVDA Left/Right char caret
+    this._sentenceCaret = null; // {block, idx} NVDA Alt+Up/Down sentence caret
     this._readerSeq = 0; // guards against a slow fetch landing after a newer one
+    this._loadController = null; // in-flight reader fetch, abortable by stop()
+    // Private tabs (incognito-window semantics): no history writes, excluded
+    // from session persistence — set once at creation, never toggled.
+    this.isPrivate = !!privateMode;
+    this._topSitesProvider = typeof topSitesProvider === 'function' ? topSitesProvider : null;
+    this._topSiteTiles = []; // rects hit-tested by _onContentSelect
     // Optional companion proxy (proxy/server.js). Empty = direct fetch only.
     this.readerProxyUrl = typeof readerProxyUrl === 'string' ? readerProxyUrl : '';
 
@@ -309,9 +337,44 @@ export class WebPanel {
       ctx.fillText(truncate(lines.detail, 72), w / 2, h / 2 + 20);
     }
 
+    if (this._contentState === 'empty') {
+      this._drawTopSites(ctx, w, col);
+    }
+
     if (this.contentTex) {
       this.contentTex.needsUpdate = true;
     }
+  }
+
+  /**
+   * Draw the frecency-ranked tile grid on the new-tab ('empty') state — the
+   * one-dwell re-navigation path. Records the rects for _onContentSelect.
+   */
+  _drawTopSites(ctx, w, col) {
+    const sites = this._topSitesProvider ? this._topSitesProvider() : [];
+    this._topSiteTiles = topSiteTiles(sites.length, w);
+    if (!sites.length || !this._topSiteTiles.length) {
+      return;
+    }
+    ctx.font = 'bold 24px sans-serif';
+    ctx.fillStyle = col.stateTitle;
+    ctx.textAlign = 'center';
+    ctx.fillText(t('vr.content.topSites'), w / 2, TILE_TOP - 16);
+    sites.slice(0, this._topSiteTiles.length).forEach((site, i) => {
+      const r = this._topSiteTiles[i];
+      ctx.fillStyle = col.tileBg;
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+      ctx.strokeStyle = col.tileBorder;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(r.x + 1, r.y + 1, r.w - 2, r.h - 2);
+      ctx.fillStyle = col.tileText;
+      ctx.font = 'bold 26px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText((site.host || '').replace(/^www\./, '').slice(0, 1).toUpperCase(),
+        r.x + r.w / 2, r.y + 44);
+      ctx.font = '17px sans-serif';
+      ctx.fillText(truncate(site.host || site.url, 22), r.x + r.w / 2, r.y + 86);
+    });
   }
 
   /**
@@ -332,6 +395,7 @@ export class WebPanel {
       return;
     }
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    this._loadController = controller;
     const timer = controller ? setTimeout(() => controller.abort(), 5000) : null;
     try {
       // Routed through the companion proxy when one is configured; otherwise a
@@ -354,7 +418,16 @@ export class WebPanel {
         this._setContentState('unavailable');
         return;
       }
+      this._findMatches = [];
+      this._findIndex = -1;
+      this._lastFindQuery = null;
+      this._scrollMark = null;
+      this._wordCaret = null;
+      this._charCaret = null;
+      this._sentenceCaret = null;
       this._readerLines = lines;
+      this._readerBlocks = blocks;
+      this._readerTitle = title;
       this._readerScroll = 0;
       this._contentState = 'reader';
       this._drawContent();
@@ -366,7 +439,41 @@ export class WebPanel {
       if (timer) {
         clearTimeout(timer);
       }
+      if (this._loadController === controller) {
+        this._loadController = null;
+      }
     }
+  }
+
+  /**
+   * Stop the in-flight load — the reload↔stop pairing every desktop browser
+   * uses: while `loading` the same button becomes a stop control. Aborts the
+   * reader fetch, detaches the iframe handlers (a late load event must not
+   * fire onNavigate against a stopped page), and lands on the honest
+   * 'stopped' state — unless the reader already rendered, in which case the
+   * article stays put (stop only cancels what is still pending).
+   */
+  stop() {
+    if (!this.loading && !this._loadController) {
+      return;
+    }
+    if (this._loadController) {
+      this._loadController.abort();
+      this._loadController = null;
+    }
+    // Invalidate any in-flight fetch that lacks a controller reference.
+    this._readerSeq++;
+    this.loading = false;
+    this._loadError = false;
+    if (this.iframe) {
+      this.iframe.onload = null;
+      this.iframe.onerror = null;
+      this.iframe.src = 'about:blank';
+    }
+    if (this._contentState === 'loading') {
+      this._setContentState('stopped');
+    }
+    this._drawChrome();
   }
 
   /**
@@ -387,6 +494,12 @@ export class WebPanel {
     let y = CONTENT_PAD + lh;
     for (const line of window) {
       if (line.style !== 'blank' && line.text) {
+        // Find-in-page hits paint a box behind the text — Chrome's Ctrl+F
+        // distinction: orange for the current match, yellow for the rest.
+        if (line._findHit) {
+          ctx.fillStyle = line._findHit === 'current' ? col.findCurrent : col.findHit;
+          ctx.fillRect(CONTENT_PAD - 4, y - lh * 0.85, w - 2 * CONTENT_PAD + 8, lh);
+        }
         ctx.font = `${line.style === 'p' ? '' : 'bold '}${fontPxFor(line.style, this._readerScale)}px sans-serif`;
         ctx.fillStyle = line.style === 'p' ? col.readerBody : col.readerHeading;
         ctx.fillText(line.text, CONTENT_PAD, y, w - 2 * CONTENT_PAD);
@@ -428,7 +541,10 @@ export class WebPanel {
    * one implementation serves both input modes.
    */
   _onContentSelect(evt) {
-    if (this._contentState !== 'reader' || !this.contentCanvas) {
+    if (this._contentState !== 'reader' && this._contentState !== 'empty') {
+      return;
+    }
+    if (!this.contentCanvas) {
       return;
     }
     const rawPoint = evt?.intersection?.point ?? evt;
@@ -441,6 +557,18 @@ export class WebPanel {
     const v = (local.y / contentH) + 0.5;
     const px = u * this.contentCanvas.width;
     const py = (1 - v) * this.contentCanvas.height; // canvas y grows downward
+
+    if (this._contentState === 'empty') {
+      const idx = hitTestTopSites(px, py, this._topSiteTiles);
+      if (idx >= 0) {
+        const sites = this._topSitesProvider ? this._topSitesProvider() : [];
+        const site = sites[idx];
+        if (site && site.url) {
+          this.navigate(site.url);
+        }
+      }
+      return;
+    }
 
     const visible = visibleLinesFor(this._readerLines.length, this._readerScale);
     const scrollable = this._readerLines.length > visible;
@@ -475,6 +603,1051 @@ export class WebPanel {
     this._readerScroll = next;
     this._drawContent();
     return true;
+  }
+
+  /**
+   * Jump the reader viewport to an absolute line offset — the Home/End atoms
+   * desktop browsers get from the keyboard. Same clamp + repaint discipline
+   * as scrollContent.
+   * @param {number} line target first-visible line
+   * @returns {boolean} true when the offset actually moved
+   */
+  scrollContentTo(line) {
+    if (this._contentState !== 'reader') {
+      return false;
+    }
+    const visible = visibleLinesFor(this._readerLines.length, this._readerScale);
+    const next = clampReaderScroll(
+      Number.isFinite(line) ? line : 0,
+      this._readerLines.length,
+      visible
+    );
+    if (next === this._readerScroll) {
+      return false;
+    }
+    this._scrollMark = this._readerScroll;
+    this._readerScroll = next;
+    this._drawContent();
+    return true;
+  }
+
+  /**
+   * Vim Ctrl+D/Ctrl+U parity — half a visible page instead of the full
+   * page-jump the arrow hit zones use. Returns true when the offset moved.
+   */
+  scrollHalfPage(direction = 1) {
+    if (this._contentState !== 'reader') {
+      return false;
+    }
+    const visible = visibleLinesFor(this._readerLines.length, this._readerScale);
+    return this.scrollContent(Math.ceil(visible / 2) * (direction < 0 ? -1 : 1));
+  }
+
+  /**
+   * Kindle "go to N%" parity — absolute percent position in the article.
+   * Returns null outside the reader, 'out' for out-of-range percents, and
+   * true/false for moved/unmoved within range.
+   */
+  scrollToPercent(pct) {
+    if (this._contentState !== 'reader' || !this._readerLines.length) {
+      return null;
+    }
+    const n = Number(pct);
+    if (!Number.isFinite(n) || n < 0 || n > 100) {
+      return 'out';
+    }
+    return this.scrollContentTo(Math.floor(this._readerLines.length * n / 100));
+  }
+
+  /**
+   * Jump back to the position before the last jump — Vim's `` `` `` mark.
+   * scrollContentTo re-marks the current line before moving, so repeated
+   * calls toggle between the two spots. false when nothing was jumped
+   * (fresh article) or the mark lands where we already are.
+   */
+  jumpBack() {
+    if (this._contentState !== 'reader' || !Number.isFinite(this._scrollMark)) {
+      return false;
+    }
+    return this.scrollContentTo(this._scrollMark);
+  }
+
+  /**
+   * Advance the word caret — NVDA/JAWS Ctrl+Right/Left parity. Each laid-out
+   * reader line segments into word tokens via Intl.Segmenter (CJK-safe;
+   * whitespace split as fallback). A null caret inits at the scroll line's
+   * near edge for the direction. Crossing a line follows the caret with
+   * scrollContentTo so the spoken word stays in the viewport — which also
+   * marks the scroll position for jumpBack, matching other jump atoms.
+   * @param {number} direction positive = forward
+   * @returns {{word: string, line: number}|null} word + its line, or null at
+   *          the article's edge / outside reader
+   */
+  nextWord(direction = 1) {
+    if (this._contentState !== 'reader' || !this._readerLines.length) {
+      return null;
+    }
+    const dir = direction >= 0 ? 1 : -1;
+    const wordsOf = (line) => this._wordsOf(line);
+    if (!this._wordCaret) {
+      const line = Math.min(this._readerScroll, this._readerLines.length - 1);
+      const n = wordsOf(line).length;
+      this._wordCaret = { line, idx: dir > 0 ? -1 : n };
+    }
+    let { line, idx } = this._wordCaret;
+    idx += dir;
+    while (line >= 0 && line < this._readerLines.length) {
+      const words = wordsOf(line);
+      if (idx >= 0 && idx < words.length) {
+        this._wordCaret = { line, idx };
+        if (line !== this._readerScroll) {
+          this.scrollContentTo(line);
+        }
+        return { word: words[idx], line };
+      }
+      line += dir;
+      if (line >= 0 && line < this._readerLines.length) {
+        idx = dir > 0 ? 0 : wordsOf(line).length - 1;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Word tokens of one laid-out line — Intl.Segmenter word granularity
+   * (CJK-safe), whitespace split as fallback. Shared by nextWord's caret
+   * walk and currentWord's position query.
+   */
+  _wordsOf(line) {
+    const text = this._readerLines[line]?.text || '';
+    if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+      const seg = new Intl.Segmenter('ja', { granularity: 'word' });
+      return [...seg.segment(text)]
+        .filter((s) => s.isWordLike)
+        .map((s) => s.segment);
+    }
+    return text.split(/\s+/).filter(Boolean);
+  }
+
+  /**
+   * Grapheme clusters of one laid-out line — the char-caret unit. Intl
+   * grapheme segmentation keeps surrogate pairs and combining sequences
+   * whole (a surrogate slice would render �); [...text] is the fallback.
+   */
+  _charsOf(line) {
+    const text = this._readerLines[line]?.text || '';
+    if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+      const seg = new Intl.Segmenter('ja', { granularity: 'grapheme' });
+      return [...seg.segment(text)].map((s) => s.segment);
+    }
+    return [...text];
+  }
+
+  /**
+   * Advance the char caret — NVDA/JAWS Right/Left single-character review.
+   * Same caret shape as nextWord, one line at a time; crossing a line
+   * follows the caret with scrollContentTo (which marks for jumpBack).
+   * @param {number} direction positive = forward
+   * @returns {{char: string, line: number}|null} null at article edge /
+   *          outside the reader
+   */
+  nextChar(direction = 1) {
+    if (this._contentState !== 'reader' || !this._readerLines.length) {
+      return null;
+    }
+    const dir = direction >= 0 ? 1 : -1;
+    const charsOf = (line) => this._charsOf(line);
+    if (!this._charCaret) {
+      const line = Math.min(this._readerScroll, this._readerLines.length - 1);
+      const n = charsOf(line).length;
+      this._charCaret = { line, idx: dir > 0 ? -1 : n };
+    }
+    let { line, idx } = this._charCaret;
+    idx += dir;
+    while (line >= 0 && line < this._readerLines.length) {
+      const chars = charsOf(line);
+      if (idx >= 0 && idx < chars.length) {
+        this._charCaret = { line, idx };
+        if (line !== this._readerScroll) {
+          this.scrollContentTo(line);
+        }
+        return { char: chars[idx], line };
+      }
+      line += dir;
+      if (line >= 0 && line < this._readerLines.length) {
+        idx = dir > 0 ? 0 : charsOf(line).length - 1;
+      }
+    }
+    return null;
+  }
+
+  prevChar() {
+    return this.nextChar(-1);
+  }
+
+  /**
+   * The word under the caret without moving — NVDA read-current-word
+   * (numpad 5) parity. A live word caret wins; otherwise the scroll line's
+   * first word (the position a caret would take). Null outside the reader
+   * or on a wordless line.
+   */
+  currentWord() {
+    if (this._contentState !== 'reader' || !this._readerLines.length) {
+      return null;
+    }
+    if (this._wordCaret) {
+      const words = this._wordsOf(this._wordCaret.line);
+      if (this._wordCaret.idx >= 0 && this._wordCaret.idx < words.length) {
+        return { word: words[this._wordCaret.idx], line: this._wordCaret.line };
+      }
+    }
+    const line = Math.min(this._readerScroll, this._readerLines.length - 1);
+    const words = this._wordsOf(line);
+    return words.length ? { word: words[0], line } : null;
+  }
+
+  /**
+   * The current word spelled grapheme-by-grapheme — NVDA's spell gesture
+   * (double numpad 5) parity. '、'-separated so the TTS reads each unit
+   * individually instead of blending them back into the word.
+   */
+  spellWord() {
+    const w = this.currentWord();
+    if (!w) {
+      return null;
+    }
+    const chars = typeof Intl !== 'undefined' && Intl.Segmenter
+      ? [...new Intl.Segmenter('ja', { granularity: 'grapheme' }).segment(w.word)]
+        .map((s) => s.segment)
+      : [...w.word];
+    return { spelled: chars.join('、'), word: w.word };
+  }
+
+  /**
+   * Clear the find matches and their highlight tags — Chrome's Esc key
+   * dismisses the find bar. Returns true when a search was active.
+   */
+  clearFind() {
+    const had = this._findMatches.length > 0;
+    this._findMatches = [];
+    this._findIndex = -1;
+    this._lastFindQuery = null;
+    if (had) {
+      this._markFindHits();
+    }
+    return had;
+  }
+
+  /** Jump to the first line of the article. */
+  scrollToTop() {
+    return this.scrollContentTo(0);
+  }
+
+  /** Jump to the last page of the article. */
+  scrollToBottom() {
+    return this.scrollContentTo(this._readerLines.length);
+  }
+
+  /**
+   * Page-wise scroll — the Page Up/Down atom the reader's own scroll arrows
+   * already use (one screen minus the two-line overlap). Exposed so input
+   * paths that cannot reach the canvas hit-test (voice) get the same jump.
+   * @param {number} direction positive = next page
+   */
+  scrollContentPage(direction) {
+    const visible = visibleLinesFor(this._readerLines.length, this._readerScale);
+    return this.scrollContent((direction > 0 ? 1 : -1) * pageJumpLines(visible));
+  }
+
+  /**
+   * Live text-scale change (WCAG 1.4.4 — text must be resizable up to 200%
+   * without assistive technology). Re-lays-out the retained blocks at the new
+   * scale and clamps the scroll offset so the viewport stays on content.
+   * @returns {boolean} true when the scale actually changed
+   */
+  setReaderScale(scale) {
+    const next = Number.isFinite(scale) && scale > 0 ? scale : 1;
+    if (next === this._readerScale) {
+      return false;
+    }
+    this._readerScale = next;
+    if (this._contentState === 'reader' && this._readerBlocks) {
+      this._readerLines = layoutReaderLines(
+        this._readerBlocks, { title: this._readerTitle, scale: next });
+      const visible = visibleLinesFor(this._readerLines.length, next);
+      this._readerScroll = clampReaderScroll(
+        this._readerScroll, this._readerLines.length, visible);
+      this._drawContent();
+    }
+    return true;
+  }
+
+  /**
+   * Utterance list for read-aloud (title first, paragraphs chunked).
+   * Empty outside the reader state — the host announces "nothing to read".
+   */
+  getReaderNarration() {
+    if (this._contentState !== 'reader' || !this._readerBlocks) {
+      return [];
+    }
+    return narrationChunks(this._readerTitle, this._readerBlocks);
+  }
+
+  /**
+   * Chunks starting at the block under the current scroll offset — the
+   * "read from here" counterpart (NVDA read-from-current-position parity).
+   * Empty outside the reader state, same as getReaderNarration().
+   */
+  getReaderNarrationFrom(line) {
+    if (line !== undefined && line !== null
+      && (!Number.isFinite(line) || line < 0 || line >= this._readerLines.length)) {
+      return null; // OOR — callers distinguish from 'no article' (empty list)
+    }
+    if (this._contentState !== 'reader' || !this._readerBlocks) {
+      return [];
+    }
+    return narrationFromLine(
+      this._readerLines,
+      line === undefined || line === null ? this._readerScroll : line,
+      this._readerTitle, this._readerBlocks);
+  }
+
+  /**
+   * Percent of the article read — the bottom edge of the viewport over the
+   * total line count (100 at the end, the visible fraction at the top).
+   * @returns {number|null} 0–100, or null when not reading an article
+   */
+  readerProgress() {
+    if (this._contentState !== 'reader' || !this._readerLines.length) {
+      return null;
+    }
+    const visible = visibleLinesFor(this._readerLines.length, this._readerScale);
+    return Math.min(100, Math.round(
+      ((this._readerScroll + visible) / this._readerLines.length) * 100));
+  }
+
+  /**
+   * The last find-in-page query — the Ctrl+F bar's text field, spoken aloud
+   * by find-query. null when nothing is being searched (Esc, fresh article,
+   * or an empty query).
+   * @returns {string|null}
+   */
+  findQuery() {
+    return this._lastFindQuery;
+  }
+
+  /**
+   * Find-in-page for the reader viewport — the Ctrl+F atom, scoped to the
+   * only searchable text surface in VR. Records every matching line index
+   * and jumps the viewport to the first hit; callers announce the count.
+   * @param {string} query case-insensitive substring
+   * @returns {number} match count
+   */
+  findInReader(query) {
+    const q = typeof query === 'string' ? query.trim().toLowerCase() : '';
+    this._findMatches = [];
+    this._findIndex = -1;
+    this._lastFindQuery = q || null;
+    if (!q || this._contentState !== 'reader') {
+      return 0;
+    }
+    this._readerLines.forEach((line, i) => {
+      if (line.text && line.text.toLowerCase().includes(q)) {
+        this._findMatches.push(i);
+      }
+    });
+    if (this._findMatches.length) {
+      this._findIndex = 0;
+      this._markFindHits();
+      this.scrollContentTo(this._findMatches[0]);
+    }
+    return this._findMatches.length;
+  }
+
+  /**
+   * Tag the hit lines for the draw pass: the current match gets 'current',
+   * the rest 'other' (Chrome's orange/yellow split). The tags live on the
+   * laid-out line objects, so a re-layout (new fetch, scale change) starts
+   * clean without extra bookkeeping.
+   */
+  _markFindHits() {
+    this._readerLines.forEach((l) => {
+      delete l._findHit;
+    });
+    this._findMatches.forEach((lineIdx, matchIdx) => {
+      this._readerLines[lineIdx]._findHit =
+        matchIdx === this._findIndex ? 'current' : 'other';
+    });
+    this._drawContent();
+  }
+
+  /**
+   * Cycle to the next/previous find hit, wrapping — Ctrl+G / Shift+Ctrl+G
+   * semantics. Returns { index, total } (1-based) for announcements, or
+   * null when there is no active search.
+   */
+  findNextMatch(direction = 1) {
+    if (!this._findMatches.length) {
+      return null;
+    }
+    const n = this._findMatches.length;
+    this._findIndex = ((this._findIndex + direction) % n + n) % n;
+    this._markFindHits();
+    this.scrollContentTo(this._findMatches[this._findIndex]);
+    return { index: this._findIndex + 1, total: n };
+  }
+
+  findPrevMatch() {
+    return this.findNextMatch(-1);
+  }
+
+  /**
+   * Jump to the next/previous heading — screen-reader heading navigation
+   * (NVDA/JAWS H / Shift+H, VoiceOver rotor "headings"). The article title
+   * counts as heading zero so prev-heading can land back at the top.
+   * Wraps at both ends like findNextMatch.
+   * @returns {{index:number, total:number}|null} 1-based position for
+   *   announcements, or null outside the reader / with no headings
+   */
+  nextHeading(direction = 1) {
+    if (this._contentState !== 'reader') {
+      return null;
+    }
+    const heads = [];
+    this._readerLines.forEach((line, i) => {
+      if (line.style === 'h' || line.style === 'title') {
+        heads.push(i);
+      }
+    });
+    if (!heads.length) {
+      return null;
+    }
+    let target;
+    if (direction > 0) {
+      target = heads.find(i => i > this._readerScroll);
+      if (target === undefined) {
+        target = heads[0];
+      }
+    } else {
+      const before = heads.filter(i => i < this._readerScroll);
+      target = before.length ? before[before.length - 1] : heads[heads.length - 1];
+    }
+    this.scrollContentTo(target);
+    return { index: heads.indexOf(target) + 1, total: heads.length };
+  }
+
+  prevHeading() {
+    return this.nextHeading(-1);
+  }
+
+  /**
+   * Heading texts in document order — the VoiceOver-rotor/JAWS "headings
+   * list" atom. Returns [] outside reader mode.
+   */
+  getReaderToc() {
+    if (this._contentState !== 'reader') {
+      return [];
+    }
+    return this._readerLines
+      .filter((l) => l.style === 'h' || l.style === 'title')
+      .map((l) => l.text);
+  }
+
+  /**
+   * Estimated minutes to read the article — Edge/Safari "reading time"
+   * parity. ~500 chars/min is the standard Japanese silent-reading rate;
+   * latin text lands roughly on the same scale since words are denser.
+   */
+  getReadingTimeMinutes() {
+    if (this._contentState !== 'reader') {
+      return null;
+    }
+    const chars = this._readerLines.reduce(
+      (n, l) => n + (l.text ? l.text.length : 0), 0);
+    return Math.max(1, Math.round(chars / 500));
+  }
+
+  /**
+   * Estimated minutes left — reading time scaled by the unread fraction
+   * (readerProgress parity). Null outside the reader state.
+   */
+  getRemainingMinutes() {
+    const total = this.getReadingTimeMinutes();
+    if (total === null) {
+      return null;
+    }
+    const pct = this.readerProgress() || 0;
+    return Math.max(0, Math.round(total * (100 - pct) / 100));
+  }
+
+  /**
+   * Jump directly to the Nth find hit — findNextMatch's indexed sibling.
+   * Returns { index, total } (1-based) for announcements, 'out' when n is
+   * outside the match count, or null when no search is active.
+   */
+  findMatchAt(n) {
+    if (!this._findMatches.length) {
+      return null;
+    }
+    const total = this._findMatches.length;
+    if (n < 1 || n > total) {
+      return 'out';
+    }
+    this._findIndex = n - 1;
+    this._markFindHits();
+    this.scrollContentTo(this._findMatches[this._findIndex]);
+    return { index: n, total };
+  }
+
+  /**
+   * Jump to the last find hit — findMatchAt's tail sibling.
+   */
+  findLastMatch() {
+    return this.findMatchAt(this._findMatches.length);
+  }
+
+  /**
+   * Current find position without moving — the status-query sibling of
+   * findNextMatch. { index, total } (1-based), or null when no search is
+   * active (findInReader resets the list on every layout change).
+   */
+  findStatus() {
+    if (!this._findMatches.length) {
+      return null;
+    }
+    return { index: this._findIndex + 1, total: this._findMatches.length };
+  }
+
+  /** Start line of each heading — the index behind headingAt/lastHeading. */
+  _headingStarts() {
+    const heads = [];
+    this._readerLines?.forEach((line, i) => {
+      if (line.style === 'h' || line.style === 'title') {
+        heads.push(i);
+      }
+    });
+    return heads;
+  }
+
+  /**
+   * Jump directly to the Nth heading — nextHeading's indexed sibling
+   * (findMatchAt parity). Returns { index, total }, 'out' when n exceeds
+   * the heading count, or null outside the reader / with no headings.
+   */
+  headingAt(n) {
+    if (this._contentState !== 'reader') {
+      return null;
+    }
+    const heads = this._headingStarts();
+    if (!heads.length) {
+      return null;
+    }
+    const total = heads.length;
+    if (n < 1 || n > total) {
+      return 'out';
+    }
+    this.scrollContentTo(heads[n - 1]);
+    return { index: n, total };
+  }
+
+  /**
+   * Jump to the last heading — findLastMatch's heading sibling.
+   */
+  lastHeading() {
+    return this.headingAt(this._headingStarts().length);
+  }
+
+  /**
+   * The heading covering the current scroll position — last heading start
+   * at-or-before `_readerScroll`, spoken as 'this heading is X (N of M)'.
+   * headingAt's positional sibling that does not move. Null outside the
+   * reader or when no headings exist.
+   */
+  headingHere() {
+    if (this._contentState !== 'reader' || !this._readerLines.length) {
+      return null;
+    }
+    const heads = this._headingStarts();
+    if (!heads.length) {
+      return null;
+    }
+    let at = 0;
+    for (let i = 0; i < heads.length; i++) {
+      if (heads[i] <= this._readerScroll) {
+        at = i;
+      }
+    }
+    return { index: at + 1, total: heads.length, text: this._readerLines[heads[at]].text };
+  }
+
+  /**
+   * Start line of each contiguous block run — the paragraph layer between
+   * lines and headings (R19's layoutReaderLines stamps `block` per line).
+   */
+  _paragraphStarts() {
+    const paras = [];
+    this._readerLines.forEach((line, i) => {
+      if (i === 0 || line.block !== this._readerLines[i - 1].block) {
+        paras.push(i);
+      }
+    });
+    return paras;
+  }
+
+  /**
+   * Jump to the next/previous paragraph — NVDA/JAWS Ctrl+Down/Ctrl+Up
+   * paragraph navigation. Same shape as nextHeading: wraps at both ends
+   * and returns { index, total } (1-based), null outside the reader.
+   */
+  nextParagraph(direction = 1) {
+    if (this._contentState !== 'reader') {
+      return null;
+    }
+    const paras = this._paragraphStarts();
+    if (!paras.length) {
+      return null;
+    }
+    let target;
+    if (direction > 0) {
+      target = paras.find(i => i > this._readerScroll);
+      if (target === undefined) {
+        target = paras[0];
+      }
+    } else {
+      const before = paras.filter(i => i < this._readerScroll);
+      target = before.length ? before[before.length - 1] : paras[paras.length - 1];
+    }
+    this.scrollContentTo(target);
+    return { index: paras.indexOf(target) + 1, total: paras.length };
+  }
+
+  prevParagraph() {
+    return this.nextParagraph(-1);
+  }
+
+  /**
+   * Jump directly to the Nth paragraph — headingAt's paragraph sibling.
+   */
+  paragraphAt(n) {
+    if (this._contentState !== 'reader') {
+      return null;
+    }
+    const paras = this._paragraphStarts();
+    if (!paras.length) {
+      return null;
+    }
+    const total = paras.length;
+    if (n < 1 || n > total) {
+      return 'out';
+    }
+    this.scrollContentTo(paras[n - 1]);
+    return { index: n, total };
+  }
+
+  /**
+   * Current paragraph position without moving — findStatus's paragraph
+   * sibling. The paragraph holding the scroll line is the last start
+   * index at or below it.
+   */
+  paragraphStatus() {
+    if (this._contentState !== 'reader') {
+      return null;
+    }
+    const paras = this._paragraphStarts();
+    if (!paras.length) {
+      return null;
+    }
+    let index = paras.length;
+    for (let i = 0; i < paras.length; i++) {
+      if (paras[i] > this._readerScroll) {
+        index = i;
+        break;
+      }
+    }
+    return { index, total: paras.length };
+  }
+
+  /**
+   * Total article character count — the reading-time numerator as a
+   * status atom. Null outside the reader.
+   */
+  getCharCount() {
+    if (this._contentState !== 'reader') {
+      return null;
+    }
+    return this._readerLines.reduce(
+      (n, l) => n + (l.text ? l.text.length : 0), 0);
+  }
+
+  /**
+   * One-line structural summary of the article — VoiceOver rotor summary
+   * parity ('describe page'): { title, headings, paragraphs, chars } or
+   * null outside the reader.
+   */
+  getArticleSummary() {
+    if (this._contentState !== 'reader' || !this._readerLines.length) {
+      return null;
+    }
+    return {
+      title: this._readerTitle || '',
+      headings: this._headingStarts().length,
+      paragraphs: this._paragraphStarts().length,
+      chars: this.getCharCount() || 0
+    };
+  }
+
+  /**
+   * Current line position without moving — findStatus's line sibling.
+   */
+  lineStatus() {
+    if (this._contentState !== 'reader' || !this._readerLines.length) {
+      return null;
+    }
+    return {
+      index: Math.min(this._readerScroll, this._readerLines.length - 1) + 1,
+      total: this._readerLines.length
+    };
+  }
+
+  /**
+   * Narration chunks for the paragraph under the scroll — NVDA
+   * "read current paragraph" parity; read-aloud's block-scoped sibling.
+   * Returns [] outside the reader or on non-block lines (title region),
+   * which readAloud announces as nothing-to-read.
+   */
+  getParagraphNarration() {
+    if (this._contentState !== 'reader' || !this._readerLines.length) {
+      return [];
+    }
+    const line =
+      this._readerLines[Math.min(this._readerScroll, this._readerLines.length - 1)];
+    if (!Number.isFinite(line.block)) {
+      return [];
+    }
+    return narrationChunks(null, [this._readerBlocks[line.block]]);
+  }
+
+  // ── Sentence caret (NVDA Alt+Down/Alt+Up parity) ─────────────────────────
+  // Wrapped rows are whitespace-normalized, so sentences — which live in the
+  // source block text — are mapped onto display lines through normalized
+  // offset math: norm(block text) === norm(row1) + ' ' + norm(row2) + …
+  // in-order forward scans therefore recover every unit's offset.
+
+  _norm(s) {
+    return (s === null || s === undefined ? '' : String(s)).trim().replace(/\s+/g, ' ');
+  }
+
+  _sentencesOf(block) {
+    const t = this._readerBlocks?.[block]?.text;
+    return typeof t === 'string' ? splitSentences(t) : [];
+  }
+
+  /**
+   * Normalized start offset of each `texts` unit inside the block's
+   * normalized text, via a single in-order forward scan. -1 for a unit not
+   * found (a stale caret after re-layout can produce one).
+   */
+  _offsetsInBlock(block, texts) {
+    const hay = this._norm(this._readerBlocks?.[block]?.text);
+    let at = 0;
+    return texts.map((t) => {
+      const n = this._norm(t);
+      if (!n) {
+        return -1;
+      }
+      const i = hay.indexOf(n, at);
+      if (i >= 0) {
+        at = i + n.length;
+      }
+      return i;
+    });
+  }
+
+  /** [{line, off}] — display-line index ↔ normalized offset, per block. */
+  _rowOffsets(block) {
+    const entries = [];
+    this._readerLines.forEach((line, i) => {
+      if (line.block === block && line.style !== 'blank') {
+        entries.push({ line: i, text: line.text });
+      }
+    });
+    const offs = this._offsetsInBlock(block, entries.map((e) => e.text));
+    return entries.map((e, i) => ({ line: e.line, off: offs[i] }));
+  }
+
+  _offsetOfLine(block, lineIdx) {
+    const r = this._rowOffsets(block).find((e) => e.line === lineIdx);
+    return r ? r.off : -1;
+  }
+
+  /** Display-line index containing the start of block's sentIdx-th sentence. */
+  _lineForSentenceAt(block, sentIdx) {
+    const sents = this._sentencesOf(block);
+    if (sentIdx < 0 || sentIdx >= sents.length) {
+      return -1;
+    }
+    const sentOff = this._offsetsInBlock(block, sents)[sentIdx];
+    if (sentOff < 0) {
+      return -1;
+    }
+    const rows = this._rowOffsets(block).filter(
+      (r) => r.off >= 0 && r.off <= sentOff);
+    return rows.length ? rows[rows.length - 1].line : -1;
+  }
+
+  /**
+   * Advance the sentence caret — NVDA/JAWS Alt+Down/Alt+Up parity. Sentences
+   * come from the source block text (splitSentences), so a sentence spanning
+   * several display lines is still spoken whole; the scroll follows the line
+   * holding its start, which also marks the position for jumpBack like the
+   * other jump atoms.
+   * @param {number} direction positive = forward
+   * @returns {{sentence: string, line: number}|null} null at article edge /
+   *          outside the reader
+   */
+  nextSentence(direction = 1) {
+    if (this._contentState !== 'reader' || !this._readerBlocks?.length) {
+      return null;
+    }
+    const dir = direction >= 0 ? 1 : -1;
+    if (!this._sentenceCaret) {
+      const li = Math.min(this._readerScroll, this._readerLines.length - 1);
+      const line = this._readerLines[li];
+      if (Number.isFinite(line?.block)) {
+        // The "current" sentence is the last one starting at or before the
+        // scroll line; next = after it, prev = before it.
+        const lineOff = this._offsetOfLine(line.block, li);
+        const offs = this._offsetsInBlock(line.block, this._sentencesOf(line.block));
+        let atOrBefore = 0;
+        for (const o of offs) {
+          if (o >= 0 && o <= lineOff) {
+            atOrBefore++;
+          }
+        }
+        this._sentenceCaret = { block: line.block, idx: atOrBefore - 1 };
+      } else {
+        // Title region — no block: start from the article's near edge.
+        const last = this._readerBlocks.length - 1;
+        this._sentenceCaret = dir > 0
+          ? { block: 0, idx: -1 }
+          : { block: last, idx: this._sentencesOf(last).length };
+      }
+    }
+    let { block, idx } = this._sentenceCaret;
+    idx += dir;
+    while (block >= 0 && block < this._readerBlocks.length) {
+      const sents = this._sentencesOf(block);
+      if (idx >= 0 && idx < sents.length) {
+        this._sentenceCaret = { block, idx };
+        const line = this._lineForSentenceAt(block, idx);
+        if (line >= 0 && line !== this._readerScroll) {
+          this.scrollContentTo(line);
+        }
+        return { sentence: sents[idx], line };
+      }
+      block += dir;
+      if (block >= 0 && block < this._readerBlocks.length) {
+        idx = dir > 0 ? 0 : this._sentencesOf(block).length - 1;
+      }
+    }
+    return null;
+  }
+
+  prevSentence() {
+    return this.nextSentence(-1);
+  }
+
+  /**
+   * The sentence under the scroll without moving — lineStatus's sentence
+   * sibling, article-wide indexed. Null outside the reader; a scroll on a
+   * block's leading blank resolves to that block's first sentence.
+   */
+  currentSentence() {
+    if (this._contentState !== 'reader' || !this._readerLines.length) {
+      return null;
+    }
+    const li = Math.min(this._readerScroll, this._readerLines.length - 1);
+    const line = this._readerLines[li];
+    if (!Number.isFinite(line?.block)) {
+      return null;
+    }
+    const sents = this._sentencesOf(line.block);
+    if (!sents.length) {
+      return null;
+    }
+    const lineOff = this._offsetOfLine(line.block, li);
+    const offs = this._offsetsInBlock(line.block, sents);
+    let local = -1;
+    for (let i = 0; i < offs.length; i++) {
+      if (offs[i] >= 0 && offs[i] <= lineOff) {
+        local = i;
+      }
+    }
+    if (local < 0) {
+      local = 0;
+    }
+    let index = 0;
+    let total = 0;
+    for (let b = 0; b < this._readerBlocks.length; b++) {
+      const n = this._sentencesOf(b).length;
+      if (b < line.block) {
+        index += n;
+      }
+      total += n;
+    }
+    return { sentence: sents[local], index: index + local + 1, total };
+  }
+
+  /**
+   * Jump directly to the Nth sentence — nextSentence's indexed sibling
+   * (findMatchAt/sentence-caret parity). Sentences are counted across blocks
+   * like currentSentence's index/total; landing moves the scroll so the
+   * read-aloud/where-am-i surfaces stay coherent, and records the mark for
+   * jumpBack.
+   * @returns {{sentence: string, index: number, total: number}|'out'|null}
+   */
+  sentenceAt(n) {
+    if (this._contentState !== 'reader' || !this._readerBlocks?.length) {
+      return null;
+    }
+    let total = 0;
+    for (let b = 0; b < this._readerBlocks.length; b++) {
+      total += this._sentencesOf(b).length;
+    }
+    if (!total) {
+      return null;
+    }
+    if (n < 1 || n > total) {
+      return 'out';
+    }
+    let acc = 0;
+    for (let b = 0; b < this._readerBlocks.length; b++) {
+      const sents = this._sentencesOf(b);
+      if (acc + sents.length >= n) {
+        const idx = n - acc - 1;
+        this._sentenceCaret = { block: b, idx };
+        const line = this._lineForSentenceAt(b, idx);
+        if (line >= 0 && line !== this._readerScroll) {
+          this.scrollContentTo(line);
+        }
+        return { sentence: sents[idx], index: n, total };
+      }
+      acc += sents.length;
+    }
+    return 'out';
+  }
+
+  /**
+   * Jump to the first sentence — sentenceAt(1).
+   */
+  firstSentence() {
+    return this.sentenceAt(1);
+  }
+
+  /**
+   * Jump to the last sentence — lastHeading's sentence sibling.
+   */
+  lastSentence() {
+    if (this._contentState !== 'reader' || !this._readerBlocks?.length) {
+      return null;
+    }
+    let total = 0;
+    for (let b = 0; b < this._readerBlocks.length; b++) {
+      total += this._sentencesOf(b).length;
+    }
+    return total ? this.sentenceAt(total) : null;
+  }
+
+  /**
+   * Char-caret position within its line — lineStatus's caret-level sibling.
+   * null until a char nav has set the caret (position is meaningless at the
+   * line edge).
+   */
+  charStatus() {
+    if (this._contentState !== 'reader' || !this._charCaret) {
+      return null;
+    }
+    const chars = this._charsOf(this._charCaret.line);
+    return { index: this._charCaret.idx + 1, total: chars.length };
+  }
+
+  /**
+   * Word-caret position within its line — charStatus's word sibling.
+   */
+  wordStatus() {
+    if (this._contentState !== 'reader' || !this._wordCaret) {
+      return null;
+    }
+    const words = this._wordsOf(this._wordCaret.line);
+    return { index: this._wordCaret.idx + 1, total: words.length };
+  }
+
+  /**
+   * Jump to the last paragraph — lastHeading's paragraph sibling.
+   */
+  lastParagraph() {
+    if (this._contentState !== 'reader') {
+      return null;
+    }
+    const paras = this._paragraphStarts();
+    if (!paras.length) {
+      return null;
+    }
+    return this.paragraphAt(paras.length);
+  }
+
+  /**
+   * Narration chunks for the Nth paragraph — getParagraphNarration's indexed
+   * sibling (read-from-line parity). 'out' for out-of-range, [] outside the
+   * reader or on a non-block start.
+   */
+  getParagraphNarrationAt(n) {
+    if (this._contentState !== 'reader' || !this._readerLines.length) {
+      return [];
+    }
+    const paras = this._paragraphStarts();
+    if (!paras.length) {
+      return [];
+    }
+    if (n < 1 || n > paras.length) {
+      return 'out';
+    }
+    const line = this._readerLines[paras[n - 1]];
+    if (!Number.isFinite(line.block)) {
+      return [];
+    }
+    return narrationChunks(null, [this._readerBlocks[line.block]]);
+  }
+
+  /**
+   * The line text under the reader scroll position — VoiceOver
+   * "read current line" parity. Null outside the reader.
+   */
+  currentLine() {
+    if (this._contentState !== 'reader' || !this._readerLines.length) {
+      return null;
+    }
+    const i = Math.min(this._readerScroll, this._readerLines.length - 1);
+    return this._readerLines[i].text;
+  }
+
+  /**
+   * "Where am I" announce line: the page title plus the reader's current
+   * line range when an article is showing. Screen-reader parity for the
+   * orientation a sighted user gets free from the chrome bar.
+   */
+  describeLocation() {
+    const title = this.currentTitle || this.currentUrl;
+    if (!title) {
+      return '何も開いていません';
+    }
+    if (this._contentState === 'reader' && this._readerLines.length) {
+      const total = this._readerLines.length;
+      const visible = visibleLinesFor(total, this._readerScale);
+      const label = readerProgressLabel(this._readerScroll, total, visible);
+      return `${title}。${label ? `現在 ${label} 行目` : '全文表示中'}`;
+    }
+    return title;
   }
 
   /**
@@ -537,11 +1710,12 @@ export class WebPanel {
     ctx.fillStyle = canForward ? col.btnEnabledText : col.btnDisabledText;
     ctx.fillText('▶', 106, h / 2 + 8);
 
-    // Reload button
+    // Reload button — becomes a stop ✕ while a load is in flight, the
+    // reload↔stop pairing every desktop browser uses (Chrome/Safari/Firefox).
     ctx.fillStyle = col.reloadBg;
     ctx.fillRect(144, 6, 60, h - 12);
     ctx.fillStyle = this.loading ? col.reloadLoading : col.reloadText;
-    ctx.fillText('↺', 174, h / 2 + 8);
+    ctx.fillText(this.loading ? '✕' : '↺', 174, h / 2 + 8);
 
     // Whether the bookmark button is shown (only when wired to a store).
     const hasBookmark = !!this.onToggleBookmark;
@@ -635,8 +1809,12 @@ export class WebPanel {
       this.back();
     } else if (px < 136) {   // forward
       this.forward();
-    } else if (px < 204) {   // reload
-      this.reload();
+    } else if (px < 204) {   // reload — or stop while loading
+      if (this.loading) {
+        this.stop();
+      } else {
+        this.reload();
+      }
     } else if (px > w - 60) { // close
       this.hide();
     } else if (hasBookmark && px >= w - 128 && px <= w - 72) { // bookmark star
@@ -734,12 +1912,15 @@ export class WebPanel {
       this.currentTitle = title;
       // NOTE: a frame refused by X-Frame-Options / CSP frame-ancestors fires
       // `load`, not `error`, in Chromium — so reaching here does NOT mean the
-      // page rendered. Combined with the fact that page pixels can never reach
-      // the 3D texture anyway, the viewport must say so rather than keep a
-      // stale "Enter a URL" placeholder that implies nothing happened.
-      this._setContentState('unavailable');
+      // page rendered. Only take over the viewport while the panel is still
+      // waiting: if the reader fetch already resolved, its article stays
+      // (an unconditional 'unavailable' here used to clobber the rendered
+      // reader every time the slower iframe load event landed after it).
+      if (this._contentState === 'loading') {
+        this._setContentState('unavailable');
+      }
       this._drawChrome();
-      this.onNavigate(url, title);
+      this.onNavigate(url, title, this);
     };
     this.iframe.onerror = () => {
       this.loading = false;
@@ -973,6 +2154,13 @@ export class WebPanel {
 
   dispose() {
     this.disableLayerMode();
+    if (this._loadController) {
+      // An in-flight reader fetch outlives the panel: abort it so its late
+      // resolution can't repaint a disposed canvas.
+      this._loadController.abort();
+      this._loadController = null;
+    }
+    this._readerSeq++;
     this.unregisterInteractable(this.chromeMesh);
     this.unregisterInteractable(this.moveBarMesh);
     this.unregisterInteractable(this.contentMesh);

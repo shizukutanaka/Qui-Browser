@@ -258,6 +258,16 @@ export class CaptionSystem {
     this._draw();
   }
 
+  /**
+   * The newest caption line's text — read-notify twin of clear(), for
+   * '最新の通知'/'read the notification' when the toast has already
+   * expired visually.
+   * @returns {string|null}
+   */
+  lastLine() {
+    return this._lines.length ? this._lines[this._lines.length - 1].text : null;
+  }
+
   /** Remove all captions immediately. */
   clear() {
     this._lines = [];

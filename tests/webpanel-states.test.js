@@ -34,7 +34,9 @@ jest.mock('three', () => ({
 
 // ── canvas / document stub ────────────────────────────────────────────────────
 const ctx2d = {
-  clearRect() {}, fillRect() {}, fillText() {}, strokeRect() {},
+  clearRect() {}, fillRect() {}, strokeRect() {},
+  beginPath() {}, arc() {}, fill() {},
+  fillText: jest.fn(),
   set fillStyle(v) {}, set strokeStyle(v) {},
   set font(v) {}, set textAlign(v) {}, set lineWidth(v) {},
   set textBaseline(v) {}
@@ -463,6 +465,157 @@ describe('WebPanel reader viewport', () => {
     const p = makePanel();
     await expect(p._loadReaderText('https://example.com/a')).resolves.toBeUndefined();
     expect(p._contentState).toBe('unavailable');
+  });
+
+  test('a slower iframe load event cannot clobber an already-rendered reader', async () => {
+    // The iframe `load` event waits for subresources, so it lands AFTER the
+    // reader fetch on any frameable site — an unconditional 'unavailable'
+    // transition here used to erase the article every time.
+    global.fetch = () => Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(ARTICLE) });
+    const p = makePanel();
+    p._loadUrl('https://example.com/a');
+    await new Promise(r => setTimeout(r, 0)); // let the fetch chain settle
+    expect(p._contentState).toBe('reader');
+    p.iframe.onload();
+    expect(p._contentState).toBe('reader');
+    expect(p.loading).toBe(false); // the load did finish — only the state was wrong
+  });
+});
+
+// ── stop(): the reload↔stop atom every desktop browser has ──────────────────
+// While a load is in flight the reload button becomes a stop control (Chrome,
+// Safari, Firefox convention). stop() must abort the reader fetch, detach the
+// iframe handlers (a late `load` must not fire onNavigate against a stopped
+// page), and land on an honest 'stopped' state — not a blank or a stale page.
+describe('WebPanel stop()', () => {
+  const realFetch = global.fetch;
+  afterEach(() => { global.fetch = realFetch; });
+
+  // A fetch that never resolves on its own but honours abort — models a hung
+  // origin while letting stop() actually tear the request down (and keeps the
+  // panel's 5 s abort timer from lingering past the test).
+  function mockHungFetch() {
+    global.fetch = (_url, opts) => new Promise((_res, rej) => {
+      opts && opts.signal && opts.signal.addEventListener('abort', () => rej(new Error('aborted')));
+    });
+  }
+
+  test('is a safe no-op when nothing is loading', () => {
+    const p = makePanel();
+    expect(() => p.stop()).not.toThrow();
+    expect(p._contentState).toBe('empty');
+    expect(p.loading).toBe(false);
+  });
+
+  test('an in-flight load lands on the honest stopped state', () => {
+    mockHungFetch();
+    const p = makePanel();
+    p._loadUrl('https://example.com/slow');
+    expect(p._contentState).toBe('loading');
+    p.stop();
+    expect(p.loading).toBe(false);
+    expect(p._contentState).toBe('stopped');
+  });
+
+  test('detaches the iframe handlers so a late load cannot fire onNavigate', () => {
+    mockHungFetch();
+    const onNavigate = jest.fn();
+    const p = makePanel({ onNavigate });
+    p._loadUrl('https://example.com/slow');
+    p.stop();
+    expect(p.iframe.onload).toBeNull();
+    expect(p.iframe.onerror).toBeNull();
+    if (p.iframe.onload) {
+      p.iframe.onload();
+    }
+    expect(onNavigate).not.toHaveBeenCalled();
+  });
+
+  test('aborts the in-flight reader fetch — its late result cannot overwrite stopped', async () => {
+    let resolveSlow;
+    const slow = new Promise((r) => { resolveSlow = r; });
+    global.fetch = () => Promise.resolve({ ok: true, status: 200, text: () => slow });
+    const p = makePanel();
+    p._loadUrl('https://example.com/slow');
+    const ctrl = p._loadController;
+    p.stop();
+    expect(ctrl.signal.aborted).toBe(true);
+    expect(p._loadController).toBeNull();
+    resolveSlow('ignored');
+    await new Promise(r => setTimeout(r, 0));
+    expect(p._contentState).toBe('stopped');
+  });
+
+  test('a rendered reader stays put — stop only cancels what is still pending', async () => {
+    global.fetch = () => Promise.resolve({
+      ok: true, status: 200,
+      text: () => Promise.resolve('<html><body><article><p>' + 'Prose text. '.repeat(40) + '</p></article></body></html>')
+    });
+    const p = makePanel();
+    p._loadUrl('https://example.com/a');
+    await new Promise(r => setTimeout(r, 0));
+    expect(p._contentState).toBe('reader');
+    p.stop();
+    expect(p._contentState).toBe('reader');
+    expect(p.loading).toBe(false);
+  });
+
+  test('dispose aborts the in-flight reader fetch too', async () => {
+    let resolveSlow;
+    const slow = new Promise((r) => { resolveSlow = r; });
+    global.fetch = () => Promise.resolve({ ok: true, status: 200, text: () => slow });
+    const p = makePanel();
+    p._loadUrl('https://example.com/a');
+    p.dispose();
+    expect(p._loadController).toBeNull();
+    resolveSlow('<html><body><article><p>' + 'Prose. '.repeat(40) + '</p></article></body></html>');
+    await new Promise(r => setTimeout(r, 0));
+    expect(p._contentState).toBe('loading'); // nothing overwrote it post-dispose
+  });
+});
+
+// ── reload↔stop chrome routing + glyph ───────────────────────────────────────
+describe('WebPanel reload↔stop chrome behaviour', () => {
+  const realFetch = global.fetch;
+  afterEach(() => { global.fetch = realFetch; });
+
+  function selectReloadZone(p) {
+    // px 174 is the reload button's centre (zone: px<204 after fwd).
+    const u = 174 / 1024;
+    const x = (u - 0.5) * 1.6; // PANEL_W
+    p._onChromeSelect({ x, y: 0, clone() { return this; } });
+  }
+
+  test('the reload zone stops an in-flight load instead of reloading', () => {
+    global.fetch = (_url, opts) => new Promise((_res, rej) => {
+      opts && opts.signal && opts.signal.addEventListener('abort', () => rej(new Error('aborted')));
+    });
+    const p = makePanel();
+    p._loadUrl('https://example.com/slow');
+    expect(p.loading).toBe(true);
+    const stopSpy = jest.spyOn(p, 'stop'); // wraps, so the real abort still runs
+    selectReloadZone(p);
+    expect(stopSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test('the reload zone reloads when idle', () => {
+    const p = makePanel();
+    p._contentState = 'reader';
+    p.loading = false;
+    p.reload = jest.fn();
+    selectReloadZone(p);
+    expect(p.reload).toHaveBeenCalledTimes(1);
+  });
+
+  test('the button shows ✕ while loading and ↺ when idle', () => {
+    const p = makePanel();
+    p.loading = true;
+    p._drawChrome();
+    expect(ctx2d.fillText).toHaveBeenCalledWith('✕', 174, expect.any(Number));
+    ctx2d.fillText.mockClear();
+    p.loading = false;
+    p._drawChrome();
+    expect(ctx2d.fillText).toHaveBeenCalledWith('↺', 174, expect.any(Number));
   });
 });
 

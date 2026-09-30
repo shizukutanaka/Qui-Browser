@@ -84,6 +84,12 @@ export const STRIP_CANVAS_H = 96;
 export const STRIP_NEW_TAB_PX = 90;
 export const STRIP_CLOSE_PX = 36;
 export const STRIP_TAB_MAX_PX = 220;
+/**
+ * Width of the PRIVATE-mode indicator chip, in canvas px. Drawn (and
+ * hit-tested) between the tab area and the "+" button only while private
+ * mode is on — a text label, so the mode signal is never colour-only.
+ */
+export const STRIP_PRIVATE_PX = 132;
 
 // ── Bookmark / history panel ────────────────────────────────────────────────
 

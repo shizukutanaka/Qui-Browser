@@ -154,7 +154,7 @@ export function elideUrlForDisplay(url, maxChars = 61) {
  * about what it can actually display — is pinned by tests rather than buried
  * in a canvas draw call.
  *
- * @param {'empty'|'loading'|'unavailable'|'error'} state
+ * @param {'empty'|'loading'|'reader'|'unavailable'|'error'|'stopped'} state
  * @param {string} [url]
  * @param {boolean} [hasProxy=false] whether a companion reader proxy is configured
  * @returns {{title: string, detail: string}}
@@ -187,6 +187,8 @@ export function contentStateLines(state, url = '', hasProxy = false) {
       };
   case 'error':
     return { title: t('vr.content.failed'), detail: host };
+  case 'stopped':
+    return { title: t('vr.content.stopped'), detail: host };
   default:
     return { title: t('vr.content.empty'), detail: '' };
   }

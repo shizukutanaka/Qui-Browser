@@ -69,10 +69,13 @@ function makeVRAppLike(overrides = {}) {
     _grabController: null,
     _toastTimers: new Set(),
     playerRig: null,
+    // Empty settings keeps _persistTabSession a no-op unless a fixture opts in.
+    settings: {},
     // Real implementation, carried onto the flat object: the methods under test
     // call it on `this`, and this harness deliberately stays a plain literal
     // (binding VRApp.prototype instead would activate VRApp's own accessors,
     // which delegate to an `a11y` coordinator this fixture does not build).
+    _persistTabSession: VRApp.prototype._persistTabSession,
     _attachManagedWindow: VRApp.prototype._attachManagedWindow,
     ...overrides
   };
@@ -1129,5 +1132,29 @@ describe('the browsing default', () => {
     );
     expect(src).toMatch(/enableWebPanel:\s*true,/);
     expect(src).not.toMatch(/enableWebPanel:\s*false,/);
+  });
+});
+
+describe('VRApp.navigate — private-mode history gate', () => {
+  // Quest Browser private-window semantics: a private tab's visit is announced
+  // on-screen (captions are transient) but NEVER written to persistent history.
+  test("a private panel's visit is not written to history", () => {
+    const app = makeVRAppLike({ bookmarks: { addHistory: jest.fn() } });
+    VRApp.prototype.navigate.call(app, 'https://secret.example', 'Secret', { isPrivate: true });
+    expect(app.bookmarks.addHistory).not.toHaveBeenCalled();
+    // The caption still fires — the user gets on-screen feedback either way.
+    expect(app.captionSystem.show).toHaveBeenCalledTimes(1);
+  });
+
+  test("a normal panel's visit is recorded as before", () => {
+    const app = makeVRAppLike({ bookmarks: { addHistory: jest.fn() } });
+    VRApp.prototype.navigate.call(app, 'https://a.example', 'A', { isPrivate: false });
+    expect(app.bookmarks.addHistory).toHaveBeenCalledWith('https://a.example', 'A');
+  });
+
+  test('a call without a panel argument keeps the old behaviour', () => {
+    const app = makeVRAppLike({ bookmarks: { addHistory: jest.fn() } });
+    VRApp.prototype.navigate.call(app, 'https://b.example', 'B');
+    expect(app.bookmarks.addHistory).toHaveBeenCalledWith('https://b.example', 'B');
   });
 });

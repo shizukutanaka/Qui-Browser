@@ -30,6 +30,7 @@ import { osReducedMotion, getPrefs, setPref, largeTextScale, prefersHighContrast
 import { t } from '../i18n/i18n.js';
 import { searchEngineHosts } from './browser/urlResolver.js';
 import { normalizeProxyUrl } from './browser/urlDisplay.js';
+import { loadTabSession, saveTabSession } from './browser/tabSession.js';
 import { buttonBg, buttonLineWidth, toggleIndicatorColors, buttonAccentColor } from './ui/buttonStyle.js';
 import { configureUITexture } from './ui/canvasTexture.js';
 import { SpatialAudio } from './audio/SpatialAudio.js';
@@ -44,7 +45,7 @@ import { ImmersiveVideo } from './media/ImmersiveVideo.js';
 import { detectVideoFormat } from './media/videoProjection.js';
 import { PerformanceMonitor } from '../utils/PerformanceMonitor.js';
 
-import { BookmarkStore } from '../utils/BookmarkStore.js';
+import { BookmarkStore, MAX_HISTORY } from '../utils/BookmarkStore.js';
 import { DeviceCompatibility } from '../utils/DeviceCompatibility.js';
 import { disposeMonitoring } from '../monitoring.js';
 import { stepValue, stepperRegion, formatValue, settingsButtonCaption, shouldAnnounceSettingsButton } from './settingsStepper.js';
@@ -52,6 +53,22 @@ import { layoutSettingsPanel, PANEL_W as SETTINGS_PANEL_W } from './ui/settingsL
 
 // localStorage key for persisted user settings overrides.
 const SETTINGS_KEY = 'qui-browser:settings';
+
+// Search engines offered by the settings cycle and the voice command.
+const SEARCH_ENGINES = ['duckduckgo', 'google', 'bing', 'ecosia'];
+
+// Comfort presets offered by the settings cycle and the voice command.
+const COMFORT_PRESETS = ['sensitive', 'moderate', 'tolerant', 'disabled'];
+// Numeric settings the voice `onStepper` hook may step. Kept in sync with the
+// settings-panel steppers below — same min/max/step, and the same live-apply
+// surface for keys that have one (read-at-use keys need none).
+const VOICE_STEPPERS = {
+  gazeGraceTime: { min: 0, max: 600, step: 50 },
+  snapTurnAngle: { min: 15, max: 90, step: 15 },
+  smoothMoveSpeed: { min: 0.5, max: 4.0, step: 0.5 },
+  captionDuration: { min: 2, max: 60, step: 2 },
+  captionHeight: { min: -0.85, max: -0.25, step: 0.1 }
+};
 
 /**
  * Returns false when the object or any ancestor in the scene hierarchy is not
@@ -244,6 +261,17 @@ export class VRApp {
       // Default search engine for non-URL input in the address bar
       // (key into urlResolver.SEARCH_ENGINES: duckduckgo|google|bing|ecosia).
       searchEngine: 'duckduckgo',
+      // Private browsing mode (Quest Browser-style). Tabs opened while ON are
+      // flagged private: they write no history and are excluded from tab
+      // session persistence, so nothing they visit reaches storage.
+      privateMode: false,
+      // Restore open tabs + the active tab across restarts (Wolvic 1.9
+      // "remember browser state"; Firefox/Chrome default behaviour).
+      restoreTabs: true,
+      // Reader text-size multiplier (WCAG 1.4.4 Resize Text — content text
+      // must be resizable to 200% without assistive technology). Applied live
+      // to every panel via TabManager.setReaderScale.
+      readerTextScale: 1.0,
       // Spatial window management (parity with Wolvic/Quest browser): head-lock
       // follow keeps the active panel centred in view. OFF by default.
       enableWindowFollow: false,
@@ -820,7 +848,13 @@ export class VRApp {
       scene: this.scene,
       registerInteractable: (m, h) => this.registerInteractable(m, h),
       unregisterInteractable: (m) => this.unregisterInteractable(m),
-      onNavigate: (url, title) => this.navigate(url, title),
+      onNavigate: (url, title, panel) => {
+        this.navigate(url, title, panel);
+        this._persistTabSession();
+      },
+      topSitesProvider: () => this.settings.privateMode
+        ? []
+        : this.bookmarks.getTopSites(8, Date.now(), searchEngineHosts()),
       readerProxyUrl: this.settings.readerProxyUrl,
       onLoadError: (url) => this.showVRToast(`Failed to load: ${url}`, { type: 'error' }),
       onBlockedNavigation: () => this.showVRToast(t('vr.error.blockedUrl'), { type: 'warn' }),
@@ -839,23 +873,19 @@ export class VRApp {
       searchEngine: this.settings.searchEngine,
       // FR-1.4: star button in the chrome bar toggles a persistent bookmark.
       isBookmarked: (url) => this.bookmarks.isBookmarked(url),
-      onToggleBookmark: (url, title) => {
-        const nowBookmarked = this.bookmarks.toggleBookmark(url, title);
-        if (this.captionSystem && this.captionSystem.enabled) {
-          this.captionSystem.show(nowBookmarked ? t('vr.msg.bookmarked') : t('vr.msg.bookmarkRemoved'));
-        }
-        return nowBookmarked;
-      },
+      onToggleBookmark: (url, title) => this._toggleBookmark(url, title),
       onTabActivate: (url) => {
         if (this.captionSystem && this.captionSystem.enabled) {
           const label = url ? hostnameCaption(url) : t('vr.msg.newTab');
           this.captionSystem.show(`Tab: ${label}`);
         }
+        this._persistTabSession();
       },
       onTabClose: () => {
         if (this.captionSystem && this.captionSystem.enabled) {
           this.captionSystem.show(t('vr.msg.tabClosed'));
         }
+        this._persistTabSession();
       },
       onMaxTabsReached: () => {
         this.showVRToast(t('vr.msg.maxTabsReached'), { type: 'warn' });
@@ -889,7 +919,17 @@ export class VRApp {
     if (this.settings.enableCurvedPanel) {
       this.tabManager.setCurved(true);
     }
-    this.tabManager.newTab(); // start with one blank tab
+    this.tabManager.setPrivateMode(this.settings.privateMode);
+    // Wolvic 1.9-style session restore: reopen the tabs the user had, at the
+    // tab they were on. Restored tabs created while private mode is on are
+    // themselves private (incognito windows are never restored — private
+    // tabs were already excluded when the snapshot was written).
+    if (this.settings.restoreTabs) {
+      this.tabManager.restoreSession(loadTabSession());
+    }
+    if (this.tabManager.count === 0) {
+      this.tabManager.newTab(); // start with one blank tab
+    }
     // Convenience alias: the active tab's panel.
     this.webPanel = this.tabManager.getActiveTab();
 
@@ -949,6 +989,10 @@ export class VRApp {
    * native quad layers in Session 52.
    */
   _teardownBrowsingSystems() {
+    // Persist the live tab set first — serializeSession() reads each panel's
+    // currentUrl, so this captures the state at teardown, not the state at the
+    // last navigation event.
+    this._persistTabSession();
     if (this.windowManager) {
       this.windowManager.detach();
     }
@@ -1429,6 +1473,121 @@ export class VRApp {
   }
 
   /**
+   * High-contrast apply — shared by the settings toggle and the voice
+   * `onHighContrast` hook so both paths flip exactly the same surfaces:
+   * persisted pref, settings-panel repaint, bookmark-panel repaint,
+   * caption backing, and the gaze reticle.
+   */
+  _applyHighContrast(v) {
+    setPref('highContrast', v);
+    this._redrawSettingsPanel();
+    if (this.bookmarkPanel && this.bookmarkPanel.visible) {
+      this.bookmarkPanel._draw();
+    }
+    // Caption backing switches between semi-transparent (normal) and fully
+    // opaque (HC) — update live so the effect is immediate, not deferred
+    // until the next VR session restart.
+    if (this.captionSystem) {
+      this.captionSystem.setHighContrast(v);
+    }
+    // Gaze reticle ring: full opacity in HC so it is always visible
+    // against bright VR scenes (WCAG 1.4.11 Non-text Contrast).
+    if (this.gazeInteraction) {
+      this.gazeInteraction.setHighContrast(prefersHighContrast());
+    }
+  }
+
+  /**
+   * Shared toggle/cycle apply — the settings-panel items and the voice
+   * `onSettingToggle` hook route through the same switch so both paths flip
+   * exactly the same surfaces.
+   */
+  _applyToggle(key, v) {
+    switch (key) {
+    case 'enableCaptions':
+      if (this.captionSystem) {
+        this.captionSystem.setEnabled(v);
+        if (v) {
+          this.captionSystem.show(t('vr.msg.captionsEnabled'));
+        }
+      }
+      break;
+    case 'enableGazeDwell':
+      if (this.gazeInteraction) {
+        this.gazeInteraction.setEnabled(v);
+      }
+      break;
+    case 'enableHaptics':
+      if (this.hapticFeedback) {
+        this.hapticFeedback.setEnabled(v);
+      }
+      break;
+    case 'enableCurvedPanel':
+      if (this.tabManager) {
+        this.tabManager.setCurved(v);
+      } else if (this.webPanel && this.webPanel.setCurved) {
+        this.webPanel.setCurved(v);
+      }
+      break;
+    case 'enableWindowFollow':
+      if (this.windowManager) {
+        this.windowManager.setFollow(v);
+      }
+      break;
+    case 'enableFFR':
+      if (this.ffrSystem) {
+        if (v) {
+          this.ffrSystem.enable(0.5);
+        } else {
+          this.ffrSystem.disable();
+        }
+      }
+      break;
+    case 'enableSmoothMove': {
+      const msg = smoothMoveWarning(v, osReducedMotion());
+      if (msg) {
+        this.showVRToast(msg, { type: 'warn' });
+      }
+      break;
+    }
+    case 'motionSensitivity':
+      if (this.comfortSystem) {
+        this.comfortSystem.setPreset(v);
+      }
+      break;
+    default:
+      // Locomotion-read settings (snap turn, teleport, comfort vignette)
+      // have no live apply — the setting is consulted at move time.
+      break;
+    }
+  }
+
+  /**
+   * Open or close the settings panel. Shared by the controller faceB/menu
+   * button and the voice `onSettingsPanel` hook so both paths flip the same
+   * state, sync the mesh + semantic DOM, and caption the result.
+   * @param {boolean} [want] explicit state; omit to toggle
+   * @returns {boolean|null} the panel's visibility after the call, or null
+   *   when the panel does not exist yet
+   */
+  _setSettingsPanelVisible(want) {
+    const p = this.settingsPanel;
+    if (!p) {
+      return null;
+    }
+    p.visible = want === undefined ? !p.visible : !!want;
+    p.mesh && (p.mesh.visible = p.visible);
+    this.semanticDOM?.setSettingsExpanded(p.visible);
+    // Caption so users who rely on text feedback know whether the panel
+    // opened or closed — the face/menu button click haptic is generic
+    // and doesn't distinguish panel-open from panel-close.
+    if (this.captionSystem && this.captionSystem.enabled) {
+      this.captionSystem.show(p.visible ? t('vr.msg.settingsOpen') : t('vr.msg.settingsClosed'));
+    }
+    return p.visible;
+  }
+
+  /**
    * Build the in-VR settings panel: a backing quad plus toggle buttons wired to
    * the runtime settings (all effects are immediate and safe).
    */
@@ -1441,22 +1600,7 @@ export class VRApp {
 
     const items = [
       [t('vr.settings.highContrast'), 'highContrast', (v) => {
-        setPref('highContrast', v);
-        this._redrawSettingsPanel();
-        if (this.bookmarkPanel && this.bookmarkPanel.visible) {
-          this.bookmarkPanel._draw();
-        }
-        // Caption backing switches between semi-transparent (normal) and fully
-        // opaque (HC) — update live so the effect is immediate, not deferred
-        // until the next VR session restart.
-        if (this.captionSystem) {
-          this.captionSystem.setHighContrast(v);
-        }
-        // Gaze reticle ring: full opacity in HC so it is always visible
-        // against bright VR scenes (WCAG 1.4.11 Non-text Contrast).
-        if (this.gazeInteraction) {
-          this.gazeInteraction.setHighContrast(prefersHighContrast());
-        }
+        this._applyHighContrast(v);
       }],
       [t('vr.settings.teleport'), 'enableTeleport', null],
       [t('vr.settings.snapTurn'), 'enableSnapTurn', null],
@@ -1473,27 +1617,16 @@ export class VRApp {
       }],
       [t('vr.settings.comfort'), 'enableComfort', null],
       [t('vr.settings.foveation'), 'enableFFR', (v) => {
-        if (this.ffrSystem) {
-          v ? this.ffrSystem.enable(0.5) : this.ffrSystem.disable();
-        }
+        this._applyToggle('enableFFR', v);
       }],
       [t('vr.settings.gazeSelect'), 'enableGazeDwell', (v) => {
-        if (this.gazeInteraction) {
-          this.gazeInteraction.setEnabled(v);
-        }
+        this._applyToggle('enableGazeDwell', v);
       }],
       [t('vr.settings.haptics'), 'enableHaptics', (v) => {
-        if (this.hapticFeedback) {
-          this.hapticFeedback.setEnabled(v);
-        }
+        this._applyToggle('enableHaptics', v);
       }],
       [t('vr.settings.captions'), 'enableCaptions', (v) => {
-        if (this.captionSystem) {
-          this.captionSystem.setEnabled(v);
-          if (v) {
-            this.captionSystem.show(t('vr.msg.captionsEnabled'));
-          }
-        }
+        this._applyToggle('enableCaptions', v);
       }],
       // FR-1.1: in-VR web browsing (WebPanel/TabManager/BookmarkPanel/
       // WindowManager) is constructed once, in initializeSystems(), gated on
@@ -1504,17 +1637,18 @@ export class VRApp {
       // construction is one-shot; the apply callback is honest about that.
       [t('vr.settings.webPanel'), 'enableWebPanel', (v) => this._onWebPanelToggleChanged(v)],
       [t('vr.settings.followView'), 'enableWindowFollow', (v) => {
-        if (this.windowManager) {
-          this.windowManager.setFollow(v);
-        }
+        this._applyToggle('enableWindowFollow', v);
       }],
       [t('vr.settings.curved'), 'enableCurvedPanel', (v) => {
-        if (this.tabManager) {
-          this.tabManager.setCurved(v);
-        } else if (this.webPanel && this.webPanel.setCurved) {
-          this.webPanel.setCurved(v);
-        }
-      }]
+        this._applyToggle('enableCurvedPanel', v);
+      }],
+      // Private browsing (Quest Browser-style): tabs opened while ON write no
+      // history and are never persisted. Applies live — the strip gains the
+      // PRIVATE chip immediately — and announces cross-modally (WCAG 4.1.3).
+      [t('vr.settings.privateMode'), 'privateMode', (v) => this._applyPrivateMode(v)],
+      // Session restore (Wolvic 1.9-style): reopen the tabs that were open
+      // when the browser last closed.
+      [t('vr.settings.restoreTabs'), 'restoreTabs', null]
     ];
 
     // Numeric steppers for tunable parameters that were previously code-only.
@@ -1585,17 +1719,23 @@ export class VRApp {
             this.spatialAudio.setMasterVolume(v / 100);
           }
         }
+      }],
+      // WCAG 1.4.4 Resize Text: the reader's article text must reach 2.0x.
+      // Applies live — open articles re-lay-out, later loads inherit.
+      [t('vr.settings.readerTextSize'), 'readerTextScale', {
+        min: 0.5, max: 2.0, step: 0.25, unit: 'x',
+        apply: (v) => {
+          if (this.tabManager) {
+            this.tabManager.setReaderScale(v);
+          }
+        }
       }]
     ];
 
     // Cycle buttons for enumerated settings (currently code-only or keyboard-shortcut-only).
-    const COMFORT_PRESETS = ['sensitive', 'moderate', 'tolerant', 'disabled'];
-    const SEARCH_ENGINES  = ['duckduckgo', 'google', 'bing', 'ecosia'];
     const cycles = [
       ['Comfort', 'motionSensitivity', COMFORT_PRESETS, (v) => {
-        if (this.comfortSystem) {
-          this.comfortSystem.setPreset(v);
-        }
+        this._applyToggle('motionSensitivity', v);
       }],
       [t('vr.settings.search'), 'searchEngine', SEARCH_ENGINES, (v) => {
         if (this.tabManager) {
@@ -1655,7 +1795,8 @@ export class VRApp {
         byKey(items, ['enableFFR', 'enableCurvedPanel', 'enableWindowFollow']),
         byKey(steppers, ['windowDistance']), [], []],
       ['settings.section.browsing',
-        byKey(items, ['enableWebPanel']), [],
+        byKey(items, ['enableWebPanel', 'privateMode', 'restoreTabs']),
+        byKey(steppers, ['readerTextScale']),
         cycles.filter((c) => c[1] === 'searchEngine'),
         actionByLabel(t('vr.settings.clearHistory'))
           .concat(actionByLabel(t('vr.settings.readerProxy')))
@@ -2171,15 +2312,7 @@ export class VRApp {
         }
         // Toggle settings panel.
         if ((btn.faceB?.justPressed || btn.menu?.justPressed) && this.settingsPanel) {
-          this.settingsPanel.visible = !this.settingsPanel.visible;
-          this.settingsPanel.mesh && (this.settingsPanel.mesh.visible = this.settingsPanel.visible);
-          this.semanticDOM?.setSettingsExpanded(this.settingsPanel.visible);
-          // Caption so users who rely on text feedback know whether the panel
-          // opened or closed — the face/menu button click haptic is generic
-          // and doesn't distinguish panel-open from panel-close.
-          if (this.captionSystem && this.captionSystem.enabled) {
-            this.captionSystem.show(this.settingsPanel.visible ? t('vr.msg.settingsOpen') : t('vr.msg.settingsClosed'));
-          }
+          this._setSettingsPanelVisible();
         }
         // Toggle VR keyboard.
         if (btn.thumbstickClick?.justPressed && this.vrKeyboard) {
@@ -2683,7 +2816,633 @@ export class VRApp {
           // text), which is what "下にスクロール" can actually move in VR.
           onScrollContent: (delta) => {
             this.tabManager?.getActiveTab?.()?.scrollContent?.(delta);
-          }
+          },
+          // Hands-free private-mode toggle: mirrors the settings toggle —
+          // persist the flipped flag, then apply it (TabManager + toast).
+          onTogglePrivateMode: () => {
+            const next = !this.settings.privateMode;
+            this.updateSetting('privateMode', next);
+            this._applyPrivateMode(next);
+          },
+          // volume-up/down commands drive the same masterVolume setting the
+          // audio stepper owns — persist + apply + announce, clamped 0-100.
+          onVolume: (delta) => {
+            const next = Math.min(100, Math.max(0, Math.round(
+              this.settings.masterVolume + delta * 100)));
+            if (next === this.settings.masterVolume) {
+              return;
+            }
+            // Manual volume change invalidates a stored mute level.
+            this._mutedVolume = undefined;
+            this.updateSetting('masterVolume', next);
+            if (this.spatialAudio) {
+              this.spatialAudio.setMasterVolume(next / 100);
+            }
+            if (this.captionSystem && this.captionSystem.enabled) {
+              this.captionSystem.show(`音量: ${next}%`);
+            }
+          },
+          // Settings-by-voice: the caption-size and gaze-dwell steppers are
+          // the flagship a11y knobs and a voice-only user can't reach the
+          // settings panel mid-immersion. Same clamp/apply/persist path the
+          // steppers run; null = at the boundary (command announces it).
+          onCaptionScale: (delta) => {
+            const next = Math.min(3.0, Math.max(0.5, this.settings.captionScale + delta));
+            if (next === this.settings.captionScale) {
+              return null;
+            }
+            this.updateSetting('captionScale', next);
+            if (this.captionSystem) {
+              this.captionSystem.setScale(next);
+            }
+            return next;
+          },
+          onDwellTime: (delta) => {
+            const next = Math.min(3000, Math.max(500, this.settings.gazeDwellTime + delta));
+            if (next === this.settings.gazeDwellTime) {
+              return null;
+            }
+            this.updateSetting('gazeDwellTime', next);
+            if (this.gazeInteraction) {
+              this.gazeInteraction.dwellTime = next;
+            }
+            return next;
+          },
+          // "What's the volume" — onVolume(0) returns undefined (no change),
+          // so the status command reads the persisted setting directly.
+          onVolumeStatus: () => this.settings.masterVolume,
+          // Mute — the hardware/OS mute-key atom. The pre-mute level is kept
+          // in _mutedVolume (undefined when not muted); unmute restores it.
+          // A manual volume change while muted clears the stored level, so
+          // the next mute stores what the user actually set.
+          onMute: (want) => {
+            const muted = this._mutedVolume !== undefined;
+            const target = want === undefined ? !muted : !!want;
+            if (target === muted) {
+              return muted;
+            }
+            if (target) {
+              this._mutedVolume = this.settings.masterVolume;
+              this.updateSetting('masterVolume', 0);
+              if (this.spatialAudio) {
+                this.spatialAudio.setMasterVolume(0);
+              }
+            } else {
+              const restore = this._mutedVolume;
+              this._mutedVolume = undefined;
+              this.updateSetting('masterVolume', restore);
+              if (this.spatialAudio) {
+                this.spatialAudio.setMasterVolume(restore / 100);
+              }
+            }
+            return target;
+          },
+          // Article text size by voice — the readerTextScale stepper's
+          // clamp → persist → apply path, so an open article re-lays out
+          // live and later loads inherit.
+          // Reader-scale status — the query twin (delta-0 is a no-op null in
+          // onReaderScale, so a dedicated getter reports the scale).
+          onReaderScaleStatus: () => this.settings.readerTextScale,
+          onReaderScale: (delta) => {
+            const next = Math.min(2.0, Math.max(0.5, this.settings.readerTextScale + delta));
+            if (next === this.settings.readerTextScale) {
+              return null;
+            }
+            this.updateSetting('readerTextScale', next);
+            if (this.tabManager) {
+              this.tabManager.setReaderScale(next);
+            }
+            return next;
+          },
+          // Windows/macOS high-contrast OS toggle parity — voice-only users
+          // can't reach the settings switch without leaving immersion.
+          onHighContrast: (value) => {
+            const next = typeof value === 'boolean' ? value : !this.settings.highContrast;
+            this.updateSetting('highContrast', next);
+            this._applyHighContrast(next);
+            return next;
+          },
+          // Search-engine cycle by name — the settings cycle button's
+          // updateSetting + tabManager.setSearchEngine path.
+          onSearchEngine: (name) => {
+            if (!SEARCH_ENGINES.includes(name)) {
+              return null;
+            }
+            this.updateSetting('searchEngine', name);
+            if (this.tabManager) {
+              this.tabManager.setSearchEngine(name);
+            }
+            return name;
+          },
+          // Voice 'restore session' — the same validated-snapshot restore
+          // the restoreTabs setting runs at boot.
+          onRestoreSession: () => {
+            if (!this.tabManager) {
+              return 0;
+            }
+            return this.tabManager.restoreSession(loadTabSession());
+          },
+          // Generic settings-toggle hook — one voice surface for every
+          // boolean flag (captions, haptics, gaze select, curved panel,
+          // window follow, snap turn, teleport, comfort, FFR) plus the
+          // comfort-preset cycle. Bool keys toggle when value is omitted;
+          // motionSensitivity cycles through COMFORT_PRESETS or takes a
+          // named preset. Unknown keys/values return null honestly.
+          onSettingToggle: (key, value) => {
+            const TOGGLE_KEYS = ['enableCaptions', 'enableHaptics', 'enableGazeDwell',
+              'enableCurvedPanel', 'enableWindowFollow', 'enableSnapTurn',
+              'enableTeleport', 'enableComfort', 'enableFFR',
+              'southpaw', 'enableSmoothMove'];
+            let next;
+            if (key === 'motionSensitivity') {
+              const idx = COMFORT_PRESETS.indexOf(this.settings.motionSensitivity);
+              next = value === undefined
+                ? COMFORT_PRESETS[(idx + 1) % COMFORT_PRESETS.length]
+                : value;
+              if (!COMFORT_PRESETS.includes(next)) {
+                return null;
+              }
+            } else if (TOGGLE_KEYS.includes(key)) {
+              next = value === undefined ? !this.settings[key] : !!value;
+            } else {
+              return null;
+            }
+            this.updateSetting(key, next);
+            this._applyToggle(key, next);
+            return next;
+          },
+          // Read-only twin of onSettingToggle — settings-status asks the
+          // current value without mutating (a question must not toggle).
+          onSettingStatus: (key) => {
+            const v = this.settings[key];
+            return v === undefined ? null : v;
+          },
+          // Generic numeric-stepper hook — the voice surface for every
+          // settings stepper not already hooked (grace window, snap angle,
+          // move speed, caption hold, caption height). Steps by `delta` of
+          // the stepper's own step size, then runs the panel's live apply
+          // for keys that have one; the rest are read at use time.
+          onStepper: (key, delta) => {
+            const def = VOICE_STEPPERS[key];
+            if (!def) {
+              return null;
+            }
+            // delta 0 is the read-only query twin the voice status commands
+            // use — return the current value without stepping or applying.
+            if (delta === 0) {
+              return this.settings[key];
+            }
+            const next = Math.min(def.max, Math.max(def.min,
+              this.settings[key] + delta * def.step));
+            if (next === this.settings[key]) {
+              return null;
+            }
+            this.updateSetting(key, next);
+            switch (key) {
+            case 'gazeGraceTime':
+              if (this.gazeInteraction) {
+                this.gazeInteraction.graceTime = next;
+              }
+              break;
+            case 'captionDuration':
+              if (this.captionSystem) {
+                this.captionSystem.setLineDuration(next * 1000);
+              }
+              break;
+            case 'captionHeight':
+              if (this.captionSystem) {
+                this.captionSystem.setVerticalOffset(next);
+              }
+              break;
+            default:
+              // snapTurnAngle / smoothMoveSpeed are read at use time.
+              break;
+            }
+            return next;
+          },
+          // Panel distance — the windowDistance stepper's voice surface
+          // (low-vision: '近づけて' brings the reading surface closer
+          // without leaving immersion for the settings panel).
+          onPanelDistance: (delta) => {
+            const next = Math.min(6.0, Math.max(0.6, this.settings.windowDistance + delta));
+            if (next === this.settings.windowDistance) {
+              return null;
+            }
+            this.updateSetting('windowDistance', next);
+            if (this.windowManager) {
+              this.windowManager.setDistance(next);
+            }
+            return next;
+          },
+          // Hands-free Ctrl+D: bookmark/unbookmark the active page via the
+          // same store + confirmation path as the chrome star button.
+          onBookmarkPage: () => {
+            const active = this.tabManager?.getActiveTab?.();
+            if (active && active.currentUrl) {
+              this._toggleBookmark(active.currentUrl, active.currentTitle || active.currentUrl);
+            }
+          },
+          // Read-aloud (Edge "Read Aloud" / Safari "Listen to Page"): the
+          // host hands the utterance list to the voice layer, which owns the
+          // speak/queue. Empty = not on a reader page → "nothing to read".
+          onReadAloud: () => {
+            const active = this.tabManager?.getActiveTab?.();
+            return active?.getReaderNarration?.() || null;
+          },
+          // Immersive-video voice control: togglePause() already reports the
+          // new state; reading .playing after the toggle returns 'playing' or
+          // 'paused'. No video active → null → the command says so honestly.
+          onVideoToggle: () => {
+            const v = this.immersiveVideo;
+            if (!v || !v.active) {
+              return null;
+            }
+            v.togglePause();
+            return v.playing ? 'playing' : 'paused';
+          },
+          onVideoStop: () => {
+            const v = this.immersiveVideo;
+            if (!v || !v.active) {
+              return false;
+            }
+            v.stop();
+            return true;
+          },
+          // Seek the playing video by delta seconds (YouTube J/L parity).
+          // Returns the new position or null when no video is active.
+          onVideoSeek: (delta) => {
+            const v = this.immersiveVideo;
+            if (!v || !v.active) {
+              return null;
+            }
+            return v.seek(delta);
+          },
+          // Settings panel open/close/toggle — same path as the faceB/menu
+          // button so the spoken state always matches the visible one.
+          onSettingsPanel: (want) => this._setSettingsPanelVisible(want),
+          // Direct-select atoms: open the Nth bookmark / history entry in
+          // the ACTIVE tab — tab-select's parity for the saved lists.
+          onBookmarkOpen: (index) => {
+            const entry = this.bookmarks.getBookmarks()[index - 1];
+            const tab = this.tabManager?.getActiveTab?.();
+            if (!entry || !tab) {
+              return null;
+            }
+            tab.navigate(entry.url);
+            return entry.title || entry.url;
+          },
+          onHistoryOpen: (index) => {
+            const entry = this.bookmarks.getHistory(MAX_HISTORY)[index - 1];
+            const tab = this.tabManager?.getActiveTab?.();
+            if (!entry || !tab) {
+              return null;
+            }
+            tab.navigate(entry.url);
+            return entry.title || entry.url;
+          },
+          // Named-open twins — find the first saved entry whose title/URL
+          // contains the term, navigate the active tab, return its title.
+          onBookmarkOpenNamed: (term) => {
+            const t = (term || '').toLowerCase();
+            const entry = (this.bookmarks.getBookmarks() || []).find((b) =>
+              `${b.title || ''} ${b.url}`.toLowerCase().includes(t));
+            const tab = this.tabManager?.getActiveTab?.();
+            if (!entry || !tab) {
+              return null;
+            }
+            tab.navigate(entry.url);
+            return entry.title || entry.url;
+          },
+          onHistoryOpenNamed: (term) => {
+            const t = (term || '').toLowerCase();
+            const entry = (this.bookmarks.getHistory(MAX_HISTORY) || []).find((h) =>
+              `${h.title || ''} ${h.url}`.toLowerCase().includes(t));
+            const tab = this.tabManager?.getActiveTab?.();
+            if (!entry || !tab) {
+              return null;
+            }
+            tab.navigate(entry.url);
+            return entry.title || entry.url;
+          },
+          // Jump the reader to line N (VoiceOver's go-to-line). null = not
+          // on a reader page; 'out' = past the last line.
+          onReaderLine: (line) => {
+            const tab = this.tabManager?.getActiveTab?.();
+            const total = tab?._readerLines?.length || 0;
+            if (!total) {
+              return null;
+            }
+            if (line < 1 || line > total) {
+              return 'out';
+            }
+            tab.scrollContentTo(line - 1);
+            return line;
+          },
+          // Kindle 'go to N%' parity: convert the percent to a line and jump.
+          onReaderPercent: (pct) => {
+            const tab = this.tabManager?.getActiveTab?.();
+            const total = tab?._readerLines?.length || 0;
+            if (!total) {
+              return null;
+            }
+            const line = Math.round((total - 1) * Math.min(100, Math.max(0, pct)) / 100);
+            tab.scrollContentTo(line);
+            return { percent: pct };
+          },
+          // Clipboard twins of read-line / read-aloud — same best-effort
+          // write discipline as onCopyUrl (permissions may reject silently).
+          onCopyLine: () => {
+            const text = this.tabManager?.getActiveTab?.()?.currentLine?.();
+            if (!text) {
+              return null;
+            }
+            const p = navigator.clipboard?.writeText?.(text);
+            if (p && p.catch) {
+              p.catch(() => {});
+            }
+            return text;
+          },
+          onCopyArticle: () => {
+            const blocks = this.tabManager?.getActiveTab?.()?._readerBlocks;
+            if (!blocks || !blocks.length) {
+              return null;
+            }
+            const text = blocks
+              .map((b) => (Array.isArray(b.text) ? b.text.join(' ') : b.text))
+              .join('\n');
+            const p = navigator.clipboard?.writeText?.(text);
+            if (p && p.catch) {
+              p.catch(() => {});
+            }
+            return text.length;
+          },
+          // Saved-list readouts (tabs-list parity): the voice layer owns the
+          // counting + truncation; the hooks just hand over title arrays.
+          onBookmarkList: () => (this.bookmarks.getBookmarks() || [])
+            .map(b => b.title || b.url),
+          onHistoryList: () => (this.bookmarks.getHistory(MAX_HISTORY) || [])
+            .map(h => h.title || h.url),
+          // Share/copy atom: clipboard may be absent or reject (permissions,
+          // non-secure context) — the write is best-effort, the announce
+          // still honest because the URL itself is what was handed over.
+          onCopyUrl: () => {
+            const url = this.tabManager?.getActiveTab?.()?.currentUrl;
+            if (!url) {
+              return null;
+            }
+            const p = navigator.clipboard?.writeText?.(url);
+            if (p && p.catch) {
+              p.catch(() => {});
+            }
+            return url;
+          },
+          // Same clipboard discipline for the page title (copy-url's pair).
+          onCopyTitle: () => {
+            const title = this.tabManager?.getActiveTab?.()?.currentTitle;
+            if (!title) {
+              return null;
+            }
+            const p = navigator.clipboard?.writeText?.(title);
+            if (p && p.catch) {
+              p.catch(() => {});
+            }
+            return title;
+          },
+          // Read-from-here (NVDA read-from-current-position parity): chunks
+          // resume at the block under the reader scroll offset.
+          onReadHere: () => {
+            const active = this.tabManager?.getActiveTab?.();
+            return active?.getReaderNarrationFrom?.() || null;
+          },
+          // Numbered top-site open — the new-tab tile grid, voice-reachable.
+          // Same private-mode/search-engine exclusions as the tiles themselves.
+          onTopSiteOpen: (n) => {
+            const active = this.tabManager?.getActiveTab?.();
+            if (!active || this.settings.privateMode) {
+              return null;
+            }
+            const site = this.bookmarks?.getTopSites?.(
+              Math.max(1, n), Date.now(), searchEngineHosts())?.[n - 1];
+            if (!site) {
+              return null;
+            }
+            active.navigate(site.url);
+            return site.title || site.url;
+          },
+          // History search — count the hits plus announce the most recent.
+          onHistorySearch: (term) => {
+            const needle = String(term || '').toLowerCase();
+            if (!needle) {
+              return null;
+            }
+            const hits = (this.bookmarks?.getHistory?.(MAX_HISTORY) || [])
+              .filter((e) => `${e.title || ''} ${e.url || ''}`.toLowerCase().includes(needle));
+            if (!hits.length) {
+              return null;
+            }
+            return { count: hits.length, title: hits[0].title || hits[0].url };
+          },
+          // Scroll the reader by N lines — scrollContent already clamps and
+          // reports no-move as false for the honest "can't go further".
+          onReaderScroll: (delta) =>
+            this.tabManager?.getActiveTab?.()?.scrollContent?.(delta) || false,
+          // Percent of the article read (readerProgress parity).
+          onReaderProgress: () =>
+            this.tabManager?.getActiveTab?.()?.readerProgress?.() ?? null,
+          // Bookmark search — history-search's pair over the saved list.
+          onBookmarkSearch: (term) => {
+            const needle = String(term || '').toLowerCase();
+            if (!needle) {
+              return null;
+            }
+            const hits = (this.bookmarks?.getBookmarks?.() || [])
+              .filter((e) => `${e.title || ''} ${e.url || ''}`.toLowerCase().includes(needle));
+            if (!hits.length) {
+              return null;
+            }
+            return { count: hits.length, title: hits[0].title || hits[0].url };
+          },
+          // Jump to the Nth find hit — findNextMatch's indexed sibling.
+          onFindMatch: (n) =>
+            this.tabManager?.getActiveTab?.()?.findMatchAt?.(n) ?? null,
+          // Estimated minutes left in the article.
+          onRemainingTime: () =>
+            this.tabManager?.getActiveTab?.()?.getRemainingMinutes?.() ?? null,
+          // Jump to the Nth heading — nextHeading's indexed sibling.
+          onHeadingSelect: (n) =>
+            this.tabManager?.getActiveTab?.()?.headingAt?.(n) ?? null,
+          // Find position / last hit — findNextMatch's status & tail siblings.
+          onFindStatus: () =>
+            this.tabManager?.getActiveTab?.()?.findStatus?.() ?? null,
+          onFindLast: () =>
+            this.tabManager?.getActiveTab?.()?.findLastMatch?.() ?? null,
+          // Read the line under the reader scroll (VoiceOver parity).
+          onReadLine: () =>
+            this.tabManager?.getActiveTab?.()?.currentLine?.() ?? null,
+          // Paragraph layer — NVDA Ctrl+Down/Up nav, indexed select, status.
+          onParagraphStep: (dir) =>
+            this.tabManager?.getActiveTab?.()?.nextParagraph?.(dir) ?? null,
+          onParagraphSelect: (n) =>
+            this.tabManager?.getActiveTab?.()?.paragraphAt?.(n) ?? null,
+          onParagraphStatus: () =>
+            this.tabManager?.getActiveTab?.()?.paragraphStatus?.() ?? null,
+          // Article character count — the reading-time numerator as status.
+          onCharCount: () =>
+            this.tabManager?.getActiveTab?.()?.getCharCount?.() ?? null,
+          // NVDA "read current paragraph" — read-aloud's block-scoped sibling.
+          onReadParagraph: () =>
+            this.tabManager?.getActiveTab?.()?.getParagraphNarration?.() ?? [],
+          // Sentence layer — NVDA Alt+Down/Up caret, read + status siblings.
+          onSentenceStep: (dir) =>
+            this.tabManager?.getActiveTab?.()?.nextSentence?.(dir) ?? null,
+          onSentence: () =>
+            this.tabManager?.getActiveTab?.()?.currentSentence?.() ?? null,
+          onSentenceStatus: () =>
+            this.tabManager?.getActiveTab?.()?.currentSentence?.() ?? null,
+          // Paragraph ends + indexed read — heading-end/read-from-line parity.
+          onLastParagraph: () =>
+            this.tabManager?.getActiveTab?.()?.lastParagraph?.() ?? null,
+          onReadParagraphAt: (n) =>
+            this.tabManager?.getActiveTab?.()?.getParagraphNarrationAt?.(n) ?? [],
+          // Search-engine name — the status twin of onSearchEngine.
+          onSearchEngineStatus: () => this.settings.searchEngine ?? null,
+          // Panel-toggle/stepper query twins — voice-only users cannot read
+          // the settings row to check the current value.
+          onContrastStatus: () => this.settings.highContrast ?? null,
+          onDwellTimeStatus: () => this.settings.gazeDwellTime ?? null,
+          // Session save — serializeSession already strips private tabs.
+          onSessionSave: () => {
+            const snapshot = this.tabManager?.serializeSession?.();
+            if (!snapshot || !snapshot.tabs.length) {
+              return 0;
+            }
+            saveTabSession(snapshot);
+            return snapshot.tabs.length;
+          },
+          // clear-session's discard twin — honest false when nothing saved.
+          onSessionClear: () => {
+            if (!loadTabSession()) {
+              return false;
+            }
+            return saveTabSession(null);
+          },
+          // Char caret + word read/spell — NVDA Left/Right + numpad-5 parity.
+          onCharStep: (dir) =>
+            this.tabManager?.getActiveTab?.()?.nextChar?.(dir) ?? null,
+          onWord: () =>
+            this.tabManager?.getActiveTab?.()?.currentWord?.() ?? null,
+          onSpellWord: () =>
+            this.tabManager?.getActiveTab?.()?.spellWord?.() ?? null,
+          // Heading under the scroll + article structure — status-query
+          // siblings that report without moving.
+          onHeadingHere: () =>
+            this.tabManager?.getActiveTab?.()?.headingHere?.() ?? null,
+          onArticleSummary: () =>
+            this.tabManager?.getActiveTab?.()?.getArticleSummary?.() ?? null,
+          // Line position without moving — lineStatus parity.
+          onLineStatus: () =>
+            this.tabManager?.getActiveTab?.()?.lineStatus?.() ?? null,
+          // Strip-level status: {index,total} of the strip, privacy/pin flags
+          // of the active tab — status-query atoms.
+          onTabStatus: () => {
+            const tm = this.tabManager;
+            const total = tm?.tabs?.length ?? 0;
+            if (!total) {
+              return null;
+            }
+            return { index: (tm.activeIndex ?? 0) + 1, total };
+          },
+          onPrivacyStatus: () => {
+            const active = this.tabManager?.getActiveTab?.();
+            return active ? !!active.isPrivate : null;
+          },
+          onPinStatus: () => {
+            const active = this.tabManager?.getActiveTab?.();
+            return active ? !!active.pinned : null;
+          },
+          // Vim `` mark — return to the pre-jump scroll position.
+          onJumpBack: () =>
+            this.tabManager?.getActiveTab?.()?.jumpBack?.() ?? false,
+          // Chrome's Esc — dismiss the find bar's highlights.
+          onClearFind: () =>
+            this.tabManager?.getActiveTab?.()?.clearFind?.() ?? false,
+          // Chrome "Paste and go" — navigate the active tab to a URL in the
+          // clipboard. Async: resolves to the announce string.
+          onPasteGo: async () => {
+            try {
+              const text = (await navigator.clipboard.readText()).trim();
+              if (/^https?:\/\//i.test(text)) {
+                this.tabManager?.getActiveTab?.()?.navigate?.(text);
+                return '貼り付けて開きました';
+              }
+              return 'URLがコピーされていません';
+            } catch {
+              return 'クリップボードにアクセスできません';
+            }
+          },
+          // NVDA read-clipboard — speak the clipboard text aloud.
+          onReadClipboard: async () => {
+            try {
+              const text = (await navigator.clipboard.readText()).trim();
+              return text || 'コピーされていません';
+            } catch {
+              return 'クリップボードにアクセスできません';
+            }
+          },
+          // Web Share API — the OS share sheet; clipboard is the fallback
+          // where the API is missing (and it still announces that honestly).
+          onShare: async () => {
+            const t = this.tabManager?.getActiveTab?.();
+            const url = t?.currentUrl;
+            if (!url) {
+              return '共有するURLがありません';
+            }
+            if (typeof navigator !== 'undefined' && navigator.share) {
+              try {
+                await navigator.share({ title: t.currentTitle || url, url });
+                return '共有しました';
+              } catch {
+                return '共有がキャンセルされました';
+              }
+            }
+            try {
+              await navigator.clipboard?.writeText?.(url);
+              return '共有は未対応のためURLをコピーしました';
+            } catch {
+              return '共有できません';
+            }
+          },
+          // '通知を消して' — toasts auto-dismiss, so the manual twin clears
+          // the caption queue (the part a voice user actually hears linger).
+          onDismissNotify: () => {
+            this.captionSystem?.clear?.();
+            return true;
+          },
+          // '最新の通知' — readout twin; the caption queue still holds the
+          // newest toast text after the visual card has faded.
+          onReadNotify: () => this.captionSystem?.lastLine?.() || null,
+          // Quest hold-button parity — return the rig to the origin.
+          onRecenter: () => {
+            if (!this.playerRig) {
+              return false;
+            }
+            this.recenter();
+            return true;
+          },
+          // Video position query — video-seek's status pair.
+          onVideoStatus: () => {
+            const v = this.immersiveVideo;
+            if (!v || !v.active || !v.video) {
+              return null;
+            }
+            return { t: v.video.currentTime, d: v.video.duration };
+          },
+          onMuteStatus: () => this._mutedVolume !== undefined,
+          onFindQuery: () => this.tabManager.getActiveTab()?.findQuery() ?? null,
+          onReadFromLine: (n) =>
+            this.tabManager.getActiveTab()?.getReaderNarrationFrom?.(n) ?? [],
+          onHalfPage: (dir) =>
+            this.tabManager.getActiveTab()?.scrollHalfPage?.(dir) ?? false
         });
         // Begin listening immediately (user granted mic permission during initialize).
         this.voiceCommands.start();
@@ -3339,12 +4098,56 @@ export class VRApp {
   }
 
   /**
+   * Persist the open tab set for session restore. No-ops when the feature is
+   * off or no tab manager exists; private tabs are filtered out inside
+   * serializeSession so their URLs never reach storage.
+   */
+  _persistTabSession() {
+    if (!this.settings.restoreTabs || !this.tabManager) {
+      return;
+    }
+    saveTabSession(this.tabManager.serializeSession());
+  }
+
+  /**
+   * Apply a private-mode flag change: propagate to the tab manager (new tabs
+   * become incognito, strip gains/loses the PRIVATE chip) and announce
+   * cross-modally. Shared by the settings toggle and the voice command.
+   * @param {boolean} v
+   */
+  _applyPrivateMode(v) {
+    if (this.tabManager) {
+      this.tabManager.setPrivateMode(v);
+    }
+    this.showVRToast(t(v ? 'vr.msg.privateModeOn' : 'vr.msg.privateModeOff'), { type: 'info' });
+  }
+
+  /**
+   * Toggle a bookmark for a URL and announce the outcome via captions.
+   * Shared by the chrome star button and the voice bookmark-page command.
+   * @returns {boolean} whether the URL is now bookmarked
+   */
+  _toggleBookmark(url, title) {
+    const nowBookmarked = this.bookmarks.toggleBookmark(url, title);
+    if (this.captionSystem && this.captionSystem.enabled) {
+      this.captionSystem.show(nowBookmarked ? t('vr.msg.bookmarked') : t('vr.msg.bookmarkRemoved'));
+    }
+    return nowBookmarked;
+  }
+
+  /**
    * Navigate to a URL: records the visit in BookmarkStore history and feeds
    * it to the AI recommendation engine.  Call this whenever the in-VR panel
    * loads a new page (FR-1.1 prerequisite infrastructure).
+   *
+   * `panel` (the WebPanel that navigated) is forwarded by TabManager's
+   * onNavigate wrapper — a private panel's visit is announced but never
+   * written to history (Quest Browser private-mode semantics).
    */
-  navigate(url, title = url) {
-    this.bookmarks.addHistory(url, title);
+  navigate(url, title = url, panel = null) {
+    if (!panel || !panel.isPrivate) {
+      this.bookmarks.addHistory(url, title);
+    }
     // Caption the page title so caption-enabled users who aren't looking at the
     // URL bar know which page loaded — the visual chrome update is the primary
     // channel but only helps users whose gaze is already on the panel.
