@@ -2962,10 +2962,10 @@ export class VoiceCommands {
           : wh
             ? this.setSpeechRate(WH[wh[1].toLowerCase()] / 100)
             : km
-            ? this.setSpeechRate(KANJI[km[1]])
-            : /倍速/.test(transcript) && !m
-              ? this.setSpeechRate(2)
-              : m ? this.setSpeechRate(parseFloat(m[0])) : this._speechRate;
+              ? this.setSpeechRate(KANJI[km[1]])
+              : /倍速/.test(transcript) && !m
+                ? this.setSpeechRate(2)
+                : m ? this.setSpeechRate(parseFloat(m[0])) : this._speechRate;
         this.speak(`読み上げ速度 ${rate.toFixed(2)}倍`);
         return { action: 'speech-rate-set', rate };
       },
