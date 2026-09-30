@@ -1720,6 +1720,14 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 208
+
+- ✨ 受益尾XXVI・て許可残置: TAIL_TE — くれよかった/くれちゃったら/くれちゃうか/くれちゃおう・もらいとう/もらうとか/もらうに限る/もらうべきかな/もらうしかない/もらうほかない・いただくに限る/べきかと/以外ない/ほかない・もよろしいかと/もいいかと(思う|んではないかと|存じます) → 実行。
+- ✨ dict残置XVIII: FR — ままにして/ままで/ついでに/がてら/ながらに/とともに/と同時に/のと一緒に/際に(は)/時点で/段階で/ようにできる/ようにやって/ようにしといて/ようになさって/ようになって/ようにしてもらって → 実行。
+- ✨ EN前置詞XVII: 'i hereby order/demand/require you (to)'・'im requiring/ordering you to'・'as long as you are at it'・'provided/providing you'・'assuming you can'・'on the condition that you'・'so long as you'・'in exchange/return for'・'for the sake of it' → 実行。
+- 🐛 誤ルート2件消化: help `/べき(?:かな|…)$/` が 'てもらうべきかな' 奪取 → `(?<![てで](?:もらう|いただく|くれ))べき` lookbehind で保全；ENPRE 裸 `if you would` が 'if you would be so good' 先食い → 前置化。
+- ✅ tests/manner-frame-atoms.test.js +58（実装前46件赤確認）、計11130全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
 ### Session 207
 
 - ✨ て受益残置XXV: TAIL_TE — もらう方向で/かなと/ことで・もらえますでしょうかね・いただけますことでしょうか/いただければ幸甚(でございます)/いただけましたら幸いに存じます → 実行。
