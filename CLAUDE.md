@@ -1722,6 +1722,11 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 
 ### Session 248
 
+- ✨ JA: ておく確定残置（おく算段だ・おく手だ・おく方向だ・おくが吉）・てみろ方言（みろう・みなされ）・dict秘策名詞尾（のが秘策だ・奥の手だ・切り札だ・とっておきだ・虎の子だ・隠し玉だ）→ 実行。
+- ✨ EN LX: 'final answer:'・'the verdict is in'・'case closed'・'decision made'・'mums the word'・'say no more' 前置 → 実行（final answer:? でコロン許容）。
+- ✅ tests/verdict-atoms.test.js +26（実装前19件赤確認）、計12744全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 250
 - ✨ JA: てみる・てくれん残置（みればどう・みるといいよ・みるのが吉・みるべし・くれんな・くれんよ）・dict本命名詞尾（のが本命だ・大本命だ・本命視だ・第一候補だ・本命筋だ・最有力だ）→ 実行。
 - ℹ️ EN LIX 'why not/what say/how about' 提案枠は既ルートで全緑（変更なし）。
 - ✅ tests/frontrunner-atoms.test.js +26（実装前12件赤確認）、計12718全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
