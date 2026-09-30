@@ -137,6 +137,9 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice 'why dontcha close it'/"whyn't you"/'i command/order you to'/'i hereby request/ask that you'/'the move is to'/'best move is'/'be an angel and' が NO-MATCH~~ — **Session 199 で実装**（ENPRE VIII）
 - ~~voice 'close it if you could possibly'/'please sir'/"if it's not too much trouble"/"if it isn't too much to ask"/'closing it is the way to go'/'closing it would be the move' が NO-MATCH~~ — **Session 199 で実装**（EN語尾）
 - ~~voice 'デカくして'/'小さめにして'/'読み上げ止めて'/'どこ読んでる' が NO-MATCH~~ — **Session 199 で実装**（リテラル）
+- ~~voice '閉じてくださいませませ/くださいなさい' のください命令句残置が NO-MATCH~~
+- ~~voice '閉じるのが効率的だ/賢いやり方' の効率・利得名詞尾が NO-MATCH~~
+- ~~voice 'do me the service of/oblige me with a closing' の厚意・恩恵前置枠が NO-MATCH~~
 - ~~voice '閉じておけ/おけよ' のておけ命令が裸 おけ 否定パターンで negate 誤ルート~~
 - ~~voice 'お閉じいたします/お閉じお願いします' のお+ます語幹謙譲命令が NO-MATCH~~
 - ~~voice 'at the earliest opportunity/next chance you get' の機会時前置枠が NO-MATCH~~
