@@ -222,6 +222,8 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice '閉じるのが急所という見解です' の急所名詞尾XVIIIが NO-MATCH~~
 - ~~voice '閉じてくださいますれば幸いです' の kudasaimasureba 残置が NO-MATCH~~
 - ~~voice '閉じるのが急所と確信しています' の急所名詞尾XIXが NO-MATCH~~
+- ~~voice '閉じるのが急所と認識しています' の急所名詞尾XXが NO-MATCH~~
+- ~~voice 'would you be so sweet|lovely|gracious|nice to' の so-Adj-to 枠が NO-MATCH~~
 - ~~voice 'id be much|deeply obliged to' の obliged-to 短縮枠が NO-MATCH~~
 - ~~voice 'i would be much|deeply obliged to' の obliged-to 自発枠が NO-MATCH~~
 - ~~voice 'id be most happy|glad|delighted|pleased|willing|ready to' の id-most 枠が NO-MATCH~~
