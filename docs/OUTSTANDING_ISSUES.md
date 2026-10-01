@@ -462,6 +462,7 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**copy-url/panel-distance/title/read-url/rate-status/paste-go の言い換え欠落**~~ — **Session 128 で実装**: 'コピーして'/'ページをコピー'、サイズ言い換え（'パネルを大きく'→近づける/'小さく'→遠ざける）、'タイトルを読んで'/'whats the title'、'今のページのアドレス'/'whats the url'/'page address'、'再生速度(は)'、'ペーストして'/'貼り付けて'/'paste it'/'paste the clipboard'。
 
 
+
 ---
 
 ## G. 色コントラスト監査（Sessions 69, 72）— 実測済み・WCAG 2 は全通過、APCA は未達

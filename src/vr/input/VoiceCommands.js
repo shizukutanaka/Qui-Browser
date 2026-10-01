@@ -1290,6 +1290,7 @@ export class VoiceCommands {
         '聞き取り停止', '聞くのをやめて', '音声認識を止めて', '音声認識を終了',
         /mute (the )?mic(raphone)?/i, /mic off/i, /stop listening/i,
         /turn (off )?(the )?mic(raphone)?( off)?/i],
+
       action: () => {
         this.stop();
         return { action: 'stop' };
@@ -2292,6 +2293,7 @@ export class VoiceCommands {
         'このページを読み上げて', 'ページ全体を読み上げて',
         '最初から読み上げ', '最初から読み上げて', 'もう一回読んで',
         '全部読んで', '全て読んで', '最初から読んで',
+
         /read\s+aloud/i, /read\s+(this|the)\s+(page|article)/i, /^read this$/i,
         /^read (all|everything|it all)$/i, /from the (top|beginning|start)/i,
         /listen\s+to\s+(this|the)\s+(page|article)/i
@@ -2346,9 +2348,11 @@ export class VoiceCommands {
         '早く読んで', '速く読んで',
         '読み上げ速度を上げて', '読み上げの速度を上げて', '話す速度を上げて',
         '話すスピードを上げて', '読み上げスピードを上げて', '速読して',
+
         /speak faster|talk faster/i, /speed up (speech|reading|talk)/i,
         /speed up (the )?reading/i,
         /increase (speech|talk|reading) (rate|speed)/i, /read faster/i],
+
       action: () => {
         const rate = this.setSpeechRate(this._speechRate + 0.25);
         this.speak(`読み上げ速度 ${rate.toFixed(2)}倍`);
@@ -2362,9 +2366,11 @@ export class VoiceCommands {
         'ゆっくり読んで', '遅く読んで',
         '読み上げ速度を下げて', '読み上げの速度を下げて', '話す速度を下げて',
         '話すスピードを下げて', '読み上げスピードを下げて', 'ゆっくり',
+
         /speak slower|talk slower/i, /slow down (speech|reading|talk)/i,
         /slow down (the )?reading/i,
         /decrease (speech|talk|reading) (rate|speed)/i, /read slower/i],
+
       action: () => {
         const rate = this.setSpeechRate(this._speechRate - 0.25);
         this.speak(`読み上げ速度 ${rate.toFixed(2)}倍`);
@@ -2479,6 +2485,7 @@ export class VoiceCommands {
       patterns: ['URLをコピー', 'リンクをコピー', 'アドレスをコピー',
         'このページのリンク', 'ページのリンク', 'ページのリンクをコピー',
         'コピーして', 'ページをコピー', 'このページをコピー',
+
         /copy\s+(the\s+)?(url|link|address)/i],
       action: () => {
         const url = onCopyUrl ? onCopyUrl() : null;
@@ -3047,11 +3054,13 @@ export class VoiceCommands {
         /(パネル|画面|ウィンドウ)を?(大きく|小さく)(して|にして)?/,
         '遠すぎる', '近すぎる', '遠すぎ', '近すぎ', /too (far|close)/i,
         /panel (closer|nearer|further|farther|away|bigger|smaller)/i],
+
       action: (transcript) => {
         // '遠い'/'遠すぎ'/'大きく' are complaints of distance → bring it nearer;
         // '近い'/'近すぎ'/'小さく' are complaints of closeness → push it away.
         const nearer = /近づ|近く|遠い|遠すぎ|大きく|closer|nearer|bigger|too far/i.test(transcript)
           && !/遠く|遠ざ|近い|近すぎ|小さく|further|farther|away|too close|smaller/i.test(transcript);
+
         const v = this._onPanelDistance ? this._onPanelDistance(nearer ? -0.2 : 0.2) : null;
         this.speak(v === null ? 'パネルはこれ以上移動できません' : `パネル距離 ${v.toFixed(1)}メートル`);
         return { action: 'panel-distance', distance: v };
@@ -3387,6 +3396,7 @@ export class VoiceCommands {
         '今のページのアドレス', '今のページのURL', 'ページURL', 'アドレスを言って',
         /(read|say|what is|what's|whats) (the |this )?(url|address)/i,
         /(page|tab) (url|address)/i],
+
       action: () => {
         const url = tabManager?.getActiveTab?.()?.currentUrl || '';
         this.speak(url || 'URLがありません');
