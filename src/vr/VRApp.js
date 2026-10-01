@@ -2971,6 +2971,12 @@ export class VRApp {
             this._applyToggle(key, next);
             return next;
           },
+          // Read-only twin of onSettingToggle — settings-status asks the
+          // current value without mutating (a question must not toggle).
+          onSettingStatus: (key) => {
+            const v = this.settings[key];
+            return v === undefined ? null : v;
+          },
           // Generic numeric-stepper hook — the voice surface for every
           // settings stepper not already hooked (grace window, snap angle,
           // move speed, caption hold, caption height). Steps by `delta` of
@@ -3313,6 +3319,13 @@ export class VRApp {
             saveTabSession(snapshot);
             return snapshot.tabs.length;
           },
+          // clear-session's discard twin — honest false when nothing saved.
+          onSessionClear: () => {
+            if (!loadTabSession()) {
+              return false;
+            }
+            return saveTabSession(null);
+          },
           // Char caret + word read/spell — NVDA Left/Right + numpad-5 parity.
           onCharStep: (dir) =>
             this.tabManager?.getActiveTab?.()?.nextChar?.(dir) ?? null,
@@ -3374,6 +3387,29 @@ export class VRApp {
               return text || 'コピーされていません';
             } catch {
               return 'クリップボードにアクセスできません';
+            }
+          },
+          // Web Share API — the OS share sheet; clipboard is the fallback
+          // where the API is missing (and it still announces that honestly).
+          onShare: async () => {
+            const t = this.tabManager?.getActiveTab?.();
+            const url = t?.currentUrl;
+            if (!url) {
+              return '共有するURLがありません';
+            }
+            if (typeof navigator !== 'undefined' && navigator.share) {
+              try {
+                await navigator.share({ title: t.currentTitle || url, url });
+                return '共有しました';
+              } catch {
+                return '共有がキャンセルされました';
+              }
+            }
+            try {
+              await navigator.clipboard?.writeText?.(url);
+              return '共有は未対応のためURLをコピーしました';
+            } catch {
+              return '共有できません';
             }
           },
           // Quest hold-button parity — return the rig to the origin.

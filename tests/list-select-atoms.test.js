@@ -182,12 +182,13 @@ describe('VoiceCommands date', () => {
     const vc = makeSpeakingVC();
     vc.processCommand('今日の日付');
     const now = new Date();
-    expect(vc._spoken.pop()).toBe(`今日は${now.getMonth() + 1}月${now.getDate()}日です`);
+    const wd = '日月火水木金土'[now.getDay()];
+    expect(vc._spoken.pop()).toBe(`今日は${now.getMonth() + 1}月${now.getDate()}日（${wd}曜日）です`);
   });
 
   test('\'何月何日\' routes the same phrase', () => {
     const vc = makeSpeakingVC();
     vc.processCommand('何月何日');
-    expect(vc._spoken.pop()).toMatch(/^今日は\d+月\d+日です$/);
+    expect(vc._spoken.pop()).toMatch(/^今日は\d+月\d+日（[日月火水木金土]曜日）です$/);
   });
 });

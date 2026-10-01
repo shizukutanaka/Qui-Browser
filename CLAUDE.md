@@ -252,6 +252,79 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 127: 距離/可読性原子 — settings-status 数値/列挙値拡張・motion-sensitivity 方向 setter・panel-distance 訴え句・fullscreen エイリアス + 言い換え句第10弾
+外部基準: Voice Access クエリ形の数値設定への拡張、Chrome fullscreen/immersive の文言、VoiceOver rotor の端選択、訴え形→直接的な修正アクション。
+- ✨ **settings-status を数値/列挙値へ拡張**: KEYMAP エントリを `[regex, key, label?, {unit|map}]` に一般化 — 'パネルの距離'/'panel distance' → 'パネル距離 Xメートルです'（windowDistance）、'モーション感度は'/'motion sensitivity' → 'モーション感度は標準です'（プリセット JA 写像）。
+- ✨ **`motion-sensitivity`（comfort-preset の方向双子）**: 'モーション感度を上げて/下げて/標準に' → `_onSettingToggle('motionSensitivity', sensitive|tolerant|moderate)`。**実測捕捉**: settings-status の loose `/motion sensitivity/` が 'motion sensitivity up' を先取り → `^…\??$` アンカーで透過。
+- 🐛 **panel-distance の方向反転訴え句**: 'パネルが遠い'/'遠すぎる'/'too far' → 近づける、'パネルが近い'/'近すぎる'/'too close' → 遠ざける（'近い' を nearer 判定から除外する除外集合を追加 — 訴え形は現在値への苦情）。
+- 🐛 **'一番左のタブ'/'一番右のタブ' 誤答修正**: tab-by-name '「一番左」のタブがありません' → stoplist + first-tab/last-tab へ '一番左/一番右のタブ'、'左端/右端のタブ'、leftmost/rightmost。
+- ✨ **fullscreen/immersive エイリアス**: vr-enter へ '全画面'/'フルスクリーン(にして|モード)'/immersive mode/fullscreen、vr-exit へ '全画面をやめて'/'フルスクリーン解除'/exit fullscreen（`(?<!exit )full ?screen` lookbehind で enter 側が exit を横取りしないよう分離）。
+- ✨ **エイリアス拡充（第10弾）**: reader-size 訴え句 '文字が小さい'/'読みにくい'/'フォントを大きくして' 等、keyboard 'キーボードを出して/閉じて/しまって'、tabs-list 'タブ一覧を読んで'/'開いてるタブ'、read-url 'このページのURL'/'ページのアドレス'、copy-url 'このページのリンク'、trouble '見えにくい'/'見にくい'。
+- ✅ **テスト +75（git stash で実装前に73件赤確認 — 2件は既存 'パネルを遠くして/近くして' の設計上緑）**: Total 2775 tests (101 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+- 注: 'パネルサイズ'/'読書モード'/'ダウンロード'/'タブはどこ' は backing surface 不在のため未実装（誠実未認識）。
+
+### Session 126: 設定状態/接続原子 — settings-status 読み取り専用双子・connection-status・曜日告知 + 言い換え句第9弾
+外部基準: Voice Access 'is X on' のクエリ形（質問は状態を変えない）、Chrome 'シークレットモード' の文言、MDN NetworkInformation（effectiveType/downlink）。
+- ✨ **`settings-status`（toggleCmd 系の誠実クエリ双子）**: '字幕はオン'/'キャプションついてる'/'視線選択はオン'/'are captions on'/'is snap turn on' 等 → 新規読み取り専用フック `_onSettingStatus`（VRApp `onSettingStatus` = `this.settings[key]` の不変 getter）で 'Xはオンです/オフです' を応答。**実測捕捉**: EN 質問形 'are captions on'/'is snap turn on' は toggleCmd の `/captions? (on|off)/`・`/snap turn (on|off)/` が先に所有して質問がトグル実行されていた → toggleCmd 群より前に登録（JA は toggle が 'を+動詞' 要求のため衝突なし、非呼出を共存テストで断言）。
+- ✨ **`connection-status`**: '回線速度'/'通信速度'/'ネットの速度'/'connection speed' → `navigator.connection` の effectiveType+downlink で '接続状態: 4G、約8.5Mbpsです'、API 無しは '通信情報を取得できません' の誠実経路。
+- 🐛 **'秘密のタブ'/'シークレットモード' の誤答修正**: tab-by-name が '「秘密」のタブがありません' と誤答（実測捕捉）→ stoplist に 秘密|シークレット|プライベート を追加し private-new-tab へ '秘密のタブ'/'シークレットのタブ'/'プライベートのタブ'/'シークレットモード(で開いて)' を追加（'ニュースのタブ' の名指し選択は維持、共存テスト）。
+- ✨ **date に曜日告知**: '今何曜日'/'何曜日'/'曜日は'/'what day' → '今日はX月Y日（Z曜日）です'（従来の日付句も曜日付きに拡張、旧 assertion を曜日込みに更新）。
+- ✨ **エイリアス拡充（第9弾）**: language-switch '英語で読んで'/'日本語で読んで'/'読み上げ言語を英語/日本語'、captions-toggle 'キャプションを出して/見せて'/'字幕を出して'、help '困った'/'わからない'/'ヘルプミー'/'使い方を教えて'、reopen-tab 'もとに戻して'/'取り消し'/'取り消して'、top-sites 'スタートページ'/'よく見るサイト'/'おすすめサイト'/'よく行くサイト'、clear-history '閲覧履歴を全部消して'/'履歴を全部消して/消す'、trouble 'ネットが遅い'。
+- ✅ **テスト +65（git stash で実装前に59件赤確認 — 6件は既存ルート共存ガードの設計上緑）**: Total 2700 tests (100 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+- 注: 'ハンドトラッキング'/'キャッシュを消して'/'Cookieを消して'/'ホームURL設定'/'男性の声' は backing surface 不在または誠実応答できないため未実装（誠実未認識）。
+
+### Session 125: 検索/快適原子 — find-in-page 引用符 strip・スコープ句、VR出入り・エコー・快適訴えの自然句 + 言い換え句第8弾
+外部基準: Chrome 'find in page X' のスコープ形、Voice Access 'quiet' 準拠の消音句、NVDA 誠実ガイダンス（快適性訴え→音声回復導線）。
+- 🐛 **'「テスト」を探して' が引用符込みで検索される実害修正**: 抽出語が「テスト」のまま渡り必ず '見つかりませんでした'（実測捕捉）→ 先末尾 `「」『』"''` を strip。'ページ内で「X」を検索'/'ページ内をXで検索' 未認識も `/ページ内[をで](.+?)[をで]検索/` で解消（'バナナを検索して' は web-search 維持の共存テスト）。
+- ✨ **VR 出入り・エコー句**: vr-enter へ 'VRを始める'/'没入モード'/'VRモードで' 等6句、vr-exit へ 'VRを終了'/'VRを出る' 等、say-again へ 'もう一回言って'/'今の行をもう一度'、say-last-transcript へ '何を言った'/'何を聞き取った'/'今何を言った'。
+- ✨ **エイリアス拡充（第8弾）**: read-heading '見出しを読み上げて'、next/prev-heading '次/前のセクション'、next-paragraph 'スキップして'/'読み飛ばして'、prev-sentence 'さっきの文'、mute-toggle '静かにして'/'無音にして'、volume-down 'うるさい'/'音が大きい'、unbookmark 'お気に入りから消して'、trouble へ '耳が痛い'/'酔った'/'気分が悪い'/'目が疲れた'/'滑らかじゃない'/'ヘッドセットが暑い'。
+- ✅ **テスト +41（git stash で実装前に39件赤確認 — 2件は既存ルート共存ガードの設計上緑）**: Total 2635 tests (99 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+- 注: 'リンク一覧'/'印刷'/'PDF保存'/'フォント変更'/'輝度' は backing surface 不在のため今回も未実装（誠実未認識）。
+
+### Session 124: スクロール/音声トラブル原子 — '先頭に戻る'・'オプションを開いて' の誤ルート修正、reset-zoom 双子、audio-trouble + 言い換え句第7弾
+外部基準: Chrome Ctrl+0 reset-zoom、Chrome 'scroll to top' 句、Voice Access の options 起動句、NVDA 系の誠実エラー告知。
+- 🐛 **'先頭に戻る'/'一番上に戻る'/'トップに戻る' が goBack を実行する実害修正**: back の `/戻[るれ]/` が 'Xに戻る' 句を所有（実測捕捉 — '先頭に戻る' でタブ内履歴が戻る）→ `(?<!先頭に)(?<!一番上に)(?<!トップに)` lookbehind で透過し scroll-top へ7句追加（'戻る' 単体は goBack 維持、相互に非呼出を断言）。
+- 🐛 **'オプションを開いて' が literal ナビゲートされる実害修正**: go-to の `を開` catch-all 所有（実測捕捉）→ settings-toggle へ 'オプション'/'設定画面'/'環境設定'/'プリファレンス'/'options'/'preferences' を追加（登録順が先行するため勝つ、onGoTo 非呼出を断言）。
+- 🐛 **'reset text size' がステータス告知に誤ルート**: reader-scale-status の `/text size/i` 所有（実測捕捉）→ Chrome Ctrl+0 準拠 `reader-scale-reset`（status getter + delta hook で 1.0 へ一発リセット）を先行登録。
+- ✨ **`audio-trouble`**: '聞こえない'/'音が出ない'/"can't hear"/'no sound' → trouble の視覚導線に対する聴覚双子（音量確認・ミュート解除・聞き直しの3導線を発話）。
+- ✨ **エイリアス拡充（第7弾）**: find-in-page へ 'ページ内を検索'/'この中から検索'/'探して'/'検索して'（検索語プロンプト）、scroll へ 'ちょっと上/下'・'少し上/下へ'・'もう少し上/下'、read-aloud へ 'このページを読み上げて'/'最初から読み上げて'/'もう一回読んで'、trouble へ '遅い'/'重い'/'カクカクする'/'フリーズした'/'固まった'、battery-status へ '電池残量'/'残量は'/'電源は'。
+- ✅ **テスト +61（git stash で実装前に60件赤確認 — 1件は既存ルート共存ガードの設計上緑）**: Total 2594 tests (98 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
+### Session 123: 左閉じ/序数原子 — close-tabs-left 双子・JA序数タブ選択・'半分の音量' + 言い換え句第6弾
+外部基準: Chrome close-tabs-to-the-right の左対称双子、Voice Access の序数選択（'一番目のタブ'）、Chrome 'new tab'/'close window' の自然句、numeric volume の 'half' 特例。
+- 🐛 **'左のタブを閉じて' が名指し検索に誤ルートする実害修正**: close-tab-by-name の JA stoplist は '右' だけ除外で '左' 未除外（非対称バグ、実測捕捉）→ 左|左側 を追加 + 新規 `close-tabs-left` が先行所有（'左側のタブを閉じて'/'close tabs to the left'）。
+- ✨ **`TabManager.closeTabsToLeft()`**（closeTabsToRight の左双子）: closeTab 経由でピン拒否・クローズスタック記録を継承。closeTab が splice で activeIndex を自走デクリメントするため前向き反復 `i < activeIndex`（逐次評価）で全左側を網羅。
+- ✨ **`tab-select-ordinal`**（Voice Access 序数選択準拠）: '一番目のタブ'〜'九番目のタブ' → 漢数字 map → setActive + タイトル告知、範囲外は 'タブNはありません'。tab-by-name の `(.+)のタブ` capture が先行所有するため hoisted 登録。実測で '二番目のタブ' が tab-by-name の誤答と index 偶然一致したため、テストは index 遷移と告知タイトルで断言。
+- ✨ **'半分の音量'**: volume-set に '半分の音量'/'音量を半分に'/'half volume' を追加し `半分|half` → 50 の特例分岐。
+- ✨ **エイリアス拡充（第6弾）**: close-tab へ 'ページを閉じて'/'サイトを閉じて'、volume へ '音を大きく/小さく'・'音量を大きく/小さく'、new-tab へ '新しいタブで開いて'、url-input へ 'アドレスバーを見せて/出して'、read-url へ 'URLを表示'/'アドレスを読んで'/'URLは'、bookmark-page へ 'お気に入り登録'/'後で読む'/'あとで読む'/'読書リストに追加'、bookmarks-open へ 'お気に入り一覧'/'読書リスト'、reader-size へ 'ズームイン/アウトして'・'文字/ページを拡大/縮小'。
+- ✅ **テスト +34（git stash で実装前に30件赤確認 — 4件は既存ガードの設計上緑）**: Total 2533 tests (97 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
+### Session 122: 索引ピーク/マイク誤ルート原子 — 'タブNを読んで' の切替誤害・'マイクをミュート' の音量誤害・セッション消去・ストレージ・トラブル導線 + 言い換え句第5弾
+外部基準: screen-reader indexed peek（NVDA オブジェクトナビ）、Voice Access 'mic off'（認識停止は音量と別物）、Chrome undo/Ctrl+Shift+T・'close window'・restore pages の消去双子、Firefox about:storage（navigator.storage.estimate）、voice-only ユーザーの回復導線。
+- 🐛 **'タブNを読んで' が切り替えを実行する実害修正**: tab-select の `/タブ(\d+)/` が索引告知句を所有 → `peek-tab-n`（'タブNを読んで'/'タブNは何'/'read tab N' → 非破壊に `タブN: タイトル`、範囲外は 'タブNはありません'）を hoisted 登録。'タブ1' 単体は切替を維持（共存テスト）。
+- 🐛 **'マイクをミュート' が masterVolume をミュート/'mute other tabs' が active をミュートする実害修正**: mute-toggle の `/(un)?mute/i` が両方を所有 → mic 停止は `stop`（音声認識停止=Voice Access mic-off 準拠）へ 'マイクをミュート'/'マイクオフ'/'mute the mic'/'stop listening' 等を追加し、mute-toggle を lookahead で 'other tabs'/'the mic' 系へ素通し。'mute other tabs' は per-tab surface 不在で誠実未認識。
+- 🐛 **'前回のタブを開いて' が literal ナビゲートされる実害修正**: go-to JA catch-all の `を開` 部分一致が '前回のタブ' をサイト名としてナビゲート → lookahead（前回|セッション|閉じた）で透過 + restore-session へ '前回のタブを開いて'/'最後のセッション' 等、reopen-tab へ '元に戻して'/'取り消して'/'閉じたタブを開いて'/'undo' 系を追加（reopen 登録順が先行）。
+- ✨ **clear-session**（save-session の消去双子 — Chrome restore pages 準拠）: 'セッションを消して'/'clear session' → `onSessionClear` フック、VRApp は loadTabSession 有無を誠実判定 → saveTabSession(null)。
+- ✨ **storage-status**（Firefox about:storage の音声面）: 'ストレージ'/'容量は'/'storage' → navigator.storage.estimate() → '約N MB使用中（上限M MB）'、API無しは誠実告知（async .then speak）。
+- ✨ **trouble**（voice-only 回復導線）: '反応しない'/'真っ暗'/'画面が見えない'/'not responding' → '音声は動作中です。「リセンター」で正面に戻せます。「ヘルプ」でコマンド一覧を聞けます'。
+- ✨ **エイリアス拡充（第5弾）**: vr-exit へ 'ブラウザを終了'/'quit'/'exit the app'、close-tab へ 'ウィンドウを閉じて'/'close window'、bookmark-page へ 'お気に入りに追加'/'add to favorites'、bookmarks へ 'お気に入りを見せて'、unbookmark へ 'ブックマークから消して'、speech-faster/slower へ '早く/ゆっくり読んで'・'read faster/slower'、select-voice へ '別の声'、voice-name へ '声は何'/'音声エンジン'、say-again へ 'もう一回聞いて'/'listen again'、reading-time へ '読書時間'、online-status へ 'Wi-Fiは'/'wifi'、battery-status へ '充電中ですか'/'charging'、reader-size へ 'フォントを大きく/小さく'、reader-progress へ 'スクロール位置'/'今どのあたり'、refresh へ '再起動して'/'restart the page'。
+- ✅ **テスト +53（git stash で実装前に50件赤確認 — 3件は共存ガードの設計上緑）**: Total 2499 tests (96 suites); 0 lint errors（警告 134 = baseline 同一）; build green。
+
+### Session 121: ホーム/翻訳原子 + 質問形誤ルート修正 — '戻ることができますか' がナビゲートを実行していた実害 + 言い換え句第4弾
+外部基準: Chrome Home ボタン（新規タブ面=ホーム）、Chrome 翻訳バブル（Google Translate ラッパー）、NVDA/Chrome の question-form は status に答える規律。
+- 🐛 **質問形がナビゲートを実行する誤ルート修正**: '戻ることができますか'/'もっと戻れる'/'前に戻れますか' が back の `/戻[るれ]/` に所有され goBack を実行、'進むことができますか'/'前に進めますか' が navigate の `/進[むめ]/` に所有され goForward を実行（実測捕捉）→ back-status/forward-status に追加し非呼出を断言。'can i go back/forward' は既に status だったが JA 敬体形が抜けていた。
+- ✨ **home**（Chrome Home ボタン）: 'ホームに戻る'/'ホーム'/'go home'/'home page' → `newTab()` で新規タブ面をホームとして開く。back の `/戻[るれ]/` が 'ホームに戻る' を所有するため hoisted 登録。タブ上限は 'タブをこれ以上開けません'。'戻る' 単体は back を維持（共存テスト）。
+- ✨ **translate-page**（Chrome 翻訳バブル準拠）: '翻訳して'/'このページを翻訳'/'translate this page' → `onGoTo('https://translate.google.com/translate?sl=auto&tl='+tl+'&u='+enc(url))`。'英語に翻訳'→tl=en、'中国語に翻訳'→tl=zh-CN、それ以外 tl=ja。URL無しは 'ページを開いていません'。
+- ✨ **エイリアス拡充（第4弾）**: private-new-tab へ '新しいプライベートタブ'/'プライベートタブを開いて'、next/prev-page へ '次のページへ'/'前のページへ'、scroll-top/bottom へ '最初のページ'/'最後のページ'/'/^first|last page$/'、refresh へ 'ページを更新'/'更新して'/'refresh page'/'reload this page'（refresh に EN が皆無だった）、bookmark-page へ 'ページを保存して'/'save this page'（'セッションを保存' は save-session を維持）、article-summary へ '要約して'/'summarize'、toc へ '見出しを全部読んで'/'章一覧'/'read all headings'、where-am-i へ 'フォーカスはどこ'/'what has focus'、share-page へ 'ツイートして'/'メールで送って'/'リンクを送って'/'tweet this'/'email this'、next-paragraph へ '読み上げをスキップ'/'skip ahead'、url-input へ '検索バー'/'search bar'。
+- ✅ **テスト +46（git stash で実装前に43件赤確認 — 3件は共存ガードの設計上緑）**: Total 2446 tests (95 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
+### Session 120: ピーク/共有/エイリアス原子 — 隣タブ非破壊告知・Web Share 音声経路 + 言い換え句第3弾
+外部基準: screen-reader の "what's next" 非破壊 peek、Web Share API（navigator.share → clipboard フォールバック）、主要コマンドの自然言語バリエーション。
+- ✨ **peek-tab**（隣タブを切り替えずにタイトル告知）: '次のタブを読んで'/'次のタブは'/'前のタブを読んで'/'read next tab'/'what's the next tab' → `(i±1+len)%len` wrap で `タブN: タイトル`、1枚以下は '他のタブはありません'。**衝突を実測捕捉**: next-tab の loose `/next\s+tab/i` が 'read next tab' を所有して切替してしまう → hoisted 登録（`this._tabManager` 遅延バインド）。'next tab' そのものは切替を維持（共存テスト）。
+- ✨ **share-page**（Web Share API 準拠）: '共有して'/'このページを共有'/'share this page' → `onShare` フック promise → 発話（フック無しは '共有できません'）。VRApp 側は `navigator.share({title,url})` → 未対応時 `clipboard.writeText(url)` で '…URLをコピーしました' — paste-go/read-clipboard と同じ async `.then` speak パターン。**捕捉**: title への非アンカー '/this page/' は 'share this page' を奪うため `/^this page$/i`/`/^current page$/i` で限定。
+- ✨ **エイリアス拡充（第3弾）**: title へ 'ページの名前'/'ページタイトル'/'今のページ'/'this page'/'current page'、history/bookmarks-open へ '履歴を見せて'/'ブックマークを見せて'、bookmark-status へ 'ブックマークに入ってる'/'ブックマークしたか'/'did i bookmark'/'in bookmarks'、speech-rate-status へ 'reading speed'/'voice speed'、volume-status へ '音量はいくつ'/'what volume'、language-status へ '読み上げ言語'/'reading language'、vr-enter へ 'vr mode'、reader-size へ '文字を大きく/小さく'・'拡大/縮小して'・'もっと大きく/小さく'、settings-toggle へ '設定を見せて'/'設定を表示'/'show settings'（見せ/show は open 扱いに分岐追加）、help へ 'ヘルプを見せて'/'コマンド一覧を表示'、clear-history へ '閲覧履歴を消して'/'検索履歴を消して'/'clear browsing history'、describe-tab へ 'ページ情報'/'このサイトの情報'/'site info'/'page info'（記事要約ではなくタブ説明が先勝ち）、security-status へ '証明書は'/'certificate'、move-tab へ 'タブを左/右に'・'move it left/right'。
+- ✅ **テスト +54（git stash で実装前に51件赤確認 — 3件は共存ガードの設計上緑）**: Total 2400 tests (94 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
 ### Session 119: ルート修正/行端原子 — 位置問い合わせ透過・移動句・previous-line・incognito-tabs の誤ルート4件 + 行端ジャンプ + 'を読んで' 端形
 外部基準: VoiceOver 'what is my position'、Chrome タブドラッグの指示詞形、NVDA previous-line、Chrome "Close incognito tabs"、first/last-heading の行双子。
 - 🐛 **タブ位置問い合わせの誤答修正**: 'このタブの位置'→「こ」のタブ検索、'何個目のタブ'→「何個目」検索に誤答（実測捕捉）→ tab-by-name lookahead stoplist へ `このタブ`・`何個目` 追加 + tab-status へ4句追加（'このニュースのタブ' の名指しは共存テストで維持）。
