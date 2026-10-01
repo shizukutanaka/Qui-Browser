@@ -3356,4 +3356,3 @@ permission/capability questions (てもいいでしょうか / られますか)�
 - ✨ **zoom/brightness 系**: 'zoom way in/out'→reader-size-up/down、'unzoom/dezoom/zoom back/zoom normal/back to normal size'→reader-scale-reset、brightness EN 形（'light it up/darken it/dim it/too bright/blinding/lights on'）、dark-mode（'night time/turn on dark/lights out'）。
 - ✅ **テスト +149（git stash で128件赤確認）**: Total 6593 tests (142 suites); 0 lint errors（警告 137 = baseline 同一）; build green; FFFD 0件。
 
-
