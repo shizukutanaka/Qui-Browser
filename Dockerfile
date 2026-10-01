@@ -45,11 +45,6 @@ RUN apk add --no-cache tzdata && \
     echo "Asia/Tokyo" > /etc/timezone && \
     apk del tzdata
 
-# gzipとbrotli圧縮モジュール
-RUN apk add --no-cache \
-    nginx-mod-http-brotli \
-    nginx-mod-http-geoip2
-
 # 不要なファイルを削除（最適化）
 RUN rm -rf /usr/share/nginx/html/node_modules \
     /usr/share/nginx/html/.git \
