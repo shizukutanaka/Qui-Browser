@@ -1738,6 +1738,8 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - R284 note: `閉じんなってば` は既存 close literal 維持（方言命令 vs 禁止で曖昧 — 変更は別途判断）。
 - R285 pin: `flush it`/`hang it up`→null 維持（granular 確立: 曖昧）。`閉じてんで`→describe 不採用 — `_politeVariants` の てみ→んで 変換が 閉じてみ* close ピン21形を横取りしたため（variant 残置衝突は describe 側に限定）。
 - R286 pin: `write it off`→null 維持（granular 確立: 経理 euphemism 曖昧）。`open fire on it`→go-to 誤ルートを close 修正（'open' keyword 先勝ち → リテラル化で先勝ち固定）。`閉じるべきかと思う`→help ピン維持。
+- R300: `取り消す*`→reopen-tab 取消ピン維持・`消し去るのが正解`(だ無し)→help 既ルート・'the tab was doomed from the start'→read-aloud 誤ルートを close に修正。
+- R299: `keep it under(water)/captive/prisoner/hostage`→negate keep-it ピン追随。
 - R298: `turn it off`/`switch it off`/`shut it down`→vr-exit ピン維持・`power off the tab`/`put it to sleep`→sleep-mode・`電源を落として/切って/切るんだ/ちまえ`→sleep-mode (power→sleep 慣例)・`停止させろ`/`止めさせろ`→stop-everything・`dim it out`→brightness・`nix it`→negate 既ルート維持。
 - R297: `pitch it out/away/into the bin`→speech-pitch-status 先勝ち ('pitch' サブストリング)・`二度と戻る*` が back regex 横取り → lookbehind で遮断して negate/close へ固定・`姿を見せてくれるな`→web-search 既ルート維持 (曖昧)。JA negate 312件/trouble 15件は既登録済みのためスキップ。
 - R296: `cancel it permanently`/`cancel it for good`→stop-everything・`scratch it out`/`scratch it off`/`leave it on the cutting room floor`→negate ピン維持・`poof it`/`make it poof`→granular-pool null 確立ピン衝突 (採用断念)・`見せるんじゃない`→tabs-list 先勝ち・JA 裸過去報告 (捨てた/捨ててしまった 系)・眠りの国/夢の国→sleep 曖昧・お先にどうぞ→辞退表現のため不採用。プローブ入力 FFFD 文字化け (`捨てちゃった`) 検出済。
