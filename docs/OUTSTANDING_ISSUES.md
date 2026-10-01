@@ -1746,6 +1746,7 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - R301: `どんぞ*`→negate ピン。テストファイル命名はカラー枯渇で衝突が発生 — violet は CCXXXIII で使用済みのため teal を採用。今後も `tests/*-atom-sweep.test.js` の既存名を確認すること。
 - R300: `取り消す*`→reopen-tab 取消ピン維持・`消し去るのが正解`(だ無し)→help 既ルート・'the tab was doomed from the start'→read-aloud 誤ルートを close に修正。
 - R299: `keep it under(water)/captive/prisoner/hostage`→negate keep-it ピン追随。
+
 - R298: `turn it off`/`switch it off`/`shut it down`→vr-exit ピン維持・`power off the tab`/`put it to sleep`→sleep-mode・`電源を落として/切って/切るんだ/ちまえ`→sleep-mode (power→sleep 慣例)・`停止させろ`/`止めさせろ`→stop-everything・`dim it out`→brightness・`nix it`→negate 既ルート維持。
 - R297: `pitch it out/away/into the bin`→speech-pitch-status 先勝ち ('pitch' サブストリング)・`二度と戻る*` が back regex 横取り → lookbehind で遮断して negate/close へ固定・`姿を見せてくれるな`→web-search 既ルート維持 (曖昧)。JA negate 312件/trouble 15件は既登録済みのためスキップ。
 - R296: `cancel it permanently`/`cancel it for good`→stop-everything・`scratch it out`/`scratch it off`/`leave it on the cutting room floor`→negate ピン維持・`poof it`/`make it poof`→granular-pool null 確立ピン衝突 (採用断念)・`見せるんじゃない`→tabs-list 先勝ち・JA 裸過去報告 (捨てた/捨ててしまった 系)・眠りの国/夢の国→sleep 曖昧・お先にどうぞ→辞退表現のため不採用。プローブ入力 FFFD 文字化け (`捨てちゃった`) 検出済。
