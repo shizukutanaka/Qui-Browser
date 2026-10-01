@@ -1720,11 +1720,172 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 308
 ### Session 277
 ### Session 273
 ### Session 271
 ### Session 267
 
+- ✨ JA: dict急所名詞尾XXVII（のが急所という所見です 等6形）→ 実行（もらえますか/いただけますか残置は既緑）。
+- ✨ EN CXVII: mid-adverb 前置 'you could|can|would|might|may (probably|conceivably|potentially|certainly|surely|perhaps|possibly)' → 'you could probably close it' 等実行（ADV-you-could 対称形）。
+- ✅ tests/could-adv-atoms.test.js +24（実装前11件赤確認）、計14123全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 307
+- ✨ 英単語/重複語/識別子の typo 棚卸し（omakase + 'Typoむし' リクエスト）→ src/tests/docs/tools 全域で実害 0 件を確認。
+- ✨ JA: dict急所名詞尾XXVI（のが急所と提案します 等6形）→ 実行（もらえるかな/いただけるかな残置は既緑）。
+- ✨ EN CXVI: bare-adverb 前置リストに conceivably|probably|potentially 追加（possibly/perhaps/maybe と同スロット）→ 'do you think you could probably close it' 等 → 実行。
+- ✅ tests/probably-so-atoms.test.js +24（実装前9件赤確認）、計14099全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 306
+- ✨ JA: dict急所名詞尾XXV（のが急所と進言します 等6形）→ 実行（もらえないかな/いただけないかな残置は既緑）。
+- ✨ EN CXV: 'do you think you would|might be able to' 前置 → 実行。'do you imagine|dream|guess|believe you could' は疑問形→help（確立済み interrogative ピンで維持・実害なし確認）。
+- ✅ tests/think-able-atoms.test.js +27（実装前9件赤確認・誤期待1件を help ピンへ修正）、計14075全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 305
+- ✨ JA: dict急所名詞尾XXIV（のが急所と推奨します 等6形）→ 実行（もらえたなら/いただけたなら残置は既緑）。
+- ✨ EN CXIV: 'would you be a dear|an angel|a love|a pal|a sport|a darling to' 前置 → 実行。
+- ✅ tests/be-a-dear-atoms.test.js +24（実装前12件赤確認）、計14048全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 304
+- ✨ JA: dict急所名詞尾XXIII（のが急所と主張します 等6形）→ 実行（もらえませんか/いただけませんか残置は既緑）。
+- ✨ EN CXIII: 'might|may you be so kind|good|sweet|gracious to' 前置 → 実行。
+- ✅ tests/might-so-atoms.test.js +24（実装前12件赤確認）、計14024全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 303
+- ✨ JA: dict急所名詞尾XXII（のが急所と断定します 等6形）→ 実行（もらえば/いただけば残置は既緑）。
+- ✨ EN CXII: 'would you kindly|please be so kind|good to'・'could you please be so kind|good to' 入れ子前置 → 実行。
+- ✅ tests/kindly-so-atoms.test.js +24（実装前12件赤確認）、計14000全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 302
+- ✨ JA: てもらったら残置（幸いです/助かります/ありがたいです — いただきましたらは既緑）・dict急所名詞尾XXI（のが急所と考察します 等6形）→ 実行。
+- ✨ EN CXI: 'could you be so good|sweet|lovely|gracious|nice to' 前置 → 実行（'so kind to' は既ルート緑）。
+- ✅ tests/could-so-adj-atoms.test.js +24（実装前14件赤確認）、計13976全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 301
+- ✨ JA: dict急所名詞尾XX（のが急所と認識しています 等6形）→ 実行（もらえたら/もらえると残置は既ルート緑）。
+- ✨ EN CX: 'would you be so sweet|lovely|gracious|nice to' 前置 → 実行（'so kind|good to' は既ルート緑）。
+- ✅ tests/so-adj-to-atoms.test.js +24（実装前10件赤確認）、計13952全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 300
+- ✨ JA: くださいますれば残置（幸いです/助かります/ありがたいです）・dict急所名詞尾XIX（のが急所と確信しています 等6形）→ 実行。
+- ✨ EN CIX: 'id be much|so|deeply|truly|most|ever obliged to' 前置 → 実行。
+- ✅ tests/obliged-short-atoms.test.js +24（実装前15件赤確認）、計13928全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 299
+- ✨ JA: てもらうと残置VI（助かります/ありがたいです/嬉しいです）・dict急所名詞尾XVIII（のが急所という見解です 等6形）→ 実行。
+- ✨ EN CVIII: 'i would be much|so|deeply|truly|most|ever obliged to' 前置（自発 obliged-to 枠）→ 実行。
+- ✅ tests/obliged-to-atoms.test.js +24（実装前15件赤確認）、計13904全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 298
+- 🐛 誤ルート: '閉じるのが急所と見受けられます'（宣言行）が help 誤ルート → `られますか?` に `見受け` lookbehind 追加。
+- ✨ JA: くださいますように・てもらい残置（幸いです/助かります/と幸甚です）・dict急所名詞尾XVII（のが急所と思われます 等6形）→ 実行。
+- ✨ EN CVII: 'id be most happy|glad|delighted|pleased|willing|ready to' 前置 → 実行。
+- ✅ tests/id-most-atoms.test.js +24（実装前16件赤確認）、計13880全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 297
+- ✨ JA: てくださるなら残置（幸いです/助かります/ありがたいです）・dict急所名詞尾XVI（のが急所かと心得ております 等6形）→ 実行。
+- ✨ EN CVI: 'i would be most happy|glad|delighted|pleased|willing|ready to' 前置 → 実行。
+- ✅ tests/most-happy-atoms.test.js +24（実装前15件赤確認）、計13856全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 296
+- ✨ JA: てくださるよう残置（お願いします/ようにお願いします）・dict急所名詞尾XV（のが急所と考え上げます 等6形）→ 実行。
+- ✨ EN CV: 'id be ever so happy|glad|delighted|pleased|willing|ready to' 前置 → 実行。
+- ✅ tests/ever-so-happy-atoms.test.js +24（実装前14件赤確認）、計13832全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 295
+- ✨ JA: dict急所名詞尾XIV（のが急所かと思い上げます 等6形）→ 実行。
+- ✨ EN CIV: 'id be only too happy|glad|delighted|pleased|willing|ready to' 前置 → 実行。
+- ✅ tests/id-only-too-atoms.test.js +24（実装前12件赤確認）、計13808全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 294
+- ✨ JA: てもらう残置V（のが一番です/のが良いです/方がいいです）・dict急所名詞尾XIII（のが急所と言います 等6形）→ 実行。
+- ✨ EN CIII: 'i would be only too happy|glad|delighted|pleased|willing|ready to' 前置 → 実行。
+- ✅ tests/only-too-atoms.test.js +24（実装前15件赤確認）、計13784全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 293
+- ✨ JA: てくださった残置（でしょうか/かしら/りしますか）・dict急所名詞尾XII（のが急所に存じ上げます 等6形）→ 実行。
+- ✨ EN CII: 'id be more than happy|delighted|pleased|glad|willing|ready to' 前置 → 実行。
+- ✅ tests/more-than-happy-atoms.test.js +24（実装前15件赤確認）、計13760全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 292
+- ✨ JA: てくださり残置（幸いです/助かります/と幸甚です）・dict急所名詞尾XI（のが急所と考えております 等6形）→ 実行。
+- ✨ EN CI: 'i would be happy|delighted|pleased|glad|willing|ready to' 前置 → 実行。
+- ✅ tests/would-be-happy-atoms.test.js +24（実装前15件赤確認）、計13736全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 291
+- ✨ JA: dict急所名詞尾X（のが急所と存じ上げます 等6形）→ 実行。
+- ✨ EN C: 'if you would be so good|so kind enough|good enough|kind enough|gracious enough|sweet enough as to' 前置 → 実行。
+- ✅ tests/kind-enough-atoms.test.js +24（実装前12件赤確認）、計13712全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 290
+- ✨ JA: てくださいましたら残置II（嬉しいです/助かります/と存じます）・dict急所名詞尾IX（のが急所なわけです 等6形）→ 実行。
+- ✨ EN XCIX: 'i would not mind|object if|to you' 同意枠 + 'not mind it if youd' 前置 + 'not be opposed|averse to you closing' スワップ → 実行。
+- ✅ tests/not-mind-atoms.test.js +24（実装前15件赤確認）、計13688全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 289
+- ✨ JA: てくださったら残置（幸いです/助かります/と思います）・dict急所名詞尾VIII（のが急所かと存じます 等6形）→ 実行。
+- ✨ EN XCVIII: 'i would prefer|appreciate it if youd' 前置 + 'prefer|appreciate if|that you closed|close it' スワップ → 実行。
+- ✅ tests/prefer-appreciate-atoms.test.js +24（実装前15件赤確認）、計13664全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 288
+- 🐛 意味修正: 'i would hate for you to close it'（婉曲拒否）を negate へ — 完全一致文字列では句中一致しないため `/i?['’]?d? ?(?:would )?hate for (?:you|ya) to/i` 正規表現で判定。
+- ✨ JA: ておきたいのです残置・dict急所名詞尾VII（のが急所だと思うんです）→ 実行。
+- ✨ EN XCVII: 'i would love for you to' 前置 + 'hate for it to stay open'・'love|like for it to be closed' スワップ → 実行。
+- ✅ tests/for-you-to-atoms.test.js +24（実装前7件赤確認）、計13640全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 287
+- ✨ JA: dict急所名詞尾VI（のが急所ごときだ/急所級だ/勘所級だ/要諦級だ/眼目級だ/狙い目級だ）→ 実行。
+- ✨ EN XCVI: 'i would be much|so|real|deeply|truly obliged if youd' 前置 → 実行（'i would be most obliged' は既ルート緑）。
+- ✅ tests/would-obliged-atoms.test.js +24（実装前11件赤確認）、計13616全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 286
+- 🐛 誤ルート: '閉じておかれますか'（尊敬依頼）が help 誤ルート → `れますか` ケーパビリティ疑問に `おか` lookbehind 追加。
+- ✨ JA: ておかれます残置（かしら/ませんか）・dict急所名詞尾V（のが急所べきだ/べしだ/勘所べきです/要諦べきだ/眼目べきだ/狙い目べきだ）→ 実行。
+- ✨ EN XCV: 'i would be ever so grateful|appreciative|thankful|obliged|glad|happy if youd' 前置 → 実行。
+- ✅ tests/ever-so-atoms.test.js +24（実装前15件赤確認）、計13592全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 285
+- ✨ JA: てくださいます残置（かしら/ませんでしょうか）・dict急所名詞尾IV（のが急所だと思います/急所と存じます/勘所と考えます/要諦と思う/眼目かと/狙い目かと）→ 実行。
+- ✨ EN XCIV: 'could you conceivably' 前置 → 実行（'could you possibly|perhaps|maybe'、'might you possibly'、'would you perhaps' は既ルート緑）。
+- ✅ tests/conceivably-atoms.test.js +24（実装前9件赤確認）、計13568全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 284
+- ✨ JA: てもらいますわ残置・dict急所名詞尾III（のが急所かも/急所だろう/要諦だね/勘所かな/眼目です/狙い目です）→ 実行。
+- ✨ EN XCIII: 'would you be opposed|averse|adverse|reluctant to' + be-X-to 残置 → 実行（'would you mind|mind terribly closing' は既ルート緑）。
+- ✅ tests/be-opposed-atoms.test.js +24（実装前11件赤確認）、計13544全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 283
+- 🐛 誤ルート: '閉じてくれませんものか'（依頼）が negate 誤ルート → `ものか` lookbehind に `ません` 追加。
+- ✨ JA: てくれません残置（かねぇぇ/ものか）・dict急所名詞尾II（のが急所ですか/核心だね/肝心です/急所かな/要諦でしょう/勘所だね）→ 実行。
+- ✨ EN XCII: 'would|might you be inclined|willing|disposed to' + be-X-to 残置 → 実行（'would you care to|be amenable to' は既ルート緑）。
+- ✅ tests/be-inclined-atoms.test.js +24（実装前12件赤確認）、計13520全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 282
+- ✨ JA: てちゃい残置（ちゃいなよ/ちゃおうかな）・dict礎名詞尾（のが礎だ/基礎だ/根本だ/基底だ/大黒柱だ/急所なり）→ 実行。
+- ✨ EN XCI: 'i wonder if you would mind|would be so kind as to'・'i had been|i am wondering if you could' 前置 → 実行（'i wonder if you could|youd mind|would|i was wondering' は既ルート緑）。
+- ✅ tests/wonder-if-atoms.test.js +24（実装前12件赤確認）、計13496全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 281
+- ✨ JA: てくれん残置（くれんかの/くれんじゃないか）・dict大本名詞尾（のが大本だ/本元だ/根幹です/本筋ですね/基盤だ/土台だ）→ 実行。
+- ✨ EN XC: 'may i implore|request you to' を ask/trouble-you-to 枠へ併合 → 実行（'may|might i ask|trouble you to' は既ルート緑）。
+- ✅ tests/may-i-implore-atoms.test.js +24（実装前10件赤確認）、計13472全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 280
+- ✨ JA: ておく残置（おく予定です/おくつもりです）・dict枢要名詞尾（のが枢要だ/枢機だ/急所でしょう/要点ですね/急所ですよ/勘所です）→ 実行。
+- ✨ EN LXXXIX: 'would you be so sweet|lovely|gracious as to' 前置 → 実行（'so good|kind as to'、'could you be so good as to' は既ルート緑）。
+- ✅ tests/so-sweet-as-atoms.test.js +24（実装前11件赤確認）、計13448全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 279
+- ✨ JA: てみる残置（みるとするか/みるとしよう）・くれません残置（かしら/かねぇ）・dict骨髄名詞尾（のが骨髄だ/精髄だ/核心です/要諦です/急所ですね）→ 実行。
+- ✨ EN LXXXVIII: 'i would ask of you that you|beg of you to|urge you to|entreat you to' 前置 → 実行（'i would ask|request that you' は既ルート緑）。
+- ✅ tests/i-would-urge-atoms.test.js +24（実装前13件赤確認）、計13424全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 278
+- ✨ JA: ておこうかと・おいてもらえますか残置・dict心髄名詞尾（のが心髄だ/真骨頂だ/真髄です/奥義だ/秘訣だ/勘どころだ）→ 実行。
+- ✨ EN LXXXVII: 'id be eternally|infinitely|deeply indebted|endlessly grateful if youd' 前置 → 実行（'forever indebted'、'beyond grateful' は既ルート緑）。
+- ✅ tests/be-indebted-atoms.test.js +24（実装前12件赤確認）、計13400全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
+
+### Session 277
 - ✨ JA: てくれません残置（くれませんだろうか/かねええ/でしょうかな）・dict要旨名詞尾（のが要旨だ/趣旨だ/主眼だ/本旨だ/旨趣だ/神髄ですね）→ 実行。
 - ✨ EN LXXXVI: 'id be ever so obliged|most obliged|deeply obliged|so obliged|truly obliged if youd' 前置 → 実行（'id be much obliged if youd' は既ルート緑）。
 - ✅ tests/be-obliged-atoms.test.js +24（実装前14件赤確認）、計13376全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
@@ -1776,12 +1937,6 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 - ✅ tests/sweet-enough-atoms.test.js +24（実装前13件赤確認）、計13160全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
 
 ### Session 267
-
-
-
-
-
-
 - ✨ JA: てくれませんかねえ・くれませんの残置。dict利益名詞尾（のが利益だ/便宜だ/便益だ/徳だ/好都合だ）→ 実行。'is it possible to X it' は help ピン確立済みのため維持。
 - ✅ tests/is-it-possible-atoms.test.js +24（実装前8件赤確認）、計13136全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
 
@@ -1949,6 +2104,54 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 - ✅ tests/dare-challenge-atoms.test.js +27（実装前20件赤確認）、計12350全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
 
 ### Session 235
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 - ✨ しまえ/みろ命令尾: しまえって・しまえや・しまえってば・しまおうぜ・みろよ・みろって・みなって・みなさいって・みてもいいんじゃない → 実行。
 - ✨ dict方針名詞尾III: のが我が家の方針・のがうちのやり方・のがこの家のルール・のが鉄則だ・のが心得だ・のが信条だ → 実行。
 - ✨ EN XLIV: 'it is overdue to'・'it is long past time to'・'it was time to'・'ages ago you should have' 前置・'the tab is overdue for closing'/'closing it is long overdue' スワップ・語尾 'long ago'/'ages ago' → 実行。
