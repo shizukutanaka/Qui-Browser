@@ -1738,6 +1738,7 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - R284 note: `閉じんなってば` は既存 close literal 維持（方言命令 vs 禁止で曖昧 — 変更は別途判断）。
 - R285 pin: `flush it`/`hang it up`→null 維持（granular 確立: 曖昧）。`閉じてんで`→describe 不採用 — `_politeVariants` の てみ→んで 変換が 閉じてみ* close ピン21形を横取りしたため（variant 残置衝突は describe 側に限定）。
 - R286 pin: `write it off`→null 維持（granular 確立: 経理 euphemism 曖昧）。`open fire on it`→go-to 誤ルートを close 修正（'open' keyword 先勝ち → リテラル化で先勝ち固定）。`閉じるべきかと思う`→help ピン維持。
+- R307: 'wreck it'/'hang it up'→granular-pool null ピン再衝突（'hang it' bare は variant-strip 横取りで共に除去）・`tear it up like a bad blueprint`→print 誤ルートを close リテラル化・`死は*からな`→trouble 維持。
 - R306: 'どうしようもない*'・'遅すぎる{わ,よ,ぞ,ぜ,な,からな}'・'二度と*{よ,からな}'→trouble/negate ピン自動除外・`plunge it into the frozen water`（R305）は trouble 維持。
 - R305: `leave it *`~154件→negate ピン自動除外・`let it die without anyone {searching,finding}`→web-search/find-in-page 誤ルートを close リテラル化・`plunge it into the frozen water`→trouble 維持。
 - R304: `fire the tab`→ledger null ピン維持・`hang it*` 系→'hang it up' ピン横取りのため除去・`transmute it to *`→mute-toggle・`呪いをかける*`→describe-tab 誤ルートは close リテラル化で修正。
