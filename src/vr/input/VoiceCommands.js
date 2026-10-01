@@ -5670,6 +5670,7 @@ export class VoiceCommands {
         'while you remember', 'while its fresh',
         'close it for me pretty please',
         '閉じたってば', '閉じたってばよ',
+
         // pass CCXXVIII: gerunds/disposal + deixis + tag tails + op frames
         'closing it', 'closing the tab', 'closing this one',
         'shutting it', 'shutting this', 'getting rid of it',
@@ -5937,6 +5938,7 @@ export class VoiceCommands {
         '閉じるつってんの',
         '閉じなって', '閉じなってよ', '閉じといてね',
         '閉じといて', '閉じといてよ', '閉じといてくれ', '閉じといてちょ',
+
         '閉じてくれんねん', '閉じてお願いしますな', '閉じてくださいそうな',
         '閉じてもらうが筋だ', '閉じてくれるのが筋',
         '閉じてくれれば助かるのに', '閉じてくれればなあ',
@@ -7883,6 +7885,7 @@ export class VoiceCommands {
         '閉じとうね', '閉じとんねん', '閉じてんねん',
         '閉じてんねんけど', '閉じてんねんで', '閉じられてる',
         '閉じてんのか', '閉じてもんね', '閉じてんのよ',
+
         'このページについて', 'ページについて', 'ページについて教えて',
         'どのタブか忘れた', 'どのタブだっけ', 'どのタブを見てる', '今どのタブ',
         'このページの情報', 'サイト情報', 'このサイトの情報',
