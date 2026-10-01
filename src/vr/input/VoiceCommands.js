@@ -1237,6 +1237,7 @@ export class VoiceCommands {
     push(normalized.replace(/^thanking you in advance for closing it[.!?]?$/i, 'close it'));
 
     push(normalized.replace(/^i (?:feel|think|believe|figure|reckon|guess)(?: like)? (?:it|this|that|the tab) (?:should|needs to|has to|ought to|wants|wants to|got to|get) ?(?:be |get )?(?:closed|shut|gone|closing|go)[.!?]?$/i, 'close it'));
+
     push(normalized.replace(/[,\s]+posthaste, if you please[.!?]?$/i, ''));
     push(normalized.replace(/[,\s]+(?:if you please|pretty please(?: with (?:sugar|a cherry) on top)?|be a dear)[.!?]?$/i, ''));
 
@@ -2373,6 +2374,8 @@ export class VoiceCommands {
         /^how (?:might|may|would|could|should) i\b/i,
         /べきか(?:どうか)?[。！？!?]?$/, /(?<!く)られるか?[。！？!?]?$/,
         /(?<!く|考え|見受け)られますか?[。！？!?]?$/, /(?<!く)られることができますか?[。！？!?]?$/, /(?<!く|おか)れますか[。！？!?]?$/,
+        /(?<!く|考え)られますか?[。！？!?]?$/, /(?<!く)られることができますか?[。！？!?]?$/, /(?<!く)れますか[。！？!?]?$/,
+
         /^is it possible to/i,
         'どうすればいい', 'どうすれば', 'なんとかして',
         '使い方がわからない', '操作方法がわからない', 'やり方がわからない',
@@ -8791,6 +8794,8 @@ export class VoiceCommands {
         'wrong tab', 'wrong page', 'you misheard', 'thats wrong tab',
         /[^く]れへん[のん]?$/, /らんね$/, /[^く]れんね$/, /えんね$/, /(?<!ま)[えけせねへべめげぺ]んね$/, /[えけせねへべめげぺ]へん[のん]?$/,
         /もんか$/, /(?<!くれない|いい|いかがな|もらえない|いただけない|いただけぬ|いただけます|ほしい|ません)ものかな?$/, /わけ(?:が|じゃ)?ない$/,
+        /もんか$/, /(?<!くれない|いい|いかがな|もらえない|いただけない|いただけぬ|いただけます|ほしい)ものかな?$/, /わけ(?:が|じゃ)?ない$/,
+
         /(?<!る)んぞ$/, /まへん[のん]?$/, /んねん$/, /[きぎしじち]へん[のん]?$/,
         /んと(?:いい|ええ|よい)(?:かも|かもな|かもね)?$/, // '閉じんといい' = 閉じないほうがいい
         'nuh uh', 'uh uh', 'nah nah',

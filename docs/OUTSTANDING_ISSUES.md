@@ -430,6 +430,7 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~voice '閉じることになっている/ことにしていた' の dict aspect-report 尾が NO-MATCH~~
 - ~~voice 'i dont suppose you could/i take it youll' の EN hedge-question が negate/NO-MATCH~~
 - ~~voice 'close it, i would be obliged' の EN 語尾報告が NO-MATCH~~
+
 - ~~voice '閉じてもらわないと困る/閉じるべくお願いする' の義務・目的尾が NO-MATCH~~ — **Session 214 で実装**
 - ~~voice 'i should be grateful if you'/'i solicit your closing of it' のEN感謝枠・gerund swap が NO-MATCH~~ — **Session 214 で実装**
 - ~~voice '閉じてもらうよう頼む/閉じるんですって' の伝達依頼・ん-particle 残置が NO-MATCH~~ — **Session 213 で実装**

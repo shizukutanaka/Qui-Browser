@@ -1726,6 +1726,7 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 ### Session 271
 ### Session 267
 
+
 - ✨ JA: dict急所名詞尾XXVII（のが急所という所見です 等6形）→ 実行（もらえますか/いただけますか残置は既緑）。
 - ✨ EN CXVII: mid-adverb 前置 'you could|can|would|might|may (probably|conceivably|potentially|certainly|surely|perhaps|possibly)' → 'you could probably close it' 等実行（ADV-you-could 対称形）。
 - ✅ tests/could-adv-atoms.test.js +24（実装前11件赤確認）、計14123全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
@@ -2298,6 +2299,7 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 - ✅ tests/concession-request-atoms.test.js +62（実装前43件赤確認）、計11550全緑・lint 0エラー（警告136=baseline）・build green・FFFD 0件。
 
 ### Session 214
+
 - ✨ 受益尾XXXII: TAIL_TE — くれと頼む/くれと言ってる/くれとお願いしてる・もらおうかい/もらおうかねえ/もらおうということで/もらう方向で行こう/もらうことになった/もらうことにしよう・もらわないと困る/もらわなきゃ困る・いただくことになります/いただかないと/いただけないと困ります → 実行。
 - ✨ dict残置XXIII: FR — 伝達/引用 と頼みました/とお願いしました/よう言われた/よう頼まれた + ためです/ために/べくお願いする + 判定 が順序だ/が定石だ/が本筋だ/がベストだ/のがベスト/のが道理だ/のが無難では/のが望ましいです/のが好ましいです/ことが望ましいです/ことが肝要です/ことが必要です/ことが前提だ → 実行。
 - ✨ EN前置詞XXIII: 'i cordially invite you to'・'i solicit you to'・'i solicit your closing of it'（gerund書き換えpush）・'i would be beholden/indebted if you'・'i should be grateful/obliged if you'（裸 'i should' より前置）・'would it inconvenience/trouble you to' → 実行；語尾 'i would be ever so grateful'/'you would do me a kindness'/'much obliged if you do'/'forever grateful'/'if it be so'/'henceforth'/'posthaste, if you please'（`, please$` 先剥がし回避の専用push）。
