@@ -56,10 +56,6 @@ jobs:
           test -f docs/USAGE_GUIDE.md && echo "✓ USAGE_GUIDE.md exists"
           test -f docs/QUICK_START.md && echo "✓ QUICK_START.md exists"
 
-      - name: Run benchmark
-        run: |
-          npm run benchmark:all -- --iterations 100 --output benchmark-results.md --format markdown
-
       - name: Generate release notes
         id: release_notes
         run: |
@@ -134,7 +130,6 @@ jobs:
             --exclude='*.log' \
             --exclude='coverage' \
             --exclude='.cache' \
-            --exclude='benchmark-results.*' \
             .
 
           echo "ARCHIVE_NAME=$ARCHIVE_NAME" >> $GITHUB_ENV
@@ -156,7 +151,6 @@ jobs:
           files: |
             ${{ env.ARCHIVE_NAME }}
             checksums.txt
-            benchmark-results.md
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update latest release tag
@@ -176,7 +170,6 @@ jobs:
           echo "### 📦 Assets" >> $GITHUB_STEP_SUMMARY
           echo "- \`${{ env.ARCHIVE_NAME }}\` ($(ls -lh ${{ env.ARCHIVE_NAME }} | awk '{print $5}'))" >> $GITHUB_STEP_SUMMARY
           echo "- \`checksums.txt\`" >> $GITHUB_STEP_SUMMARY
-          echo "- \`benchmark-results.md\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🔗 Links" >> $GITHUB_STEP_SUMMARY
           echo "- [Release Page](https://github.com/${{ github.repository }}/releases/tag/$VERSION)" >> $GITHUB_STEP_SUMMARY
