@@ -1719,6 +1719,37 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - R277 pin: 'begone tab'→null（vault CXCIX 確立）・'tab begone'→close-tab。
 - R277 pin: '閉じるんだった'→close-tab（residual-register-atoms の should-have execute 確立 — trouble ではない）。
 
+- R278 pin: 'pack it in'/'call it quits'/'quit it'→stop-everything、'leave it for dead'→negate — close 系と誤認しやすいので注意。
+
+- R279 pin: 'lose it'→null（曖昧）・'閉じてはんな'→close-tab（はん収縮）・'閉じてちゃぁ'→null（曖昧）。describe literal の includes-match は 'てはん' でも 'てはんな' を横取りするため、はん族は describe 不可。
+
+- R280 pin: 'smash it'/'burn it down'→null・'てあるべきだ'/'てあればいい'→close。裸'てある'/'てあって'/'burn it' literal は variant 残置（べきだ→てあって、down→burn it）を横取りするため追加不可 — てある系は修飾形（わ|んだ|けど|のに）のみ describe/trouble 可能。
+
+- R281 skip: 'call the tab off' は device-apps（'call'=電話 alias、登録順 ~3892 < close ~5609）が先勝ち — close literal 追加は無効。裸 'spent'/'used up'/'old news' はタブ参照なし曖昧で null 維持。
+
+- R282 skip: 'go pound sand' は go-to（/go / 先頭一致・登録順 go-to < negate）が先勝ち — negate literal 追加無効、拒絶意図だが navigate 誤ルート継続。'into next week'/'kick it into next week' は date ピン維持（時間読み）。
+
+- R283 skip: 'take care of it' は ack・'im done here' は vr-exit が登録順先勝ち — close 向け裸形追加は誤ルートのため不採用（'take care of that|the tab' / 'done here' / 'we are done here' は close-tab 登録済み）。
+- R283 skip: '閉じとる*' 族（とるがよ|ばい|わい|ぞよ|っちゃ）— 九州進行「閉じておる」報告にも命令にも読める曖昧形 → null 維持（'閉じとるで'→describe ピン整合のため）。
+- R283 pin: '閉じとるけんね'→negate・'閉じなきゃいけないんだよ'→trouble・'閉じないといけないことになってる'→negate — 確立ピン維持。
+
+- R284 pin: `閉じてくれないの`→null 維持（springer 確立: 反報 vs 依頼で曖昧）。`scrub it`/`wreck it`/`crush it`→null 維持 — タブ明示形のみ登録。
+- R284 fix: `閉じんでな`→negate（'閉じな' close literal の variant 残置が開放依頼を横取りしていた — raw literal 化で先勝ち固定）。`take it out back`→close-tab（'back' で reopen に誤ルートしていた慣用句）。
+- R284 note: `閉じんなってば` は既存 close literal 維持（方言命令 vs 禁止で曖昧 — 変更は別途判断）。
+- R285 pin: `flush it`/`hang it up`→null 維持（granular 確立: 曖昧）。`閉じてんで`→describe 不採用 — `_politeVariants` の てみ→んで 変換が 閉じてみ* close ピン21形を横取りしたため（variant 残置衝突は describe 側に限定）。
+- R286 pin: `write it off`→null 維持（granular 確立: 経理 euphemism 曖昧）。`open fire on it`→go-to 誤ルートを close 修正（'open' keyword 先勝ち → リテラル化で先勝ち固定）。`閉じるべきかと思う`→help ピン維持。
+- R297: `pitch it out/away/into the bin`→speech-pitch-status 先勝ち ('pitch' サブストリング)・`二度と戻る*` が back regex 横取り → lookbehind で遮断して negate/close へ固定・`姿を見せてくれるな`→web-search 既ルート維持 (曖昧)。JA negate 312件/trouble 15件は既登録済みのためスキップ。
+- R296: `cancel it permanently`/`cancel it for good`→stop-everything・`scratch it out`/`scratch it off`/`leave it on the cutting room floor`→negate ピン維持・`poof it`/`make it poof`→granular-pool null 確立ピン衝突 (採用断念)・`見せるんじゃない`→tabs-list 先勝ち・JA 裸過去報告 (捨てた/捨ててしまった 系)・眠りの国/夢の国→sleep 曖昧・お先にどうぞ→辞退表現のため不採用。プローブ入力 FFFD 文字化け (`捨てちゃった`) 検出済。
+- R295: `call time of death`/`call the code*`→device-apps ('call' 登録先勝ち)・`never fly again`/`never fly for it`→negate・`fly it too close`→panel-distance 誤ルート→close 修正済・`death certificate for it`→security-status 誤ルート→close 修正済・裸 `bang it`/`bang the tab`→曖昧不採用・`pronounce it` 裸形不採用・JA `寝かせ*`/`眠らせ*`/`眠りに*`→sleep-mode ピン族・`滅ぼすか`/`べきか` 系→help 疑問尾・`滅ぼすべきだった`/`死んだと思*`→trouble 期待報告・`追悼会を開け`→go-to 先勝ち ('開け')。プローブ入力に FFFD 文字化け2件混入→検出し修正済。
+- R294: `get gone`→null 確立ピン維持・`mission abort`/`abort the mission*`→stop-everything・`pitch it overboard`→pitch-status・`never come back*`/`dont come back*`→negate・'night night'→sleep-mode ピン族・`read it a bedtime story`→read-aloud 曖昧・`full astern`→back 曖昧・JA `読め*` 全系→trouble/negate ピン族・`ひどい`系裸形→reaction 曖昧不採用。実害: `問題のタブだ`/`呪いのタブだ`→tab-by-name 誤ルートを close-tab へ修正。
+- R293: `open it up for an autopsy`→go-to・`call off the tab`/`call the whole thing off`→device-apps 登録順先勝ち・`burn it down`→null 確立ピン維持（'burn it' substring 横取りで `burn it` 自体も不採用）・`farewell forever` は既存 close リテラル維持・`fire it`/`fire the tab`→null 維持・`pin it up`/`pin it to the wall`→pin-tab 危険不採用・`撤回*/取消*`→reopen/cancel 系・`中止*/キャンセル*`→stop-everything・`終了するんだ`→vr-exit・`休止*`→pause 曖昧・`display*`→describe 曖昧不採用。
+- R292: `see it out`/`see it off`→describe-tab・`end of the line for it`→caret-edge・`curtain call for it`→device-apps・`no encore for it`→repeat-command ピン追随・`leave it *`/`二度と*`/`帰ってくるな`→negate ピン維持・`口を封じろ|噤ませろ|永遠に黙らせろ`→mute-toggle ピン追随・`出直せ|やり直せ|仕切り直せ|畳み直せ`→redo 両義不採用・`surrender to it`→方向逆不採用。
+- R291: `bye felicia`→ledger null 確立ピン維持。`uninstall the tab`/`quits for it`→device-apps/stop-everything ピン追随・眠らせ*→sleep-mode・消*残置→dismiss-notify・`final offer`→商談曖昧不採用・`going once/twice`→go-to 先勝ち・`over and out`→ack 維持。
+- R290: `go easy on it`/`commute*`（mute 部分一致）/`see it through`/`stick with it`→go-to/mute-toggle/describe/resume 先勝ち（'leave the tab'/'drop it like its hot' null ピン維持・'unclose the tab'/'unshut the tab' は close 部分一致先勝ちで裸形のみ reopen）。
+- R289: `pitch it aside`/`pitch it out`→speech-pitch-status 先勝ち（'pitch' パターン・literal 化不可）・`undo it*`/`ctrl z*`→reopen-tab は正セマンティクス維持・`bail it out` rescue 両義で不採用。
+- R288: `gut it`/`fire the tab`→null 確立ピン維持（'gut the tab' は採用・'fire it' 未採用）。'cleave it*'→negate ピン（cleave は split/cling 両義）。'mute it*'→mute-toggle 正解維持。
+- R287: `call checkmate`→device-apps 先勝ち（'call' 部分一致パターンは literal より先に評価 → literal 化でも解決不可・不採用）。`stash it away for good`/`stash it permanently`→bookmark-page 誤ルートを close 修正。`畳め` 裸形のみ不採用（畳む系は close-all-tabs 所有・単タブへ混入しないよう未登録） — 実害なし。
+
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。
