@@ -2848,6 +2848,41 @@ permission/capability questions (てもいいでしょうか / られますか)�
 - ✅ **テスト +170（実装前実行で140件赤確認、内26件は共存ガードの設計上緑）**: Total 6918 tests (144 suites); 0 lint errors（警告 137 = baseline 同一）; build green; FFFD 0件。
 
 ### Session 313: Voice atoms CXCIII — 方向処分句動詞 + スラング vocative + JA 方言依頼残置 + dict 名詞尾XXXII。EN: directional disposal（down/away/out with this/the tab・out with it/this・through/finished with this/(the tab)・over and done with it）・wrap/pack/end 系（wrap the tab up・pack it up/away・do it/the tab in・tear/rip/pull it down・put an end to it/this・put/lay it to rest・retire it/the tab・put it out of its misery）・slang discourse 前置（bro/sis/fam/fams/dawg/cuz/tbh/ngl/lowkey/highkey/deadass/ong/fr fr/fr — ENPRE の |bruh|dude|be a champ and| 交互に併入）。JA: しもた/しもうた/しもて（近畿完了）・とこなあ/とこうな（南日本意向+否定型→stem-な 誤爆を (?<!とこ|どこ) lookbehind で回避）・とか(や)・ってのはどう・たらええのに・た方がええ・ましょうぜ・ますかね・かなあ・なよー・なよっと・やぁ。dict 名詞尾XXXII（最適解/好判断/良案/名案/上策/妙案/早道/近道/得策/策）。確立ピン維持: 'wrap it up'/'wrap this up'→stop-everything・'shut X down'→vr-exit・'put it to sleep'→sleep-mode・'のが正解'→help・'んといて'→negate・sick/tired/fed-up・なんて・下策ではない は意図スキップ。
+### Session 330: beam atom sweep — EN go-on permissives/hedged reports + JA potential imperatives/ba-yoi/morau III/ro-tails
+外部基準: EN go-on permissives ("go on close it", "knock yourself out"), hedged reports ("i reckon|figure|imagine|bet you could"); JA 可能命令 (れろ|れや|れんなよ|れらんか), ばよい 残置 (宜しい|善い|好い|可也), てもろて/てもらう III, ろ命令語尾 (ろてな|ろはよ|ろじゃ 系)。
+- ✨ **EN**: go-on 許容（go on close it・go ahead close it・go on then・knock yourself out・be at liberty|leisure）；hedged 報告（i reckon|figure|imagine|bet you could|can・assuming you close it）。
+- ✨ **JA**: 可能命令（れろ|れや|れんなよ|れらんないか|れらんか|れりゃいい(のに|じゃん|んだけど|わ) → 'て'）；ばよい残置（ればよいのです|のよ|わ|です|ではないか|だろう・宜しい|善い|好い|可也・いいものを|いいものだ|いいんですよ → 'て'）；てもろて/てもらうIII（てもろても|てもろた|てもらうと|てもらうのであれば → 'て' — 'てもらえそうな' negate 誤爆を literal で解消）；ろ語尾（ろてな|ろて|ろっての|ろよな|ろはよ|ろはよう|ろじゃい|ろじゃ|ろって言ってんでしょ → 'て'）。
+- 🔄 **ピン維持**: 'help yourself close it'→scoped-help（登録順の確立規則・scoped help 意味も妥当）；'閉じないろ'→negate（変形ない命令）。
+- ✅ tests/beam-atom-sweep.test.js +79（実装前 ~50件赤確認）、計16517全緑・lint 0エラー/警告136=baseline・build green・FFFD 0件。
+
+### Session 329: joist atom sweep — EN convenience/delegation + JA opportunity/てみる/emphatic-not-done
+外部基準: EN since/while convenience tails, see-to-it delegation, dont-leave (close intent); JA 機会/折り/潮時/好機 nouns, てみる residue, だけでも/せめて, すらいない emphatic-not-done.
+- ✨ **EN**: convenience 尾（since youre there|at it・while youre there|in there・as you go・on your way out・as you please）；see-to-it 委任（see to it that it|the tab closes・see that|make sure|ensure|be sure it|the tab closes）；dont-leave close 意図（dont leave it open|dont let it stay open — negate 先取りを literal で解消）。
+- ✨ **JA**: 機会名詞II（る機会|折り|折に|機が熟した|潮時(だ|でした)|絶好の機会|好機(だ)|恰好の機会 → 'て'）；てみる残置（てみたら|てみたらいい|てみると|てみれば|てみたほうがいい → 'て'）；最低限（るだけでも(いい)|るせめて → 'て'）；前置 'せめて' を前置 strip 追加（せめて閉じて）；忘れたび（るたびに忘れてた → 'て'）；強調未達→trouble（てすらいない|さえいない|てもいない|すらない|てはいない|てはない|てなんていない）。
+- 🔄 **ピン維持**: '閉じるなんて|なんか|なんぞ|たなんて|なんてして|なんてもの|こと|話|しちゃって'→null（曖昧感嘆）・'閉じる度に|たび(に)'→null（習慣節）・'閉じた覚えもない'→null（記憶報告曖昧）。
+- ✅ tests/joist-atom-sweep.test.js +79（実装前 ~50件赤確認）、計16438全緑・lint 0エラー/警告136=baseline・build green・FFFD 0件。
+
+### Session 328: sill atom sweep — EN immediacy/mock-polite + JA shimai/しかない/kure III/quotative rebukes
+外部基準: EN immediacy adverbs (promptly/forthwith/this instant), mock-polite sarcasm ("would it kill you to", "does it hurt to"); JA てしまえ 残置, しかない/ほかない/仕方 inevitability, てくれ III (ませ/まし/でしょうか/へんか), 引用非難 (ろと言っただろう 系)。
+- ✨ **EN**: immediacy（the moment you can・promptly・directly・shortly・presently）；mock-polite（does it hurt to・is it that difficult|so hard to・could you maybe just・please pretty please・sugar on top）。
+- ✨ **JA**: しまえ残置（てしまえぞ|な・てしまいたい）；必然（るしかないじゃないか・るほかないよ・るほかしかない・るより仕方がない|仕方ない・るほか仕方がない → 'て' — 'るほかないよ' negate 誤爆を close-tab literal で先勝ち解消）；くれIII（てくれないでしょうか|てくれませんでしょうか|てくれまへんか|てくれるかいな → 'て'）；引用非難（ろと言っただろう|ろって言っただろう|ろといったでしょ|ろといったのに|ろと言っているでしょう|ろと何度も言った|ろって何回も言った → 'て'）。
+- 🔄 **ピン維持**: '閉じてもらえないでしょうか'/'てくれへんかな'/'てくれませんこと'/'てくれんかの|ね' 既緑踏襲。
+- ✅ tests/sill-atom-sweep.test.js +73（実装前 ~30件赤確認）、計16359全緑・lint 0エラー/警告136=baseline・build green・FFFD 0件。
+
+### Session 327: lintel atom sweep — EN particle-verb/causative residue + JA masu-particles/てあげ/permission/決定
+外部基準: EN phrasal verbs (seal/button/zip), make/have/get/let causatives; JA ます+終助詞 (からね/とも/けどね/し/よぞ), すませ/ませ dialect imperatives, てあげ/てやり giving-benefactives, ても構わない/ていいと思う consent, ことに決めた decision reports.
+- ✨ **EN**: particle-verb 残置（close it back|shut・seal it off|up・button it up・zip it closed）；causative（make the tab close|it go・get it to close|the tab closed・let it close|be closed）。
+- ✨ **JA**: ます終助詞（ましょうわ|ますからね|とも|けどね|し|よぞ → 'て'）；方言ませ（すませ(て)|しませ|やして → 'て'）；与益（てあげたら|ちゃう|たい|るつもり・てやる|やります|やるよ|やったら|やっちゃう → 'て'）；許容（ていいと思うよ|ていいとこ(ろ)|たっていいじゃん|ても悪くない → 'て'）；決定（ることに決めたよ|決定した|ると決めたよ|決定した|決めました|決めたんだ|決めたのです → 'て'）。
+- 🔄 **ピン維持**: 'let it go'/'leave it gone'→negate（確立）；'shut the thing down'→null（tab/app スコープ曖昧・ISSUES記録）。
+- ✅ tests/lintel-atom-sweep.test.js +89（実装前 ~55件赤確認）、計16286全緑・lint 0エラー/警告136=baseline・build green・FFFD 0件。
+
+### Session 326: column atom sweep — EN polite-final tails + JA can-statements/plan nouns/benefactive III
+外部基準: polite-final requests ("close it if you may", "close it before long"), JA 可能声明 (ることができる), 計画名詞 (手筈/段取り/見込み/目算/心算), 未然形勧誘 (ようではないか), 受益III (くださるなら), 破約報告 (約束だった)。
+- ✨ **EN**: polite-final 尾（close it if you may|when you may|soonish|before long）；prefer/out-of-here（id prefer it|that closed・i want it out of here）。
+- ✨ **JA**: 可能声明（ることができる(でしょうか)?|ること可能ですか|るのは可能ですか|るのはできる → 'て'）；計画名詞（られる予定(だった)|る予定でした|る手筈(だった)|る段取りだった|る算段だった|る見込みだった|る見込みでした|る目算だった|る心算だった → 'て'）；未然勧誘（ようじゃないの|ょうではないか|じゃろうではないか→'じて'|るではないか → 'て'）；受益III（てくれてもいい|てくださるなら|てくださるのであれば|てもらっていいよ → 'て'）；破約報告→trouble（閉じる約束だった|約束なのに）；可能形問い→help（閉じれるんですか|のですか|れますでしょうか|られるんでしょうか — られますでしょうか|られるでしょうか 既緑踏襲）。
+- 🔄 **ピン維持**: '閉じれるわけですか'→ack（わけ族確立）；'閉じまいかと思う(けど|のです|た)'→null（不-実施 deliberation・命令性なし）。
+- ✅ tests/column-atom-sweep.test.js +85（実装前 ~50件赤確認）、計16197全緑・lint 0エラー/警告136=baseline・build green・FFFD 0件。
+
 ### Session 325: frieze atom sweep — EN modal-shrink/shortcut queries + JA comparative/timing/delegation III
 外部基準: minimal-effort framing ("one click close it", "all you do is close it"), how-to shortcut queries→help, JA 比較最適 (より他ない/のが一番), 時機提案 (タイミングだ/閉じ時かな), 名詞委任III (るの任せる/ることをお願い), 否定反語依頼 (てくれないのか)。
 - ✨ **EN**: modal-shrink リテラル（only close it・close it only・all you do is close it・just a click|one click|one tap|a single click close it）；shortcut/command 問い→help（which|what button|key closes it・whats the shortcut|command for close|to close it・what was the close command）。

@@ -1631,6 +1631,27 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - `閉じられないのかしら`/`閉じないわけですか` — 既 trouble ルート緑・踏襲
 - `閉じ忘れたまま` — describe-tab 族（確立）
 
+## R252 skip-list（Session 326）
+- `閉じれるわけですか` — わけ族で ack 確立ピン維持
+- `閉じまいかと思うけど/のです/た` — 「閉じない」deliberation は命令性なし → null
+
+## R253 skip-list（Session 327）
+- `shut the thing down` — tab/app スコープ曖昧（'shut X down'→vr-exit 族との衝突回避）→ null
+- `let it go`/`leave it gone` — 放棄/無視の確立 negate ピン維持
+
+## R254 skip-list（Session 328）
+- `閉じるほかないよ` — negate 'ないよ' 先取りを close-tab literal で解消（確立回避法）
+- そのほか残置なし（本ラウンドは全消化）
+
+## R255 skip-list（Session 329）
+- `閉じるなんて/なんか/なんぞ` 系 — 曖昧感嘆（'閉じるなんかして'のみ既緑）→ null
+- `閉じる度に/たび(に)` — 習慣節・命令性なし → null
+- `閉じた覚えもない` — 記憶報告・曖昧 → null
+
+## R256 skip-list（Session 330）
+- `help yourself close it` — scoped-help 先取り（登録順・確立規則；意味的にも許容）
+- `閉じないろ` — 変形ない命令 → negate 維持
+
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。

@@ -508,7 +508,7 @@ export class VoiceCommands {
     stemTe(normalized.replace(/(?:つつ|ながら)[。！？!?]?$/u, ''));
     // Apology/hedge openers + benefactive-tail escalations → bare て-form
     const HP = normalized.replace(
-      /^(?:恐れ入りますが|恐縮です(?:が)?|申し訳ありませんが|申し訳ない(?:んですが)?|ついでに|まず|さあ|ほら|やっぱり|やっぱ|できれば|可能なら|よかったら|もしよければ|よろしければ|良ければ|すみませんが|すみません|悪いんだけど|悪いんだが|悪いけど|お手数ですが|差し支えなければ|お手すきの際に|できたら|もし可能なら|もし|よければ|ぜひ|どうぞ|とにかく|ともかく|とっとと|さっさと|直ちに|早急に|急いで|いそいで|早く|はやく|だって|ほんとに|本当に|マジで|ガチで|つーか|っつーか|つうか|早よ|あのね|ねえねえ|ねえ|あのう|そういえば|いいから|いい加減(?:に)?|この場で|今|じゃあ|ほなら|ほな|さて|では|あのさあ|あのさ|さえ|なあ)[、,]?/u, '');
+      /^(?:恐れ入りますが|恐縮です(?:が)?|申し訳ありませんが|申し訳ない(?:んですが)?|ついでに|まず|さあ|ほら|やっぱり|やっぱ|できれば|可能なら|よかったら|もしよければ|よろしければ|良ければ|すみませんが|すみません|悪いんだけど|悪いんだが|悪いけど|お手数ですが|差し支えなければ|お手すきの際に|できたら|もし可能なら|もし|よければ|ぜひ|どうぞ|とにかく|ともかく|とっとと|さっさと|直ちに|早急に|急いで|いそいで|早く|はやく|だって|ほんとに|本当に|マジで|ガチで|つーか|っつーか|つうか|早よ|あのね|ねえねえ|ねえ|あのう|そういえば|いいから|いい加減(?:に)?|この場で|今|じゃあ|ほなら|ほな|さて|では|あのさあ|あのさ|さえ|なあ|せめて)[、,]?/u, '');
     if (HP !== normalized) {
       push(HP);
       for (const v of this._politeVariants(HP)) {
@@ -1113,6 +1113,136 @@ export class VoiceCommands {
     push(normalized.replace(/てはくれないのか[。！？!?]?$/u, 'て'));
     push(normalized.replace(/てもくれないのか[。！？!?]?$/u, 'て'));
     push(normalized.replace(/てくれないのかな[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ることができるでしょうか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ることができる[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ること可能ですか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのは可能ですか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るのはできる[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/られる予定だった[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/られる予定[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る予定でした[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る手筈だった[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る手筈[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る段取りだった[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る算段だった[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る見込みだった[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る見込みでした[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る目算だった[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る心算だった[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ようじゃないの[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ょうではないか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/じゃろうではないか[。！？!?]?$/u, 'じて'));
+    push(normalized.replace(/るではないか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てくれてもいい[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てくださるなら[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てくださるのであれば[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てもらっていいよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/すませて[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/すませ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/しませ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/やして[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ましょうわ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ますからね[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ますとも[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ますけどね[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ますし[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ますよぞ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てあげたら[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てあげちゃう[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てあげたい[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てあげるつもり[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てやります[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てやる[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てやるよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てやったら[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てやっちゃう[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ていいと思うよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ていいところ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ていいとこ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/たっていいじゃん[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ても悪くない[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ることに決めたよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ることに決定した[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ると決めたよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ると決定した[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ると決めました[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ると決めたんだ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ると決めたのです[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てしまえぞ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てしまえな[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てしまいたい[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るしかないじゃないか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るほかしかない[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るより仕方がない[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るより仕方ない[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るほか仕方がない[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てくれないでしょうか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てくれませんでしょうか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てくれまへんか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てくれるかいな[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろと言っただろう[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろって言っただろう[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろといったでしょ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろといったのに[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろと言っているでしょう[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろと何度も言った[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろって何回も言った[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るたびに忘れてた[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る機会[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る折り[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る折に[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る機が熟した[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る潮時でした[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る潮時だ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る潮時[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る絶好の機会[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る好機だ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る好機[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/る恰好の機会[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てみたらいい[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てみたら[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てみると[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てみれば[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てみたほうがいい[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るだけでもいい[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るだけでも[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/るせめて[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/れろ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/れや[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/れんなよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/れらんないか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/れらんか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/れりゃいいのに[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/れりゃいいんだけど[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/れりゃいいじゃん[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/れりゃいいわ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/れりゃいい[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ればよいのです[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ればよいのよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ればよいわ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ればよいです[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ればよいではないか[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ればよいだろう[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/れば宜しい[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/れば善い[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/れば好い[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/れば可也[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ればいいものを[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ればいいものだ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ればいいんですよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てもろても[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てもろた[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てもらうと[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/てもらうのであれば[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろてな[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろて[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろっての[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろよな[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろはよ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろはよう[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろじゃい[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろじゃ[。！？!?]?$/u, 'て'));
+    push(normalized.replace(/ろって言ってんでしょ[。！？!?]?$/u, 'て'));
     push(normalized.replace(/(て|で)(?:あげて|あげ(?:る|ます)[ねよわか]?|くれる|くださる|くださいます)[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)(?:くれ|くださ)ちゃう[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)もら(?:う|える|った|います|えます|ってもいい|っていい)[。！？!?]?$/u, '$1'));
@@ -2696,6 +2826,8 @@ export class VoiceCommands {
         'what button closes it', 'whats the shortcut to close it',
         'shortcut to close it', 'key to close it',
         'whats the command for close', 'what was the close command',
+        '閉じれるんですか', '閉じれるのですか', '閉じれますでしょうか',
+        '閉じられるんでしょうか',
         /^is it possible to/i,
         'どうすればいい', 'どうすれば', 'なんとかして',
         '使い方がわからない', '操作方法がわからない', 'やり方がわからない',
@@ -3117,7 +3249,10 @@ export class VoiceCommands {
         '閉じたつもりなのに', '閉じたと思ってた', '閉じたはずだったのに',
         '閉じられるはずだった', '閉じられるはずなのに', '閉じられるはず',
         '閉じないのかしら', '閉じれないのかしら', '閉じないわけか',
-        '閉じないのかなって',
+        '閉じないのかなって', '閉じる約束だった', '閉じる約束なのに',
+        '閉じてすらいない', '閉じてさえいない', '閉じてもいない',
+        '閉じてすらない', '閉じてはいない', '閉じてはない',
+        '閉じてなんていない',
         '閉じるはずだったんだけど', '閉じるはずだったんだ', '閉じるはずのに',
         '閉じれてるはずだった', '閉じてるはずだった', '閉じてるはずのに',
         '何も見えない', '真っ白', '画面が白い', '映らない', '固まる', '落ちた',
@@ -4850,6 +4985,34 @@ export class VoiceCommands {
         'close the thing', 'close that tab there',
         'close it you', 'close it you please', 'youd close it',
         'only close it', 'close it only', 'all you do is close it',
+        'close it if you may', 'close it when you may',
+        'close it soonish', 'close it before long',
+        'id prefer it closed', 'id prefer that closed',
+        'i want it out of here', 'close it back', 'close it shut',
+        'seal it off', 'seal it up', 'button it up', 'zip it closed',
+        'make the tab close', 'make it go', 'get it to close',
+        'get the tab closed', 'let it close', 'let it be closed',
+        'close it the moment you can', 'close it promptly',
+        'close it directly', 'close it shortly', 'close it presently',
+        'does it hurt to close it', 'is it that difficult to close it',
+        'is it so hard to close it', 'could you maybe just close it',
+        'please pretty please close it', 'sugar on top close it',
+        'close it since youre there', 'close it since youre at it',
+        'close it while youre there', 'close it while youre in there',
+        'close it as you go', 'close it on your way out',
+        'close it as you please', 'see to it that it closes',
+        'see to it that the tab closes', 'see that it closes',
+        'see that the tab closes', 'make sure the tab closes',
+        'ensure it closes', 'be sure it closes',
+        'dont leave it open', 'dont let it stay open',
+        'go on close it', 'go ahead close it', 'go on then close it',
+        'knock yourself out close it', 'be at liberty to close it',
+        'be at leisure close it', 'help yourself close it',
+        'i reckon you could close it', 'i figure you could close it',
+        'i imagine you could close it', 'i bet you could close it',
+        'i bet you can close it', 'assuming you close it',
+        '閉じてもらえそうな',
+        '閉じるほかないよ',
         'just a click close it', 'one click close it',
         'one tap close it', 'a single click close it',
         'you best close it', 'you better just close it',
