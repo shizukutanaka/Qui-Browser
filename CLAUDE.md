@@ -1720,6 +1720,7 @@ Researched Qiita romaji-kana conversion posts (the perennial 撥音「ん」prob
 **Maintained by**: Claude Sonnet 4.6  
 **Last Revision**: 2026-08-18 (Session 74)
 
+### Session 248
 ### Session 308
 
 - ✨ JA: dict急所名詞尾XXVII（のが急所という所見です 等6形）→ 実行（もらえますか/いただけますか残置は既緑）。
@@ -3344,9 +3345,6 @@ permission/capability questions (てもいいでしょうか / られますか)�
 - 🐛 **ピン衝突検出**: 生成器が bare-word 原子（'it','is','of'…）を吐き既存 null ピン（'how about it','do it then'）を横取り → 全700語撤回・フレーズ生成で再実施。
 - ✅ **テスト +2334**: Total 53,918 tests (358 suites) all green; lint 0 errors (136 warnings = baseline); build green; FFFD 0件。
 
-### Session 315
-- **Voice atoms CXCV (ledger-atom-sweep)**: ENPRE cluster III (~50 markers — so then/ok ok/well then/look here/see here/there there/oh and/and another thing/in fact/on second thought/one more thing/by the way/btw/like for real/no lie/dead serious/straight up/i mean it/i kid you not/believe me/trust me/promise/good looks/say less/no kidding/bet/word/legit/y'all/you all/excuse me/pardon me/beg your pardon/ahem/psst/heads up/check it/hear me out/come now/frankly/honestly/also/ya wanna/you wanna); be-a-X vocatives II (lamb/peach/star/treasure/hero/good lad/good boy/good chap/mate); EN kill/eject verbs (ice/smoke/can/86/deep-six/nix the tab/scrub the tab/see ya tab/sack/terminate the tab); put-away & boot-out (put it down/put this away/tuck it away/drop the tab/boot/eject/bounce/send it packing/pack it off/kick it out); roll/fold/collapse/strike (roll it up/fold it/collapse it/strike it off); close-all shop idioms (close shop/shut shop/close the shop/shut the shop); JA dialect & request tails V (といてちょうだい/じゃお/ときたい/たいし/たいんだけどな/た方がええんちゃう/たらええんとちゃう/てええんちゃう/てもええんちゃう/てもろと/ておくれはる/てみるで/てくれせんか/ておくんなさい/ておかれ/ておいと/ておけばええ/るがよろし/るがええ/てえ/んね/んせ/んさ/ましょうぞ/るぞな/ておくれい/てよかろ/るわい/るってんだよ/よっか/てええよ/なはり); dict noun tails XXXIV (ベスト/ベター/一番/最善/合理的/理にかなう/筋が通って/当然/至極当然 ×copula); fixes: negate `/on second thought/i` unanchored stole discourse-opener commands → anchored; ENPRE `pardon me` steal left bare `but` → `pardon me but|excuse me but` first; 'shut up shop' shadowed by mute-toggle 'shut up' pin → unregistered.
-- **Test**: +164 (tests/ledger-atom-sweep.test.js), 14879 all green.
 ### Session 314
 : Voice atoms CXCIV — スラング談話前置II + 方向処分II + JA 方言依頼残置II + dict 名詞尾XXXIII。EN: slang discourse 前置II（no cap/real talk/for real/not gonna lie/lmao+/lmfao/im telling you/istg/i swear — bare `|no|` の先取りを `no(?! cap)` で回避）・方向処分II（be through/done with it/this/(the tab)・get this (tab|thing) out of here・get rid of it/this thing・rid me of this tab・dispose of it/this/the tab・toss/yeet 系・get shut/shot of it・destroy/obliterate it・polish/finish X off・close it/this up・say bye/wave goodbye/kiss it/the tab goodbye）・close-all purge 系（clear/clean/empty/purge the tabs・finish it/them all (off)）。JA: ちょいて・てみる(わ|よ|ぞ)・てもええんやない・てもかまへん・るにかぎる・なはれや・たもれ・ちまえ/しまえ・てもらおうか・とこっか・ときなはれ・ときや・ってば・ちゃった方が・っちゅうの・ちゃおうぜ/わ/な・dict名詞尾XXXIII（妥当/順当/適切/筋/正攻法・どおり系: 最善/定石/王道/正攻法/常套/賢明）。negate `まへん` に (?<!か) lookbehind（'かまへん' 許容尾を negate 誤爆から保護）。確立ピン維持: 'close up (the|this) tab'→by-name（'up X' をタブ名捕捉）・'閉じしまいな'→negate（まい volitional-negative）・'閉じてんか'→describe-tab。
 外部基準: ゲーム/Reddit 談話マーカー（no cap/fr/real talk 系）、方言依頼尾（ちょいて/なはれ/たもれ/ちまえ）。
