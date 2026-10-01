@@ -1619,6 +1619,63 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - `閉じられてなかった/閉じられてない/閉じていなかった/閉じれてなかった/閉じれてない` — passive-potential 否定報告は R246 規則で null（訴え意図不明瞭）
 - `閉じずにいる(つもり)` — 本来 'ずにおく' negate 族だが `いる` で go-to 誤爆 → negate リテラルで吸収
 
+## R249 skip-list（Session 323）
+- `shut r down` — 'er 変種は曖昧のため null（'shut er down' は vr-exit 族ピン維持）
+- `close that there tab` — deictic-by-name 確立ルート踏襲
+
+## R250 skip-list（Session 324）
+- `閉じ忘れたまま` — 状態報告族で describe-tab（確立ルート踏襲）
+- `閉じてたはず(だった|なのに)` — はず-未達期待規則で trouble（'閉じてるはず' 系も統合済み）
+
+## R251 skip-list（Session 325）
+- `閉じられないのかしら`/`閉じないわけですか` — 既 trouble ルート緑・踏襲
+- `閉じ忘れたまま` — describe-tab 族（確立）
+
+## R252 skip-list（Session 326）
+- `閉じれるわけですか` — わけ族で ack 確立ピン維持
+- `閉じまいかと思うけど/のです/た` — 「閉じない」deliberation は命令性なし → null
+
+## R253 skip-list（Session 327）
+- `shut the thing down` — tab/app スコープ曖昧（'shut X down'→vr-exit 族との衝突回避）→ null
+- `let it go`/`leave it gone` — 放棄/無視の確立 negate ピン維持
+
+## R254 skip-list（Session 328）
+- `閉じるほかないよ` — negate 'ないよ' 先取りを close-tab literal で解消（確立回避法）
+- そのほか残置なし（本ラウンドは全消化）
+
+## R255 skip-list（Session 329）
+- `閉じるなんて/なんか/なんぞ` 系 — 曖昧感嘆（'閉じるなんかして'のみ既緑）→ null
+- `閉じる度に/たび(に)` — 習慣節・命令性なし → null
+- `閉じた覚えもない` — 記憶報告・曖昧 → null
+
+## R256 skip-list（Session 330）
+- `help yourself close it` — scoped-help 先取り（登録順・確立規則；意味的にも許容）
+- `閉じないろ` — 変形ない命令 → negate 維持
+
+## R257 skip-list（Session 331）
+- `should i|shall i close it` — 疑問形 → help（確立ピン）
+- `ought i close it` — 古風疑問 → null
+
+## R258 skip-list（Session 332）
+- `閉じるかどうかだよね/決めよう/閉じるか閉じないかだ` — 審議節 → null
+- `閉じるかどうするか/べきか閉じないべきか/閉じるか閉じるまいか` — AかBか 確立 help ピン
+
+## R259 skip-list（Session 333）
+- `閉じるかなりか` — AかBか 審議 → help 確立ピン
+
+## R261 skip-list（Session 335）
+- `閉じるのはだめ(かな)?` — 「閉じるのはまずい」(close意図) との曖昧対で null 維持
+
+## R263 skip-list（Session 337）
+- `閉じたんで` — describe-tab literal にすると '閉じたんだ'/'閉じたなんか' の variant を横取りするため未登録（generic variant 衝突）
+
+## R264 skip-list（Session 338）
+- `poof` — 魔法/消失の感嘆詞として曖昧、未登録
+- `閉じるのは無駄` / `閉じるのが惜しい` / `閉じるのがもったいない` — 「不要」と「閉じ意図」の曖昧対（だめ系ピンと同型）で null 維持
+- `閉じたるわ` / `閉じたるぞ` — 確立 describe-tab ピン（'閉じたる'=閉じた+る parse）のため close literal 未追加
+
+## R261 skip-list（Session 335）
+- `閉じるのはだめ(かな)?` — 「閉じるのはまずい」(close意図) との曖昧対で null 維持
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。
