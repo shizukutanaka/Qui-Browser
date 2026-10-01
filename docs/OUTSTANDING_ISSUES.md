@@ -24,7 +24,6 @@
 ~~- Session 309: "close every tab" が close-tab-by-name 誤ルート（lookahead に every/each/both/those/these 追加で解消）~~
 ~~- Session 309: silent-probe 検出の約90件残留（negate 見送り/断念枠、かね/たもれ/至急尾、close-all every 形、pin current、bookmark add-to、reopen 誤って形、EN discourse 前置、quick-ism 語尾、ordinal from-the-right）~~
 
-
 ---
 
 ## A. 削除（Session 74 で完了）— イーロン・マスクのアルゴリズム step 2
