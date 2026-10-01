@@ -189,7 +189,7 @@ describe('確立ピン・意図スキップ維持', () => {
   KEY('murk it', null); // niche slang
   KEY('write it off', null); // accounting idiom
   KEY('gut it', null); // gut = disembowel/contents ambiguous
-  KEY('wreck it', null); // damage ambiguous
+  KEY('wreck it', 'close-tab'); // scrap-disposal reading (CCXCIII)
   KEY('smash it', null); // smash it = do great
   KEY('crush it', null); // crush it = do great
   KEY('murder it dead', null); // redundant emphasis

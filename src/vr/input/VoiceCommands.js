@@ -1909,6 +1909,7 @@ export class VoiceCommands {
     push(normalized.replace(/^(?:shut|close) it down(?: for the night)?[.!?]?$/i, 'close it'));
     push(normalized.replace(/^put it to bed[.!?]?$/i, 'close it'));
     push(normalized.replace(/^turn out the lights on it[.!?]?$/i, 'close it'));
+    push(normalized.replace(/^turn off the lights on it[.!?]?$/i, 'close it'));
     push(normalized.replace(/^(?:lets|id|i|we should|we could|you should|they should) have it (?:closed|shut|gone|down)[.!?]?$/i, 'close it'));
     push(normalized.replace(/^pull the plug on it[.!?]?$/i, 'close it'));
     push(normalized.replace(/^(?:shut|close) the book on it[.!?]?$/i, 'close it'));
@@ -2023,7 +2024,8 @@ export class VoiceCommands {
         /^in a min$/i, /^in a sec(?:ond)?$/i, /^in a moment$/i, /^later on$/i,
         /^remind me later$/i, /^remind me in/i, /^remind me (?:to|about)\b/i, /^for later$/i,
         /^come back later$/i, /^明日(?!の|は)/, /^tonight$/i, /^later today$/i,
-        /(?:do |leave |finish )?(?:it|this|that|them|all) later$/i],
+        /(?:do |leave |finish )?(?:it|this|that|them|all) later$/i,
+        'later close it'],
       action: () => {
         this.speak('あとでの実行はできません。今すぐなら「閉じて」などと命令してください');
         return { action: 'defer' };
@@ -2080,6 +2082,8 @@ export class VoiceCommands {
         '通知設定', '設定を変更', '設定を変えて',
         'open the menu', 'show menu', /^menu$/i,
         'open up settings', 'bring up the settings', 'bring up settings', 'open settings',
+        // pass CCLXXVIII
+        '設定開いて',
         /open\s+settings/i, /close\s+settings/i, /show\s+settings/i,
         /^settings$/i, /open (my |the )?settings/i, /settings please/i,
         /^options$/i, /^preferences$/i],
@@ -2246,12 +2250,16 @@ export class VoiceCommands {
         /([0-9一二三四五六七八九十]+)\s*番のタブ(?!を閉じ)/,
         /^([0-9一二三四五六七八九十]+)\s*番目?$/,
         /(ひと|ふた|み|よ|いつ|む|なな|や|ここの|とお)っ?つ?めのタブ(?!を閉じ)/,
-        /^(ひと|ふた|み|よ|いつ|む|なな|や|ここの|とお)っ?つ?め$/],
+        /^(ひと|ふた|み|よ|いつ|む|なな|や|ここの|とお)っ?つ?め$/,
+        // pass CCLXXIX: kanji つ目 forms (三つ目のタブ)
+        /([0-9一二三四五六七八九十]+)つ目のタブ(?!を閉じ)/,
+        /^([0-9一二三四五六七八九十]+)つ目$/],
       action: (transcript) => {
         const ORD = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10 };
         const TUME = { ひと: 1, ふた: 2, み: 3, よ: 4, いつ: 5, む: 6, なな: 7, や: 8, ここの: 9, とお: 10 };
         const m = transcript.match(/([0-9一二三四五六七八九十]+)\s*番/) ||
-          transcript.match(/(ひと|ふた|み|よ|いつ|む|なな|や|ここの|とお)っ?つ?め/);
+          transcript.match(/(ひと|ふた|み|よ|いつ|む|なな|や|ここの|とお)っ?つ?め/) ||
+          transcript.match(/([0-9一二三四五六七八九十]+)つ目/);
         const n = m ? (ORD[m[1]] || TUME[m[1]] || parseInt(m[1], 10) || 0) : 0;
         const t = (this._tabManager?.tabs || [])[n - 1];
         if (!t) {
@@ -2552,7 +2560,7 @@ export class VoiceCommands {
     // Navigation commands
     this.registerCommand('navigate', {
       patterns: ['進む', '次へ', 'すすむ', '次に進んで',
-        /(?<!(?:どうやって|一文字|ひと文字|一単語|ひと単語))進む(?!な)|(?<!読み|上げを|行を|よう)進め(?!る|な|ま|ら|方)/,
+        /(?<!(?:どうやって|一文字|ひと文字|一単語|ひと単語))進む(?!な)|(?<!読み|上げを|行を|よう|段落を|文を|見出しを|文字を)進め(?!る|な|ま|ら|方)/,
         '進んで', '進みたい', '次のページに進んで', '一つ進んで', 'ひとつ進んで',
         '先に進んで', '先へ進んで', '先に進む', '先へ進む', '先に進みたい',
         'forward', /go forward(?! \d)/i, /forward (a|one|the) page/i,
@@ -2569,7 +2577,7 @@ export class VoiceCommands {
 
     this.registerCommand('back', {
       patterns: ['戻る', '前へ', 'もどる',
-        new RegExp('(?<!(?:先頭に|一番上に|トップに|モードに|どうやって|一文字|ひと文字|一単語|ひと単語|単語を|行頭に|頭に|一つ|ひとつ|頭まで|二度と|最早|塵に|灰に|無に|虚空に|地獄に|地獄へ))'
+        new RegExp('(?<!(?:先頭に|一番上に|トップに|モードに|どうやって|一文字|ひと文字|一単語|ひと単語|単語を|行頭に|頭に|一つ|ひとつ|頭まで|二度と|最早|塵に|灰に|無に|虚空に|地獄に|地獄へ|控えに))'
           + '(?:戻る(?!な|まい|べ|ものか|か)|戻れ(?!る|な|ま))'),
         '戻って', '戻ってきて', '戻りたい', '一つ戻って', 'ひとつ戻って',
         '帰ってきて', '帰ってくる',
@@ -2636,6 +2644,7 @@ export class VoiceCommands {
     this.registerCommand('vr-exit', {
       patterns: ['VR終了', 'VRやめる', '通常モード', 'ブラウザを終了', 'アプリを終了',
         '終了して', 'VRを終了', 'VRをやめる', 'VRを終わる', 'VRを出る',
+        'ヘッドセット切って', 'vr終わる',
         '終了', 'アプリを閉じて', 'ブラウザを閉じて', 'ブラウザを終了して',
         'アプリを終了して', 'アプリを閉じる', 'ブラウザを閉じる',
         '全画面をやめて', 'フルスクリーンをやめて', '全画面解除', 'フルスクリーン解除',
@@ -2646,6 +2655,8 @@ export class VoiceCommands {
         'im over this', 'im finished', 'thats all for me', 'signing off',
         'close app', 'close browser', 'close the browser', /close the app/i,
         /^quit$/i, /^exit$/i, 'shut down', 'shutdown', 'close the app',
+        // pass CCLXXIX
+        'vrをやめて', 'vr終了して', 'leave vr', 'vr抜けて', 'vrを抜ける', 'ヘッドセット外す',
         'shut it down', 'turn it off', 'switch it off',
         'じゃあね', 'ばいばい', 'さようなら', 'またね', 'また後で', 'お疲れさま',
         '終わり', '終わります', 'おしまい', 'しゅうりょう',
@@ -2708,6 +2719,7 @@ export class VoiceCommands {
         '音量を大きくして', '音を大きくして', 'もう少しだけ大きくして', 'デカくして', 'もうちょっと大きくして', 'もう少し大きくして',
         'あと少し大きく', 'あと少し大きくして', '音量もう少し上げて', '音量あと少し', '音量もうちょい',
         '声を上げて', '声を大きくして', 'ボリュームを上げて',
+        'video louder', 'louder video',
         '音量をあげる', 'ボリュームを上げる', '音量を上げる', '音を上げる', '声を上げる',
         'ボリュームアップ', 'ボリュームを大きく', '音を上げて',
         // pass CCLXXV
@@ -2785,6 +2797,9 @@ export class VoiceCommands {
         '音量を変えて', '音量を変更して', '音量を変更', '音量を上げ下げ',
         /^volume$/i, 'how loud', 'what volume', 'is it loud',
         'how loud is it', 'how much volume', 'how loud is the volume',
+        'hows the volume', 'whats it at volume', 'volume at what',
+        'whats my volume', 'どのくらい音量', '音量どれくらい',
+        '音量はどれくらい', '音量どのくらい',
         /current volume/i, /volume (status|level)/i, /what'?s? (?:the )?volume|what is (?:the )?volume/i],
       action: () => {
         const v = this._onVolumeStatus ? this._onVolumeStatus() : null;
@@ -2890,6 +2905,7 @@ export class VoiceCommands {
         'フォントを大きく', 'フォントサイズを上げて', '文字サイズを上げて',
         'ズームインして', '文字を拡大', 'ページを拡大', 'ページを大きく',
         '拡大', 'ページを拡大して', 'ページを拡大してほしい',
+        'もっと拡大', '画面を拡大',
         'フォントを大きくして', 'フォントを拡大', 'フォントサイズを上げる',
         '文字が小さい', '字が小さい', '読みやすくして', '見やすくして', '読みやすく', '見やすく', '文字が読めない', '読みにくい',
         '文字が見にくい', '字が見にくい', '字が見えにくい', '大きくして',
@@ -2912,9 +2928,11 @@ export class VoiceCommands {
         '字を小さく', '字を小さくして', '文字を小さめに', '字を小さめに',
         // pass CCLXXVII
         'ちょっと小さく', '文字ちょっと小さく',
+        // pass CCLXXVIII
+        '縮小してズーム',
         'フォントを小さく', 'フォントサイズを下げて', '文字サイズを下げて',
         'ズームアウトして', 'ページを縮小', '文字を縮小',
-        '縮小',
+        '縮小', 'もっと縮小',
         'フォントを小さくして', 'フォントを縮小', 'フォントサイズを下げる',
         'too big', 'make it smaller', /text is too big/i, /make (the )?text smaller/i,
         '文字が大きい', '字が大きい',
@@ -2933,22 +2951,29 @@ export class VoiceCommands {
     // (NVDA rate step vs. value setting): '読み上げ速度2倍' lands the
     // rate directly instead of repeating ±0.25 steps.
     this.registerCommand('speech-rate-set', {
-      patterns: [/読み上げ速度([0-9.]+)倍/, /([0-9一二三四五六七八九.]+)倍速/,
-        '半分の速さ', '半分の速度', '倍速で',
-        /(speech|talk|reading) (rate|speed) (to )?([0-9.]+)/i],
+      patterns: [/読み上げ速度を?([0-9.]+)倍/, /読む速度を?([0-9.]+)倍/, /([0-9一二三四五六七八九.]+)倍速/,
+        '半分の速さ', '半分の速度', '倍速で', '倍速で読んで',
+        /(speech|talk|reading) (rate|speed) (to )?([0-9.]+)/i,
+        // pass CCLXXX: ASR word-numbers ('speech rate two hundred' = 200%)
+        /(speech|talk|reading) (rate|speed) (to )?(one|two|three|four|five|six|seven|eight|nine|ten) ?hundred/i],
       action: (transcript) => {
         // JA multiplier idioms: '2倍速' lands directly; kanji numerals and
         // '半分の速さ' are folded to their decimal equivalent.
         const KANJI = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
         const km = transcript.match(/([一二三四五六七八九])倍速/);
         const m = transcript.match(/[0-9.]+/);
+        const WH = { one: 100, two: 200, three: 300, four: 400, five: 500,
+          six: 600, seven: 700, eight: 800, nine: 900, ten: 1000 };
+        const wh = transcript.match(/(one|two|three|four|five|six|seven|eight|nine|ten) ?hundred/i);
         const rate = /半分/.test(transcript)
           ? this.setSpeechRate(0.5)
-          : km
-            ? this.setSpeechRate(KANJI[km[1]])
-            : /倍速/.test(transcript) && !m
-              ? this.setSpeechRate(2)
-              : m ? this.setSpeechRate(parseFloat(m[0])) : this._speechRate;
+          : wh
+            ? this.setSpeechRate(WH[wh[1].toLowerCase()] / 100)
+            : km
+              ? this.setSpeechRate(KANJI[km[1]])
+              : /倍速/.test(transcript) && !m
+                ? this.setSpeechRate(2)
+                : m ? this.setSpeechRate(parseFloat(m[0])) : this._speechRate;
         this.speak(`読み上げ速度 ${rate.toFixed(2)}倍`);
         return { action: 'speech-rate-set', rate };
       },
@@ -2960,6 +2985,8 @@ export class VoiceCommands {
     this.registerCommand('time', {
       patterns: ['今何時', '現在の時刻', '時刻を教えて', '何時ですか', '時間を教えて',
         '何時', '時計', '時計は',
+        // pass CCLXXIX
+        '時刻教えて',
         /what time/i, /current time/i, /tell me (the )?time/i,
         'whats the time', 'time is it', 'got the time', 'do you have the time',
         'got the time on you', 'you got the time'],
@@ -3013,7 +3040,7 @@ export class VoiceCommands {
     // working without a browser connection (synthesis only).
     this.registerCommand('select-voice', {
       patterns: ['声を変えて', '読み上げ音声を変えて', '声を変える',
-        '音声を変えて', '別の声', '別の声にして', '違う声にして',
+        '音声を変えて', '別の声', '別の声にして', '違う声にして', '声変えて',
         '別の声で', '女性の声で', '男性の声で', '高い声で', '低い声で',
         '別の声に変更', '声を変えてほしい',
         '男の声で', '女の声で', '男性の声', '女性の声', '女の声にして', '男の声にして',
@@ -3035,7 +3062,7 @@ export class VoiceCommands {
     // voice-list — select-voice's list twin (NVDA voice list parity): hear
     // the available voices without cycling through them blindly.
     this.registerCommand('voice-list', {
-      patterns: ['声一覧', '声の一覧', '利用可能な声',
+      patterns: ['声一覧', '声の一覧', '利用可能な声', '音声一覧',
         /voice list|list voices|available voices/i],
       action: () => {
         const voices = this.synthesis?.getVoices?.() || [];
@@ -3079,6 +3106,8 @@ export class VoiceCommands {
         'コマンド一覧を表示', 'コマンドを表示',
         '操作方法', 'できること', 'コマンドを教えて', 'コマンドを読み上げて',
         'コマンド一覧を読んで', 'ヘルプを読んで', '聞き方を教えて', '音声ガイド',
+        // pass CCLXXIX
+        'ヘルプ表示して',
         '使い方は', '何ができますか', 'コマンド一覧',
         'コマンドは', 'どんなコマンド', '操作方法は', 'ヘルプは', '命令一覧', '命令を教えて',
         '教えて', '教えてほしい',
@@ -3334,6 +3363,8 @@ export class VoiceCommands {
     // word (or that it's off) rather than flipping it.
     this.registerCommand('wake-word-status', {
       patterns: ['ウェイクワードは', 'ウェイクワードの状態',
+        // pass CCLXXIX
+        'ウェイクワード教えて', 'ウェイクワード変えて',
         /wake word(?! (on|off))/i],
       action: () => {
         const on = !!this.settings.requireWakeWord;
@@ -3350,7 +3381,7 @@ export class VoiceCommands {
       patterns: ['ズームをリセット', 'ズームリセット', '拡大を戻して', '拡大を元に戻して',
         '文字サイズを元に戻して', '文字サイズをリセット', 'フォントサイズを元に戻して',
         'フォントサイズをリセット', '元の大きさに戻して', '画面を元に戻して', '表示を元に戻して',
-        /reset (the |my )?(zoom|text size|font size)/i, /zoom reset/i,
+        /reset (the |my )?(zoom|text size|font size)/i, /zoom reset/i, 'リセットズーム',
         /^unzoom$/i, /^dezoom$/i, /zoom back/i, /zoom (back )?to normal/i, /zoom normal/i,
         /back to normal size/i],
       action: () => {
@@ -3417,8 +3448,11 @@ export class VoiceCommands {
     this.registerCommand('online-status', {
       patterns: ['オンラインか', 'オフラインか', 'ネットに繋がっている',
         'Wi-Fiは', '接続状態', 'ネットワーク状態',
+        // pass CCLXXIX
+        'オンラインか確認', '接続状態教えて',
         'つながらない', '繋がらない', 'ネットが切れた', '圏外',
         'ネットにつながらない', 'つながってる', '繋がってる',
+        'オフラインになった', '接続切れた', '接続が切れた', '繋がらなくなった',
         /are we online/i, /are we offline/i, /am i online/i, /am i offline/i,
         /are we connected/i, /is the internet working/i, /online status/i, /internet status/i,
         /wi-?fi/i],
@@ -3434,7 +3468,7 @@ export class VoiceCommands {
     // the paste-go pattern.
     this.registerCommand('storage-status', {
       patterns: ['ストレージ', '容量は', '空き容量', 'ストレージはいくつ',
-        /storage/i, /how much storage/i],
+        /(?<!cold )storage/i, /how much storage/i],
       action: () => {
         const est = typeof navigator !== 'undefined' && navigator.storage?.estimate?.bind(navigator.storage);
         if (!est) {
@@ -3458,7 +3492,9 @@ export class VoiceCommands {
         '聞き取り停止', '聞くのをやめて', '音声認識を止めて', '音声認識を終了',
         '聞かないで', '聞かない', '聞くなよ',
         /\bmute (the )?mic(rophone)?/i, /mic off/i, /stop listening/i,
-        /turn (off )?(the )?mic(rophone)?( off)?/i],
+        // pass CCLXXIX: 'turn the mic ON' must not hit — require off-context
+        'マイク切って',
+        /turn (off )?(the )?mic(rophone)?( off)?(?! *on\b)/i],
       action: () => {
         this.stop();
         return { action: 'stop' };
@@ -3473,6 +3509,8 @@ export class VoiceCommands {
       patterns: ['マイクをオン', 'マイクをつけて', 'マイクをオンにして',
         'マイクを付けて', '聞き取りを再開', '音声認識を再開', '音声認識を始めて',
         '音声認識を再開して', 'マイクを始めて', 'マイクオン',
+        // pass CCLXXIX
+        'マイクつけて', 'turn the mic on',
         /(?<!the )mic(rophone)? on/i, /unmute (the )?mic/i, /start listening/i,
         /turn on (the )?mic/i, /unmute mic/i],
       action: () => {
@@ -3497,6 +3535,7 @@ export class VoiceCommands {
         '真っ暗だ', '真っ黒', '画面が真っ暗', '真っ暗です',
         '反応が遅い', '重たい', 'もたつく', '反応が悪い', '動作がもたつく',
         'kinda slow', 'kinda laggy', 'a bit slow', 'little slow', 'bit laggy',
+        '再生されない', '動画見れない', '動画が見れない', 'ビデオ見れない',
         /(?<!言っ|いっ)[ただ]はず(?:だった|なのに|のに)?[。！？!?]?$/, 'it crashed on me',
         /と思ったのに[。！？!?]?$/, /てもまだ.*ない[。！？!?]?$/, /どころか[。！？!?]?$/,
         /[てで]ばっかり(?:だ|です|なん|なんだ|なの)?[。！？!?]?$/, /はずがまだ/, /はずなのにまだ/,
@@ -3580,7 +3619,7 @@ export class VoiceCommands {
         'son of a gun', 'dagnabbit', 'for crying out loud',
         /(?<!bet you )(?<!wager you )can'?t (?:close|open|read|go|find|load|play|stop|scroll|see|reach|get|turn)/i,
         /won'?t (?:close|open|load|play|work|respond|let me|start|stop|read|move)/i,
-        /(?:it|this) won'?t(?! ?(?:you|cha))/i, /(?<!bet you )(?<!wager you )cant close it/, 'wont close', 'wont load',
+        /(?:it|this) won'?t(?! ?(?:you|cha|ya))/i, /(?<!bet you )(?<!wager you )cant close it/, 'wont close', 'wont load',
         '閉じないんだが', '閉じないんだよ', '閉じないから', '開かないんですが',
         '消えないんだが', '止まらないんだが', '進まないんだが', '進めないんだが',
         'ffs', /^ffs[.!?]?$/i,
@@ -3634,6 +3673,7 @@ export class VoiceCommands {
       patterns: ['聞こえない', '聞こえません', 'よく聞こえない', '音が出ない',
         '音が小さい', '音が聞こえない', '声が聞こえない', '音量が小さい',
         '声が出ない', '音がしない', '無音になった', '何も聞こえない',
+        '音聞こえない', '音がきこえない',
         '聞こえにくい', '聞きにくい',
         /can'?t hear/i, /^no sound/i, /cant hear/i],
       action: () => {
@@ -3773,8 +3813,12 @@ export class VoiceCommands {
       patterns: ['ダウンロードして', 'ダウンロードしたい', 'ダウンロードはどこ',
         'ダウンロード', 'アップロードして', 'アップロード',
         'ファイルをダウンロード', 'ファイルを保存',
+        // pass CCLXXXI
+        'ページをダウンロード', 'ページ保存して', '保存してダウンロード',
+        'このファイルをダウンロード',
         'ダウンロード履歴', 'ダウンロードしたファイル', 'ダウンロード一覧',
         /^downloads?$/i, /download (this|it|the file)/i, /^upload/i,
+        'このページをダウンロード',
         /(export|import)( my)? bookmarks?/i, /open (my |the )?downloads/i,
         'エクスポートして', 'インポートして', '履歴をエクスポート',
         'ブックマークをエクスポート', 'ブックマークをインポート',
@@ -3858,6 +3902,8 @@ export class VoiceCommands {
         'sleep', 'wake', 'wake up', 'lock', 'standby', 'put it to sleep',
         'good night', 'go to sleep', 'wake me up', 'hit the hay', 'turn in',
         'call it a night',
+        // pass CCLXXIX
+        '寝てもいいよ',
         /sleep mode/i, /power (saving|saver|off)/i],
       action: () => {
         this.speak('スリープや電源はヘッドセット本体のボタンで操作してください');
@@ -3871,6 +3917,7 @@ export class VoiceCommands {
     this.registerCommand('scroll-horizontal', {
       patterns: ['左にスクロール', '右にスクロール', '左へスクロール', '右へスクロール',
         '横にスクロール', '横スクロール',
+        '右にスクロールして', '左にスクロールして', 'scroll sideways',
         /scroll (left|right)/i, /scroll horizontally/i],
       action: () => {
         this.speak('左右のスクロールはできません。「上」「下」または「3行下」で縦に動けます');
@@ -3952,7 +3999,7 @@ export class VoiceCommands {
         '音楽を再生', '音楽を聴きたい', '音楽をかけて', 'ラジオ',
         'テレビを見て', 'ラジオをつけて',
         /^(set|start) (a )?timer/i, /^(open|check) (my )?(email|mail|calendar)(?!.*\btab\b)/i,
-        /(?<!un)call (?!it\b|upon\b)\w+/i,
+        /(?<!un)call (?!it\b|upon\b|close\b|the\b|time\b|in\b|pest\b)\w+/i,
         'アンインストール', 'インストールして', 'アプリをインストール',
         'ホーム画面に追加', 'add to home screen', 'install the app',
         'install it', 'uninstall', 'uninstall it',
@@ -4919,7 +4966,7 @@ export class VoiceCommands {
     // confirmationText would claim '戻ります' even at the earliest entry.
     this.registerCommand('navigate', {
       patterns: ['進む', '次へ', 'すすむ', '次に進んで',
-        /(?<!(?:どうやって|一文字|ひと文字|一単語|ひと単語))進む(?!な)|(?<!読み|上げを|行を|よう)進め(?!る|な|ま|ら|方)/,
+        /(?<!(?:どうやって|一文字|ひと文字|一単語|ひと単語))進む(?!な)|(?<!読み|上げを|行を|よう|段落を|文を|見出しを|文字を)進め(?!る|な|ま|ら|方)/,
         '進んで', '進みたい', '次のページに進んで', '一つ進んで', 'ひとつ進んで',
         '先に進んで', '先へ進んで', '先に進む', '先へ進む', '先に進みたい',
         'forward', /go forward(?! \d)/i, /forward (a|one|the) page/i,
@@ -4940,7 +4987,7 @@ export class VoiceCommands {
 
     this.registerCommand('back', {
       patterns: ['戻る', '前へ', 'もどる',
-        new RegExp('(?<!(?:先頭に|一番上に|トップに|モードに|どうやって|一文字|ひと文字|一単語|ひと単語|単語を|行頭に|頭に|一つ|ひとつ|頭まで|二度と|最早|塵に|灰に|無に|虚空に|地獄に|地獄へ))'
+        new RegExp('(?<!(?:先頭に|一番上に|トップに|モードに|どうやって|一文字|ひと文字|一単語|ひと単語|単語を|行頭に|頭に|一つ|ひとつ|頭まで|二度と|最早|塵に|灰に|無に|虚空に|地獄に|地獄へ|控えに))'
           + '(?:戻る(?!な|まい|べ|ものか|か)|戻れ(?!る|な|ま))'),
         '戻って', '戻ってきて', '戻りたい', '一つ戻って', 'ひとつ戻って',
         '帰ってきて', '帰ってくる',
@@ -4950,7 +4997,7 @@ export class VoiceCommands {
         'さっき見たページ', 'さっき見てたページ', 'もう一個戻って',
         'さっきのサイト', 'さっきのサイトに戻って', 'さっき見たサイト',
         '後戻りして', '逆戻りして', 'ひとつ前に戻って', '前のに戻って',
-        '前に引き返して', '来た道を戻って', 'さかのぼって',
+        '前に引き返して', '来た道を戻って', 'さかのぼって', '戻ってみり',
         // pass CCLXXV: EN return-frames + JA dialect residue
         'go back one', 'back to where i was', 'return to where i was',
         'one step back', 'retreat', 'reverse', 'さっきのとこ',
@@ -4981,7 +5028,8 @@ export class VoiceCommands {
         'give it a refresh', 'do a refresh', 'refresh it for me', 'fresh copy',
         'get a fresh copy', 'pull a fresh copy', 'リロード頼む', 'リロードだ',
         'reload this for me', 'reload it again', 'one more refresh', 'fresh load',
-        'load it fresh',
+        'load it fresh', '再読込して', 'ページリロード',
+        'タブをリロード', 'タブをリロードして', 'リロードしてページ',
         /(?<!did |has |is |it )reload(\s+(the|this)\s+page)?$/i,
         /^refresh(\s+the\s+page)?$/i,
         /^refresh\s+page$/i, /^restart(\s+the)?\s+(browser|page)$/i],
@@ -5062,7 +5110,7 @@ export class VoiceCommands {
         // pass CCLXXVI
         'scroll it down', '下に進んで', '下のほうへ', '下げてスクロール',
         'slide it down', 'move it down', 'down a bit more', 'a bit further down',
-        'keep going down', 'more down', '下を読んで',
+        'keep going down', 'more down', '下を読んで', '下へスクロール',
         '少しスクロール', 'ちょっとスクロール', 'もっと下', 'さらに下',
         'ぐっと下', '一気に下', 'もっと下へ', 'さらに下へ',
         'もうちょっと下', 'もうちょっと下へ', 'ちょっとだけ下',
@@ -5096,6 +5144,7 @@ export class VoiceCommands {
         // pass CCLXXVI
         'scroll it up', '上に戻ってスクロール', '上のほうへ', 'back up a bit',
         'move it up', 'slide it up', 'up a bit more', 'a bit further up',
+        '上へスクロール',
         '上を見て', 'more up', 'up a little', 'もう少し上のほう',
         'scroll on up', 'keep scrolling up',
         'one line up', 'a line up', 'line up', 'up one line',
@@ -5156,6 +5205,9 @@ export class VoiceCommands {
         'open up a tab', 'open up new tab', 'open a new tab', 'open a tab',
         '新しいページを開いて', '新しいページを開けて', '新しいページを開く',
         '新しいタブをもう一つ', '新しいタブをもう一個', 'もう一個新しいタブ',
+        // pass CCLXXVIII
+        '新しいタブ開いて', 'open a fresh tab', 'fresh tab please',
+        'タブ開いてちょ', 'もう一枚タブ',
         'open a new tab', 'open new tab', 'add a tab', 'create a tab',
         'make a tab', 'another tab', 'one more tab',
         'another window', 'one more window', 'open another window',
@@ -5179,6 +5231,633 @@ export class VoiceCommands {
         '閉めて', 'タブを閉めて', 'ページを閉めて', 'このページを閉めて',
         'パネルを閉めて', 'タブを閉める', 'ページを閉める',
         'タブを減らして', 'タブを減らす',
+        '閉じってくれ', '閉じもす', '閉じみる', '閉じてみり',
+        '閉じなはれや', '閉じちゃいなって', '閉じちゃいな',
+        '閉じて来い', '閉じて下されば幸いです',
+        '閉じちゃってもらって', '閉じてもらっておきたい',
+        '閉じておいてくれるかな',
+        '閉じれませんか', '閉じてもらいましょうか', '閉じまへんか',
+        '閉じてくんない', '閉じてくんね', '閉じてくんま',
+        '閉じてくんまし', '閉じてくんかい', '閉じてくんなはれ',
+        '閉じてくんなまし',
+        're-close it', 'reclose it', 'close it should ya',
+        'close it may i ask', 'for the umpteenth time close it',
+        'how many more times close it', 'once and for all close it',
+        'permanently close it',
+        'close it definitely', 'close it absolutely',
+        'positively close it', 'for sure close it',
+        'no doubt close it', 'obviously close it',
+        'clearly close it', 'evidently close it', 'apparently close it',
+        'close it wont ya', 'close it for sure',
+        '閉じてくんない？', '閉じてくんね？',
+        'wrap up close it', 'finish up close it', 'wind down close it',
+        'call it a wrap close it', 'thats a wrap close it', 'it is a wrap close it',
+        'this one is finished', 'its all over', 'this ones over',
+        'its gone to seed', 'its run its course',
+        'i beg of you close it', 'i beseech you close it',
+        'i entreat you close it', 'i plead with you close it',
+        'i beg ya close it', 'i beg you one last time close it',
+        'its time to close it', 'its high time', 'high time it closed',
+        'its overdue for closing',
+        'けりつけて', 'けりをつけて', 'ケリつけて',
+        'けじめつけて', 'けじめをつけて',
+        '仕切って', '仕切っちゃって', 'しめくくって', '締めくくって',
+        '仕上げて', '仕上げちゃって',
+        'これで仕舞い', 'もう仕舞い', '仕舞いにして',
+        'お仕舞いにして', 'お仕舞いにしましょう',
+        '閉じてくれよぉ', '閉じてくれぇ',
+        '閉じてくれよおまえ', '閉じてくれよお前', '閉じてくれりゃあ',
+        '閉じるとのお達し', '閉じるとの命', '閉じるのが決まり',
+        '閉じるよう指示', '閉じるよう指示が', '閉じるように言われてる',
+        '今直ぐ閉じて', '至急に閉じて',
+        'bring the curtain down', 'curtain down close it',
+        'curtain call close it', 'roll credits on it',
+        'end of chapter', 'end of the chapter', 'closing chapter',
+        'denouement close it', 'end of broadcast', 'sign off on it',
+        'end of program', 'program over', 'pack it up close it',
+        'put it in the drawer', 'in the drawer with it',
+        'close the current please', 'lights out for it',
+        'lights out close it', 'lights out on it',
+        '閉幕して', '終幕にして', '緞帳を下ろして', '緞帳下ろして',
+        'カーテンを閉めて', '幕引きして', 'エンドロール',
+        'エンドロール流して', '演目終了', '出番終わり',
+        '成仏してもらって', 'お供養して', 'お別れして',
+        '見送りして', 'お見送りで',
+        '閉じておくれや', '閉じておくれんが', '閉じておくれっか',
+        'お閉じなすって', '閉じておくんなし', '閉じておくんなしぇ',
+        'final whistle', 'blow the whistle', 'blow the whistle on it',
+        'call the game', 'call the ballgame', 'mercy rule',
+        'thats the whistle', 'full time close it', 'game set match',
+        'game set and match', 'class dismissed', 'schools out',
+        'school is out', 'thats the bell', 'last call',
+        'last call close it', 'its last call', 'bar is closing',
+        'the bar is closing', 'wheels up', 'all ashore',
+        'weigh anchor', 'boarding complete', 'blow out the candle',
+        'blow the candle out', 'put out the light', 'bedtime for it',
+        'its bedtime', 'over the rail', 'this one is dismissed',
+        'お開きにして', 'お開きで', 'お開きだ', 'おひらき',
+        'おひらきにして', '閉会して', '閉会にして', '散会して',
+        '散会で', '散会にして', '終演して', '終演にして',
+        '閉演して', '退場して', '退場させて', '撤収して', '撤収で',
+        '暖簾を下ろして', '暖簾おろして', 'のれんを下ろして',
+        'のれんおろして', 'シャッター下ろして', 'シャッターを閉めて',
+        'シャッターを下ろして', '看板下ろして', '看板を下ろして',
+        '閉店ガラガラ', '帳を閉じて', '帳閉じして', 'シメて',
+        '締めくくり', '締めくくって', '閉会式', '閉会の挨拶',
+        '終了のお知らせ', 'お仕舞いだ', 'お終いだ', '仕舞いにして',
+        'お開きにしましょう', '散会にしましょう', '閉会にしましょう',
+        'at your leisure close it', 'no rush close it', 'if you get a moment close it',
+        'do the needful and close it', 'close it if you get a chance',
+        'when ready close it', 'eventually close it', 'close it eventually',
+        'close it someday', 'whenever works close it', 'close it at some point',
+        'time permitting close it',
+        // pass CCLXXXVIII: EN military/schoolhouse dismissal + closing-time
+        // idioms; JA お暇/解散/本締め/畳み frames
+        'dismissed close it', 'you are dismissed close it',
+        'class is over close it', 'meeting adjourned close it',
+        'the meeting is adjourned close it', 'stand down close it',
+        'at ease close it', 'retreat close it', 'fall out close it',
+        'lights off close it', 'curtains close it', 'shutters close it',
+        'roll up the sidewalks close it', 'last orders close it',
+        'drinks up close it', 'closing time close it', 'wrap party close it',
+        'strike the set close it', 'house lights close it',
+        'the fat lady sang close it', 'show over close it',
+        'credits rolled close it', 'episode over close it',
+        'session expired close it', 'party is over close it',
+        'kick everyone out close it', 'empty the room close it',
+        'shut the place down', 'shut down the shop',
+        'raid over close it', 'mission complete close it',
+        'debrief done close it', 'dismiss the troops close it',
+        'go home now close it', 'everyone out close it',
+        'out you go close it', 'get out close it',
+        '消えてしまえ', '消えてしまえよ',
+        'お暇だ', 'お暇にして', 'お暇にする', 'お暇をとる', '暇をとる',
+        'ご免いただく', 'ご免で', '暇いただき', '失礼する', '席を外す',
+        '席を立つ', '撤去する',
+        '本締めだ', '本締めにして', '本締めにする', '締めにして',
+        'おしまいにしよう', '解散する', '解散にする', '解散しよう',
+        '退散する', '退散しよう', '閉廷にする', '閉廷する', '閉廷とする',
+        '終演にする', '終演する', '閉幕にする', '閉幕する', '閉幕とする',
+        '幕を降ろす', '打ち上げにする', '納会だ', '納会にする', '納会とする',
+        '切り上げる', '切り上げて', '切り上げだ', '切り上げにする',
+        '畳みにする', 'お仕舞いにする', '打ち切りにする', '仕舞いにする',
+        '閉じろ閉じろ', '閉じちゃえ閉じちゃえ', 'もう消せ', '消えろ消えろ',
+        'お役御免にする', '御免だ',
+        '任務終了', '任務終わり', '任務を終える', '作戦終了', '作戦終わり',
+        '訓練終了',
+        // pass CCLXXXIX: EN afterlife/hospice/funeral idioms;
+        // JA 門出/葬儀/追い出し frames
+        'send it to heaven close it', 'sent to the farm', 'off to the farm',
+        'put out to pasture', 'retire it to the country',
+        'gone to a better place', 'it went to a better place',
+        'peace be with it', 'rip for the tab', 'vigil for it',
+        'hold a vigil', 'amen close it', 'extreme unction',
+        'hospice for it', 'comfort care for it',
+        'pull the plug on the patient', 'its flatlined', 'call the code',
+        'no pulse for it', 'time of death for it', 'heavenward it goes',
+        'send it home to heaven', 'send it upstairs close it',
+        'up to heaven close it', 'fly away close it', 'fly away little tab',
+        'off to heaven close it', 'meet your maker', 'meet its maker',
+        'gone to meet its maker', 'has gone to meet its maker',
+        'seeing angels', 'through the pearly gates', 'valhalla awaits',
+        'into the great beyond', 'crossing over', 'it crossed over',
+        'send it to the light', 'into the light', 'walk into the light',
+        'follow the light', 'go into the light', 'a small step for it',
+        'one small step', 'bodhisattva it', 'send it off in style',
+        'pyre for it', 'funeral pyre close it', 'twenty one guns for it',
+        '21 gun salute', 'taps for it', 'play taps', 'reveal the tomb',
+        'lay it in state', 'lying in state', 'entomb the tab',
+        '成仏して', '成仏しろや', '昇天させる', 'あの世行き', '冥土行き',
+        '冥土に送る', '極楽送り', '天国に帰れ', '天国へ帰れ',
+        '天国送りにする', '天国に送る',
+        '門出だ', '門出とする', '門出にする',
+        '葬式をあげて', '葬式を上げて', '葬儀にする', '告別式にする',
+        '火葬にして', '火葬にする', '荼毘に付す', '荼毘に付して',
+        '葬りにする', 'お通夜だ', 'お通夜にする', '通夜だ', '葬送だ',
+        '弔いにする', '墓に入れ', '墓に送れ', '墓穴だ', '永眠だ',
+        '眠りに就かせて', '眠らせて', '眠りなさい', '眠れ眠れ',
+        'お眠りなさい', '安らかに眠って', '鎮まれ', '鎮まって',
+        '追っ払え', '追っ払って', '出ていって', '明け渡せ', '明け渡して',
+        '退去させて', '退去して', '退出して', '外に出せ',
+        // pass CCXC: EN exorcism/ghost + card-table surrender idioms;
+        // JA お祓い/悪霊退散/除霊 + 降参/投了/白旗 frames
+        'banish the spirit', 'cast out the spirit', 'be gone spirit',
+        'release the spirit', 'banish the ghost', 'exorcise this demon',
+        'drive out the demons', 'lay the ghost', 'lay it to rest finally',
+        'rest in pieces', 'spook it away', 'no more haunting', 'unhaunt it',
+        'haunt no more', 'fold the hand', 'fold this hand',
+        'cash out', 'cash me out', 'cash it out', 'cash out now',
+        'deal me out', 'deal me out of this', 'count me out',
+        'im out of this hand', 'ante up and out', 'i quit this one',
+        'throw in the cards', 'throw the hand in', 'walk away from the table',
+        'leave the table', 'leave the game',
+        'お祓いして', 'おはらいして', '悪霊退散', '悪霊払って',
+        '悪魔を払って', '悪魔払い', '退魔して', '退治して', '成敗して',
+        '呪いを解いて', '呪い解いて', '除霊して', '浄化して',
+        '清めて', 'お清めして', 'お清めを', 'お経をあげて',
+        'お鎮め', '祟り退治', 'まじないをかけて',
+        '降参だ', '降参にしよう', '降参します', '投了します', '投了だ',
+        'ギブだ', '負けを認めて', '負けました', '降ります', '降りる',
+        '降りていい', 'フォールド', 'フォールドする', '離脱します',
+        'ドロップアウト', 'ドロップしよう', '白旗を上げて', '白旗だ',
+        '白旗を振って', 'とどめを刺して', 'とどめを刺せ',
+        'トドメを刺して', '止めを刺して', 'フィナーレ',
+        // pass CCXCI: EN courtroom/verdict + eviction/firing idioms;
+        // JA 立ち退き/退去 + 解雇/クビ + 裁判/判決 frames
+        'court is adjourned', 'the verdict is in',
+        'the court finds you guilty', 'guilty as charged',
+        'throw the book at it', 'summary judgment', 'overruled',
+        'i rest my case', 'rest my case on it', 'plea denied',
+        'appeal denied', 'bailiff take it away', 'leave the courtroom',
+        'court recessed',
+        'serve the eviction', 'deport it', 'repossess it',
+        'foreclose on it', 'eminent domain', 'squatter rights denied',
+        'its being towed', 'tow it away', 'condemned building',
+        'seized property', 'pack your bags tab', 'out of my house',
+        'fire that tab', 'pink slip', 'get the axe', 'it is let go',
+        'youre fired tab', 'laid off', 'severance for it',
+        'its been terminated', 'it is canned', 'pack it up and out',
+        'force it out', 'golden parachute',
+        '立ち退き命令', '退去命令', '強制退去', '追い出し立件',
+        '不法占拠を解消', '占拠解消', '撤去して', '家を出ていけ',
+        '不法侵入者を追い出して', '立ちのけ',
+        '解雇して', 'クビにして', '首にして', '首切りして',
+        '馘首して', '馘にして', '首を切って', 'リストラして',
+        '役職を外して', '免職して', '罷免して', '懲戒解雇',
+        '即時解雇', '解雇通知', 'ピンクスリップ', 'お前はクビだ',
+        '首宣告', '解雇宣告', '馘首宣告',
+        '有罪', '判決を下せ', '判決を下して', '判決出て',
+        '評決を下して', '禁固刑', '刑に処す', '絞首刑',
+        '判決は有罪', '退廷', '退廷して', '閉廷', '休廷',
+        '結審', '審議終了', '証拠提出終わり', '審理終了',
+        '控訴棄却', '上告棄却', '棄却して', '却下して',
+        '訴状不受理', '起訴して', '召喚状', '差押え',
+        '強制執行', '実刑', '極刑', '重罪', '罪名',
+        '判決言い渡し', '言い渡せ', '言い渡して',
+        // pass CCXCII: EN void/shadow-realm + weather + maritime + cosmic
+        // disposal idioms; JA 水に流す/追放/消失 chains
+        'off to the shadow realm', 'cast into darkness',
+        'swallowed by the void', 'banish to the shadow realm',
+        'the void calls for it', 'bottomless pit for it',
+        'cast into the pit', 'throw it in the pit',
+        'dump it in the abyss', 'hurl into darkness',
+        'sacrifice to the void', 'return to the void', 'void bound',
+        'shadow realm awaits',
+        'rained out', 'cancelled due to rain', 'snow it under',
+        'bury it in snow', 'blow it down', 'wipe off the map',
+        'drop off the radar', 'fell off the radar',
+        'scatter to the winds', 'dust in the wind', 'blown off course',
+        'struck by lightning', 'hit by a meteor', 'vaporized by the sun',
+        'caught in the flood', 'swept out to sea', 'avalanche for it',
+        'buried in rubble', 'tsunami wash', 'ashes to ashes tab',
+        'burned to cinders',
+        'over the horizon', 'beyond the horizon', 'adrift at sea',
+        'marooned island', 'desert island drop', 'shipwreck it',
+        'sink to the bottom', 'mutiny against it', 'unmoor it',
+        'off the deep end',
+        'eject it into space', 'vent it', 'vent it to space',
+        'teleport it away', 'beam it out', 'into hyperspace',
+        'hyperspace it', 'into orbit', 'orbital drop', 'off planet',
+        'jettison into space', 'eject to space', 'blast it to mars',
+        'one way trip to mars', 'off to mars', 'moon shot for it',
+        'drop it on the moon', 'exile to the moon',
+        'stratosphere for it', 'into the exosphere',
+        '川に流して', '海に流して', '波に消されて', '波にさらって',
+        '津波に飲まれて', '流れに任せて', '風に流して', '風に飛ばして',
+        '風にさらされて', '雲散霧消', '煙にして', '煙に消えて',
+        '砂に書いて消して', '木っ端微塵', '跡形もなく', '跡形も無い',
+        '形見も残さず', '氷漬けにして', '氷の中へ', '雪に埋めて',
+        '雪崩に飲まれて', '流砂に沈めて', '泥に沈めて', '沼に沈めて',
+        '地の底へ', '海底に沈めて', '深海に沈めて', '沈みゆけ',
+        '奈落へ', '奈落に落ちて', '大穴に落として',
+        '崖から突き落として', '谷底に落とせ', '溶岩に投げて',
+        '火山に投げて', '火葬の炎へ',
+        '島流しにして', '流刑にして', '追放処分', '国外追放',
+        '国外退去', '退去強制', '放校にして', '退場処分',
+        '一発退場', '無期追放', '永久追放', '幽閉して',
+        '牢に入れて', '獄に投げて', '投獄して', '禁錮にして',
+        '流刑宣告', '追放宣告', '追放者になれ', '追放者にして',
+        '縁を切られて', '勘当宣告', '追放しよう', '放逐せよ',
+        '追い込んで消せ',
+        '消えて無くなれ', '跡形なく消えて', '溶けて消えて',
+        '溶けて無くなれ', '融けて消えて', '燃えて消えて',
+        '燃え尽きて', '灰に帰して', '塵に帰して', '砂に帰れ',
+        '土になれ', '消失させて', '消失して', '木っ端にして',
+        '跡形なく消せ', '雲に隠れて消えて', '夜空の星になれ',
+        '星に帰れ', '月に帰って', '大気圏外へ飛ばして',
+        '宇宙に捨てて', '宇宙塵になれ', 'ブラックホールに投げて',
+        'ブラックホールに飲ませて', 'ワームホールに投げて',
+        '異次元に放って', '別次元に送って', '五次元に送って',
+        '遠い世界に送って',
+        // pass CCXCIII: EN medical/surgical + machinery/scrap idioms;
+        // JA 摘出/切断/末期 + 解体/廃棄処分 chains
+        'excise it', 'cut it out surgically', 'surgical removal',
+        'operate on it out', 'remove it surgically',
+        'pull the plug on life support', 'unplug life support',
+        'end of life care', 'dnr order', 'let it die peacefully',
+        'declared dead', 'call time of death', 'brain dead tab',
+        'organ harvest', 'harvest its organs', 'cauterize it',
+        'amputated limb', 'sever the limb', 'lop it off clean',
+        'chop off the limb', 'bone saw for it', 'transect it',
+        'quadsect it', 'cleave it in twain', 'debunk it to pieces',
+        'out the window it goes',
+        'salvage the parts', 'junkyard for it', 'crusher for it',
+        'grind it down', 'mill it away', 'smelt it down',
+        'melt it down for scrap', 'recycle bin for it',
+        'throw it in the compactor', 'wreck it',
+        'write it off as scrap', 'total writeoff', 'totaled for sure',
+        'mark it for scrap', 'retire the machine', 'end of life for it',
+        'obsolete anyway', 'beyond repair', 'irreparable damage',
+        'condemned to scrap', 'disassemble it', 'dismantle it',
+        'unbuild it', 'furnace for it', 'cremate it in the furnace',
+        'smelt it to slag', 'slag heap for it',
+        '摘出して', '切除して', '切断せよ', '真っ二つにして',
+        '一刀両断', '両断して', '分解して', '外科的に除去',
+        '摘出せよ', '手術台に載せて', 'メスを入れて',
+        '安楽死させて', '尊厳死を', '呼吸器を外して',
+        '延命を止めて', '延命停止', '脳死だ', '逝去宣告',
+        '死亡宣告', '葬儀屋を呼べ', '診断は絶望的', '治療不可能',
+        '末期だ', '末期症状', '末期的だ', '末期寸前',
+        'こん睡状態', '昏睡状態', '植物状態だ', '植物状態にして',
+        '廃車にして', '廃車処分', 'スクラップにして',
+        'スクラップ場へ', '鉄屑にして', '屑鉄にして',
+        'くず鉄にして', '廃棄処分', '産廃にして',
+        '粗大ゴミにして', '粗大ごみに出して', '燃えないゴミにして',
+        '解体屋に売って', 'バラして売って', '部品取りにして',
+        '部品取りに出して', '実験台にして', '試作品を廃棄',
+        '型を壊して', '鋳型を壊して', '焼却炉に入れて',
+        '焼却して', '溶鉱炉に投げて', '溶かしてしまえ',
+        '製鉄所送り', '資源ゴミにして', '圧縮して捨てて',
+        '裁断して', 'シュレッダーにかけて',
+        'シュレッダーで切り刻んで', '粉砕機にかけて',
+        '破砕して', '破砕機へ', '廃品回収に出して',
+        '回収業者に渡して', '解体業者に渡して', '消却して',
+        '燃やして処分', '消毒して捨てて', '隔離して捨てて',
+        '除去作業', '撤去作業', '塩漬けにして捨てて',
+        '封印して捨てて', '地中に封じて', '永久凍土に埋めて',
+        'もうだめだ', 'だめになった', '寿命だ', '寿命がきた',
+        '寿命を迎えて', '尽きた', '天寿を全うして',
+        '天寿を全うさせて', '役目を終えて', '使命を終えて',
+        'お役目を終えて', '役割を終えて', '放棄しよう',
+        '諦めようと思う', '処分しかない', '処分しかないだろう',
+        'もう処分だ', '処分時期だ', '要らなくなった',
+        'もう不要', '用済みになった', '役目終了', '使命終了',
+        // pass CCXCIV: EN referee/ejection + library/archive idioms;
+        // JA 退場/失格/戦力外 + 図書/蔵書 chains
+        'yellow card again', 'tossed from the game', 'benched for good',
+        'sidelined for good', 'out of bounds', 'foul out', 'fouled out',
+        'disqualified', 'dq it', 'hit the showers',
+        'ejection seat for it', 'ejector seat', 'match penalty',
+        'game misconduct', 'five minute major', 'strike three',
+        'three strikes and its out', 'youre out of the game',
+        'out of the match', 'match over for it', 'technical foul',
+        'flagrant foul', 'personal foul on it', 'illegal play',
+        'offside for good', 'penalty box for it', 'in the penalty box',
+        'sin bin for it', 'toss it out of play', 'out of the tournament',
+        'elimination for it', 'knocked out of the bracket',
+        'out of the bracket', 'eliminated for sure',
+        'end of this book', 'book closed for good',
+        'put it back on the shelf', 'back on the shelf', 'reshelve it',
+        'library closed', 'library is closing', 'overdue and done',
+        'return it to the library', 'return to sender for it',
+        'book returned', 'fine for overdue', 'revoke its library card',
+        'take it off the shelf', 'archive this tab', 'into the archives',
+        'stored away forever', 'postmark it', 'return to sender tab',
+        'address unknown', 'dead letter for it', 'dead letter office',
+        'index it under closed', 'close the file on it',
+        'case file closed', 'file closed permanently',
+        'shred the documents', 'burn the records',
+        'box it and forget it', 'wrap it and forget it',
+        'レッドカード', 'レッドカードを出して', 'イエローカード二枚目',
+        '退場宣告', '退場を宣告', '反則負けだ', '反則だ',
+        '失格だ', '失格にして', '失格宣告', '出場停止',
+        '出禁だ', '出禁にして', 'ベンチ送り', 'ベンチに下げて',
+        '控えに下げて', '控えに戻れ', 'ファウルアウト', 'ファウルだ',
+        'ペナルティだ', 'ペナルティボックスへ', '場外だ',
+        '場外に出して', '場外ファウル', 'オフサイドだ',
+        '判定負けだ', 'ジャッジは失格', '審判の判定で終わり',
+        'ノーコンテスト', '没収試合だ', '戦線離脱',
+        '戦線離脱させて', '脱落だ', '脱落にして', '淘汰されて',
+        '敗退だ', '敗退にして', '投げられた', '立ち去れ試合から',
+        '本を閉じて', '本を閉じた', '閉じた本', '蔵書から外して',
+        '蔵書処分', '書庫に戻して', '書庫にしまって', '本棚に戻して',
+        '棚に戻して', '返却して', '返却期限切れ', '期限切れの本',
+        '延滞だ', '延滞金が発生', '貸出停止', '図書カード没収',
+        '借りる資格なし', 'アーカイブに移して', '記録を抹消して',
+        '文書をシュレッダー', '書類を燃やして', 'ファイルを閉じて',
+        '事件記録を閉じる', '巻物を閉じて', '巻物を畳んで',
+        '栞を挟んで閉じて', 'しおり挟んで閉じて', '本に別れを告げて',
+        '読み終わりだ', '読了だ', 'もう読まない本', '読み捨てる本',
+        'この本は終わり', '物語の終わり', '物語は終わり',
+        'あとがきだ', '奥付だ',
+        '補欠確定', 'レギュラー落ち', 'スタメン落ち', 'メンバー外して',
+        'メンバーから外して', 'チームから外れろ', 'チームを追放',
+        '追放された選手', '使えない選手', '戦力外通告', '戦力外通達',
+        '構想外だ', '構想外にして', '計画から外して', '外れてしまえ',
+        'ハズレだ', 'ハズレにして', '番外だ', '番外編にして',
+        '格下げだ', '降格にして', '二軍落ち', '二軍に落として',
+        '三軍送り', '育成落ち', '支配下外れ', '自由契約だ',
+        '契約解除して', '契約切れ', '解雇通告',
+        // pass CCXCV: EN finance/ledger/foreclosure idioms
+        // + JA 勘定締め/差押え/破産/畳み/取引終了 chains
+        'balance the books', 'settle the books', 'close the books',
+        'the books are closed', 'lock the ledger', 'close the ledger',
+        'the ledger is closed', 'end of the ledger', 'the final ledger',
+        'reconcile the books', 'reconcile the accounts', 'square the ledger',
+        'square the books', 'even the ledger', 'ledger balanced',
+        'books balanced', 'the numbers add up', 'the tally is done',
+        'final tally', 'the count is done', 'count done',
+        'final accounting', 'final settlement', 'close the account',
+        'shut the account', 'the account is settled', 'statement closed',
+        'settle the tab', 'settle my tab', 'settle up', 'settle the score',
+        'paid in full', 'debt forgiven', 'cancel the debt',
+        'write off the debt', 'write it off as a loss', 'loss declared',
+        'cut losses', 'cut my losses', 'stop loss', 'break even',
+        'retire the debt', 'forgive the loan', 'loan forgiven',
+        'the bill is due', 'pay the piper', 'collect payment',
+        'payment due', 'past due', 'the mortgage is due',
+        'the rent is due', 'rent collected', 'call in the debt',
+        'call in the loan', 'recall the loan',
+        'foreclose on this tab', 'repo this tab', 'garnish it',
+        'levy a lien', 'slap a lien on it', 'seize the assets',
+        'liquidate this tab', 'declare bankruptcy', 'go bankrupt',
+        'insolvent', 'chapter eleven', 'chapter 11',
+        'file for chapter 11', 'file for bankruptcy', 'receivership',
+        'the receiver is here', 'default on it', 'default declared',
+        'shut the business down', 'shut the plant down',
+        'wind up the company', 'dissolve the company',
+        'going out of business', 'out of business', 'going concern no more',
+        'fire sale', 'closeout sale', 'liquidation sale',
+        'shut the warehouse', 'inventory done', 'final inventory',
+        'stocktaking done', 'close of business', 'end of trading',
+        'the market closed', 'trading day done', 'bell rang',
+        'closing bell', 'final bell', 'market close',
+        'the exchange is closed', 'floor is closed', 'closing price set',
+        'the vault is closed', 'lock the vault', 'cash out the register',
+        'close the register', 'empty the register', 'night deposit',
+        'the bank is closed', 'close the bank', 'transfer it all',
+        'final transfer', 'last transaction', 'transaction complete',
+        'the drawer is balanced', 'register balanced',
+        'audit it', 'audit this tab', 'the auditors are here',
+        'the accountants are here', 'tax time', 'checkout time',
+        'check out now', 'end of fiscal year', 'fiscal year end',
+        'year end close', 'auction it off', 'auction the tab',
+        'sell it off',
+        '勘定を締めて', '帳を締めて', '帳面を締めて', '帳簿を閉じて',
+        '帳簿を閉める', '帳尻を合わせて', '決算だ', '決算をして',
+        '精算して', 'お勘定を', '勘定を払って', '支払いを済ませて',
+        '勘定済み', '払い済み', '借りを返して', '借金を返して',
+        '債務を整理して', '締め日だ', '締めの時間', '監査して',
+        '監査だ', '会計を締めて', '年度末だ', '期末だ', '月末締め',
+        '在庫を締めて', '棚卸しだ', '棚卸して', '金庫を閉めて',
+        '金庫をロック', '出納を締めて', 'レジを締めて', 'レジ締め',
+        '精算レジ', '売上を締めて',
+        '差押え命令', '財産を差し押さえて', '資産を差し押さえて',
+        '抵当に入れて', '抵当流れ', '質に入れて', '質流れ', '没収して',
+        '破産して', '自己破産', '倒産して', '倒産宣告', '破たん',
+        '経営破綻', '再建不能', '清算人', '管財人', '閉店清算',
+        '会社を畳んで', '店を畳んで', '商売を畳んで', '廃業して',
+        '閉業して', '畳み込んで', '店じまい',
+        '競売にかけて', '競売だ', '売り払って', '現金化して',
+        '換金して', '処分して換金', '取り立てて', '取立てだ',
+        '催促状', '督促状', '支払期限', '期限切れだ', '債権回収',
+        '回収して',
+        '取引終了', '市場閉場', '取引所が閉まる', '引けだ', '引け値',
+        '終値で確定', '大引け', '場が終わる', '持ち株を売って',
+        '全額引き出して', '口座を閉じて', '口座凍結', '取引停止',
+        '買収されて', '吸収合併',
+        '残高ゼロ', '赤字だ', '負債だらけ', '資金ショート', '倒れそう',
+        '潰れそう', '貸し倒れ', '不良債権', '損切りして', '損失確定',
+        '利確して', '塩漬けを処分', '評価損', '在庫一掃', '大処分市',
+        // pass CCXCVI: EN chore/spring-cleaning idioms (wipe/clean/laundry/curb/bin-day/
+        // reclaim/farewell-release) + JA 大掃除/ゴミ分別/仕舞い/断捨離/洗い流し chains
+        'wipe the slate', 'wipe the slate clean', 'clean the slate', 'wipe it out',
+        'wipe it away', 'clean it up', 'cleanup time', 'house cleaning', 'deep clean it',
+        'give it a wipe', 'give it a scrub', 'run it under water', 'soak it in bleach',
+        'squeegee it', 'squeegee the screen', 'air it out', 'air out the room',
+        'let some air in', 'exterminator', 'call the exterminator', 'call pest control',
+        'pest control', 'bug bomb it', 'deodorize it', 'scrubbing bubbles', 'chore time',
+        'chores done', 'cleaning day', 'on chore duty', 'put it in the hamper', 'hamper it',
+        'laundry day', 'wash day', 'iron it out', 'fold the laundry',
+        'off to the landfill', 'landfill bound', 'to the tip', 'tip it', 'tip run',
+        'to the dump', 'dump run', 'skip it in the skip', 'throw it in the skip',
+        'skip hire', 'bulk pickup day', 'bulk trash day', 'trash day', 'garbage day',
+        'bin day', 'trash pickup', 'rubbish collection', 'muscle it out', 'heave-ho',
+        'wheelie bin it', 'dustbin it', 'toss it in the bin', 'scrap heap it',
+        'rubbish heap', 'yard waste it', 'scheduled pickup', 'garbage truck',
+        'free the memory', 'reclaim the space', 'free up space', 'make room',
+        'clear space', 'make space', 'delete forever it', 'evict it from memory',
+        'gone for good this one', 'see it nevermore', 'adieu to it', 'sayonara to it',
+        'auf wiedersehen it', 'never see it again', 'never want to see it again',
+        'dont want to see it again', 'youre free now', 'be free now', 'set it free',
+        'free at last', 'rest easy now tab', 'send it packing', 'packing it off',
+        'ship it away', 'crate it up', 'box it and ship it', 'curbside it',
+        'leave it curbside', 'on the curb with it', 'to the incinerator', 'burn pile it',
+        'onto the bonfire', 'bonfire it', 'compost bin it', 'worm food', 'feed the worms',
+        '不要品処分', '不用品回収', '不用品を処分', '廃棄物処理', '粗大ゴミに出して',
+        'ゴミ屋敷掃除', '清掃員に頼んで', '清掃日', '収集日', 'ゴミ収集日', '朝のゴミ出し',
+        '集積所に出して', 'ゴミ置き場に出して', '燃えるゴミに出して', '燃えるゴミ',
+        '溜まったゴミ捨てて', '食べ残し捨てて', '要らない物捨てて', '生ゴミにして',
+        '残飯にして', '残飯処理', 'ゴミに出そう', 'ゴミにして', '分別して捨てて',
+        '分別しよう', '回収してもらって', '回収業者に頼んで', 'ネット回収', 'リサイクル回収',
+        'クリーンセンターに持ち込んで', '持ち込み処分', '処分場に持って行って', '廃棄場へ',
+        '焼却処分', 'ポイ捨てして', '捨て置いて',
+        'リユースに出して', 'フリマに出して', 'メルカリに出して', 'リサイクルショップに売って',
+        '買取に出して', '下取りに出して', '譲ってしまおう', '譲渡して', '寄付して',
+        '寄付に回して', '寄付箱へ',
+        '大掃除して', '大掃除だ', '大掃除の時間', '年末大掃除', '掃除機かけて',
+        '掃除機をかけて', 'ホウキで掃いて', '箒で払って', 'ほうきにて', '掃いて捨てて',
+        'はき捨てて', 'ちりとりで捨てて', '塵取りに入れて',
+        '賞味期限切れ捨てて', '消費期限切れ', '腐らせる前に', 'カビる前に捨てて',
+        '虫除けして', '害虫駆除して', '駆除業者を呼んで', '殺虫剤まいて', '燻して',
+        '殺菌して', '消毒して', '除菌して',
+        'しまい込んで', '奥にしまって', '仕舞い込んで', '仕舞ってしまって', '収納して',
+        '収拾して', '收拾して', 'かたづけおわり', '納戸にしまって', '物置に入れて',
+        '物置にしまって', '蔵に入れて', 'クローゼットにしまって', '押入れにしまって',
+        '押し入れに入れて', '屋根裏にしまって', '床下にしまって', '段ボールに入れて',
+        '箱詰めして', '梱包して', 'ガムテープで封して', '密封して',
+        '断捨離しよう', '断捨離して', '断捨離だ', '整理整頓して', '捨て活しよう',
+        'こんまりして', 'ときめかない', 'ときめかないから捨てて',
+        '洗濯物にして', '洗濯して', '水洗して', '水洗いして', '流してしまって',
+        '排水溝に流して', 'トイレに流して', '下水に流して', '浄化槽に入れて',
+        '土に埋めて', '堆肥にして', '土に還して', '地中に埋めて', '穴を掘って埋めて',
+        '古井戸に落として', '沼に沈めて', '海に捨てよう', '川に捨てて',
+        '水に流そう', '水に流してしまえ', 'お流れにして',
+        '尻拭いして', '処理して', 'もう見ないことにして', '見納めにして',
+        'さよならを言って', 'お別れを告げて', 'バイバイして', 'あばよと言って',
+        '風通しして', '換気して', '空気を入れ替えて',
+        // pass CCXCVII: EN garden/pruning/harvest idioms (clip/mow/weed/till/compost/
+        // cull/pesticide) + JA 剪定/草取り/収穫/耕す/伐採/堆肥 chains
+        'prune it away', 'prune it back', 'prune the branches', 'snip it away',
+        'trim it back', 'trim it away', 'trim the hedge', 'hedge trimmed',
+        'shear it', 'shear it off', 'clip it', 'clip it off', 'clip it away',
+        'clip the wings', 'lop it', 'lopped off', 'scythe it', 'scythe it down',
+        'sickle it', 'dead-head it', 'deadhead the flowers',
+        'mow the lawn', 'lawn mowed', 'weed it', 'pull the weeds',
+        'pull it up by the roots', 'by the roots', 'tear it up by the roots',
+        'uproot and discard', 'rake it up', 'rake it away', 'rake the leaves',
+        'leaf blown', 'blow the leaves', 'leaf it behind', 'clear the brush',
+        'clear-cut it', 'brush it away', 'bushwhack it',
+        'dig it out', 'till it back', 'plow it back', 'mulch it', 'mulched',
+        'shovel it out', 'shovel it away', 'spade it under',
+        'garden done', 'garden over', 'bed it down', 'garden burial',
+        'plant it deep', 'bury it in the garden', 'back to the soil',
+        'soil it under', 'earth it over', 'toss it in the compost',
+        'compost heap it', 'feed it to the garden', 'pot it away',
+        'repot it out', 'transplant it out', 'graft it away',
+        'harvest done', 'harvest over', 'harvest time', 'gather the harvest',
+        'reap what it sowed', 'thin the herd', 'thin the ranks', 'cull the herd',
+        'pick it bare', 'stump it out', 'grind the stump', 'fell it',
+        'fell the tree', 'timber for it', 'log it away',
+        'pesticide it', 'spray the pests', 'spray it with pesticide', 'herbicide it',
+        'roundup it', 'defoliate it', 'defoliation', 'let it die on the vine',
+        'die on the vine', 'left to rot', 'rot on the vine', 'let it dry out',
+        'parch it', 'scorch the earth', 'salt the ground', 'burn the field',
+        'slash and burn it', 'controlled burn it',
+        '剪定して', '剪定だ', '枝を剪定', '枝を切って', '枝切り', '枝を落として',
+        '剪定ばさみで', '大胆に剪定', '枯れ枝を切って',
+        '芝刈りして', '芝を刈って', '草を刈って', '草刈りして', '草むしりして',
+        '草取りして', '雑草を抜いて', '雑草抜き', '草をむしって', '除草して',
+        '除草剤まいて', '根っこから抜いて', '根こそぎ抜いて', '根元から切って',
+        '掘り起こして', '掘り返して', '耕して', '耕起して', '鋤き返して',
+        '鍬で耕して', '土起こし',
+        '落ち葉を掃いて', '落ち葉掃き', '枯れ葉を捨てて', '枯らして',
+        '枯れ木にして', 'しおらせて',
+        '収穫して', '収穫だ', '収穫時期', '刈り入れして', '刈り入れだ',
+        '刈り取って', '稲刈りして', 'もぎ取って', '摘み取って', '摘んで捨てて',
+        '間引きして', '間引いて', '摘心して', '摘芽して', '芽を摘んで',
+        '摘果して', '選果して',
+        '伐採して', '伐倒して', '切り倒して', '伐って', '皆伐して', '間伐して',
+        '株を抜いて', '切り株を掘って', '切り株処理', '庭木を伐って',
+        '園芸鋏で切って', 'ナタで切って', '鉈で切って', '斧で伐って',
+        'ノコギリで切って', '鎌で刈って', '刈払機で刈って', 'バッサリ切って',
+        'バッサリいって', '思い切って切って',
+        '植え替えて', '植え直して', '鉢を替えて', '鉢替え', '移植して',
+        '定植して', '庭仕舞い', '園芸処分',
+        '肥料にして', '肥料だ', '腐葉土にして', '落ち葉堆肥', '堆肥化して',
+        '緑肥にして', '鋤き込んで', 'すき込んで', '自然に還して',
+        '畑に埋めて', '畑に返して', '草を焼いて', '野焼きして', '焼畑して',
+        '枯れ草を燃やして',
+        // pass CCXCVIII: EN retirement/aged-out idioms (pasture/pension/museum/
+        // mothball/decommission) + JA 引退/隠居/退役/養老/陳腐/紙処分 chains
+        'out to pasture', 'pasture it', 'early retirement', 'forced retirement',
+        'mandatory retirement', 'golden handshake it', 'pension it',
+        'send it to the retirement home', 'retirement home for it',
+        'old folks home', 'send it to the old folks home', 'send it to the home',
+        'send it to a home', 'put it in a home', 'senior citizen tab',
+        'its too old for this', 'over the hill tab', 'long in the tooth',
+        'grey around the muzzle', 'wizened and done', 'washed out',
+        'washed up tab', 'has-been tab', 'yesterdays paper', 'ancient history it',
+        'relic it', 'museum piece it', 'put it in a museum', 'send it to the museum',
+        'museum it', 'cold storage it', 'mothballed', 'mothball fleet it',
+        'decommissioned', 'deactivated', 'retire the ship', 'drydock it',
+        'dry dock it', 'scuttle the ship', 'ship it off to pasture',
+        'out to pasture it goes',
+        '引退させて', '引退にして', '隠居させて', '隠居にして', '隠居でいい',
+        '引き際だ', '引き際にして', '引き際を見ろ', '退役させて', '退役にして',
+        '現役を退いて', '現役退場', '現役引退', '選手生命を終えて', '選手生命終了',
+        '養老先生', '養老院へ', '老人ホームへ', '老人ホーム送り', '施設に入れて',
+        '余生を送らせて', '余生にして', 'お払い箱にして', '用済みにして',
+        '年寄りは引っ込め', '老害は退け', '休ませてやれ', '退役軍人だ',
+        '寿退社して', '寿退社だ', '勇退して', '勇退だ', '退官して', '退官だ',
+        '退職させて', '退職にして', '早期退職', '定年退職', '定年だ', '定年にして',
+        '退任させて', '退任だ', '辞職させて', '辞職だ',
+        '除隊させて', '除隊だ', '除籍して', '除名して', '名簿から消して',
+        '籍を抜いて', '在籍終了', '退団させて', '脱退させて', '退会させて',
+        '脱会だ', '卒業させて', '卒業だ', '卒業にして', '旅立ちを促して',
+        '昔の人だ', '過去の人', '遅れてる', '時代遅れ', '時代遅れにして',
+        '旧世代', '前の世代', '型落ち', '型落ちにして', '陳腐', '陳腐化',
+        '陳腐にして', '化石', '化石にして', '骨董品', '骨董品にして', '骨董入り',
+        '年代物', '年代物にして', '前時代的', '前時代的にして', '古典にして',
+        '故紙にして', '紙くずにして', '紙切れにして', 'くしゃくしゃ丸めて',
+        '紙吹雪にして', '古紙回収', '古紙に出して', '資源ゴミ', '燃える紙',
+        '書類を捨てて', '書類処分', '機密文書処分', '帳簿を焼いて', '公文書破棄',
+        // pass CCXCIX: EN sewing/fabric-dismantle idioms (unstitch/ribbons/rags/
+        // remnants) + JA 裁断/裂き/ほどき/古布 chains
+        'unravel it all', 'unstitch it', 'unstitch it all', 'unsew it',
+        'rip out the seams', 'tear out the seams', 'pick out the stitches',
+        'snip the stitches', 'snip the threads', 'unpick it', 'unpick the seams',
+        'seam rip it', 'seam ripper it',
+        'fray it', 'fray it out', 'let it fray', 'cut it to ribbons',
+        'slice it to ribbons', 'tatter it', 'tattered and done',
+        'shred it to shreds', 'shred the fabric', 'tear the fabric',
+        'rip the cloth', 'slash the fabric',
+        'cut it up into rags', 'cut it into rags', 'rags for it', 'rag pile it',
+        'toss it in the rag bin', 'rag bin it', 'lint bin it', 'scraps for it',
+        'offcuts for it', 'selvage it away', 'baste it away', 'hem it out',
+        'pinking shears it', 'rotary cutter it', 'die cut it',
+        'cut it off the bolt', 'off the bolt', 'bolt end it', 'remnant it',
+        'remnant bin it', 'scrap bag it', 'knot it off',
+        'ほぐして', '解いてしまって', '解きほぐして', 'ほどいて',
+        '糸をほどいて', '糸を解いて', '糸を抜いて', '糸を切って',
+        '縫い目を解いて', '縫い目をほどいて', '縫い目を切って',
+        '縫い目から外して', '解き明かして捨てて',
+        '織りほぐして', '織りを解いて', '編みほぐして', '編み目を解いて',
+        '毛糸をほどいて', '編み物を解いて',
+        'ずたずたに切って', 'ズタボロにして', 'ボロ布にして', '布切れにして',
+        '刻んで捨てて', '切れ端にして', '裂け目を入れて', '破れ布にして',
+        'ほつれさせて', 'ほつれにして', '裁ち切って',
+        'はさみで切って', 'ハサミで切り刻んで', '鋏で裁断', 'カッターで切って',
+        '試し切りして', '見本切り', '裾を切って',
+        '端切れにして', '残布にして', '反物ごと捨てて', '裂き布にして',
+        '古布にして', '雑巾にして', 'ぞうきんにして', 'ウェスにして',
+        'ウエスにして', 'ハギレにして', '切れっぱしにして',
+        'when convenient close it', 'close it when convenient',
+        'when it suits you close it', 'close it when it suits you',
+        'if you dont mind too much close it', 'if its no bother close it',
+        'no hurry but close it', 'take your time but close it',
+        'whenever youre free close it', 'close it whenever youre free',
+        'when you have a second close it', 'when you have a sec close it',
+        'at some point today close it', 'before i forget close it',
+        'before it slips my mind close it',
+        'while youre thinking about it close it',
+        'while youre still in there close it',
+        'in your own time close it', 'when the mood strikes close it',
+        'the active tab close it', 'close the one im on',
+        'close whatever tab is open', 'close the current one',
+        'shut the current tab', 'kill the current tab',
+        'this page can close', 'this page can go', 'this one can go',
+        'close the one open', 'kill this one off', 'wrap this one up',
         'ウインドウを閉じて', '画面を閉じて', 'この画面を閉じて',
         '見てる画面を閉じて', '見ている画面を閉じて',
         'パネルを減らして', 'ウィンドウを減らして', 'パネルを減らす',
@@ -15470,6 +16149,8 @@ export class VoiceCommands {
         '間違えて閉じた', '間違えて消した', '間違えて閉じちゃった',
         'さっき閉じたやつ', '閉じたばっかり', '間違って閉じた',
         '間違って閉じちゃった', '閉じる前のタブ',
+        // pass CCLXXIX
+        '閉じたタブを復活', '閉じたタブ戻して', 'さっき閉じたやつ戻して', '元に戻してタブを',
         '閉じちゃいました', '閉じてしまいました', '閉じてしまいましたね',
         '閉じてしまったんです', '閉じちゃったんです', 'うっかり閉じた',
         'うっかり閉じちゃった', 'つい閉じた', 'つい閉じちゃった',
@@ -16293,6 +16974,8 @@ export class VoiceCommands {
       patterns: ['プライベートタブ', 'シークレットタブ', 'プライベートな新しいタブ',
         '新しいプライベートタブ', 'プライベートタブを開いて', '新しいシークレットタブ',
         '秘密のタブ', 'シークレットのタブ', 'プライベートのタブ', 'シークレットモード', 'シークレットモードで開いて',
+        // pass CCLXXX
+        'プライベートタブ開いて', 'private tab please', 'incognito tab please', 'シークレットウィンドウ',
         /new (private|incognito) tab/i,
         'private window', 'new private window', 'open a private window',
         'incognito window', 'new incognito window', 'open incognito window'],
@@ -16445,6 +17128,7 @@ export class VoiceCommands {
         '読め', '読み上げろ', '読んでよ',
         '読み上げを開始', '読み上げを開始して', '音読を開始', '読み始めて',
         '音読して', '音読してください', '読み聞かせて', '読み聞かせてくれ',
+        '読んでみり', '読んでてお願い', '読んでいて', 'ひらがなで読んで', 'カタカナで読んで',
         '読み上げてもらえますか', '朗読して', '朗読をお願い', '声で読んで',
         '音声で読んで', '声に出して読んで', '声に出して', '音読みして',
         '読み始めから', '先頭から読んで', '最初の行から読んで',
@@ -16497,6 +17181,7 @@ export class VoiceCommands {
     this.registerCommand('stop-reading', {
       patterns: ['読み上げを止めて', '読み上げ停止', '読み上げ中止', '読み上げ止めて',
         '読み上げをやめる', '読み上げをやめて', '読むのをやめて',
+        '読み上げストップ', '読むの止めてくれ',
         '声を止めて', '声を止めろ', '喋るのをやめて', '喋るな', '黙って',
         '読み上げを止める', '読み上げを終了',
         'おしゃべりを止めて', '喋らないで', 'しゃべらないで', 'しゃべるな',
@@ -16594,6 +17279,7 @@ export class VoiceCommands {
         '早く読んで', '速く読んで', '早めに読んで', '早めに読み',
         '読み上げ速度を上げて', '読み上げの速度を上げて', '話す速度を上げて',
         '話すスピードを上げて', '読み上げスピードを上げて', '速読して',
+        '速読で読んで', '速読で読み上げて',
         '読み上げが遅い', '読み上げが遅すぎる', 'ナレーションが遅い',
         'はやくして', 'はやくにして', '速くして', '速度を上げて', '速度あげて', 'スピードを上げて',
         '読み上げが遅い', '読み上げが遅すぎる', '速く読み上げて',
@@ -16669,6 +17355,8 @@ export class VoiceCommands {
         'ページ構造', '構造を教えて', 'このページの構成', 'コンテンツ一覧',
         'ヘッダー一覧', '目次を読み上げて', '目次を教えて', 'ページの目次',
         '目次はどこ', '目次はどこにある', 'アウトラインは', '目次は',
+        // pass CCLXXX
+        '見出しリスト', '見出しを一覧して', 'どんな見出しがある',
         /table of contents/i, /read (the )?(contents|toc|outline)/i,
         /read (all )?(the )?headings/i, /chapter list/i],
       action: () => {
@@ -16835,7 +17523,9 @@ export class VoiceCommands {
     this.registerCommand('next-heading', {
       patterns: ['次の見出し', '見出しへ', '次の見出しを読んで', '次のセクション',
         '次の章', '次のチャプター', '次の項目',
-        /next\s+heading/i],
+        /next\s+heading/i,
+        // pass CCLXXX
+        '見出しを進めて', 'heading forward', '次の見出しに進んで', '次見出し'],
       action: () => {
         const r = tabManager?.getActiveTab?.()?.nextHeading?.(1) || null;
         this.speak(r ? `${r.index}番目の見出し（全${r.total}）` : '見出しがありません');
@@ -16846,7 +17536,9 @@ export class VoiceCommands {
 
     this.registerCommand('prev-heading', {
       patterns: ['前の見出し', '前のセクション', '前の章', '前のチャプター',
-        '前の項目', /prev(?:ious)?\s+heading/i],
+        '前の項目', /prev(?:ious)?\s+heading/i,
+        // pass CCLXXX
+        '見出しを戻して', 'back a heading'],
       action: () => {
         const r = tabManager?.getActiveTab?.()?.prevHeading?.() || null;
         this.speak(r ? `${r.index}番目の見出し（全${r.total}）` : '見出しがありません');
@@ -16861,6 +17553,8 @@ export class VoiceCommands {
       patterns: ['URLをコピー', 'リンクをコピー', 'アドレスをコピー',
         'このページのリンク', 'ページのリンク', 'ページのリンクをコピー',
         'コピーして', 'ページをコピー', 'このページをコピー',
+        // pass CCLXXX
+        'urlコピーして', 'このページのアドレスコピー', 'copy this link',
         /copy\s+(the\s+)?(url|link|address)/i],
       action: () => {
         const url = onCopyUrl ? onCopyUrl() : null;
@@ -16876,6 +17570,8 @@ export class VoiceCommands {
       patterns: ['履歴を開いて', '履歴を見て', '履歴を表示', '履歴を見せて',
         '読んだ履歴', '読書履歴', '閲覧した履歴', '訪れたページ',
         '閲覧履歴を見せて', '履歴はどこ', '履歴はどこにある',
+        // pass CCLXXVIII
+        '履歴見せて', '閲覧履歴を開いて',
         /open\s+(?:the\s+)?history/i, /show\s+(?:the\s+)?history/i,
         /^history$/i, /my history/i, /browsing history/i,
         /pull up (the )?history/i, /show me (?:the )?history/i],
@@ -16953,7 +17649,9 @@ export class VoiceCommands {
         'タブの一覧', 'タブリスト', 'タブ全部', '開いてるのは', '開いてるもの',
         'すべてのタブを教えて', 'タブを全部読んで', '一覧を読んで',
         'すべてのタブを読んで', '全部のタブ',
-        '何が開いてる', '何が開いてますか', '今何が開いてる',
+        '何が開いてる', '何が開いてますか', '今何が開いてる', 'いま何が開いてる',
+        'いま何が開いてますか', 'いま何を見てる', 'いま何を見てますか',
+        'whatre my tabs', 'whatre the tabs', 'howre the tabs', 'whatve i got open',
         '何を開いてる', '開いているもの', '開いてるものは', '開いてるやつ',
         '開いているものは', 'ぜんぶのタブ', 'すべてのタブは',
         '開いてるウィンドウ', '開いているウィンドウ',
@@ -17028,6 +17726,7 @@ export class VoiceCommands {
     this.registerCommand('close-other-tabs', {
       patterns: ['他のタブを閉じて', '他のタブを閉じる',
         '他のタブを全部閉じて', 'ほかのタブを全部閉じて',
+        '他のは閉じていいよ', '残りは全部閉じて',
         'このタブだけ残して', 'このタブだけを残して',
         'このタブ以外を閉じて', 'このタブ以外を全部閉じて',
         'このタブ以外のタブを閉じて', 'このタブ以外をすべて閉じて',
@@ -17038,6 +17737,8 @@ export class VoiceCommands {
         'close the rest', 'close everything else', 'close all but this',
         'close all except this', 'keep just this one', 'close the others',
         'close other tabs', 'close all the rest',
+        // pass CCLXXVIII
+        '他のタブ全部閉じて', 'close all the other ones', 'これ以外閉じて',
         'except this one', 'all but this one', 'all but this tab', 'all but one',
         'close all but one', 'close everything except this one', 'close everything but this',
         'このタブ以外', 'このタブ以外のタブ', 'これ以外のタブ', 'これだけ残して',
@@ -17055,7 +17756,10 @@ export class VoiceCommands {
     });
 
     this.registerCommand('close-tabs-right', {
-      patterns: ['右のタブを閉じて', '右側のタブを閉じて', /close\s+tabs?\s+to\s+the\s+right/i],
+      patterns: ['右のタブを閉じて', '右側のタブを閉じて', /close\s+tabs?\s+to\s+the\s+right/i,
+        // pass CCLXXX
+        '右側のタブ全部閉じて', 'close the tabs to the right', 'これより右のタブ閉じて', 'これ以降のタブ閉じて',
+        '右のタブ閉じて', '右にあるタブ閉じて'],
       action: () => {
         tabManager?.closeTabsToRight?.();
         return { action: 'close-tabs-right' };
@@ -17069,6 +17773,8 @@ export class VoiceCommands {
     // tab literally named '左'.
     this.registerCommand('close-tabs-left', {
       patterns: ['左側のタブを閉じて', '左のタブを閉じて', '左側を閉じて',
+        // pass CCLXXX
+        '左側のタブ全部閉じて', '左のタブ閉じて', '左にあるタブ閉じて',
         /close\s+tabs?\s+to\s+the\s+left/i, /close\s+tabs?\s+on\s+the\s+left/i],
       action: () => {
         tabManager?.closeTabsToLeft?.();
@@ -17083,6 +17789,9 @@ export class VoiceCommands {
     this.registerCommand('close-duplicate-tabs', {
       patterns: ['重複タブを閉じて', '重複したタブを閉じて', '同じタブを閉じて',
         '同じページを閉じて', '重複を閉じて', '重複タブを消して',
+        // pass CCLXXX
+        '重複タブ閉じて', '同じタブは閉じて', '同じタブ閉じて',
+        'かぶってるタブ閉じて', 'かぶってるタブを閉じて',
         /close duplicate tabs/i, /close duplicated tabs/i],
       action: () => {
         const n = tabManager?.closeDuplicateTabs?.() ?? 0;
@@ -17097,7 +17806,10 @@ export class VoiceCommands {
     this.registerCommand('close-unpinned-tabs', {
       patterns: ['ピン留め以外を閉じて', 'ピン以外を閉じて', 'ピン留め以外のタブを閉じて',
         'ピンしていないタブを閉じて', 'ピン留めしていないタブを閉じて', '固定していないタブを閉じて',
-        '固定以外を閉じて', /close unpinned tabs/i, /close (all )?unpinned/i],
+        '固定以外を閉じて', /close unpinned tabs/i, /close (all )?unpinned/i,
+        // pass CCLXXX
+        'ピン留めしてないの閉じて', 'ピンしてないの閉じて',
+        'ピンしてないタブ閉じて', 'ピン留めされてないタブ閉じて'],
       action: () => {
         const n = tabManager?.closeUnpinnedTabs?.() ?? 0;
         this.speak(n ? `${n}個のタブを閉じました` : 'ピン留め以外のタブはありません');
@@ -17111,6 +17823,8 @@ export class VoiceCommands {
       patterns: ['通常タブを全部閉じて', '通常のタブを閉じて', '通常タブを閉じて',
         'プライベート以外を閉じて', 'プライベート以外のタブを閉じて',
         'プライベートタブ以外を閉じて',
+        // pass CCLXXX
+        '普通のタブだけ閉じて',
         /close (all )?(normal|non-?private) tabs/i],
       action: () => {
         const n = tabManager?.closeNormalTabs?.() ?? 0;
@@ -17128,6 +17842,10 @@ export class VoiceCommands {
         'このタブを複製', 'このタブを複製して', '同じタブを開いて',
         '同じタブをもう一つ開いて', 'もう一つ同じのを開いて', '同じのをもう一つ',
         'もうひとつ開いて', 'もう一つ開いて',
+        // pass CCLXXVIII
+        'このタブ複製して', 'dup this tab', 'このタブもう一枚',
+        'もう一枚同じの', '同じタブもう一枚', 'このタブコピー',
+        'タブコピーして', 'このタブコピーして',
         /duplicate (this )?tab/i, /^duplicate$/i, /open (a |another )?copy/i,
         'clone it', 'clone this tab', 'copy this tab', 'duplicate this page', /open a duplicate/i],
       action: () => {
@@ -17145,16 +17863,20 @@ export class VoiceCommands {
         'このページをブックマーク', 'ブックマークに追加', 'ブックマークする',
         'ブックマークして', 'ページを保存', 'ページを保存して', 'このページを保存して',
         'お気に入りに追加', 'お気に入り登録', 'お気に入りに登録',
+        // pass CCLXXVIII
+        'ブクマして', 'このページをブクマ', 'ブックマーク登録', 'ブクマ登録して',
+        'favorite this page', '後で読むために保存', 'お気に入り追加', 'お気に入りにして',
+        'add to my bookmarks',
         'しおりを挟んで', '栞を挟んで', 'しおりを挟む',
         '後で読む', 'あとで読む', 'あとで読み直す', 'あとで読み返す', '読書リストに追加',
         '保存して', 'ブックマークに保存', '保存しておいて',
-        /(?<!did i )bookmark (this|this page|the page|page)/i,
+        /(?<!did i )(?<!un)bookmark (this|this page|the page|page)/i,
         /add (?:this |the )?(?:page |tab |it )?(?:to )?(?:bookmarks?|favo?rites)/i,
         /save (?:this |the |it )?(?:page |tab )?(?:to )?(?:the )?(?:bookmarks?|favo?rites)/i,
         'このページをブックマークして', 'ブックマークに追加して', 'ブックマークに登録して',
         /save (this|the) page/i,
         /add (this |it )?to (the )?reading list/i, /save (this |it )?for later/i,
-        /^save it$/i, /bookmark it/i, /remember (this|that|this page)/i,
+        /^save it$/i, /(?<!un)bookmark it/i, /remember (this|that|this page)/i,
         /stash (it|this)/i, /keep this page/i, /save this for later/i,
         /remember (this |the )?page/i, /dont lose (this|it)/i
       ],
@@ -17193,6 +17915,8 @@ export class VoiceCommands {
         '保存した記事', '保存ページ', '読みたいリスト', 'リーディングリスト',
         '後で読むリスト', 'ウォッチリスト', '保存したページ', '保存したもの',
         '保存済み', 'お気に入りの記事', 'ブックマークした記事',
+        // pass CCLXXVIII
+        'ブックマーク見せて', 'ブクマ開いて',
         /open (the )?bookmarks/i, /show (the )?bookmarks/i,
         /bring up (the )?bookmarks/i, /open bookmarks/i,
         /^bookmarks$/i, /^favorites$/i, /my (bookmarks|favorites)/i],
@@ -17247,6 +17971,7 @@ export class VoiceCommands {
     this.registerCommand('keyboard', {
       patterns: ['キーボード', 'キーボードを開く', 'キーボードを閉じる',
         'キーボードを出して', 'キーボードを閉じて', 'キーボードを表示',
+        'キーボード出して', 'キーボード見せて', 'キーボードを開いて',
         'キーボードを出す', 'キーボードをしまって', 'キーボードを隠して',
         'キーボードをしまう', 'キーボードを収納',
         /show keyboard/i, /hide keyboard/i, /^keyboard$/i],
@@ -17473,6 +18198,8 @@ export class VoiceCommands {
       // lookaheads keep them on contrast-status instead of toggling
       // (dispatch-verified).
       patterns: [/ハイコントラスト(?!は(?:$|どう|か|今|現在|です)|か(?:$|。|？|です))/, /高コントラスト/,
+        // pass CCLXXIX
+        'コントラスト上げて', 'コントラストを上げて',
         /(?<!is )high contrast(?!.*(?:is (?:on|off|enabled)))\?*/i],
       action: (transcript) => {
         let want;
@@ -17539,6 +18266,8 @@ export class VoiceCommands {
       patterns: ['セッションを復元', '前のセッションを復元',
         '前回のタブを開いて', '前回のセッション', '前回のセッションを開いて',
         '最後のセッション', '前回のタブ',
+        // pass CCLXXX
+        'セッション復元して',
         /restore (my )?(session|previous session|last session)/i],
       action: () => {
         const n = this._onRestoreSession ? this._onRestoreSession() : 0;
@@ -17642,6 +18371,9 @@ export class VoiceCommands {
         /字幕(?:を)?(?:出して|見せて|隠して)/, /キャプション(?:を)?(?:出して|見せて|隠して)/,
         /字幕(?:を)?(?:表示|非表示|出す|つける)/, /キャプション(?:を)?(?:表示|非表示|出す)/,
         '字幕あり', '字幕なし', 'キャプションあり', 'キャプションなし',
+        // pass CCLXXIX
+        'キャプションつけて', '字幕つけて', 'キャプションオン', 'キャプションオフ',
+        'hide the captions', 'show the captions',
         /(captions|subtitles) (on|off)/i, /(enable|disable|turn on|turn off) captions/i,
         /show captions/i, /hide captions/i],
       'Toggle captions');
@@ -17669,6 +18401,8 @@ export class VoiceCommands {
     // cycles forward; a named preset lands directly (JA aliases included).
     this.registerCommand('comfort-preset', {
       patterns: [/コンフォート/, /comfort (preset|mode)/i,
+        // pass CCLXXX
+        '動きに弱いので快適設定に', '快適モードにして',
         /comfort (to |preset to |mode to )?(sensitive|moderate|tolerant|disabled|off)/i],
       action: (transcript) => {
         const PRESETS = {
@@ -17719,6 +18453,8 @@ export class VoiceCommands {
         '小さくして', '近くで見せて', '近くで', '近くで読みたい',
         'こっちに来て', 'こっちにきて', '手前にして', '手前に来て',
         '奥にして', '奥に動かして', '奥に寄せて',
+        // pass CCLXXIX
+        'パネル近づけて', '画面近づけて', 'パネル遠ざけて',
         /too (far|close)/i,
         /panel (closer|nearer|further|farther|away|bigger|smaller)/i,
         /(move|bring) (it|the panel) closer/i, /push (it|the panel) (away|back)/i,
@@ -17845,6 +18581,7 @@ export class VoiceCommands {
     // empty tab is a no-op rather than an error.
     this.registerCommand('reload-all', {
       patterns: ['すべて再読み込み', '全部再読み込み', 'すべてのタブを再読み込み',
+        '全部リロード', '全タブ更新', 'すべて更新して',
         'reload em all', 'reload all of them', 'refresh them all',
         'refresh all of them', 'refresh every tab', 'reload every tab',
         /reload all( tabs)?/i],
@@ -17932,6 +18669,7 @@ export class VoiceCommands {
       patterns: ['どのタブが音出てる', '音が出てるタブ', '音が出ているタブ',
         '音が鳴ってるタブ', '音が鳴っているタブ', 'どのタブが鳴ってる',
         '音がなるタブ', 'うるさいタブ', 'どこから音が出てる',
+        '音が出てるのはどれ',
         'mute them all', 'mute every tab', 'mute the other tabs', 'silence all tabs',
         new RegExp('mute (?:the )?(?:' + EN_NUM + '|[0-9]+)(?:st|nd|rd|th)? tab', 'i'),
         new RegExp('(?:un)?mute (?:the )?tab (?:number )?(?:' + EN_NUM + '|[0-9]+)', 'i'),
@@ -17946,6 +18684,7 @@ export class VoiceCommands {
     });
     this.registerCommand('tab-meta', {
       patterns: ['誰が書いた', '著者は誰', '作者は誰', '書いたのは誰',
+        'このタブの情報', 'タブの詳細',
         'この記事の著者', '著者を教えて', '作者を教えて',
         '何年の記事', 'いつの記事', 'いつ書かれた', 'いつ公開された',
         '公開日は', '公開日を教えて', '記事の日付', 'いつのニュース',
@@ -17974,7 +18713,7 @@ export class VoiceCommands {
 
     this.registerCommand('tab-by-name', {
       patterns: [new RegExp('^(?!(?:さっき|最後|最初|前|次|ピン|左|右|何番目|何枚目|何個目|現在|このタブ|秘密|シークレット|プライベート|一番左|一番右' +
-        '|一つ右|一つ左|ひとつ右|ひとつ左|右隣|左隣|隣|どの|今どの|今|最近|使用中|アクティブな|選択中|幾つ|何個|何個か|いくつか|幾つか|違う|真ん中|左側|右側|もっと))((?:(?!(?:この|その|あの)タブ).)+)のタブ(?!を|に|は|のタイトル)'),
+        '|一つ右|一つ左|ひとつ右|ひとつ左|右隣|左隣|隣|どの|今どの|今|いま|最近|使用中|アクティブな|選択中|幾つ|何個|何個か|いくつか|幾つか|違う|真ん中|何枚|何タブ|今何枚|タブ何枚|タブ枚数|左側|右側|もっと|全部|全て|すべて|他))((?:(?!(?:この|その|あの)タブ).)+)のタブ(?!を|に|は|のタイトル)'),
       /^tab (?:named|called) (.+)$/i,
       new RegExp('^switch to (?!the (?:' + EN_NUM + '|[0-9]+)(?:st|nd|rd|th)?\\s+tab)' +
         '(?:the )?(?!next\\b|previous\\b|(?:' + EN_NUM + ')(?:st|nd|rd|th)?\\s+tab\\b|[0-9]+\\b)(.+) tab$', 'i'),
@@ -18015,6 +18754,9 @@ export class VoiceCommands {
       patterns: [// pass CCLXXVI: identity/status queries
         'what have i got open', 'tell me about this tab', 'whats the current tab',
         'whats on this tab', 'このタブは何', '今のタブって何',
+        '今のタブ何', '現在のタブ教えて', 'いま何見てる',
+        'アクティブタブ教えて', 'アクティブなタブ教えて',
+        'いまのタブ', '今のタブ',
         'describe what im seeing', 'what do i have open', '今見てるのは',
         'まだ開いてる?', 'まだ開いてる', 'まだあいてる', 'このページ見せて', 'このページ見て', 'ページの内容教えて', '閉じる寸前', '閉じるところです', 'このタブについて', 'このタブは', 'タブの状態', 'ページ情報',
         '閉じてもらったよ', '閉じてもらったんだ', '閉じてくれた',
@@ -18055,6 +18797,8 @@ export class VoiceCommands {
         '閉じとるんよ', '閉じとるんだけど', '閉じとるばい', '閉じとるわい',
         'このページについて', 'ページについて', 'ページについて教えて',
         'どのタブか忘れた', 'どのタブだっけ', 'どのタブを見てる', '今どのタブ',
+        'どのタブ見てる', 'アクティブなタブは', 'アクティブはどれ', 'どれが開いてる',
+        'wheres my tab',
         'このページの情報', 'サイト情報', 'このサイトの情報',
         'このサイトについて', 'このタブについて教えて',
         'どんなサイト', 'どんなタブ', 'どんなところ', 'どんなページは',
@@ -18136,7 +18880,9 @@ export class VoiceCommands {
         '閉じてる', '閉じている', '閉じたか', '閉じましたか', '開いてる', '開いている',
         '今見てるタブ', '今見ているタブ', '今開いてるタブ', '選択中のタブ',
         /describe (the )?tab/i, /^page info$/i, /^site info$/i,
-        'hows it look', 'how does it look', 'whats on here', 'what does it look like'],
+        'hows it look', 'how does it look', 'whats on here', 'what does it look like',
+        // pass CCXC: presence-state reports
+        'the ghost is gone'],
       action: () => {
         const tabs = tabManager?.tabs || [];
         const i = tabManager?.activeIndex ?? -1;
@@ -18184,7 +18930,9 @@ export class VoiceCommands {
     });
     this.registerCommand('last-tab', {
       patterns: ['最後のタブ', '最後のタブを見せて', '一番右のタブ', '右端のタブ', '右の端のタブ', /last tab/i, /rightmost tab/i,
-        '最後のやつ', '末尾のやつ', '最後の方のタブ', 'the last one'],
+        '最後のやつ', '末尾のやつ', '最後の方のタブ', 'the last one',
+        // pass CCLXXIX
+        '最後のタブにして'],
       action: () => {
         const tabs = tabManager?.tabs || [];
         if (!tabs.length) {
@@ -18232,6 +18980,7 @@ export class VoiceCommands {
         '静音', 'サイレント', 'サイレントモード', '無音', '無音モード',
         '音なし', '音なしにして', '音を出さないで', '音を出さない', '音を消す', '消音モード',
         'タブのミュート', 'このタブをミュート', 'タブをミュート', 'タブを消音',
+        '動画の音消して',
         'このページをミュート', 'ページをミュート', 'サイトをミュート',
         '全部ミュート', '全体をミュート', '消音して', 'ミュートして',
         '音消して', '声を消して', '声を出さないで', '黙らせて',
@@ -18351,7 +19100,8 @@ export class VoiceCommands {
         'URLを表示', 'アドレスを読んで', 'URLは',
         'このページのURL', 'ページのアドレス', 'このページのアドレス', 'URLを言って',
         '今のページのアドレス', '今のページのURL', 'ページURL', 'アドレスを言って',
-        '今のURL', '現在のURL', 'アドレスは', 'URLは何',
+        '今のURL', '現在のURL', 'アドレスは', 'URLは何', 'wheres the url',
+        'アドレス教えて', 'アドレスバー見せて', 'show me the address',
         /(read|say|what is|what's|whats) (the |this )?(url|address)/i,
         /(page|tab) (url|address)/i, /^the (url|address)$/i],
       action: () => {
@@ -18374,10 +19124,15 @@ export class VoiceCommands {
         'bin all the tabs', 'kill all the tabs', 'shut all the tabs', 'nuke the tabs',
         'nuke all the tabs', 'wipe all tabs', 'wipe all the tabs', 'clear all tabs', 'clear out the tabs', 'clean out the tabs', 'empty the tabs', 'purge the tabs', 'purge all tabs', 'purge all the tabs', 'purge them all', 'finish it all off', 'finish it all', 'finish them all off', 'close shop', 'shut shop', 'close the shop', 'shut the shop',
         'clear the tabs', 'clear all the tabs', 'close every single tab', 'close every tab',
-        'chuck all the tabs', 'ditch all the tabs', 'ditch the tabs','全てのタブを畳んで', '全部畳んで', 'タブを畳んで', '畳んで', '畳んでしまいなさい', '畳んでおくんだ', '畳んじまいな', '畳んじまったほうがいい', '畳みゃあいい', '畳みゃいい', '畳めや', '畳まんかい', '畳まへんか', '畳まずにはいられない', '畳まねばならん', '畳まなければならん', '畳むしかなかろう', '畳むに限ります', '畳むが筋だ', '畳むが順当だ', '畳むが妥当だ', '畳むが本懐', '畳むが定石', '畳むがセオリー', '畳むが常識', '畳む一択だ', '畳むべきなんじゃないか', '畳むべきなんじゃない', '畳むべきかも', '畳むべきだと思うよ', '畳むべきだと思うけど', '畳むべきだと思うんだけど', '畳むべきだと思うんだが', '畳むべきだと思うわ', '畳むべきだと考える', '畳むべきだと考えます', '畳むべきだと存じます', '畳むべきだと判断する', '畳むべきだと判断します', '畳むべきとの判断だ', '畳むべきとの結論だ', '畳むべきとの見解だ', '畳むべきとの見解です', '畳むべきとの答えだ', '畳むべきとの回答だ', '畳んだらいいのに', '畳んでおくべきだった', '畳んでおくべきだったな', '畳もうと思ってた', '畳もうと思ってたんだ', '畳もうと思っていた', '畳もうとしていた', '畳もうとしてた', '畳もうと思った', '畳もうと思ったんだ', '畳もうかと思った', '畳もうかと思ってる', '畳もうかと思う', '畳もうかと', '店を畳め', '店を畳むんだ', '畳む時間だ', '畳み時だ', '全部殺せ', '全部消せ', 'すべてのタブを閉じて', 'すべてのタブを閉じる', '全部のタブを閉じて',
+        'chuck all the tabs', 'ditch all the tabs', 'ditch the tabs','全てのタブを畳んで', '全部畳んで', 'タブを畳んで', '畳んで', '畳んでしまいなさい', '畳んでおくんだ', '畳んじまいな', '畳んじまったほうがいい', '畳みゃあいい', '畳みゃいい', '畳めや', '畳まんかい', '畳まへんか', '畳まずにはいられない', '畳まねばならん', '畳まなければならん', '畳むしかなかろう', '畳むに限ります', '畳むが筋だ', '畳むが順当だ', '畳むが妥当だ', '畳むが本懐', '畳むが定石', '畳むがセオリー', '畳むが常識', '畳む一択だ', '畳むべきなんじゃないか', '畳むべきなんじゃない', '畳むべきかも', '畳むべきだと思うよ', '畳むべきだと思うけど', '畳むべきだと思うんだけど', '畳むべきだと思うんだが', '畳むべきだと思うわ', '畳むべきだと考える', '畳むべきだと考えます', '畳むべきだと存じます', '畳むべきだと判断する', '畳むべきだと判断します', '畳むべきとの判断だ', '畳むべきとの結論だ', '畳むべきとの見解だ', '畳むべきとの見解です', '畳むべきとの答えだ', '畳むべきとの回答だ', '畳んだらいいのに', '畳んでおくべきだった', '畳んでおくべきだったな', '畳もうと思ってた', '畳もうと思ってたんだ', '畳もうと思っていた', '畳もうとしていた', '畳もうとしてた', '畳もうと思った', '畳もうと思ったんだ', '畳もうかと思った', '畳もうかと思ってる', '畳もうかと思う', '畳もうかと', '店を畳め', '店を畳むんだ', '畳む時間だ', '畳み時だ', '全部殺せ', '全部消せ', 'すべてのタブを閉じて', 'すべてのタブを閉じる', '全部のタブを閉じて', 'たたんで', 'タタんで',
+        '畳みかけて', '畳んでしまって',
+        // pass CCXC: JA mass-withdrawal
+        '全員撤退', '撤退開始', '総撤退', '一斉撤収', '一斉撤退',
         '全部閉じてほしい', '全部消して', '全部消えて', 'みんな閉じて', 'すべて閉じて',
         '全て閉じて', '全部閉じて', 'タブを全部閉じる', '全部のタブを閉じる',
         '全部タブを閉じて', 'タブを全て閉じて', '全部のタブを消して',
+        // pass CCLXXVIII
+        '全部のタブ閉じて', 'タブ全部消して',
         '全部閉めて', 'すべて閉めて', '全部のタブを閉めて', '全て閉める',
         'タブを全部閉じて', '全タブを閉じて', '全タブ閉じて', '全タブ閉じ', '全タブを閉じる',
         '全タブ閉じる', 'タブ全部閉じて', 'タブをすべて閉じて',
@@ -18490,6 +19245,8 @@ export class VoiceCommands {
     listCmd('bookmarks-list', 'ブックマーク', this._onBookmarkList,
       ['ブックマーク一覧', 'ブックマークを読み上げ', 'ブックマークを読んで',
         'お気に入りを読んで', 'お気に入り一覧を読んで',
+        // pass CCLXXVIII
+        'ブックマーク読み上げて', 'ブックマーク何がある',
         /list\s+(my\s+)?bookmarks/i],
       'Read the bookmark list');
     listCmd('history-list', '履歴', this._onHistoryList,
@@ -18537,7 +19294,7 @@ export class VoiceCommands {
         /stop everything/i, /stop all/i, /cancel all/i, /cancel everything/i,
         'enough', 'thats enough', 'that will do', 'enough of that',
         'cut it out', 'cut that out', 'knock it off', 'pack it in',
-        'wrap it up', 'wrap up', 'call it', 'call it a day', 'call it quits', 'thats a wrap',
+        'wrap it up', 'wrap up', 'call it', 'call it a day', 'call it quits', 'calling it quits', 'thats a wrap',
         'knock that off', 'cut it', 'quit it', 'quit that', 'cease', 'desist', 'halt',
         'thatll do', 'that will do it', 'thats plenty', 'that is enough',
         'no more of that', 'no more please', 'enough now', 'enough of this',
@@ -18562,6 +19319,7 @@ export class VoiceCommands {
     // secure'/'このページは安全ですか' answers from the scheme, honestly.
     this.registerCommand('security-status', {
       patterns: ['このページは安全ですか', '安全かどうか', '安全ですか', 'httpsか',
+        'このサイト安全', '安全かどうか教えて', 'is this site safe', 'httpsか確認',
         '証明書は', '証明書はどう', 'HTTPSですか', '安全なサイトですか',
         'セキュリティ状態', '危険なサイト', 'セキュアですか',
         '危険ですか', '危ないですか', '暗号化されてる', '暗号化されている',
@@ -18622,6 +19380,8 @@ export class VoiceCommands {
         'リンクのURLをコピー', 'リンク先をコピー',
         '全部選択して', 'すべて選択して', 'テキストを選択', 'テキストをコピー',
         '選択してコピー', '部分をコピー',
+        // pass CCLXXX
+        '選択をコピー',
         /copy (the |this )?selection/i, /copy this part/i,
         /^select all$/i, /select (the )?(all|page|text|paragraph)/i,
         /copy (the |this )?page/i, /copy (the )?text/i],
@@ -18678,6 +19438,7 @@ export class VoiceCommands {
     // heading TEXT itself (NVDA 'read current heading' parity).
     this.registerCommand('read-heading', {
       patterns: ['この見出しを読み上げ', '見出しを読んで', '見出しは何',
+        'この見出し読んで',
         '見出しを読み上げて', '見出しを読み上げ', '何見出し目', '見出し番号は',
         '今は何番目の見出し',
         /read (the |current |this )?heading/i, /what('s| is) the heading/i],
@@ -18905,6 +19666,8 @@ export class VoiceCommands {
         'さっきのサイトは', '前に見たサイト', '最後に見たのは',
         '一番最後に見たページ',
         '前に来たことある', '来たことある', '前に見たことある',
+        // pass CCLXXVIII
+        'さっきのページ何だっけ',
         /latest history/i, /most recent (page|history|visit)/i,
         /when did i visit/i, /did i visit/i, /have i been here/i,
         /was i here before/i, /have i been here before/i, /did i (read|see) this( already| before)?/i],
@@ -18951,6 +19714,8 @@ export class VoiceCommands {
     // heading-count — headings-left's total twin.
     this.registerCommand('heading-count', {
       patterns: ['見出しの数', '見出しは何個', '見出しがいくつ',
+        // pass CCLXXX
+        '見出し何個',
         /how many headings/i, /heading count/i],
       action: () => {
         const h = tabManager?.getActiveTab?.()?.headingHere?.() || null;
@@ -18965,6 +19730,7 @@ export class VoiceCommands {
     // Copy the page title — copy-url's pair for the share surface.
     this.registerCommand('copy-title', {
       patterns: ['タイトルをコピー', 'ページ名をコピー',
+        'タイトルコピー', 'コピータイトル', '名前をコピー', 'ページのタイトルをコピー',
         /copy\s+(the\s+)?(page\s+)?title/i],
       action: () => {
         const title = this._onCopyTitle ? this._onCopyTitle() : null;
@@ -18978,7 +19744,8 @@ export class VoiceCommands {
     // parity. readAloud owns the start/nothing-to-read announcements.
     this.registerCommand('read-here', {
       patterns: ['ここから読み上げ', 'ここから読み上げて', 'ここから読んで',
-        'ここを読んで', 'この辺を読んで',
+        'ここを読んで', 'この辺を読んで', 'そこから読んで', 'そこから読み上げて',
+        '今のとこから読んで', '今の場所から読んで', '今いるとこから読んで',
         '続きを読んで', '続きから読んで',
         '残りを読んで', '残り全部読んで', '残りを全部読んで',
         '続きを全部読んで', 'あとの文を読んで',
@@ -19159,9 +19926,12 @@ export class VoiceCommands {
     // find-in-page — searching for the word is a legitimate query.
     this.registerCommand('find-status', {
       patterns: ['何件目', 'ヒットは何件', '何件ヒット',
+        '検索結果いくつ', '検索結果何個', '検索何件', '検索いくつあった',
+        'いくつヒット', '何ヒット', '何箇所ヒット', '何箇所ある',
         '見つからなかった', '見つからない', 'ヒットしない', '何件見つかった',
         'ヒット数', '見つかった数', 'ヒットは何個',
         '検索結果は何件', '件数は', '検索ヒット数', '検索結果の数',
+        '検索結果何件', '何件あった', 'マッチはいくつ', '検索いくつ',
         /how many (matches|hits)/i],
       action: () => {
         const res = this._onFindStatus ? this._onFindStatus() : null;
@@ -19201,7 +19971,7 @@ export class VoiceCommands {
     // parity (say-again reads the caption, this reads the article).
     this.registerCommand('read-line', {
       patterns: ['この行を読んで', '今の行を読んで', '現在の行を読み上げ',
-        '行を読んで', '今の行を読み上げて', '今の行を読み上げ',
+        '行を読んで', '今の行を読み上げて', '今の行を読み上げ', '一行読んで',
         /read (the )?(current )?line/i],
       action: () => {
         const line = this._onReadLine ? this._onReadLine() : null;
@@ -19215,10 +19985,12 @@ export class VoiceCommands {
     // wrap-and-announce shape as next-heading.
     this.registerCommand('next-paragraph', {
       patterns: ['次の段落', '段落を進め', '読み上げをスキップ', '次をスキップ',
+        // pass CCLXXX
+        '段落を進めて', 'paragraph forward',
         // 'skip ahead' is end-anchored so 'skip ahead 4 paragraphs' reaches
         // paragraph-skip-n instead of stepping once.
         'スキップして', '先読みして', '読み飛ばして',
-        '飛ばして', '読み飛ばす', '飛ばす',
+        '飛ばして', '読み飛ばす', '飛ばす', '飛ばして次', 'スキップして次',
         'もう一段落', 'もう一段落読んで', '次の段落を読んで',
         /next\s+paragraph/i, 'next block', 'next para', 'the next block', /skip ahead\s*$/i, /skip (the |this |current |next )?paragraph/i],
       action: () => {
@@ -19348,6 +20120,7 @@ export class VoiceCommands {
         '記事の長さ', 'このページの長さ', 'どのくらいの長さ',
         'どれくらいの長さ', '記事の長さは',
         '文字数は', 'あと何文字', '残りの文字数', '残り何文字', '文字数を教えて',
+        '文字数教えて',
         '単語数', '何単語', '全部で何文字',
         /character count/i, /word count/i, /how many (words|characters)/i],
       action: () => {
@@ -19365,6 +20138,7 @@ export class VoiceCommands {
     this.registerCommand('read-paragraph', {
       patterns: ['この段落を読み上げ', '現在の段落を読み上げ', '段落を読んで',
         '今の段落を読んで', 'この段落を読み上げて', 'その段落を読んで',
+        'その段落読んで', 'この段落読んで',
         'その段落を読み上げて',
         /read (the )?(current )?paragraph/i],
       action: () => {
@@ -19380,7 +20154,9 @@ export class VoiceCommands {
     // spoken whole); the scroll follows the line holding its start.
     this.registerCommand('next-sentence', {
       patterns: ['次の文', '文を次へ', '一文進め', 'もう一文',
-        'もう一文読んで', '一文進んで', /next sentence/i],
+        'もう一文読んで', '一文進んで', /next sentence/i,
+        // pass CCLXXX
+        '文を進めて'],
       action: () => {
         const r = this._onSentenceStep ? this._onSentenceStep(1) : null;
         this.speak(r ? r.sentence : 'これ以上進めません');
@@ -19405,6 +20181,7 @@ export class VoiceCommands {
     this.registerCommand('read-sentence', {
       patterns: ['この文を読んで', 'この文を読み上げ', '文を読んで', '現在の文',
         '今の文を読み直して', 'この文を読み直して', '文を読み直して',
+        'この文読んで', '今の文読んで',
         '今の文', 'この文', '読み上げ中の文', '現在の文章', 'この文章',
         /read (this |the |current )?sentence/i],
       action: () => {
@@ -19432,7 +20209,9 @@ export class VoiceCommands {
     this.registerCommand('next-char', {
       patterns: ['次の文字', '文字を次へ', /next char(?:acter)?/i,
         '一文字進んで', '一文字進む', '一文字次', 'ひと文字', 'ひと文字進んで',
-        '次の文字へ', '次の文字に', '一文字ずつ進んで', '次の一文字'],
+        '次の文字へ', '次の文字に', '一文字ずつ進んで', '次の一文字',
+        // pass CCLXXX
+        '文字を進めて'],
       action: () => {
         const r = this._onCharStep ? this._onCharStep(1) : null;
         this.speak(r ? r.char : 'これ以上進めません');
@@ -19469,6 +20248,7 @@ export class VoiceCommands {
     this.registerCommand('spell-word', {
       patterns: ['この単語をスペル', 'スペル読み', 'つづり', 'スペルで読んで',
         'スペルを教えて', 'スペル', 'スペルは', 'つづりを教えて',
+        'スペル教えて', 'spell that word', 'この単語をスペルして',
         'どう綴る', '綴りを教えて', '綴りは', 'つづりは',
         /spell (this |the )?word/i, /spell it/i, /^spell (that|this)$/i,
         /how (is it|do you spell) (spelled|it)/i, /how is .* spelled/i],
@@ -19567,6 +20347,7 @@ export class VoiceCommands {
       patterns: ['この記事について', '記事の概要', '記事の情報',
         '要約して', 'このページを要約', 'ページを要約して', '概要は', '記事を要約',
         'ページの概要', '概要を教えて', '概要は何', 'このページの概要',
+        '記事を要約して', 'この記事の要約',
         'ここに書いてあること', 'ここに何が書いてある', '何が書かれてる',
         '何が書いてある', '内容を教えて', 'ページの内容を教えて',
         /describe (the )?(page|article)/i, /page info|article info/i,
@@ -19637,7 +20418,9 @@ export class VoiceCommands {
       return rounded;
     };
     this.registerCommand('sensitivity-up', {
-      patterns: ['感度を上げて', '感度を高く', /sensitivity up|raise sensitivity|increase sensitivity/i],
+      patterns: ['感度を上げて', '感度を高く', /sensitivity up|raise sensitivity|increase sensitivity/i,
+        // pass CCLXXX
+        '感度上げて'],
       action: () => ({ action: 'sensitivity-up', value: sensStep(1, '上げ') }),
       description: 'Raise recognition sensitivity'
     });
@@ -19648,7 +20431,8 @@ export class VoiceCommands {
     });
     // sensitivity-status — the query twin (up/down mutate; this reports).
     this.registerCommand('sensitivity-status', {
-      patterns: ['感度は', '認識感度は', /sensitivity( status)?$/i],
+      patterns: ['感度は', '認識感度は', '感度今どのくらい', '感度どのくらい',
+        /sensitivity( status)?$/i],
       action: () => {
         this.speak(`認識感度は${this.settings.sensitivity}です`);
         return { action: 'sensitivity-status', value: this.settings.sensitivity };
@@ -19663,6 +20447,7 @@ export class VoiceCommands {
       // 'ハイコントラスト…'/'high contrast…' belong to the high-contrast
       // toggle (registered earlier), so the query keeps disambiguated forms.
       patterns: ['コントラストは', 'ハイコントラストは', 'ハイコントラストはどう',
+        'コントラスト今',
         'ハイコントラストか', 'ハイコントラストは今', 'ハイコントラストですか',
         'ハイコントラストかどうか', 'コントラストモードは',
         /ハイコントラストは(?:どう|か|今|現在)/,
@@ -19691,6 +20476,8 @@ export class VoiceCommands {
     // serializeSession) for the next boot's restore-session.
     this.registerCommand('save-session', {
       patterns: ['セッションを保存', 'セッション保存', 'タブを保存して',
+        // pass CCLXXX
+        'save my session',
         /save (the )?session/i],
       action: () => {
         const n = this._onSessionSave ? this._onSessionSave() : 0;
@@ -19704,6 +20491,8 @@ export class VoiceCommands {
     this.registerCommand('clear-session', {
       patterns: ['セッションを消して', 'セッションを消去', 'セッションを削除',
         '保存したセッションを消して',
+        // pass CCLXXX
+        'セッション消して',
         /clear (the |saved )?session/i, /delete (the )?session/i],
       action: () => {
         const ok = this._onSessionClear ? this._onSessionClear() : false;
@@ -19759,6 +20548,11 @@ export class VoiceCommands {
         'タブの数', 'ウィンドウの数', 'タブの枚数',
         'タブは何枚', '何タブ', 'タブいくつ', '何個タブ', 'タブはいくつ開いてる',
         'いくつ開いてる', '何個開いてる', '全部で何タブ', 'タブ何個',
+        'タブ何枚', '今何枚', 'タブ枚数', '何タブある', '何タブ開いてる',
+        'タブ全部でいくつ', '何枚のタブ',
+        'タブいくつある', 'タブいくつ開いてる', 'タブいくつ開いた',
+        '全部で何枚', '合計何枚', 'タブの数教えて', 'タブ数教えて',
+        '何枚のタブがある', 'タブは何枚ある', 'how many windows',
         'タブをいくつ開いてる', 'いくつタブを開いてる',
         'タブ数', '開いてる数', '全部で何個', 'どのくらい開いてる',
         '開いてるタブ数', 'タブの個数', 'タブ何個ある', '全部でいくつ',
@@ -19816,6 +20610,7 @@ export class VoiceCommands {
         'この場所に戻って', 'さっきの場所に戻って', '前の場所に戻って',
         '元の場所に戻って', 'さっきの位置に戻って',
         'さっきのところ', 'さっきのところに戻って',
+        '前の位置に戻って', '読んでたとこに戻って',
         /jump\s+back/i, /previous (spot|position)/i],
       action: () => {
         const moved = this._onJumpBack ? this._onJumpBack() : false;
@@ -19832,6 +20627,9 @@ export class VoiceCommands {
         '検索を消して', '検索を終了', '検索を終了して', 'ハイライトを解除',
         '検索をやめる', '検索をキャンセル', '検索を中止', '検索をキャンセルして',
         'ハイライトを外して', 'ハイライトを取り除いて', '検索をやめて',
+        '検索消して', '検索とめて', 'クリアして検索',
+        '検索をリセット', '検索解除して', '検索を終わらせて',
+        '検索終わり', 'サーチ消して', 'サーチを消して',
         '強調を消して', '蛍光ペンを消して', '選択を解除', '選択解除',
         '選択をやめて', '選択を解除して',
         /clear (the )?(search|find)/i, /clear highlights?/i],
@@ -19849,6 +20647,7 @@ export class VoiceCommands {
     // without it the honest answer is that they expire on their own.
     this.registerCommand('dismiss-notify', {
       patterns: ['通知を消して', '通知を閉じて', '通知を消去', 'トーストを消して',
+        '通知消して',
         'メッセージを消して', 'メッセージを閉じて', 'ダイアログを閉じて',
         '警告を消して', '表示を消して', '通知はいい', '通知を全部消して',
         '消して', '消えて', '消してほしい',
@@ -19868,6 +20667,7 @@ export class VoiceCommands {
     // heard a chime can ask what it said after the toast expired.
     this.registerCommand('read-notify', {
       patterns: ['通知を読んで', '通知を読み上げて', '最新の通知', '最近の通知',
+        '通知読んで', '通知を教えて',
         '最後の通知', '何を通知した', '通知は何', '通知の内容', '今の通知',
         '通知を見せて', '通知を表示して', '通知を確認',
         '通知はある', '通知がある', '通知がきた', '通知きた', '新しい通知',
@@ -19891,6 +20691,7 @@ export class VoiceCommands {
     this.registerCommand('reader-mode', {
       patterns: ['リーダー表示', 'リーダーモード', 'リーダーモードにして',
         'リーダー表示にして', 'シンプルな表示', '簡易表示', '簡易表示にして',
+        'リーダーにして', 'リーダーモードで', '読書モードにして',
         'リーダーを閉じて', 'リーダーを終了', 'リーダーをやめて',
         'リーダー表示を解除', '元のページに戻して', '元の表示に戻して',
         '元の表示に戻る', '元に戻す',
@@ -19906,10 +20707,10 @@ export class VoiceCommands {
     // instead of pretending.
     this.registerCommand('dark-mode', {
       patterns: ['ダークモード', 'ダークモードにして', 'ダークモードをオン',
-        'ナイトモード', '夜モード', '暗いテーマ',
+        'ナイトモード', '夜モード', '暗いテーマ', '暗いテーマにして',
         '背景を暗く', '目に優しく', '目に優しいモード', 'ブルーライト',
         'ブルーライトカット', '夜用モード', 'ダークテーマ',
-        /dark mode/i, /night mode/i, /dark theme/i, /turn on dark/i, /lights out/i,
+        /dark mode/i, /night mode/i, /dark theme/i, /turn on dark/i, /lights out(?! (?:for|close|on))/i,
         /night time/i],
       action: () => {
         this.speak('ダークモードはありません。ハイコントラストモードが使えます');
@@ -19928,8 +20729,10 @@ export class VoiceCommands {
         '画面を暗くして', '暗くなって', 'もっと明るく', 'もっと明るくして',
         /brightness/i, /^brighter$/i, /^dimmer$/i, /is it (dark|bright)/i,
         /make (it|the screen) (brighter|dimmer|darker)/i, /^brighten$/i,
+        // pass CCLXXIX
+        '暗くして画面', '画面暗くして',
         /dim (it|the screen)/i, /darken it/i, /too bright/i, /way too bright/i,
-        /^blinding$/i, /(?<!turn out the )lights on/i, /light it up/i],
+        /^blinding$/i, /(?<!turn (?:off|out) the )lights on/i, /light it up/i],
       action: () => {
         this.speak('明るさはヘッドセット本体の設定で変更してください');
         return { action: 'brightness' };
@@ -19941,7 +20744,10 @@ export class VoiceCommands {
     this.registerCommand('print', {
       patterns: ['印刷して', 'プリントして', '印刷', 'プリント',
         'このページを印刷', '印刷したい', 'プリントしたい',
+        // pass CCLXXVIII
+        'これ印刷して',
         'PDFに保存', 'PDFで保存', 'PDFとして保存', 'PDFを保存', 'PDFで出力',
+        'pdfにして', 'プリンターに送って',
         /print/i, /save (as |to )?pdf/i, /export (as |to )?pdf/i],
       action: () => {
         this.speak('このブラウザでは印刷できません');
@@ -19955,6 +20761,8 @@ export class VoiceCommands {
         'スクショを撮って', '画面を撮影', '画面を撮影して',
         'スクショ取って', 'スクショとって', 'キャプチャして', 'キャプチャ取って',
         'キャプチャを取って', '画面をキャプチャして',
+        // pass CCLXXX
+        'スクリーンショットして', 'cap the screen',
         /screenshot/i, /take a (screenshot|picture|photo)/i,
         /capture the screen/i, /capture (this|it|the page)/i, /screen capture/i],
       action: () => {
@@ -19972,6 +20780,8 @@ export class VoiceCommands {
         'open devtools', 'developer tools', 'inspect it',
         'ソースを見る', 'ソースを表示', 'ソースコードを見る', 'ページのソース',
         'デベロッパーツール', '開発者ツール', '要素を検証', '検証ツール', '開発者モードにして', '開発者モード',
+        // pass CCLXXX
+        'インスペクタ開いて', 'コンソール開いて',
         /dev ?tools/i, /inspect (element|the page|this)/i],
       action: () => {
         this.speak('開発者ツールはこのブラウザにありません。ページの表示と操作のみできます');
@@ -20026,6 +20836,8 @@ export class VoiceCommands {
     this.registerCommand('paste-go', {
       patterns: ['ペーストして開く', '貼り付けて開く', 'ペーストして移動',
         'ペーストして', 'ペーストして開いて', '貼り付けて',
+        // pass CCLXXX
+        '貼り付けて移動',
         /paste and (go|open|navigate)/i, /paste it/i, /paste (the )?clipboard/i],
       action: () => {
         const p = this._onPasteGo
@@ -20048,6 +20860,8 @@ export class VoiceCommands {
         'ページを送って', 'このページを送って', '友達に送って', '友達に共有',
         'リンクを共有', 'シェアして', 'シェアする',
         'リンクを送って', 'SNSで共有', '送って', '送ってください',
+        // pass CCLXXX
+        'send this page',
         /^share( this page| it)?$/i, /share (the )?(page|url|link)/i,
         /tweet (this|it)/i, /email (this|it|the link)/i, /share (on|via) \w+/i],
       action: () => {
@@ -20068,7 +20882,8 @@ export class VoiceCommands {
         '中国語に翻訳', /translate (this |the )?page/i, /translate (it|this)/i,
         /translate to (english|japanese|chinese)/i,
         'この文を翻訳して', '英語に訳して', '日本語に訳して',
-        '中国語に訳して', '文章を翻訳', '文章を翻訳して', '訳して', '翻訳'],
+        '中国語に訳して', '文章を翻訳', '文章を翻訳して', '訳して', '翻訳',
+        '日本語に翻訳して'],
       action: (transcript) => {
         const url = tabManager?.getActiveTab?.()?.currentUrl;
         if (!url) {
@@ -20089,7 +20904,9 @@ export class VoiceCommands {
       patterns: ['クリップボードを読み上げ', 'クリップボードを読んで',
         '何をコピーした', 'コピーした内容', 'コピーしたもの', 'コピー内容',
         'コピーしたものは', 'コピーしたものを読んで',
-        /read (the )?clipboard/i, /what('s| is) (in|on) (the )?clipboard/i],
+        /read (the )?clipboard/i, /what('s| is) (in|on) (the )?clipboard/i,
+        // pass CCLXXX
+        'whats on my clipboard'],
       action: () => {
         const p = this._onReadClipboard
           ? Promise.resolve(this._onReadClipboard())
@@ -20105,7 +20922,9 @@ export class VoiceCommands {
     // belongs to private-mode's /incognito/i which is registered earlier.
     this.registerCommand('close-private-tabs', {
       patterns: ['プライベートタブを閉じて', 'プライベートタブをすべて閉じて',
-        'シークレットタブを閉じて', /close (all )?private tabs/i],
+        'シークレットタブを閉じて', /close (all )?private tabs/i,
+        // pass CCLXXX
+        'プライベートタブ全部閉じて', 'close the private tabs'],
       action: () => {
         const n = tabManager?.closePrivateTabs?.() ?? 0;
         this.speak(n ? `${n}個のプライベートタブを閉じました` : 'プライベートタブがありません');
@@ -20118,7 +20937,9 @@ export class VoiceCommands {
     // strip's first slot directly (like Vim's g^).
     this.registerCommand('first-tab', {
       patterns: ['最初のタブ', '先頭のタブ', '一番左のタブ', '左端のタブ', '左の端のタブ', /first tab/i, /leftmost tab/i,
-        '最初のやつ', '先頭のやつ', '最初の方のタブ', 'the first one'],
+        '最初のやつ', '先頭のやつ', '最初の方のタブ', 'the first one',
+        // pass CCLXXIX
+        '最初のタブ開いて', '最初のタブにして'],
       action: () => {
         const tabs = tabManager?.tabs || [];
         if (!tabs.length) {
@@ -20141,7 +20962,9 @@ export class VoiceCommands {
         'ブックマークしたか', 'お気に入りに入ってる', 'お気に入り済み', 'ブックマーク済み',
         'お気に入り登録してる', 'お気に入りに登録した', 'ブックマークに追加した',
         'お気に入りに追加してる',
-        'ブックマークした', '保存してるか', '保存した',
+        // pass CCLXXVIII
+        'is this page bookmarked', 'このページブクマしてる', 'お気に入り登録済み',
+        'ブックマークした', '保存してるか', '保存した', 'wheres the bookmark',
         /did i (bookmark|save)( this)?/i, /have i (bookmarked|saved)( this)?/i,
         '保存してる', '保存されてる', 'お気に入りに入れた', /is (this |it )?bookmarked/i,
         /in (the )?bookmarks\?*$/i, /did i bookmark/i,
@@ -20198,6 +21021,8 @@ export class VoiceCommands {
         '画面が見えない', '画面はどこ',
         /recenter/i, /center (the )?(view|position|panel)/i,
         /where is the panel/i, /center it/i,
+        // pass CCLXXIX
+        '中心に戻して', '画面を正面に',
         'turn around', 'look behind', 'face the other way', 'turn the other way',
         'look backwards', 'turn around and look'],
       action: () => {
@@ -20218,7 +21043,7 @@ export class VoiceCommands {
         '再生中', '再生してる', '再生していますか', '再生中ですか',
         '何を再生中', '何が再生中',
         /what('?s| is) playing/i, /is (it|anything|something) playing/i, /is it recording/i,
-        /anything playing/i, /something playing/i, /what'?s on/i,
+        /anything playing/i, /something playing/i, /what'?s on(?! my clipboard)/i,
         /video (position|time)/i, /how far (in|through)/i],
       action: () => {
         const st = this._onVideoStatus ? this._onVideoStatus() : null;
@@ -20284,7 +21109,9 @@ export class VoiceCommands {
     this.registerCommand('next-word', {
       patterns: ['次の単語', '次の言葉', '単語を次へ', /next word/i,
         '単語を進んで', '次の単語へ', '次の単語に', '単語単位で進んで',
-        '語を飛ばす', '単語を飛ばす', '一単語進んで', '単語単位'],
+        '語を飛ばす', '単語を飛ばす', '一単語進んで', '単語単位',
+        // pass CCLXXX
+        'word forward'],
       action: () => {
         const r = tabManager?.getActiveTab?.()?.nextWord?.(1);
         this.speak(r ? r.word : 'これ以上進めません');
@@ -20295,7 +21122,9 @@ export class VoiceCommands {
     this.registerCommand('prev-word', {
       patterns: ['前の単語', '前の言葉', '単語を前へ', /previous word/i,
         '単語を戻る', '単語を戻って', '前の単語へ', '前の単語に',
-        '単語を一つ戻る', '一単語戻る', '一単語前'],
+        '単語を一つ戻る', '一単語戻る', '一単語前',
+        // pass CCLXXX
+        'word back'],
       action: () => {
         const r = tabManager?.getActiveTab?.()?.nextWord?.(-1);
         this.speak(r ? r.word : 'これ以上戻れません');
@@ -20312,6 +21141,7 @@ export class VoiceCommands {
         '英語に切り替え', '英語で', '英語で読んで', '日本語で読んで',
         '読み上げ言語を英語', '読み上げ言語を日本語', '英語で読み上げて', '日本語で読み上げて',
         '言語を変えて', '言語を切り替えて', 'change language', /change (the )?language/i,
+        'switch language', '言語変えて', '英語モードにして',
         /switch to (english|japanese)/i,
         /speak english/i],
       action: (transcript) => {
@@ -20362,6 +21192,9 @@ export class VoiceCommands {
         'run it back', 'one more go', 'do it once more',
         'do over', 'do it over', 'encore', 'once again',
         'もっかい', 'もいっかい', 'もういっかい', 'もう一度だけ', 'もう一回だけ',
+        'もういっぺん', 'もいっぺん',
+        // pass CCLXXIX
+        'もう一回やって',
         'make it so', 'make it happen', 'make it so number one', 'as you were'],
       action: () => {
         const t = this._repeatableTranscript;
@@ -20386,7 +21219,9 @@ export class VoiceCommands {
         'お気に入りを削除', 'お気に入りを削除して', 'お気に入りから削除して',
         'お気に入りから削除', 'ブックマークから削除', 'お気に入りを消して',
         'ブックマークを消す', 'お気に入りから外して',
-        /remove (this |the )?bookmark/i, /unbookmark/i],
+        /remove (this |the )?bookmark/i, /unbookmark/i,
+        // pass CCLXXVIII
+        'ブックマーク解除して', 'お気に入り解除', 'ブクマを外して', 'unbookmark this'],
       action: () => {
         const active = tabManager?.getActiveTab?.();
         if (!active) {
