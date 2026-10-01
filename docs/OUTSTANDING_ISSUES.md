@@ -965,6 +965,30 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - ~~**'わからん'/'使い方教えて'/'どうする'/'操作がわからない' が未認識、褒め句('すごい'/'いいね'/'great')が未認識**~~ — **Session 158 で実装**: help に迷子句9形、ack に感謝強形 + 褒め句（→'ありがとうございます' 応答分岐）。
 - ~~**'天気は'/'ニュースを聞かせて'/'調べて'/'検索させて'/'google で検索して' が未認識**~~ — **Session 158 で実装**: web-search に話題 alternation（天気/気温/湿度/ニュース形）+ 非 capture の裸動詞形（調べて/検索させて → '検索語がありません' プロンプト、term を動詞自身にしない）。
 - その他 fill: read-aloud '読みたい'/'読んでほしい'、first/last-tab '最初のやつ'/'最後のやつ'、text-style '文字を変えて'、reader-size-up '読みやすくして'/'見やすくして'、trouble '眠い'/'頭痛い'/'めまい'/'ふらつく'。
+- ~~**進行・状態の疑問句が未認識**（'読んでる最中'/'再生中'/'喋ってる'/'ミュートになってる'/'お気に入り登録してる'/'聞こえます'）~~ — **Session 159 で実装**: speaking-status/video-status/mute-status/bookmark-status/mic-status に進行・状態形を追加。
+- ~~**'is it working'/'did it work'/'動いてる'/'止まってる' が未認識**~~ — **Session 159 で実装**: `working-status` 原子（'音声認識は動作中です。「ヘルプ」で…'）— 'is it frozen' は trouble が先行所有のため維持。
+- ~~**能力疑問句が未認識**（'できる'/'できますか'/'対応してる'/'what can i do'/'can i close this'）~~ — **Session 159 で実装**: help へ /can i /i + JA 可能形。'can i go back/forward' は back/forward-status が先行登録のため維持（共存テスト）。
+- ~~**'any notifications'/'any tabs open' が未認識**~~ — **Session 159 で実装**: read-notify/tab-status へ EN 存在疑問形。
+- ~~**反応句が未認識**（'なるほど'/'へー'/'本当ですか'/'まじか'/'確かに'）~~ — **Session 159 で実装**: ack へ追加（承知しました）。
+- その他 fill: read-aloud '読んでくれる'/'読んでおいて'、speaking-status '喋ってる'、bookmark-status 'ブックマークに追加した'。
+- ~~**~てみる/~てしまう/~ちゃう/~てあげて/~てもらう の動詞語尾が全コマンド未認識**~~ — **Session 160 で実装**: `_politeVariants` に語尾層追加（てみる→て、てしまう→て、ちゃう/じゃう→て、てあげて/てもらう→て）。'戻ってみる'→back、'読んであげて'→read-aloud、'閉じちゃう'→close-tab（'閉じちゃった'/'消えちゃった' は reopen-tab の raw リテラルが先行）。
+- ~~**'where are we'/'whats this site'/'who is this'/'when was this'/'what does this say' が未認識**~~ — **Session 160 で実装**: where-am-i/tab-meta/read-aloud へ（'who made this' は about 所有 — 共存テスト）。
+- ~~**'お願い'/'頼む'/'please do'/'pls help'/'help me out' が未認識**~~ — **Session 160 で実装**: help へ。
+- ~~**bare '早く'/'遅く'/'ボリューム'、命令形 '止めろ'/'探せ'/'調べろ'、'置いといて' が未認識**~~ — **Session 160 で実装**: speech-faster/slower、volume-status、stop-everything、find-in-page、web-search（→プロンプト）、negate へ。
+- その他 fill: scroll 'もうちょい上/下'/'keep scrolling'、line-status 'どこ読んでた'、read-here '続きは'/'次の部分'、remaining-time 'あと少し'、share-page '送って'（'送っちゃって' は語尾層経由）。
+- ~~**~ちゃお/~じゃお 意志形・~なきゃ 義務形・二重語尾（~てあげてください 等）が未認識**~~ — **Session 161 で実装**: `_politeVariants` に語尾層III（ちゃお→て、じゃお→で、なきゃ→あ行五段→て形マップ+一段→て、てあげてください/てくださると/ていただければ/てほしいな→て）。'閉じちゃお'→close-tab、'読まなきゃ'→read-aloud、'閉じてほしいな'→close-tab。
+- ~~**'かい' 終助詞・EN 短縮前置詞（gonna/wanna/gotta/gimme/lemme）が未認識**~~ — **Session 161 で実装**: 文末粒子ストリップに かい/かいな、EN prefix 層に bare gonna|wanna|gotta|gimme|lemme|imma（'wanna go back'→back、'gonna close this'→close-tab + 'close this' リテラル追加、'gimme the tabs'→tabs-list + 'the tabs'）。
+- ~~**bare EN 名詞/動詞（'tabs'/'bookmarks'/'history'/'scroll'/'read'/'find'/'search'/'stop'/'top'/'bottom'/'up'/'down'）が未認識**~~ — **Session 161 で実装**: 各オーナーへ単一語リテラル（'stop'→stop-reading、'stop everything'→stop-everything 維持）。
+- ~~**JP 指示語・EN 離脱/称賛句が未認識**~~ — **Session 161 で実装**: 'なにこれ'/'これなに'/'何それ'/'what is this'/'lemme see'→describe-tab、'take me home'→home、'get outta here'/'get me out'→vr-exit、'kinda slow'→trouble、'cheers'/'appreciate it'/'good job'→ack、'やって'→help。
+- その他 fill: half-page '半分進んで/戻って/半分上/下'、pause-reading '待て'/'待ってくれ'、find-in-page '検索しろ'/'探しろ'、speaking-status '読んでる'。
+- ~~**方言/口語進行形（てん/でん・とる/どる）・関西依頼形（てや/てはる/てもろて/てくれん）が未認識**~~ — **Session 162 で実装**: `_politeVariants` 語尾層IV（てん→て、でん→で、てんか/でんの→てる、とる→てる、どる→でる、てや/てはる/てもろて/てくれへん/てくれん→て、てへん→てる）。'戻ってん'→back、'読んどる'→speaking-status、'閉じてもろて'→close-tab。
+- ~~**'open up a tab'/'open a tab' が 'a' 名指しタブ検索に誤ルート**~~ — **Session 162 で修正**: new-tab リテラル化 + goToEn 前置詞に fire up|pull up|bring up|open up（'fire up youtube'→go-to）+ tabs 除外。
+- ~~**EN 待機句・離脱句・挨拶・'close em all' 系が未認識**~~ — **Session 162 で実装**: 'hang on'/'wait a sec'/'one sec'→pause-reading、'whatcha doing'/'何してる'→working-status、'close em all'/'close them all'→close-all-tabs、'sup'/'yo'/'whats up'→ack。
+- ~~**知らん/できひん（関西）・ずに否定形が未認識**~~ — **Session 162 で実装**: '知らん'/'できひん'→help、'戻られへん'→back-status、'読まずに' 等 ずに 系→negate。
+- その他 fill: describe-tab '閉じてる'/'開いてる'（進行態質問）、working-status '使ってる'/'whatcha reading'、'pull up the tabs'→tabs-list、'pull up the history'→history、'bring up bookmarks/settings'。
+- ~~**お〜ください敬語・辞書形+な禁止形・ます語幹+な命令形が未認識/誤実行**~~ — **Session 163 で実装**: `MASU_TE` 語幹→て形マップで 'お読みください'→read-aloud、'お待ちください'→pause-reading、'閉じな'→close-tab、'読みなさいよ'→read-aloud。**実害**: '戻るな'/'進むな' が navigate/back を実行（'戻る|進む' が素朴一致）→ `(?!な)` 化 + negate に `るな/するな`/`don't|never` 禁止形を追加。
+- ~~**ておいて/てごらん/てして（備置・試行・方言二重て形）が未認識**~~ — **Session 163 で実装**: '閉じておいて'→close-tab、'読んでごらん'→read-aloud、'閉じてして'→close-tab。
+- ~~**EN 'would you mind ~ing'・過度敬語・'is it ~' 状態質問・me-構文が未認識**~~ — **Session 163 で実装**: mind+動名詞→語幹化（'mind closing this'→close-tab）、'be so kind as to'/'if you please'/'pretty please' 剥がし、'is it loud/paused/playing/dark'→volume/working/video/brightness-status、'tell me again'→say-again、'read me the page'→read-aloud、'give me the tabs'→tabs-list、'shut it'→close-tab、'turn it off'→vr-exit、'turn up/down the volume'→volume、'make it louder/faster'等。
 
 ---
 
