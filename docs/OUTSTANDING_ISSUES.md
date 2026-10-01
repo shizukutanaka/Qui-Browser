@@ -1712,6 +1712,9 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - R275 skip: bare 'oblige me'/'the needful'/'im asking (you) nicely'/'onegai (shimasu)' → null — 動詞・対象なし依頼、close-tab に倒すには曖昧すぎ。'oblige me by closing it' / 'do the needful' は close-tab 登録済み。
 - R275 skip: 'do me a solid' → help 既存ピン（対象なし favor）維持。
 
+- R276 skip: 'move along'→resume-reading 維持（汎用前進句・close意図なし）。
+- R276 note: '閉じるだろう' 系は命令-nudge として close-tab（予測質問と実務的に同一）。
+
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。
