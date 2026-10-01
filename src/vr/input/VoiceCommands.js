@@ -1772,6 +1772,10 @@ export class VoiceCommands {
     this.registerCommand('navigate', {
       patterns: ['進む', '次へ', 'すすむ', '次に進んで',
         /(?<!(?:どうやって|一文字|ひと文字|一単語|ひと単語))進む(?!な)|(?<!読み|上げを|行を)進め(?!る|な|ま|ら)/,
+        /(?<!(?:どうやって|一文字|ひと文字|一単語|ひと単語))進む(?!な)|(?<!読み|上げを|行を)進め(?!る|な|ま)/,
+        /(?<!(?:どうやって|一文字|ひと文字|一単語|ひと単語))進む|(?<!読み|上げを|行を)進め(?!る|な|ま)/,
+        /(?<!(?:どうやって|一文字|ひと文字|一単語|ひと単語))進む|(?<!読み|上げを)進め(?!る|な|ま)/,
+
         '進んで', '進みたい', '次のページに進んで', '一つ進んで', 'ひとつ進んで',
         '先に進んで', '先へ進んで', '先に進む', '先へ進む', '先に進みたい',
         'forward', /go forward(?! \d)/i, /forward (a|one|the) page/i,
@@ -1792,6 +1796,7 @@ export class VoiceCommands {
         '戻って', '戻ってきて', '戻りたい', '一つ戻って', 'ひとつ戻って',
         '帰ってきて', '帰ってくる',
         '一つ戻る', 'ひとつ戻る', 'ひとつ前に戻る',
+
         '前のページに戻って', 'さっきのページ', 'さっきのページに戻って',
         '一つ前に戻って', 'もっと戻って', 'もっと前に戻って',
         'さっき見たページ', 'さっき見てたページ', 'もう一個戻って',
@@ -2801,6 +2806,7 @@ export class VoiceCommands {
         /press (the )?enter key/i,
         'エスケープキー', 'スペースキー', 'タブキー',
         'エンターを押して', 'エンターキー', '決定キー', 'エンターを押す'],
+
       action: () => {
         this.speak('視線と音声、コントローラーで操作できます。見つめて選ぶこともできます');
         return { action: 'input-methods' };
@@ -4010,6 +4016,10 @@ export class VoiceCommands {
     this.registerCommand('navigate', {
       patterns: ['進む', '次へ', 'すすむ', '次に進んで',
         /(?<!(?:どうやって|一文字|ひと文字|一単語|ひと単語))進む(?!な)|(?<!読み|上げを|行を)進め(?!る|な|ま|ら)/,
+        /(?<!(?:どうやって|一文字|ひと文字|一単語|ひと単語))進む(?!な)|(?<!読み|上げを|行を)進め(?!る|な|ま)/,
+        /(?<!(?:どうやって|一文字|ひと文字|一単語|ひと単語))進む|(?<!読み|上げを|行を)進め(?!る|な|ま)/,
+        /(?<!(?:どうやって|一文字|ひと文字|一単語|ひと単語))進む|(?<!読み|上げを)進め(?!る|な|ま)/,
+
         '進んで', '進みたい', '次のページに進んで', '一つ進んで', 'ひとつ進んで',
         '先に進んで', '先へ進んで', '先に進む', '先へ進む', '先に進みたい',
         'forward', /go forward(?! \d)/i, /forward (a|one|the) page/i,
@@ -4030,6 +4040,7 @@ export class VoiceCommands {
         '戻って', '戻ってきて', '戻りたい', '一つ戻って', 'ひとつ戻って',
         '帰ってきて', '帰ってくる',
         '一つ戻る', 'ひとつ戻る', 'ひとつ前に戻る',
+
         '前のページに戻って', 'さっきのページ', 'さっきのページに戻って',
         '一つ前に戻って', 'もっと戻って', 'もっと前に戻って',
         'さっき見たページ', 'さっき見てたページ', 'もう一個戻って',
@@ -4085,6 +4096,7 @@ export class VoiceCommands {
         'clear my history', 'clear history', 'delete history', 'erase history',
         'wipe my history', 'wipe the history', 'wipe history', 'purge history',
         'clear all my history',
+
         /履歴を?(消去|削除|クリア|消す)/,
         /clear\s+(browsing\s+)?history/i, /delete\s+history/i
       ],
@@ -4507,6 +4519,8 @@ export class VoiceCommands {
         '上へ', '上に戻って', '上まで',
         '頭に戻る', '先頭に飛んで', '頭まで戻る', 'トップに飛んで',
         /scroll (to( the)? )?top/i, /top of (the )?page/i, /^first page$/i, /^jump to (the )?top$/i,
+        /scroll (to )?top/i, /top of (the )?page/i, /^first page$/i,
+
         /^go to (the )?top$/i, /^all the way (up|to the top)$/i,
         /^(?:scroll )?way up$/i, /^scroll all the way up$/i, /^to the top$/i, /go back up/i, /scroll back up/i,
         /^top$/i],
@@ -4527,6 +4541,8 @@ export class VoiceCommands {
         'ずっと下へ', 'ずっとスクロール',
         '末尾に飛んで', '末端まで', '末端に飛んで', '最後まで飛んで',
         /scroll (to( the)? )?bottom/i, /end of (the )?page/i, /^last page$/i, /^jump to (the )?bottom$/i,
+        /scroll (to )?bottom/i, /end of (the )?page/i, /^last page$/i,
+
         /^go to (the )?bottom$/i, /^go to (the )?end$/i, /^the end$/i,
         /^all the way (down|to the bottom)$/i, /^(?:scroll )?way down$/i,
         /^scroll all the way down$/i, /^to the bottom$/i, /^bottom$/i,
@@ -4716,6 +4732,7 @@ export class VoiceCommands {
         '続きはどこ', '続きから読んで', '続きから',
         'continue from where i stopped', 'where i left off',
         'pick up where i left off', /where (did i|i left) (leave|stop|left)/i],
+
       action: () => {
         this.resumeSpeaking();
         return { action: 'resume-reading' };
@@ -6530,6 +6547,7 @@ export class VoiceCommands {
         '最近の履歴', 'さっきの履歴', '昨日の履歴', '今日の履歴',
         '履歴を一覧', '履歴を全部読んで', '履歴を見て', '履歴を確認',
         '履歴はある', '履歴はあるか', '履歴を教えて',
+
         /list\s+(my\s+)?history/i],
       'Read the history list');
 
@@ -6940,6 +6958,7 @@ export class VoiceCommands {
         /latest history/i, /most recent (page|history|visit)/i,
         /when did i visit/i, /did i visit/i, /have i been here/i,
         /was i here before/i, /have i been here before/i, /did i (read|see) this( already| before)?/i],
+
       action: () => {
         const items = this._onHistoryList ? this._onHistoryList() : null;
         const latest = items && items[0];
@@ -7080,6 +7099,8 @@ export class VoiceCommands {
         'あと半分', 'あと一ページ', 'あと1ページ', '残りあと少し',
         'もう読んだ', '読書中',
         /reading\s+progress/i, /how\s+much\s+(have\s+i\s+)?read/i,
+        /reading\s+progress/i, /how\s+much\s+(have\s+i\s+)?(read|left)/i,
+
         /scroll position/i, /am i at the top/i, /are we at the bottom/i,
         /how far (along|have i (read|got))/i,
         'at the bottom yet', 'did i reach the end', 'how far down are we',
@@ -7501,6 +7522,7 @@ export class VoiceCommands {
         'どう綴る', '綴りを教えて', '綴りは', 'つづりは',
         /spell (this |the )?word/i, /spell it/i, /^spell (that|this)$/i,
         /how (is it|do you spell) (spelled|it)/i, /how is .* spelled/i],
+
       action: () => {
         const r = this._onSpellWord ? this._onSpellWord() : null;
         this.speak(r ? r.spelled : '単語がありません');
@@ -8555,6 +8577,7 @@ export class VoiceCommands {
         /^(調べて|調べたい|調べもの|検索させて|調べてほしい|調べろ|調べなさい|確かめて|確かめてみて|調べてみて|調べてみてよ|確認してみて|確かめたい|確かめてほしい|確かめろ)$/,
         'google it', 'google that', 'search it', 'search that', 'look it up', 'look that up',
         /^(google|グーグル)\s*で検索/, /で検索してほしい/,
+        /^(調べて|調べたい|調べもの|検索させて|調べてほしい)$/,
         /search (?:the web |web )?for (.+)/i,
         /web search (?:for )?(.+)/i,
         '音声検索'],

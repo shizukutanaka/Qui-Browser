@@ -730,6 +730,7 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**'search the page for X'/'look for X' が未認識**~~ — **Session 155 で実装**: find-in-page へ EN capture 形2系。
 - ~~**'what can you do'/'command list'・'what word/letter is this'・'how is it spelled'・'what speed'・'where is the panel'・'am i at the top'・'where i left off' 等が未認識**~~ — **Session 155 で実装**: help/word-status/char-status/spell-word/speech-rate-status/recenter/reader-progress/resume-reading へ + 'quit the app'→vr-exit、'restart the app'/'reboot'→device-settings、'magnify'→reader-size-up、'拡大率'→reader-scale-status、微量スクロール形。
 
+
 ---
 
 ## G. 色コントラスト監査（Sessions 69, 72）— 実測済み・WCAG 2 は全通過、APCA は未達
