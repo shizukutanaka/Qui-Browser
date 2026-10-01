@@ -1,4 +1,4 @@
-const VC = require('/Users/devin/repos/Qui-Browser/src/vr/input/VoiceCommands').VoiceCommands;
+const VC = require('../src/vr/input/VoiceCommands').VoiceCommands;
 
 function boot() {
   const vc = new VC({ enabled: true });
