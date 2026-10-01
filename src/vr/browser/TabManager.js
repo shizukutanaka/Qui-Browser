@@ -460,6 +460,24 @@ export class TabManager {
   }
 
   /**
+   * The left-side twin: iterating backwards from the active tab keeps the
+   * not-yet-visited indices stable as closeTab splices.
+   * @returns {number} tabs closed
+   */
+  closeTabsToLeft() {
+    if (this.activeIndex < 0) {
+      return 0;
+    }
+    let closed = 0;
+    for (let i = this.activeIndex - 1; i >= 0; i--) {
+      if (this.closeTab(i)) {
+        closed++;
+      }
+    }
+    return closed;
+  }
+
+  /**
    * Close every private tab (Chrome's "Close incognito tabs"). Iterating
    * backwards keeps indices stable as closeTab splices; pinned private tabs
    * refuse via closeTab exactly as they do everywhere else.

@@ -2971,6 +2971,12 @@ export class VRApp {
             this._applyToggle(key, next);
             return next;
           },
+          // Read-only twin of onSettingToggle — settings-status asks the
+          // current value without mutating (a question must not toggle).
+          onSettingStatus: (key) => {
+            const v = this.settings[key];
+            return v === undefined ? null : v;
+          },
           // Generic numeric-stepper hook — the voice surface for every
           // settings stepper not already hooked (grace window, snap angle,
           // move speed, caption hold, caption height). Steps by `delta` of
