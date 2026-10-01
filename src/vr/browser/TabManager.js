@@ -460,9 +460,8 @@ export class TabManager {
   }
 
   /**
-   * The left-side twin: forward iteration removes low indices first, so the
-   * active index shifts down as closeTab splices — bound at i < activeIndex
-   * evaluated live each pass.
+   * The left-side twin: iterating backwards from the active tab keeps the
+   * not-yet-visited indices stable as closeTab splices.
    * @returns {number} tabs closed
    */
   closeTabsToLeft() {
@@ -470,7 +469,7 @@ export class TabManager {
       return 0;
     }
     let closed = 0;
-    for (let i = 0; i < this.activeIndex; i++) {
+    for (let i = this.activeIndex - 1; i >= 0; i--) {
       if (this.closeTab(i)) {
         closed++;
       }

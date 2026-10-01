@@ -96,6 +96,13 @@ describe('close-tabs-left: Chrome close-right twin', () => {
     expect(tm.tabs.length).toBe(2);
     expect(tm.tabs[0].currentUrl).toBe('https://b.jp');
   });
+  test('TabManager.closeTabsToLeft() closes every tab left of active', () => {
+    const { tm } = makeVC();
+    tm.setActive(2);
+    expect(tm.closeTabsToLeft()).toBe(2);
+    expect(tm.tabs.length).toBe(1);
+    expect(tm.tabs[0].currentUrl).toBe('https://c.jp');
+  });
   test.each(['左側のタブを閉じて', '左のタブを閉じて', 'close tabs to the left'])(
     '"%s" closes the left side', (phrase) => {
       const { vc, spoken, tm } = makeVC();

@@ -1609,6 +1609,7 @@ export class VoiceCommands {
         '聞かないで', '聞かない', '聞くなよ',
         /\bmute (the )?mic(raphone)?/i, /mic off/i, /stop listening/i,
         /turn (off )?(the )?mic(raphone)?( off)?/i],
+
       action: () => {
         this.stop();
         return { action: 'stop' };
@@ -3041,6 +3042,7 @@ export class VoiceCommands {
         /speak faster|talk faster/i, /speed up (speech|reading|talk)/i,
         /speed up (the )?reading/i,
         /increase (speech|talk|reading) (rate|speed)/i, /read faster/i],
+
       action: () => {
         const rate = this.setSpeechRate(this._speechRate + 0.25);
         this.speak(`読み上げ速度 ${rate.toFixed(2)}倍`);
@@ -3063,6 +3065,7 @@ export class VoiceCommands {
         /speak slower|talk slower/i, /slow down (speech|reading|talk)/i,
         /slow down (the )?reading/i,
         /decrease (speech|talk|reading) (rate|speed)/i, /read slower/i],
+
       action: () => {
         const rate = this.setSpeechRate(this._speechRate - 0.25);
         this.speak(`読み上げ速度 ${rate.toFixed(2)}倍`);
@@ -3253,6 +3256,7 @@ export class VoiceCommands {
       patterns: ['URLをコピー', 'リンクをコピー', 'アドレスをコピー',
         'このページのリンク', 'ページのリンク', 'ページのリンクをコピー',
         'コピーして', 'ページをコピー', 'このページをコピー',
+
         /copy\s+(the\s+)?(url|link|address)/i],
       action: () => {
         const url = onCopyUrl ? onCopyUrl() : null;
@@ -4028,11 +4032,13 @@ export class VoiceCommands {
         '大きく見せて', '小さく見せて', '近くにして', '遠くにして',
         /too (far|close)/i,
         /panel (closer|nearer|further|farther|away|bigger|smaller)/i],
+
       action: (transcript) => {
         // '遠い'/'遠すぎ'/'大きく' are complaints of distance → bring it nearer;
         // '近い'/'近すぎ'/'小さく' are complaints of closeness → push it away.
         const nearer = /近づ|近く|遠い|遠すぎ|大きく|closer|nearer|bigger|too far/i.test(transcript)
           && !/遠く|遠ざ|近い|近すぎ|小さく|further|farther|away|too close|smaller/i.test(transcript);
+
         const v = this._onPanelDistance ? this._onPanelDistance(nearer ? -0.2 : 0.2) : null;
         this.speak(v === null ? 'パネルはこれ以上移動できません' : `パネル距離 ${v.toFixed(1)}メートル`);
         return { action: 'panel-distance', distance: v };
@@ -4387,6 +4393,7 @@ export class VoiceCommands {
         '今のURL', '現在のURL', 'アドレスは', 'URLは何',
         /(read|say|what is|what's|whats) (the |this )?(url|address)/i,
         /(page|tab) (url|address)/i],
+
       action: () => {
         const url = tabManager?.getActiveTab?.()?.currentUrl || '';
         this.speak(url || 'URLがありません');
