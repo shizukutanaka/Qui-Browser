@@ -1738,6 +1738,7 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - R284 note: `閉じんなってば` は既存 close literal 維持（方言命令 vs 禁止で曖昧 — 変更は別途判断）。
 - R285 pin: `flush it`/`hang it up`→null 維持（granular 確立: 曖昧）。`閉じてんで`→describe 不採用 — `_politeVariants` の てみ→んで 変換が 閉じてみ* close ピン21形を横取りしたため（variant 残置衝突は describe 側に限定）。
 - R286 pin: `write it off`→null 維持（granular 確立: 経理 euphemism 曖昧）。`open fire on it`→go-to 誤ルートを close 修正（'open' keyword 先勝ち → リテラル化で先勝ち固定）。`閉じるべきかと思う`→help ピン維持。
+- R310: `opening it was *`→go-to / `it opened by-*`→go-to / `間違いのタブだ*`→tab-by-name / `クリックしてしまった`→input-methods / `見てしまった`→describe-tab 誤ルートを close リテラル化・`i meant the other tab`→next-tab は正ルート維持・JA `はずだった`→trouble ピン。
 - R309: `let it find no mercy *`→find-in-page 誤ルート56件を close リテラル化・JA `〜するな`→negate ピン維持。
 - R308: `pretend it never existed`→ruby negate ピン衝突不採用・`残さないんだよ`→trouble ピン・`忘れろものか`（ものか rhetorical）→negate 正ルート・`forgotten going forward`→navigate 誤ルートを close リテラル化。
 - R307: 'wreck it'/'hang it up'→granular-pool null ピン再衝突（'hang it' bare は variant-strip 横取りで共に除去）・`tear it up like a bad blueprint`→print 誤ルートを close リテラル化・`死は*からな`→trouble 維持。
