@@ -1482,6 +1482,8 @@ export class VoiceCommands {
     push(normalized.replace(/ることにした(?:よ|んだ)$/u, 'て'));
     // pass CCXXVIII
     push(normalized.replace(/ちゃえば|ちゃったら|といたれ|ときやれ|とけや|てみよ|てみようぜ|てぷりーず|てもん[。！？!?]?$/u, 'て'));
+    // pass CCXXIX
+    push(normalized.replace(/ちまえ|ちまったら|ちまいたい|ちまう(?:ぞ|よ|わ)?|ておこ|とこうぜ[。！？!?]?$/u, 'て'));
     push(normalized.replace(/(て|で)(?:あげて|あげ(?:る|ます)[ねよわか]?|くれる|くださる|くださいます)[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)(?:くれ|くださ)ちゃう[。！？!?]?$/u, '$1'));
     push(normalized.replace(/(て|で)もら(?:う|える|った|います|えます|ってもいい|っていい)[。！？!?]?$/u, '$1'));
@@ -5579,6 +5581,30 @@ export class VoiceCommands {
         '閉じるのが一興', '閉じるが一興', '閉じるも一興',
         '閉じるのも風流', '閉じるが風流', '閉じるのが粋', '閉じるが粋',
         '閉じるが美学', '閉じるのが美学', '閉じるが矜持', '閉じるのが矜持',
+        // pass CCXXIX: need/causative/get-closed + favor + do-away + finish-off
+        'it needs closing', 'needs closing', 'needs shutting',
+        'needs closing up', 'that needs closed', 'it wants closing',
+        'it could use closing', 'it could do with closing',
+        'have it closed', 'have it shut', 'have it gone',
+        'get it closed', 'get it shut', 'get it gone',
+        'get that closed', 'got it closed',
+        'give it the axe', 'give it the chop', 'give it the boot',
+        'give it the flick', 'the tab needs a close', 'needs a close',
+        'do the needful', 'kindly do the needful',
+        'oblige me by closing it',
+        'if you know whats good for you', 'for your own sake',
+        'pretty please with sugar', 'pretty please with a cherry',
+        'with a cherry on top', 'cherries on top', 'sugar and a cherry',
+        'tab outro', 'tab curtain', 'swan song', 'tab swan song',
+        'wrap that tab', 'wrap this tab up', 'button the tab',
+        'button this up', 'tie that tab off', 'tie it off',
+        'do the tab in', 'do it in', 'do away with the tab',
+        'do away with it', 'finish the tab off', 'finish it off',
+        'finish the tab', 'polish the tab off', 'polish it off',
+        'take the tab down', 'take the tab out',
+        'close it all the way', 'close it up tight',
+        'close it down for good', 'close it up for good',
+        'status closed', 'set tab to closed', 'tab status closed',
         // pass CCXXVIII: gerunds/disposal + deixis + tag tails + op frames
         'closing it', 'closing the tab', 'closing this one',
         'shutting it', 'shutting this', 'getting rid of it',
@@ -5803,6 +5829,15 @@ export class VoiceCommands {
         '閉じるべきかもね',
         // pass CCXXVIII: stem imperatives IV + misc
         '閉じなんぜ', '閉じなんぜよ', '閉じましゅ', '閉じてんや', '閉じてみようぜ',
+        // pass CCXXIX: hostile/old imperatives + causative + たら評価 + がいい
+        '閉じやがれ', '閉じやがって', '閉じやがった',
+        '閉じ申せ', '閉じ申せぞ', '閉じろこそすれ', '閉じこそすれ',
+        '閉じたらいかが', '閉じたらどうか', '閉じたらどうでしょう',
+        '閉じたらよかろう', '閉じたらよかろ', '閉じたらええやろ',
+        '閉じたらええやろか',
+        '閉じるがいいぞ', '閉じるがいいよ', '閉じるがいいわ',
+        '閉じるがいいと思う', '閉じることを許せ',
+        '閉じさせろ', '閉じさせて', '閉じされ', '閉じるたまえよ',
         '閉じてくれんねん', '閉じてお願いしますな', '閉じてくださいそうな',
         '閉じてもらうが筋だ', '閉じてくれるのが筋',
         '閉じてくれれば助かるのに', '閉じてくれればなあ',
@@ -10317,7 +10352,7 @@ export class VoiceCommands {
         'close it i changed my mind', 'close it scratch that',
         'close it that was a joke', 'close it just kidding',
         'scratch that close it', 'that was a joke close it',
-        'just kidding close it', '閉じるなよ絶対', '閉じるまいと思った', '閉じるべからず', '閉じるべからざるなり',
+        'just kidding close it', '閉じるなよ絶対', '閉じるまいと思った', '閉じるべからず', '閉じるべからざるなり', '閉じないまま', '閉じさせんな', '閉じんでおく',
         '閉じてはいけない', '閉じてはいけません', '閉じるなんてもってのほか',
         '閉じたらだめ', '閉じてはだめです', '閉じてはあかん',
         '閉じなくて済む', '閉じなくて済むよ', '閉じなくて済むわ',
