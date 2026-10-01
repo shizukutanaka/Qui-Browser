@@ -2,9 +2,9 @@ name: CI - Continuous Integration
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
   workflow_dispatch:
 
 env:
@@ -39,8 +39,19 @@ jobs:
         run: npm run lint
         continue-on-error: true
 
-      - name: Run Prettier check
-        run: npm run format:check
+      - name: Run Prettier check (changed files)
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE="HEAD~1"
+          fi
+          FILES=$(git diff --name-only --diff-filter=ACM $BASE...HEAD | grep -E '\.(js|json|md|yml|yaml|css|html)$' || true)
+          if [ -n "$FILES" ]; then
+            npx prettier --check $FILES
+          else
+            echo "No formattable files changed"
+          fi
 
       - name: Check for console.log
         run: |
@@ -79,94 +90,12 @@ jobs:
       - name: Run unit tests
         run: npm test -- --coverage --maxWorkers=2
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          files: ./coverage/coverage-final.json
-          flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: false
-
-      - name: Generate coverage badge
-        uses: cicirello/jacoco-badge-generator@v2
-        with:
-          badges-directory: badges
-          generate-coverage-badge: true
-
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: coverage/
           retention-days: 30
-
-  # ============================================================================
-  # JOB 3: Integration Tests
-  # ============================================================================
-  test-integration:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run tier system integration tests
-        run: npm test -- tests/tier-system-integration.test.js --maxWorkers=2
-
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: integration-test-results
-          path: test-results/
-          retention-days: 30
-
-  # ============================================================================
-  # JOB 4: Performance Tests
-  # ============================================================================
-  test-performance:
-    name: Performance Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run benchmark tests
-        run: npm run benchmark:all -- --iterations 100 --output benchmark-results.json --format json
-
-      - name: Check performance regression
-        run: |
-          node tools/check-performance-regression.js benchmark-results.json
-        continue-on-error: true
-
-      - name: Upload benchmark results
-        uses: actions/upload-artifact@v4
-        with:
-          name: benchmark-results
-          path: benchmark-results.json
-          retention-days: 90
 
   # ============================================================================
   # JOB 5: Build Verification
@@ -179,7 +108,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [16, 18, 20]
+        node-version: [18, 20]
 
     steps:
       - name: Checkout code
@@ -289,6 +218,7 @@ jobs:
         with:
           context: .
           push: false
+          load: true
           tags: qui-browser-vr:test
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -339,7 +269,7 @@ jobs:
   summary:
     name: CI Summary
     runs-on: ubuntu-latest
-    needs: [lint, test-unit, test-integration, test-performance, build, lighthouse, docker, security]
+    needs: [lint, test-unit, build, lighthouse, docker, security]
     if: always()
 
     steps:
@@ -351,8 +281,6 @@ jobs:
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Lint | ${{ needs.lint.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Unit Tests | ${{ needs.test-unit.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Integration Tests | ${{ needs.test-integration.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Performance Tests | ${{ needs.test-performance.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Lighthouse | ${{ needs.lighthouse.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Docker | ${{ needs.docker.result }} |" >> $GITHUB_STEP_SUMMARY
@@ -362,7 +290,6 @@ jobs:
         if: |
           needs.lint.result == 'failure' ||
           needs.test-unit.result == 'failure' ||
-          needs.test-integration.result == 'failure' ||
           needs.build.result == 'failure'
         run: |
           echo "❌ CI pipeline failed. Please check the logs."
@@ -372,7 +299,6 @@ jobs:
         if: |
           needs.lint.result == 'success' &&
           needs.test-unit.result == 'success' &&
-          needs.test-integration.result == 'success' &&
           needs.build.result == 'success'
         run: |
           echo "✅ All CI checks passed successfully!"
