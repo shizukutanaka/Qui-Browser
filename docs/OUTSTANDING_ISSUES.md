@@ -4,6 +4,11 @@
 
 各項目には「対応可否」の目安として難易度と優先度を付けています。優先度は「実際にユーザーに影響するか」を基準にしており、コード上の見た目の重大さとは一致しない場合があります。
 
+~~- Session 313: EN decree/judgment 宣告(i declare/pronounce/rule the tab X・the tab is hereby/thereupon/forthwith X・by decree/order/edict/fiat)・'the tab is beyond help by <decree>' が scoped-help 先勝ち → ENパターン lookahead に `by (decree|order|proclamation|edict|statute|fiat)` 除外追加で close へ。onyx/jade 由来の 'unmount it/the tab'・'unsubscribe it' 欠落リテラル補填(フルスイート赤3件→緑)・JA 文書型敬体/禁制宣告(申し渡し・〜するな・〜てはならぬ・禁ず・許可せぬ 等)~~
+~~- Session 314: EN demand/court-order 枠(i {want,need,demand,order,command,decree,require,expect} OBJ {closed,gone,dead,...}・the court/bench {finds,rules,declares,sentences} the tab {dead,guilty,condemned,...}・stands condemned/accused・outlawed/recalled/rescinded declaratives)・JA 命令文書・判定宣告(をV旨命ず/言い渡す・命令書発令・し給え残置・こととする/ものとする・べきほかない・見せしめ/お達し)~~
+~~- Session 314: 棄却パターン — 'you {may,shall,must,can,will} not keep it' 系は negate 方向逆のため不採用・'{abandon,cease,drop,give up,...} keeping it' は曖昧で不採用。close-tab-by-name JA パターンの捕捉群に `(?:(?!(?:この|その|あの)タブ).)+` 追加（'このタブを閉じて' が名指しタブとして誤爆 → close-tab 正当ヒットへ）~~
+~~- Session 313: EN probe 残留 — tab-search 8件('i find the tab <adj>' 形は tab-search 先勝ちで維持・close リテラルで一部カバー)・JA 既登 close 27件/妥当 pin(stop-everything 2・vr-exit 1)~~
+
 ~~- Session 312: EN end/halt/dispose 俗語動詞(end it/halt it/snip/chop/murder/smite)・needs-to-go・time-to-close・go/come close it・bye tab・JA とくれ/おくれ/んとくれ・てなよ/てわよ・ちゃうなら/ちゃったほうが・許可問い(てもいいよね/ええか)・dict名詞尾XXXI(慣例/原則/規範/ルール 等)~~
 ~~- Session 312: 'scram/beat it/get lost/begone'(話者解散)・'close off/shut off/shut out/cut that/stop the tab'(曖昧)は意図的に未ルート；'ておる/とる' 進行形は describe-tab 正当ヒットでピン見送り~~
 
@@ -18,7 +23,6 @@
 
 ~~- Session 309: "close every tab" が close-tab-by-name 誤ルート（lookahead に every/each/both/those/these 追加で解消）~~
 ~~- Session 309: silent-probe 検出の約90件残留（negate 見送り/断念枠、かね/たもれ/至急尾、close-all every 形、pin current、bookmark add-to、reopen 誤って形、EN discourse 前置、quick-ism 語尾、ordinal from-the-right）~~
-
 
 ---
 
@@ -1738,6 +1742,7 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - R284 note: `閉じんなってば` は既存 close literal 維持（方言命令 vs 禁止で曖昧 — 変更は別途判断）。
 - R285 pin: `flush it`/`hang it up`→null 維持（granular 確立: 曖昧）。`閉じてんで`→describe 不採用 — `_politeVariants` の てみ→んで 変換が 閉じてみ* close ピン21形を横取りしたため（variant 残置衝突は describe 側に限定）。
 - R286 pin: `write it off`→null 維持（granular 確立: 経理 euphemism 曖昧）。`open fire on it`→go-to 誤ルートを close 修正（'open' keyword 先勝ち → リテラル化で先勝ち固定）。`閉じるべきかと思う`→help ピン維持。
+- R312: `/version/` regex が 'aversion' に誤爆→`(?<!a)` lookbehind修正・`/call \w+/` が 'uncall' に誤爆→`(?<!un)` 修正・`unbookmark*`/`unpin*` は実義のため不採用・JA `ものか`/`もんだ`/`からな` ピン維持。
 - R311: `overturn this page *`→next-page / `開くべきではなかった*を`→go-to / `消えてほしい*`→dismiss-notify / `the call *`→device-apps ピン維持(phone意図)・`close out this tab`→close-tab-by-name ピン・`undo it*`→reopen-tab 維持。
 - R310: `opening it was *`→go-to / `it opened by-*`→go-to / `間違いのタブだ*`→tab-by-name / `クリックしてしまった`→input-methods / `見てしまった`→describe-tab 誤ルートを close リテラル化・`i meant the other tab`→next-tab は正ルート維持・JA `はずだった`→trouble ピン。
 - R309: `let it find no mercy *`→find-in-page 誤ルート56件を close リテラル化・JA `〜するな`→negate ピン維持。
