@@ -252,6 +252,32 @@ Gaze-dwell timer maintains a grace window: if the user's gaze slips off-target b
 
 ## Session Log
 
+### Session 151: 睡眠/入力原子 — sleep 双子・要素ジェスチャー・副詞形 + '読み進めて'/'何を開いてる'/'go to sleep' 誤ルート修正
+外部基準: OS アシスタントの 'good night'/'wake up' 双子、Voice Access 'click X'/'focus' の要素操作句、NVDA 'say all faster' の副詞形。
+- 🐛 **'go to sleep' が literal ナビゲート・'何を開いてる' が '何を' をナビゲート**（実測捕捉）: sleep-mode に 'go to sleep'/'good night'/'wake me up' + JA 双子 'おやすみ'/'おやすみなさい'/'寝る'/'寝かせて'/'スタンバイ'/'スリープ'/'起きて'/'起きてよ'/'ウェイクアップ'；tabs-list に '何を開いてる'/'開いているもの'/'開いてるものは'/'開いてるやつ'（onGoTo 非呼出を断言）。
+- 🐛 **'読み進めて'/'読み上げを進めて' が navigate でページ forward**（実測捕捉）: navigate の 進め 分岐へ (?<!読み|上げを) lookbehind（'ページを進めて'/'進めて'→navigate 維持）+ resume-reading へ '読み進めて'/'読み進め'/'読み上げ続けて'/'読み続けて'/'続けて読んで'/'読み上げを進めて'。
+- ✨ **要素ジェスチャー・入力句 → input-methods**: 'クリックして'/'押して'/'タップして'/'選択して'/'フォーカスして'/'カーソルを置いて'/'カーソルを当てて'/'入力して'/'文字を入力'/'テキストを入力'/'書き込んで'/'入力欄' + EN 'click'/'click here'/'tap'/'tap it'。
+- ✨ **副詞形**: speech-slower 'ゆっくりと'/'丁寧に'/'はっきりと'/'はっきり言って'/'正確に読んで'、speech-faster '急いで'/'早くして'/'速くして'/'さっさと'/'急いで読んで'。
+- ✨ **その他**: reopen-tab 'さっき閉じたやつ'/'閉じたばっかり'/'間違って閉じた'/'閉じる前のタブ'、panel-distance '近くで見せて'/'近くで'/'小さくして'（近/遠方向判定継承）、reader-scale-status 'ズームして'、next-paragraph '飛ばして'/'飛ばす'。
+- ✅ **テスト +76（git stash で63件赤確認、13件は共存ガードの設計上緑）**: Total 4938 tests (125 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
+### Session 150: キャレット粒度原子 — 行/文/単語/文字端句の誤ルート修正 + caret-edge 誠実不在 + 漢数字行目
+外部基準: NVDA Home/End・Ctrl+Home/End の端ジャンプ句、Voice Access 'character by character'/'word by word' の粒度指定。
+- 🐛 **'行頭に戻る'/'一文字戻る'/'単語を戻る'/'頭に戻る' が1ページ戻る実害修正**（実測捕捉）: back の `/戻る|戻れ/` 素朴 regex がキャレット移動句を所有 → lookbehind へ (?<!一文字)(?<!ひと文字)(?<!一単語)(?<!ひと単語)(?<!単語を)(?<!行頭に)(?<!頭に)(?<!一つ)(?<!ひとつ)(?<!頭まで) を追加（registerDefaultCommands + connectBrowser 両コピー）。'一つ戻る'/'ひとつ戻る' は back の bare リテラルでページ戻りを維持。navigate の 進む にも同系 lookbehind（'一文字進む' がページ forward していた）。
+- ✨ **caret-edge 誠実不在原子**: 行頭/行末/行の先頭/行の最後/文頭/文末/文の先頭/段落の先頭/段落の終わり/単語の先頭/語頭/語尾/最初の文字/最後の文字/最初の単語/最後の単語/'beginning of line'/'end of line'/'word by word'/'character by character'/'caret to start' → '行や文の端へのジャンプはありません。「一文字戻る」「次の単語」で細かく動けます'。
+- ✨ **文字・単語ステッパー拡張**: prev-char '一文字戻る'/'一文字前'/'ひと文字戻る'/'文字を一つ戻る'、next-char '一文字進んで'/'ひと文字'/'次の文字へ'/'一文字ずつ進んで'、prev-word '単語を戻る'/'前の単語へ'/'一単語戻る'、next-word '単語を進んで'/'次の単語へ'/'単語単位'/'語を飛ばす'/'一単語進んで'。
+- ✨ **漢数字行目 + 端句**: reader-goto-line の行目 capture を漢数字対応（KANJI map、'一行目'/'五行目'）、last-line '最終行'/'最後の行目'、scroll-top '頭に戻る'/'先頭に飛んで'/'頭まで戻る'/'トップに飛んで'、scroll-bottom '末尾に飛んで'/'末端まで'/'末端に飛んで'/'最後まで飛んで'、spell-word 'spell that'/'spell this'。'30行目'→reader-goto-line 維持の共存テスト（read-line-n は 'N行目を読んで' 形のみ）。
+- ✅ **テスト +85（git stash で76件赤確認、9件は共存ガードの設計上緑）**: Total 4862 tests (124 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
+### Session 149: 履歴/再開原子 — 履歴 bare 形・他アプリ履歴誠実不在・データ消去句・読みかけ/読了句
+外部基準: Chrome 'clear browsing data' のデータ種別、Kindle 読了位置復帰、OS アシスタントの履歴問い合わせ。
+- ✨ **履歴 bare/日付形**: clear-history に '履歴消して'/'履歴を消去して'/'履歴を削除して'/'履歴をクリアして'（regex は 消去|削除|クリア|消す のみで '消して' 欠落）、history-list に '最近の履歴'/'昨日の履歴'/'今日の履歴'/'履歴を一覧'/'履歴を確認'、history-latest に 'いつ見た'/'いつ見たっけ'/'さっきのページは'/'さっきのサイトは'/'前に見たサイト'/'最後に見たのは'。'履歴を見て'→history、'さっき見たページ'→back 維持（共存テスト）。
+- ✨ **other-history 誠実不在原子**: '再生履歴'/'視聴履歴'/'購入履歴'/'watch history'/'purchase history' → 'その履歴はこのブラウザにありません。「履歴を読んで」で閲覧履歴を聞けます'。
+- ✨ **privacy-clean 拡張**: 'キャッシュ削除'/'クッキー削除'/'データを消して'/'ブラウザデータを消して'/'フォームデータを消して'/'パスワードを消して'/'自動入力を消して'/'オートフィルを消して'/'ダウンロードを消して'/'サイトデータを消して'。'パスワードを教えて'→account 維持（共存テスト）。
+- ✨ **読みかけ再開 → resume-reading**: '読みかけ'/'読みかけを再開'/'さっきの続き'/'中断したところから'/'止めたところから'/'読んでたところ'/'前に読んでた'（'再開して'→video-toggle 維持）。'途中から' → read-here。
+- ✨ **読了・残量形**: reader-progress に '読み終わった'/'読了'/'読み上げが終わった'/'まだ読んでる'/'読んでる途中'/'半分読んだ'/'もう半分'、remaining-time に 'あとどのくらい読む'/'何分残ってる'/'あと何分くらい'/'残りは何分'。
+- ✅ **テスト +82（git stash で66件赤確認、16件は共存ガードの設計上緑）**: Total 4777 tests (123 suites); 0 lint errors（警告 132 = baseline 同一）; build green。
+
 ### Session 148: パネル/リスト原子 — 推薦句・保存リスト・タブ集計・パネル移動誠実不在 + 位置句誤ルート修正
 外部基準: OS アシスタントの 'trending/recommendations' 導線、Chrome 'reading list'、Quest の視線ドラッグパネル。
 - 🐛 **'最近のタブ'/'使用中のタブ'/'アクティブなタブ'/'今のタブ'/'選択中のタブ' が名指し誤検索**（実測捕捉）: tab-by-name lookahead stoplist に 最近|使用中|アクティブな|今|選択中 + describe-tab へ該当句。'メモのタブ' は名指し維持（共存テスト）。
