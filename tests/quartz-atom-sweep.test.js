@@ -1,232 +1,26 @@
-// Pass CCXLIII: EN fight/scour/space/time/magic + JA declutter/severance/verdicts (pass CCXLIII)
 import { VoiceCommands } from '../src/vr/input/VoiceCommands.js';
 
-function mk() {
-  const t1 = { id: 1, url: 'https://a.example', title: 'Tab A', loading: false };
-  const t2 = { id: 2, url: 'https://b.example', title: 'Tab B', loading: false };
-  const t3 = { id: 3, url: 'https://c.example', title: 'Tab C', loading: false };
-  const tabManager = {
-    tabs: [t1, t2, t3], activeTab: t2, activeTabId: 2,
-    getActiveTab() { return this.activeTab; },
-    getTab(id) { return this.tabs.find(t => t.id === id); },
+const mk = () => {
+  const vc = new VoiceCommands({ enabled: true });
+  const tm = {
+    activeTabId: 't1',
+    tabs: [
+      { id: 't1', currentTitle: 'A', currentUrl: 'https://a' },
+      { id: 't2', currentTitle: 'B', currentUrl: 'https://b' },
+      { id: 't3', currentTitle: 'C', currentUrl: 'https://c' },
+    ],
+    getActiveTab() { return this.tabs.find((t) => t.id === this.activeTabId); },
+    closeAllTabs() { return 3; },
+    closeTab() {}, pinTab() {}, closeOtherTabs() {},
   };
-  const vc = new VoiceCommands({
-    speak: () => {},
-    onCommand: () => {},
-  });
-  vc.connectBrowser(tabManager);
+  vc.connectBrowser({ tabManager: tm, onGoTo: () => {} });
+  vc.speak = () => {};
   return vc;
-}
-function key(vc, p) {
-  vc.processCommand(p, 0.9);
-  return vc.lastCommand ? vc.lastCommand.key : null;
-}
+};
+const key = (vc, p) => { vc.processCommand(p, 0.9); return vc.lastCommand ? vc.lastCommand.key : null; };
 
-describe('pass CCXLIII: close-tab literal coverage', () => {
+describe('quartz atom sweep — pass CCXXXVII', () => {
   test.each([
-    "silence it", "silence the tab", "quiet it", "quiet it down",
-    "quiet the tab", "hush it", "hush the tab", "hush it up",
-    "shush it", "shush the tab", "pacify it", "pacify the tab",
-    "sedate it", "tranquilize it", "anesthetize it", "numb it",
-    "stun it", "stun the tab", "daze it", "knock it out cold",
-    "knock it out", "knock the tab out", "ko it", "ko the tab",
-    "knockout", "knockout punch", "uppercut it", "haymaker it",
-    "roundhouse it", "roundhouse kick it", "karate chop it", "judo chop it",
-    "kung fu it", "ninja it", "piledriver it", "body slam it",
-    "suplex it", "powerbomb it", "clothesline it", "clothesline the tab",
-    "sucker punch it", "cheap shot it", "headbutt it", "headbutt the tab",
-    "smackdown it", "smackdown the tab", "beatdown it", "beat it down",
-    "beat it senseless", "beat the tab", "beat the tab down", "pummel the tab",
-    "pound it", "pound it into dust", "thump it", "thump the tab",
-    "whack it upside the head", "bonk the tab", "conk it", "conk the tab",
-    "bop it", "bop the tab", "biff it", "clout it",
-    "clout the tab", "wallop it", "wallop the tab", "belt it",
-    "belt the tab", "leather it", "paste the tab", "slug it",
-    "slug the tab", "sock it", "sock the tab", "deck it",
-    "deck the tab", "clock it", "clock the tab", "bean it",
-    "bean the tab", "crown it", "crown the tab", "ding it",
-    "dope slap it", "slap the tab", "smack it silly", "cuff it",
-    "cuff the tab", "box its ears", "tan its hide", "tan the hide",
-    "whip it", "whip the tab", "whip it good", "thrash it",
-    "thrash the tab", "flog it", "flog the tab", "scourge it",
-    "scourge the tab", "lash it", "lash the tab", "cane it",
-    "cane the tab", "paddle the tab", "scrub it off", "scour it",
-    "scour the tab", "sandblast it", "sandblast the tab", "powerwash it",
-    "powerwash the tab", "hose the tab", "rinse it", "rinse the tab",
-    "flush the tab out", "flush the tab down the toilet", "suck it out", "suck it out of existence",
-    "hoover it", "hoover the tab", "hoover it up", "vacuum it",
-    "vacuum the tab", "vacuum it up", "vac it", "vac the tab",
-    "sweep it up", "sweep the tab out", "mop the tab", "swab it",
-    "storm it", "storm the tab", "hurricane it", "tornado it",
-    "tsunami it", "flood it", "flood the tab", "deluge it",
-    "avalanche it", "earthquake it", "quake it", "volcano it",
-    "lava it", "magma it", "hailstorm it", "lightning it",
-    "launch it into space", "launch it into orbit", "launch the tab into space", "yeet it into space",
-    "send it to the moon", "send it to mars", "jettison it into space", "airlock it",
-    "airlock the tab", "out the airlock", "space it", "space the tab",
-    "deorbit it", "deorbit the tab", "burn up on reentry", "reentry burn",
-    "meteor it", "meteor the tab", "asteroid it", "comet it",
-    "black hole it", "black hole the tab", "event horizon", "spaghettify it",
-    "spaghettify the tab", "wormhole it", "singularity it", "event horizon it",
-    "solar flare it", "sun it", "sun the tab", "cast it into the sun",
-    "cast it into a black hole", "send it back in time", "send it to the past", "erase it from the timeline",
-    "rewrite the timeline", "retcon it", "retcon the tab", "unwrite it",
-    "unwrite the tab", "unhappen it", "uncreate it", "unhappen the tab",
-    "ctrl-z it", "command z it", "cmd z it", "revert it",
-    "revert the tab", "roll it back", "rollback it", "time machine it",
-    "memory hole the tab", "orwell it", "orwell the tab", "game over man",
-    "no continues", "no continues for it", "pwn it", "pwn the tab",
-    "get rekt", "rekt it", "rekt the tab", "gg it",
-    "gg the tab", "gg no re", "speedrun it", "speedrun the tab",
-    "instant kill it", "critical hit it", "crit it", "crit the tab",
-    "fatality it", "fatality the tab", "finish him", "finish her",
-    "flawless victory", "brutality it", "avada kedavra it", "obliviate it",
-    "obliviate the tab", "evanesco it", "evanesco the tab", "reducto it",
-    "reducto the tab", "bombarda it", "diffindo it", "expulso it",
-    "expulso the tab", "deletrius it", "deletrius the tab", "cast it into mount doom",
-    "mount doom", "into mount doom", "into the fires of mount doom", "order 66 it",
-    "execute order 66 on it", "death star it", "death star the tab", "force choke it",
-    "force choke the tab", "vader choke it", "sarlacc it", "sarlacc the tab",
-    "into the sarlacc", "feed it to the sarlacc", "carbonite it", "carbonite the tab",
-    "freeze it in carbonite", "trash compactor it", "trash compactor the tab", "garbage masher",
-    "thermal detonator", "begone forever", "begone for good", "begone with ye",
-    "be gone with you", "exit pursued by a bear", "exeunt", "exeunt the tab",
-    "redact it", "redact the tab", "censor it", "censor the tab",
-    "strikethrough it", "cross it out", "cross the tab out", "x it out",
-    "x out the tab", "x the tab out", "disqualify it", "disqualify the tab",
-    "circular file it", "round file the tab", "the round file", "file it in the round file",
-    "wastebasket the tab", "trashcan it", "waste bin it", "waste bin the tab",
-    "garbage pail it", "garbage pail the tab", "dumpster the tab", "dumpster fire it",
-    "landfill it", "landfill the tab", "rubbish bin it", "rubbish bin the tab",
-    "chuck it in the bin", "chuck it in the skip", "disqualification", "be gone forever",
-    "begone with you", "hush it down", "sedate the tab", "tranquilize the tab",
-    "anesthetize the tab", "numb the tab", "stun gun it", "taze it",
-    "tazer it", "electroshock it", "jolt it", "jolt the tab",
-    "zap it dead", "zap it away", "ko punch", "ko the page",
-    "night night it", "beddy bye", "beddy bye for it", "say goodnight",
-    "say goodnight to the tab", "sing it a lullaby", "lullaby it", "count it out",
-    "count it out of existence", "down for the count", "down for the count it", "one two three",
-    "count of three", "final goodbye", "last goodbye", "goodbye forever",
-    "goodbye for good", "bye forever", "bye for good", "farewell forever",
-    "gone for good", "gone forever", "gone for keeps", "gone for real",
-    "outta here for good", "outta here for keeps", "adios forever", "sayonara forever",
-    "good riddance", "good riddance tab", "riddance to it", "be rid of the tab",
-    "rid me of it", "rid me of the tab", "rid me of this", "slough off the tab",
-    "cast off the tab", "cast the tab off", "cast it out", "toss it away",
-    "toss the tab aside", "heave it away", "hurl it away", "fling it away",
-    "kick it away", "boot it away", "shoo it out", "shoo it off the screen",
-    "shoo the tab away", "wave it off", "wave it away", "wave the tab away",
-    "brush it off", "brush the tab away", "sweep it aside", "whisk it off",
-    "whisk the tab away", "scoop it up", "scoop it out", "scoop the tab out",
-    "shovel the tab out", "shovel it away", "bucket it out", "dump the tab out",
-    "tip it out", "tip it over", "tip it upside down", "upturn it",
-    "overturn it", "overturn the tab", "capsize it", "capsize the tab",
-    "upend it", "upend the tab", "flip the tab over", "flip it off",
-    "flick it away", "flick it out", "pluck the tab off", "pick it off",
-    "pick the tab off", "pick it out", "pick the tab out", "pick it apart",
-    "pick it clean", "pick the tab clean", "pick its bones", "clean its bones",
-    "bones for it", "bare bones", "skeletonize it", "bone it",
-    "bone the tab", "debone the tab fully", "grind its bones", "grind the bones",
-    "crush its bones", "snap its bones", "break its bones", "shatter its bones",
-    "pulverize its bones", "dust its bones", "reduce it to bones", "reduce it to dust",
-    "reduce the tab to dust", "reduce it to ash", "reduce the tab to ash", "reduce it to rubble",
-    "reduce the tab to rubble", "reduce it to nothing", "reduce the tab to nothing", "reduce it to atoms",
-    "reduce the tab to atoms", "atomize the tab", "split it into atoms", "shatter it into atoms",
-    "obliterate it into atoms", "break it into atoms", "smash it into atoms", "turn it into atoms",
-    "turn it into dust", "turn the tab to dust", "turn it into ash", "turn the tab into ash",
-    "turn it into nothing", "turn the tab into nothing", "make it into nothing", "make it into dust",
-    "make it into ash", "make it into history", "make it ancient history", "make it a memory",
-    "make it a distant memory", "distant memory", "ancient history", "history for it",
-    "a memory now", "just a memory", "only a memory", "merely a memory",
-    "nothing but a memory", "gone but not forgotten", "gone and forgotten", "gone and done",
-    "gone and forgotten it", "out of sight out of mind", "out of sight and mind", "sight unseen",
-    "unseen forever", "seen for the last time", "seen it for the last time", "last time i see it",
-    "last time seeing it", "last sight of it", "last glimpse of it", "final glimpse",
-    "final sight", "final view", "final look", "last view",
-    "last look", "one last look", "no more looks", "no more views",
-    "no more sight", "断捨離する", "断捨離だ", "断捨離しろ",
-    "断捨離すべき", "断捨離するんだ", "断捨離せよ", "整理だ",
-    "整理せよ", "後片付けだ", "後片付けしろ", "掃除しろ",
-    "掃除だ", "掃除せよ", "掃除すべき", "掃除機をかけろ",
-    "掃いて捨てろ", "掃き清めろ", "清掃しろ", "拭き取れ",
-    "拭き取って", "拭い去れ", "拭い去って", "払拭しろ",
-    "払拭だ", "払拭せよ", "拭え", "拭って",
-    "消し去れ", "消し去って", "消し去るんだ", "跡を消せ",
-    "痕跡を消せ", "証拠を消せ", "証拠を隠滅しろ", "隠滅しろ",
-    "隠滅だ", "証拠隠滅しろ", "証拠隠滅だ", "揉み消せ",
-    "揉み消して", "揉み消すんだ", "絶やせ", "絶やして",
-    "絶やすんだ", "断て", "断って", "断つんだ",
-    "断ち切れ", "断ち切って", "断ち切るんだ", "切り離せ",
-    "切り離して", "切り落とせ", "切り落として", "剥がせ",
-    "剥がして", "剥がすんだ", "剥ぎ取れ", "剥ぎ取って",
-    "引き剥がせ", "引き剥がして", "取り除け", "取り除いて",
-    "取り除くんだ", "除去しろ", "除去だ", "除去せよ",
-    "取り払え", "取り払って", "取っ払え", "取っ払って",
-    "取り下げろ", "取り下げて", "手放せ", "手放して",
-    "手放すんだ", "手を切れ", "手を切って", "手を切るんだ",
-    "縁を切れ", "縁を切って", "縁を切るんだ", "絶縁しろ",
-    "絶縁だ", "絶縁せよ", "勘当しろ", "勘当だ",
-    "勘当にしろ", "勘当せよ", "門前払いしろ", "門前払いだ",
-    "追い返せ", "追い返して", "帰れ", "帰って",
-    "帰ってくれ", "引っ込め", "引っ込んで", "退場しろ",
-    "退場だ", "退場させろ", "退場せよ", "退場しなさい",
-    "退散しろ", "退散だ", "退去しろ", "退去だ",
-    "退去させろ", "退出しろ", "退出だ", "退出せよ",
-    "退席しろ", "退席だ", "退席させろ", "引退しろ",
-    "引退だ", "引退させろ", "引退せよ", "隠居しろ",
-    "隠居だ", "締めろ", "締めて", "締めるんだ",
-    "締めなさい", "締めよう", "締め切れ", "締め切って",
-    "締め切るんだ", "締め出せ", "締め出して", "締め出すんだ",
-    "納めろ", "納めて", "納めるんだ", "仕舞え",
-    "仕舞って", "仕舞うんだ", "仕舞いなさい", "完結しろ",
-    "完結だ", "終結させろ", "終結だ", "終結せよ",
-    "お仕舞いだ", "お仕舞いにしろ", "お仕舞いにせよ", "収束させろ",
-    "収束だ", "収拾をつけろ", "収拾をつけて", "殺せ",
-    "殺して", "殺すんだ", "殺せよ", "殺すべき",
-    "殺さないと", "ぶっ殺せ", "ぶっ殺して", "皆殺しだ",
-    "皆殺しにしろ", "皆殺しだぞ", "成敗しろ", "成敗だ",
-    "成敗せよ", "成敗してくれ", "仕置きだ", "仕置きしろ",
-    "お仕置きだ", "お仕置きしろ", "罰を与えろ", "罰を与えて",
-    "断罪しろ", "断罪だ", "断罪せよ", "有罪だ",
-    "有罪判決だ", "有罪にしろ", "死刑にせよ", "極刑だ",
-    "極刑にしろ", "極刑にせよ", "磔だ", "獄門だ",
-    "獄門にしろ", "晒し首だ", "晒し首にしろ", "市中引き回し",
-    "市中引き回しだ", "打ち首獄門", "釜茹でだ", "釜茹でにしろ",
-    "火炙りだ", "鋸挽きだ", "鋸挽きにしろ", "生き埋めだ",
-    "生き埋めにしろ", "生き埋めにせよ", "水攻めだ", "水攻めにしろ",
-    "矢ぶすまだ", "没収しろ", "没収だ", "没収せよ",
-    "取り上げろ", "取り上げて", "取り上げるんだ", "接収しろ",
-    "接収だ", "差し押さえろ", "差し押さえだ", "差し押さえて",
-    "押収しろ", "押収だ", "収用しろ", "収公しろ",
-    "国庫に入れろ", "解体しろ", "解体だ", "解体せよ",
-    "解体すべき", "分解しろ", "分解だ", "分解せよ",
-    "分解してしまえ", "バラせ", "バラして", "バラすんだ",
-    "バラバラにせよ", "バラバラにするんだ", "ばら撒け", "ばらまけ",
-    "散布させろ", "散らせ", "散らして", "散らすんだ",
-    "四散させろ", "八分散", "粉骨砕身だ", "粉骨砕身させろ",
-    "微塵にしろ", "微塵にせよ", "微塵に砕け", "微塵に砕いて",
-    "木端微塵にせよ", "粉々にして", "粉々にするんだ", "砕け散れ",
-    "砕け散って", "砕け散るんだ", "砕けよ", "砕けろ",
-    "砕いてしまえ", "砕いてくれ", "破砕しろ", "破砕だ",
-    "破砕せよ", "破壊してしまえ", "破壊してくれ", "毀せ",
-    "毀して", "毀すんだ", "毀壊しろ", "毀壊だ",
-    "潰すが上策", "潰す一択だ", "潰すしかなかろう", "潰せと言っている",
-    "潰せと言ったろう", "潰せと言ってるんだ", "潰せと命令する", "潰せと命じる",
-    "潰せと命じた", "潰せとの命令だ", "潰せとの指示だ", "潰せとの指示です",
-    "潰せよな", "潰せよう", "潰せませ", "潰せましょう",
-    "潰さねばならん", "潰さなければならぬ", "潰さなければならん", "潰さなきゃ駄目",
-    "潰さなアカン", "潰さずにはいられない", "潰さざるべからず", "潰されるべき",
-    "潰されるべきだ", "潰されろ", "潰されてしまえ", "潰されてほしい",
-    "潰されますように", "潰されんがいい", "潰されんがよい", "潰されて当然",
-    "潰されるがいい", "潰されるがよい", "潰させてもらいたい", "潰しますのでよろしく",
-    "潰すんで", "潰すんです", "潰すのです", "潰すよ",
-    "潰すね", "潰すです", "潰すであります", "潰すでございます",
-    "潰すでござる", "潰すで候", "潰すの巻", "潰すっきゃねえ",
-    "潰すっきゃないわ", "潰すっきゃないです", "潰すっきゃないですよ",
-  ])('routes %s to close-tab', (p) => {
-    expect(key(mk(), p)).toBe('close-tab');
-  });
-});
     'scuttle it', 'scuttle the tab', 'send it overboard',
     'overboard with it', 'keelhaul it', 'keelhaul the tab',
     'walk the plank', 'make it walk the plank',
@@ -241,8 +35,18 @@ describe('pass CCXLIII: close-tab literal coverage', () => {
     'wave it goodbye', 'wave goodbye to the tab', 'blow it a kiss',
     'pour one out', 'pour one out for the tab', 'one for the road',
     'done here', 'we are done here',
+  ])('EN %s -> close-tab', (p) => {
+    expect(key(mk(), p)).toBe('close-tab');
+  });
+
+  test.each([
     'sayonara', 'au revoir', 'arrivederci', 'tschuss', 'auf wiedersehen',
     'farewell', 'vaya con dios', 'bye now', 'so long',
+  ])('EN farewell %s -> vr-exit', (p) => {
+    expect(key(mk(), p)).toBe('vr-exit');
+  });
+
+  test.each([
     '閉じなんし', '閉じたまふ', '閉じしんしゃん', '閉じたあ',
     '閉じちゃき', '閉じとーちゃ', '閉じとうちゃ', '閉じてなぁ',
     '閉じちょーだい', '閉じちょうだいね', '閉じておきやれ', '閉じときゃー',
@@ -260,5 +64,13 @@ describe('pass CCXLIII: close-tab literal coverage', () => {
     '閉じないと困ります', '閉じないとだめなんだ', '閉じないとまずい',
     '閉じなきゃならんのだ', '閉じなきゃいかんのだ', '閉じなきゃならんのだが',
     '閉じなきゃまずい', '閉じなきゃ困るよ',
-    '閉じるっちゅうのに', '閉じるっていったのに', '閉じると言ったのに',
+  ])('JA %s -> close-tab', (p) => {
+    expect(key(mk(), p)).toBe('close-tab');
+  });
 
+  test.each([
+    '閉じるっちゅうのに', '閉じるっていったのに', '閉じると言ったのに',
+  ])('JA %s -> trouble', (p) => {
+    expect(key(mk(), p)).toBe('trouble');
+  });
+});

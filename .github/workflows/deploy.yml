@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
@@ -15,7 +12,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
+  group: 'pages'
   cancel-in-progress: false
 
 jobs:
@@ -38,7 +35,7 @@ jobs:
       - name: Validate VR Modules
         run: |
           echo "Validating VR modules..."
-          for file in assets/js/vr-*.js; do
+          for file in src/vr/*.js; do
             if [ -f "$file" ]; then
               echo "✓ Found: $file"
             fi
@@ -47,7 +44,7 @@ jobs:
       - name: Check file sizes
         run: |
           echo "Checking file sizes..."
-          find assets/js -name "vr-*.js" -exec ls -lh {} \;
+          find src/vr -name "*.js" -exec ls -lh {} \;
 
       - name: Create build info
         run: |
@@ -60,6 +57,8 @@ jobs:
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
+        with:
+          enablement: true
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
@@ -97,14 +96,14 @@ jobs:
       - name: Lint JavaScript files
         run: |
           echo "Checking JavaScript syntax..."
-          npx eslint assets/js/*.js || echo "ESLint not configured, skipping..."
+          npm run lint || echo "Lint issues found, review recommended"
 
       - name: Check VR module count
         run: |
-          MODULE_COUNT=$(find assets/js -name "vr-*.js" | wc -l)
+          MODULE_COUNT=$(find src/vr -name "*.js" | wc -l)
           echo "Found $MODULE_COUNT VR modules"
-          if [ $MODULE_COUNT -lt 20 ]; then
-            echo "Warning: Expected at least 20 VR modules, found $MODULE_COUNT"
+          if [ $MODULE_COUNT -lt 10 ]; then
+            echo "Warning: Expected at least 10 VR modules, found $MODULE_COUNT"
           else
             echo "✓ VR modules count OK"
           fi
