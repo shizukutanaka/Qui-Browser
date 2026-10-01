@@ -1142,6 +1142,7 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - ~~**稼働・聴力確認句が未認識**~~ — **Session 167 で実装**: working-status に '生きてる/動いてます/働いてる/whats going on/whats the status/hows it looking'、mic-status に 'd?ya hear me'、volume に 'bump it up/down'。
 - ~~**依頼前置詞・困惑句が未認識**~~ — **Session 167 で実装**: help に 'お願いします/よろしくお願いします/どうぞ/わかんない/わかりませんでした/どうしたら'、negate に 'nah bruh/no can do/no dice/negative ghostrider/most certainly not/whatever/doesnt matter/forget everything'。
 
+
 ---
 
 ## 使い方（次のセッションへ）
