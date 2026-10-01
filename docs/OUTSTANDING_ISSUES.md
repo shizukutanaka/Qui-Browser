@@ -1746,7 +1746,6 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - R303: `blast it off`→volume-up・`unpin*`→unpin-active・`cut it off*`/`can it`→stop-everything ピン維持。`the tab was a mistake from the start`/`the tab was too far gone`→read-aloud/panel-distance 誤ルートは close リテラル化で修正。
 - R302: `smash it`/`crush it`→granular-pool null ピン維持・`cut it up`→stop-everything・`put it to sleep permanently`→sleep-mode・`踏んときな`→negate。
 - R301: `どんぞ*`→negate ピン。テストファイル命名はカラー枯渇で衝突が発生 — violet は CCXXXIII で使用済みのため teal を採用。今後も `tests/*-atom-sweep.test.js` の既存名を確認すること。
-
 - R300: `取り消す*`→reopen-tab 取消ピン維持・`消し去るのが正解`(だ無し)→help 既ルート・'the tab was doomed from the start'→read-aloud 誤ルートを close に修正。
 - R299: `keep it under(water)/captive/prisoner/hostage`→negate keep-it ピン追随。
 
