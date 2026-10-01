@@ -2848,6 +2848,78 @@ permission/capability questions (てもいいでしょうか / られますか)�
 - ✅ **テスト +170（実装前実行で140件赤確認、内26件は共存ガードの設計上緑）**: Total 6918 tests (144 suites); 0 lint errors（警告 137 = baseline 同一）; build green; FFFD 0件。
 
 ### Session 313: Voice atoms CXCIII — 方向処分句動詞 + スラング vocative + JA 方言依頼残置 + dict 名詞尾XXXII。EN: directional disposal（down/away/out with this/the tab・out with it/this・through/finished with this/(the tab)・over and done with it）・wrap/pack/end 系（wrap the tab up・pack it up/away・do it/the tab in・tear/rip/pull it down・put an end to it/this・put/lay it to rest・retire it/the tab・put it out of its misery）・slang discourse 前置（bro/sis/fam/fams/dawg/cuz/tbh/ngl/lowkey/highkey/deadass/ong/fr fr/fr — ENPRE の |bruh|dude|be a champ and| 交互に併入）。JA: しもた/しもうた/しもて（近畿完了）・とこなあ/とこうな（南日本意向+否定型→stem-な 誤爆を (?<!とこ|どこ) lookbehind で回避）・とか(や)・ってのはどう・たらええのに・た方がええ・ましょうぜ・ますかね・かなあ・なよー・なよっと・やぁ。dict 名詞尾XXXII（最適解/好判断/良案/名案/上策/妙案/早道/近道/得策/策）。確立ピン維持: 'wrap it up'/'wrap this up'→stop-everything・'shut X down'→vr-exit・'put it to sleep'→sleep-mode・'のが正解'→help・'んといて'→negate・sick/tired/fed-up・なんて・下策ではない は意図スキップ。
+### Session 338: keystone2 atom sweep — EN retro-urgency/farewell II + JA neg-requests/obligation-nouns/dialect
+外部基準: EN retroactive urgency ("needed it yesterday"), motion disposal ("out it goes"), movie-threat frames ("the easy way", "no one gets hurt"), casual farewells II ("its been real", "rip tab"); JA Kansai neg-requests (もらえへん|くれへん|くれぬ), obligation/intent nouns (なければならん|ざるを得ない|のみ|ものだ|気満々), dialect imperatives (てこ|てけ|てきな|たれよ|たらん|てやん).
+- ✨ **EN**: retroactive urgency（needed it closed yesterday|gone five minutes ago・close it last week・should have closed it an hour ago）・motion disposal（out you go|it goes・away|there|off it goes・make it go poof・be gone with it・spare me the tab・give it the hook|old heave-ho）・movie-threat（the easy way・easy way or the hard way・and no one|nobody gets hurt・while you still can|theres still time・before i do it myself）・finality（3 2 1|three two one・at will・full stop|periodt|no takebacks|i mean it this time|for real this time|not kidding|definitively・last chance・not asking im telling）・farewell II（its been real|fun・so long|farewell|adieu|rip|rest in peace|goodnight sweet|take a bow|bow out|curtains|one less|minus one|served well|exit stage left — prev誤爆解消）・speed idioms（lickety-split|presto|toot sweet|ahora|quick-like|make it fast）・misc（help me out and・for pitys|heavens sake・id love it if youd）
+- ✨ **JA**: Kansai neg-requests→close（もらえへん(か)|もらえまへんか|くれへん(か)|くれやへん|くれまへん|くれぬ(か|ものか)|もらえぬか|くれなくもない|くれることはない — negate誤爆解消）・obligation nouns（しかないんだから|よな・ざるを得ない|えない|得ません・ないわけにはいかない・なければならん(のだ)|ならんぞ|ならんことはない|なけりゃダメ）・intent nouns（ものだ|ものとする|のみ|よりなし|気満々|覚悟(だ|ができた)|腹はできてる|決心がついた|勢いだ|構えだ|ぞと決めた|気でいる|時が来た|時だ|時機）
+- ✨ **JA pushes**: てこ(い)?|てけ(りゃ)?|てきな|たれよ|たらん|たるで|てやん|てみせる(よ|ぞ)?|てみせん|てみりゃ|てあげる(で)?|てあげよう|てもらう(から|で|ね)|てもらうとします|てもらうことにする|てくれる(でしょ|よな|んでしょ|わよね)|ちゃうねん(で)?|ちゃうで|しちゃう(よ|ね)|てもうわ|てもた|てもええでしょうか
+- 🔄 **describe-tab**: てるでしょ|てあるんでしょ|てあるはず|てあるんだよね（完了確認）；'閉じたるわ|ぞ' は確立 describe ピン維持（たる=閉じた+る parse）
+- 🔄 **negate**: なくて済む(よ|わ)|なくてええ|なくていーよ|必要なし|意味なし|意味がない|甲斐なし|だけ無駄|までもない|までもなく|ほどでもない|ものではない
+- 🔄 **ピン維持**: 'poof'/'閉じるのは無駄|のが惜しい|のがもったいない'→null（曖昧 ISSUES記録）・'help a guy out'→scoped-help・'get it over with'→stop-everything
+- ✅ tests/keystone2-atom-sweep.test.js +158（実装前 ~110件赤確認）、計17170全緑・lint 0エラー/警告136=baseline・build green・FFFD 0件。
+
+### Session 337: voussoir atom sweep — EN superfluity/trouble-apology + JA ta-noda/masu III/itadaku
+外部基準: EN superfluity ("wont be needing", "no longer needed", "served its purpose"), trouble-apology ("if its no bother", "if you wouldnt mind"); JA たのだ reports, ますか III, いただき/ちょうだいます.
+- ✨ **EN**: superfluity（wont be needing it|wont need it|dont need it anymore — negate誤爆をliteral先勝ち解消・no longer needed|not needed anymore|no use for it|served its purpose|purpose served）；trouble-apology（if its not too much trouble|no bother|thats ok|okay|it isnt too much trouble|not a bother|no trouble at all|wouldnt mind|suits you|convenient）。
+- ✨ **JA**: たのだ報告→describe-tab literal（たのだ|んだよ|んだが|のね — 'たんで' は variant 衝突で除外）；ますかIII（ますかねえ|かな|かのう|かの|かぞ|ますわね → 'て'）；ちょうだいます（てちょうだいます(よう)?|まして → 'て'）。
+- 🔄 **ピン維持**: '閉じたんだ'→close-tab（確立んだ→て variant）・'閉じたなんか'→null（確立曖昧）— '閉じたんで' literal が両者の variant '閉じたんで' を横取りしたため除外。
+- ✅ tests/voussoir-atom-sweep.test.js +69（実装前 ~50件赤確認）、計17012全緑・lint 0エラー/警告136=baseline・build green・FFFD 0件。
+
+### Session 336: crown atom sweep — EN wrap-up idioms/keep-open + JA ta-ue/ba-yokatta/naito III
+外部基準: EN wrap-up idioms ("were done here", "thats all she wrote", "mission accomplished"), keep-open family -> negate; JA た上で sequence, ばよかった regret, ないと duty III.
+- ✨ **EN**: wrap-up（were done|finished here・done here・thats it|all|all she wrote・mission accomplished・job|task|work done・calling it・wrapping up|wrap it up close it）；keep-open→negate literal（let it stay open|keep going|run|sit|hang）。
+- ✨ **JA**: た上で（た上で(いい|お願い)?|た上がいい → 'て'）；ばよかった（ればいいのになあ|ねえ|さ|なー・れば|ば|りゃ|じゃよかった(のに)?・たほうがよかった(のに)?・ておけばよかったのに → 'て'・'じゃよかったのに'→'じて'）；ないとIII（ないとまずいよ|やばいよ|よ → 'て'）。
+- 🔄 **ピン維持**: 'keep it up'→resume-reading・'ないといけないんだよ'→trouble（確立）。
+- ✅ tests/crown-atom-sweep.test.js +71（実装前 ~45件赤確認）、計16945全緑・lint 0エラー/警告136=baseline・build green・FFFD 0件。
+
+### Session 335: keystone atom sweep — EN desire/do-the-thing + JA kure-masu II/youka II/noha/chau
+外部基準: EN desire states ("i want it gone|off|out"), do-the-thing idioms ("just do it", "make it so", "get it done"); JA くれますか II (んでしょうか), ようか volitionals II (なあ|しらね|のう|ねえ), のは evaluations, ちゃう residue.
+- ✨ **EN**: desire（want it away|off|out・need it gone already）；do-thing（just do it・do it・do the thing・make it happen・get it done・do what needs doing・make it so・you know what to do・like you mean it）。
+- ✨ **JA**: くれますかII（てくれますんでしょうか → 'て'）；ようかII（ようかなあ|なー|と思った|ちゃおうかと|かしらね|かしらん|かのう|かの|かねえ → 'て'）；のは評価（てもらうのは(どう)?|てくれるのは(どう)?|るのはどうかな|いかが|まずい(かな)?|あり(かな|だよね)?|どうだろう → 'て'）；ちゃう残置（ちゃいますよ|ちゃうかも|ちゃったけどいいよね|ちゃっていいかな|いいよな|ちゃう方がいい → 'て'）。
+- 🔄 **ピン維持**: '閉じるのはだめ(かな)?'→null（「閉じるのはまずい」=close意図 vs 「だめ」=negate曖昧対）。
+- ✅ tests/keystone-atom-sweep.test.js +72（実装前 ~45件赤確認）、計16874全緑・lint 0エラー/警告136=baseline・build green・FFFD 0件。
+
+### Session 336: crown atom sweep — EN wrap-up idioms/keep-open + JA ta-ue/ba-yokatta/naito III
+外部基準: EN wrap-up idioms ("were done here", "thats all she wrote", "mission accomplished"), keep-open family -> negate; JA た上で sequence, ばよかった regret, ないと duty III.
+- ✨ **EN**: wrap-up（were done|finished here・done here・thats it|all|all she wrote・mission accomplished・job|task|work done・calling it・wrapping up|wrap it up close it）；keep-open→negate literal（let it stay open|keep going|run|sit|hang）。
+- ✨ **JA**: た上で（た上で(いい|お願い)?|た上がいい → 'て'）；ばよかった（ればいいのになあ|ねえ|さ|なー・れば|ば|りゃ|じゃよかった(のに)?・たほうがよかった(のに)?・ておけばよかったのに → 'て'・'じゃよかったのに'→'じて'）；ないとIII（ないとまずいよ|やばいよ|よ → 'て'）。
+- 🔄 **ピン維持**: 'keep it up'→resume-reading・'ないといけないんだよ'→trouble（確立）。
+- ✅ tests/crown-atom-sweep.test.js +71（実装前 ~45件赤確認）、計16945全緑・lint 0エラー/警告136=baseline・build green・FFFD 0件。
+
+### Session 335: keystone atom sweep — EN desire/do-the-thing + JA kure-masu II/youka II/noha/chau
+外部基準: EN desire states ("i want it gone|off|out"), do-the-thing idioms ("just do it", "make it so", "get it done"); JA くれますか II (んでしょうか), ようか volitionals II (なあ|しらね|のう|ねえ), のは evaluations, ちゃう residue.
+- ✨ **EN**: desire（want it away|off|out・need it gone already）；do-thing（just do it・do it・do the thing・make it happen・get it done・do what needs doing・make it so・you know what to do・like you mean it）。
+- ✨ **JA**: くれますかII（てくれますんでしょうか → 'て'）；ようかII（ようかなあ|なー|と思った|ちゃおうかと|かしらね|かしらん|かのう|かの|かねえ → 'て'）；のは評価（てもらうのは(どう)?|てくれるのは(どう)?|るのはどうかな|いかが|まずい(かな)?|あり(かな|だよね)?|どうだろう → 'て'）；ちゃう残置（ちゃいますよ|ちゃうかも|ちゃったけどいいよね|ちゃっていいかな|いいよな|ちゃう方がいい → 'て'）。
+- 🔄 **ピン維持**: '閉じるのはだめ(かな)?'→null（「閉じるのはまずい」=close意図 vs 「だめ」=negate曖昧対）。
+- ✅ tests/keystone-atom-sweep.test.js +72（実装前 ~45件赤確認）、計16874全緑・lint 0エラー/警告136=baseline・build green・FFFD 0件。
+
+### Session 334: arch atom sweep — EN harm/resolve + JA mae/made/beki/sase-itadaku + shimatta-cause
+外部基準: EN harm frames ("would it kill you", "whats the harm"), resolve idioms ("one way or another", "come hell or high water", "by hook or by crook"); JA まえ/まで idiom tails, べき residue, させていただく declarations, しまった-cause reports.
+- ✨ **EN**: harm（it wouldnt kill you・whats the harm|what harm is there|would it do・no harm no foul・not gonna hurt）；resolve（one way or another・come hell or high water・by hook or by crook・whatever it takes|you have to do）。
+- ✨ **JA**: まえ（じまえ→'じて'・てまえ(ば|な|の|そう(だ|よ)?) → 'て'）；まで（るまでだ(よ)?|のことだ|です|ね・ちゃうまでだ → 'て'）；べき（だな|ね|じゃ|こと(か|です)?|場面|タイミング(だ|か)|なんだよ → 'て'）；させていただく（頂きます|いただく|いただき|ますね|ますが → 'て'）；しまった-cause→reopen-tab（てしまいましたから|てしまったから|ので|ちゃいましたから|てしまいましたんで）。
+- ✅ tests/arch-atom-sweep.test.js +64（実装前 ~50件赤確認）、計16802全緑・lint 0エラー/警告136=baseline・build green・FFFD 0件。
+
+### Session 333: truss atom sweep — EN nested-conditional/sooner + JA nari/tara IV/nantoka/cho
+外部基準: EN nested-conditional ("if/when able", "sooner rather than later", "strike while the iron is hot"); JA なり/とともに/ついで residue, たら suggestions IV, なんとか determiner, ちょう/ちょ casual tails.
+- ✨ **EN**: 条件利便（if possible|able・when able|get a second|have time|have a sec・at the earliest convenience）；早急慣用（the sooner|quicker you close it the better・sooner rather than later・no time like the present・theres no time like now）。
+- ✨ **JA**: なり/同時（るなりと|とも|なりなんなりと|たなり|とともにね|同時にお願い|ついで → 'て'）；たらIV（たらどうか|どうだ|いいんじゃ|ええやん|ええ(よ)?|いいではない(か)?|よろしいのでは|どうかのう|もういい → 'て'）；なんとか（るのは|ることはなんとか(して|なる)?|んとかして|んとしても|るのを|の何とかして|ぞなんとか → 'て'・前置 'なんとかして|なんとしても|なんとか' strip）；ちょう/ちょ（てちょう|ちょい|ちょっとお願い|ちょっとね|ちょくれ → 'て'・stem-ちょ 'じちょう|じちょ(っと|い|って)?' → 'じて'）。
+- 🔄 **ピン維持**: '閉じるかなりか'→help（AかBか確立）。
+- ✅ tests/truss-atom-sweep.test.js +70（実装前 ~50件赤確認）、計16738全緑・lint 0エラー/警告136=baseline・build green・FFFD 0件。
+
+### Session 332: girder atom sweep — EN time-nudges/before-urgency + JA te-oku III/kara-shi/zo-emphasis/mai
+外部基準: EN time nudges ("its about/high time", "now or never"), before-urgency ("close it before it crashes"); JA ておく III (べき/なさい/ましょうよ), から/し reason tails, ぞ emphasis particles, まい not-to reports.
+- ✨ **EN**: time-nudge（isnt it time to close it|it closed|it went・its about time( it closed|to close it)・its high time it closed・time it closed|went|goes・nows|now is the time to close it・the time has come|is now・(its )?now or never）；before-urgency（before it loads|its too late|you go|i lose it|we leave|i forget|it crashes|it eats my ram|it wastes more time|i change my mind）。
+- ✨ **JA**: ておくIII（ておいた方がいい|ておくほうがいい|べき(だ|です)?|ておきなさい(よ|ね)?|なされ|やす|ましょうよ|ますよ → 'て'）；から/し（るからね|るんだし|るからいい(よ)?|てくれから|てくれんだから → 'て'）；ぞ強意（るぞね|ぞよ|ぞえ|のぞ|んだぞい|ぜい|ぜよ|ちゃうぞ(い)?|るわよぞ → 'て'）；まい決意→negate（るまいと思った — まいと思う|思っている は既 negate 踏襲）。
+- 🔄 **ピン維持**: '閉じるかどうかだよね|決めよう|閉じるか閉じないかだ'→null（審議）；'閉じるかどうするか|べきか閉じないべきか|閉じるか閉じるまいか'→help（AかBか確立）。
+- ✅ tests/girder-atom-sweep.test.js +76（実装前 ~55件赤確認）、計16668全緑・lint 0エラー/警告136=baseline・build green・FFFD 0件。
+
+### Session 331: strut atom sweep — EN suggestions/duration II + JA te-oku/tamae/choudai/te-yo
+外部基準: EN what-if/why-dont suggestions, duration II (its been open long enough, overstayed); JA ておく 残置, たまえ/方言命令 (たまへ|やがった|やすぞ|んちゃい), ちょうだい 残置, てよ/てよき。
+- ✨ **EN**: suggestion II（shouldnt we close it・dont you think we should|you should close it — negate 先取りを literal で解消）；duration II（its been open|up long enough・sitting there|open・ages|open for ages|around too long・overstayed its welcome・time it closed）。
+- ✨ **JA**: ておく残置II（ておいても(いい)|ておいたら|ておけば|ておくと|なら|ておくわよ|んだ → 'て'）；たまえ/方言（たまへ|たまえぞ|たまえな|やがった|やすぞ|んちゃい → 'て'）；ちょうだい残置（てちょうだいまし|ちょーだい|ちょいちょい → 'て'）；てよ/てよき（てよねえ|なあ|よーね|てよろしいかしら|てよき(こと|かな|な) → 'て'）。
+- 🔄 **ピン維持**: 'should i|shall i close it'→help（確立疑問形）・'ought i close it'→null（古風疑問）。
+- ✅ tests/strut-atom-sweep.test.js +75（実装前 ~40件赤確認）、計16592全緑・lint 0エラー/警告136=baseline・build green・FFFD 0件。
+
 ### Session 330: beam atom sweep — EN go-on permissives/hedged reports + JA potential imperatives/ba-yoi/morau III/ro-tails
 外部基準: EN go-on permissives ("go on close it", "knock yourself out"), hedged reports ("i reckon|figure|imagine|bet you could"); JA 可能命令 (れろ|れや|れんなよ|れらんか), ばよい 残置 (宜しい|善い|好い|可也), てもろて/てもらう III, ろ命令語尾 (ろてな|ろはよ|ろじゃ 系)。
 - ✨ **EN**: go-on 許容（go on close it・go ahead close it・go on then・knock yourself out・be at liberty|leisure）；hedged 報告（i reckon|figure|imagine|bet you could|can・assuming you close it）。

@@ -1652,6 +1652,30 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - `help yourself close it` — scoped-help 先取り（登録順・確立規則；意味的にも許容）
 - `閉じないろ` — 変形ない命令 → negate 維持
 
+## R257 skip-list（Session 331）
+- `should i|shall i close it` — 疑問形 → help（確立ピン）
+- `ought i close it` — 古風疑問 → null
+
+## R258 skip-list（Session 332）
+- `閉じるかどうかだよね/決めよう/閉じるか閉じないかだ` — 審議節 → null
+- `閉じるかどうするか/べきか閉じないべきか/閉じるか閉じるまいか` — AかBか 確立 help ピン
+
+## R259 skip-list（Session 333）
+- `閉じるかなりか` — AかBか 審議 → help 確立ピン
+
+## R261 skip-list（Session 335）
+- `閉じるのはだめ(かな)?` — 「閉じるのはまずい」(close意図) との曖昧対で null 維持
+
+## R263 skip-list（Session 337）
+- `閉じたんで` — describe-tab literal にすると '閉じたんだ'/'閉じたなんか' の variant を横取りするため未登録（generic variant 衝突）
+
+## R264 skip-list（Session 338）
+- `poof` — 魔法/消失の感嘆詞として曖昧、未登録
+- `閉じるのは無駄` / `閉じるのが惜しい` / `閉じるのがもったいない` — 「不要」と「閉じ意図」の曖昧対（だめ系ピンと同型）で null 維持
+- `閉じたるわ` / `閉じたるぞ` — 確立 describe-tab ピン（'閉じたる'=閉じた+る parse）のため close literal 未追加
+
+## R261 skip-list（Session 335）
+- `閉じるのはだめ(かな)?` — 「閉じるのはまずい」(close意図) との曖昧対で null 維持
 ## 使い方（次のセッションへ）
 
 1. **A章**はユーザーの明示的な承認があれば即着手可能。承認の有無を最初に確認すること。
