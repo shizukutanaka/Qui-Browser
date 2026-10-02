@@ -21659,6 +21659,16 @@ export class VoiceCommands {
         'つながり支援', 'セーフティネット',
         'こころの相談', '電話相談員',
         '自殺対策強化月間', '悩み相談電話',
+        // pass DLXIX: support-station visited & reintegration plan approved
+        'support-station visited', 'reintegration plan approved',
+        'ひきこもり相談', '引きこもり支援',
+        'ひきこもり地域支援センター', '居場所づくり',
+        'ひきこもり家族会', '社会復帰訓練',
+        '不登校特例校', '通信制高校',
+        'フリースクール', 'ユースセンター',
+        '若者サポートステーション', 'ジョブカフェ',
+        '若者自立相談', 'サポステ',
+        '若者自立塾',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28045,6 +28055,9 @@ export class VoiceCommands {
         // pass DLXVIII: still in training to be a listener
         'still in training to be a listener',
         'まだ研修前', 'これから応募',
+        // pass DLXIX: still socially withdrawn
+        'still socially withdrawn',
+        'まだ閉じこもり中', 'これから相談予約',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
