@@ -19982,6 +19982,17 @@ export class VoiceCommands {
         'ネット代を払って', '口座振替にして',
         '家計簿をつけて', '支出を記録して',
         '請求書を払って', '振り込みをして',
+        // pass CDIX: insurance & loan approval
+        'insurance signed up', 'fire insurance done',
+        'got insured', 'policy issued',
+        'coverage started', 'home insurance done',
+        'screening passed', 'preapproval done',
+        'application accepted',
+        '保険に入って', '保険加入',
+        '保険証券が届いて', '保障が始まって',
+        '住宅保険を決めて', 'ローンが通って',
+        'ローン審査に通って', '仮審査が通って',
+        '申し込みが通って', '団信に入って',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25919,6 +25930,9 @@ export class VoiceCommands {
         // pass CDVIII: still paying / budgeting
         'still paying bills', 'still doing the budget',
         'まだ支払い中', 'まだ家計簿中',
+        // pass CDIX: still in underwriting
+        'still waiting on insurance', 'still in underwriting',
+        'まだ審査中', 'まだ保険手続き中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
