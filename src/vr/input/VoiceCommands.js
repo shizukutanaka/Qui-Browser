@@ -19896,6 +19896,17 @@ export class VoiceCommands {
         '賃貸を引き払って', '荷物が届いて',
         'トラックが来て', 'ホテル暮らし終了',
         '短期滞在終了', '仮住まいの鍵を返して',
+        // pass CDII: post-move paperwork
+        'change of address done', 'registered at city hall',
+        'insurance switched', 'bank notified',
+        'voter reg done', 'school transfer done',
+        'internet installed', 'landline hooked up',
+        'settled the paperwork', 'power switched on',
+        '住民票をもらって', '印鑑登録して',
+        '免許の住所変更して', '保険を切り替えて',
+        '銀行に届けて', '転校手続き終了',
+        'ネット開通して', '電気をつけて',
+        '手続きを終えて', '役所の手続き終了',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25812,6 +25823,9 @@ export class VoiceCommands {
         // pass CDI: still in temp housing
         'still in temporary housing', 'still in the rental',
         'まだ仮住まい中', 'まだホテル暮らし',
+        // pass CDII: still doing the paperwork
+        'still doing paperwork',
+        'まだ手続きが残って', '手続きを続けて',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
