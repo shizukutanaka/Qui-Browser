@@ -21145,6 +21145,19 @@ export class VoiceCommands {
         '新価', '見舞金支払い',
         '損害認定', '支払い拒否',
         '示談交渉', '再調査依頼',
+        // pass DXXVII: welfare-commissioner assignment done
+        'commission accepted', 'term completed',
+        'diary submitted', 'welfare visit done',
+        '民生委員', '児童委員',
+        '主任児童委員', '委嘱状',
+        '委員証', '巡回訪問',
+        '活動報告書', '福祉部会',
+        '地区民生委員', '定例ミーティング',
+        '委員名簿', '厚生労働大臣委嘱',
+        '推薦会', '担当地区',
+        'おたより作成', '生活困窮者',
+        '独居老人訪問', '虐待通報',
+        '民生委員として',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27411,6 +27424,9 @@ export class VoiceCommands {
         // pass DXXVI: still mid damage claim
         'still gathering receipts', 'about to file the damage claim',
         'まだ査定待ち', 'これから保険請求',
+        // pass DXXVII: still mid commissioner term
+        'about to be commissioned',
+        'まだ巡回中', 'これから委員活動',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
