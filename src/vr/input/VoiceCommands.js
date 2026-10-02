@@ -19550,6 +19550,24 @@ export class VoiceCommands {
         '演奏を終えて', '楽器をケースに',
         '残響が消えて', '本番が終わって',
         '演奏し終えて',
+        // pass CCCLXXIX: graduation & commencement end
+        'graduation done', 'walked the stage',
+        'tassel turned', 'cap tossed',
+        'pomp over', 'commencement done',
+        'dean called my name', 'ceremony over grad',
+        'gown returned', 'awards collected',
+        'yearbooks signed', 'alumni photos done',
+        'grad party done', 'reception grad done',
+        'last walk campus', 'valedictorian speech done',
+        'graduated today',
+        '式を終えて', '校歌を歌って',
+        'ブローチを外して', '袴を脱いで',
+        '記念撮影を済ませて', '謝恩会終了',
+        '門をくぐって', '巣立って',
+        'ガウンを返して', 'キャップを投げて',
+        '式典を出て', '答辞を読んで',
+        '祝辞が終わって', '証書をもらって',
+        '写真を撮って卒業',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25397,6 +25415,9 @@ export class VoiceCommands {
         // pass CCCLXXVIII: still performing
         'still performing', 'still on stage',
         'まだ演奏中', 'まだリハーサル中',
+        // pass CCCLXXIX: still in the ceremony
+        'still at graduation', 'still in the ceremony',
+        'まだ式中', 'まだ卒業式中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
