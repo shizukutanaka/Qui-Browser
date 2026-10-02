@@ -20608,6 +20608,15 @@ export class VoiceCommands {
         'ナンバーを返して', '車を手放して',
         '車検を切って', 'リサイクル料金を払って',
         '車を引き取って',
+        // pass CDLXXV: child allowance & subsidy filings done
+        'allowance filed', 'subsidy approved',
+        'benefit renewed', 'voucher redeemed',
+        'daycare subsidy', 'application stamped',
+        'eligibility checked', 'lump sum paid',
+        '児童手当', '児童扶養手当',
+        '助成金をもらって', 'クーポンを使って',
+        '保育料を払って', '支給が決まって',
+        '育児休業給付金', '一時金を受け取って',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26731,6 +26740,8 @@ export class VoiceCommands {
         'まだ申込中', 'これから申し込む',
         // pass CDLXXIV: still selling the car
         'about to sell', 'これから売る',
+        // pass CDLXXV: still applying for benefits
+        'まだ申請中', 'これから申請',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
