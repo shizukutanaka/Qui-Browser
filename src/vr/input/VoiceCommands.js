@@ -21485,6 +21485,18 @@ export class VoiceCommands {
         '働きながら資格', 'ケアワーカー',
         '福祉専門職', '国家試験受験',
         '受験資格',
+        // pass DLII: school-entry & transfer procedures done
+        'enrollment notice received',
+        '就学時健康診断', '就学通知',
+        '就学援助', '就学指定校',
+        '転校手続き', '学区',
+        '教育委員会', '転校届',
+        '就学届', '通学路',
+        '授業料', '新入学児童',
+        '教育費無償化', '少人数学級',
+        '教科書無償', '給食費',
+        '就学費援助', '内申書',
+        '通学区域', '学校選択制',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27822,6 +27834,9 @@ export class VoiceCommands {
         'まだ利用前', 'これからケアプラン',
         // pass DLI: still studying for care qualification
         'still studying care', 'これから研修',
+        // pass DLII: still waiting for school placement
+        'still waiting for placement',
+        'まだ入学前', 'これから転校',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
