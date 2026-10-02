@@ -19733,6 +19733,20 @@ export class VoiceCommands {
         '班長を終えて',
         'おすそ分けして', '差し入れを届けて',
         '行事から帰って',
+        // pass CCCLXXXIX: city-hall & license paperwork end
+        'passport applied', 'passport arrived',
+        'voter registration done', 'id card issued',
+        'mynumber card done', 'name change done',
+        'family register updated', 'seal registered',
+        'documents submitted', 'tax form filed',
+        'fee paid city hall', 'stamp bought',
+        'official seal stamped',
+        'パスポートを申請して', 'パスポートが届いて',
+        '車検証を更新して', '住民登録終了',
+        'マイナンバーカードを受け取って', '改姓手続き終了',
+        '印鑑登録終了', '証明書を発行して',
+        '手数料を払って', '収入印紙を貼って',
+        '実印を押して',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25610,6 +25624,9 @@ export class VoiceCommands {
         // pass CCCLXXXVIII: still greeting/at event
         'still at the block party', 'still greeting',
         'まだ挨拶中', 'まだ行事中',
+        // pass CCCLXXXIX: still at the office
+        'still at the city hall', 'still in the office',
+        'まだ役所にいる', 'まだ窓口にいる',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
