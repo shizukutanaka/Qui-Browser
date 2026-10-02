@@ -19784,6 +19784,20 @@ export class VoiceCommands {
         '集金終了', '立て替えて',
         '請求書を撮って', '勘定が済んで',
         '二次会の会計',
+        // pass CCCXCIII: overtime wrap-up & last-out
+        'finished the overtime', 'clocked out late',
+        'last one in the office', 'turned off the office lights',
+        'locked the office', 'sent the last email',
+        'emails cleared', 'desk cleared',
+        'left the office late', 'missed the last train',
+        'took the taxi home', 'burning the midnight oil',
+        'survived the crunch', 'deploy done and dusted',
+        '残業終了', '定時に上がって',
+        '終業チャイム', '退社しました',
+        'オフィスを出て', '最終メールを送って',
+        'メールを全部返して', '終電を逃して',
+        'タクシーで帰って', '繁忙期を乗り切って',
+        '修羅場が終わって',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25673,6 +25687,9 @@ export class VoiceCommands {
         // pass CCCXCII: still at the table
         'still drinking', 'still at the table',
         'まだ飲んでる', 'まだ食事中',
+        // pass CCCXCIII: still at the office late
+        'still working late', 'still at the desk',
+        'まだ残業中', 'まだ会社にいる',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
