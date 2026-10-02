@@ -20757,6 +20757,16 @@ export class VoiceCommands {
         '限定承認', '遺言執行',
         '相続人確定', '遺産目録',
         '相続登記', '特別受益',
+        // pass CDXC: post-divorce koseki & surname-change procedures done
+        'name changed', 'surname restored',
+        'koseki amended', 'id reissued',
+        'bank name updated', 'documents renamed',
+        'new koseki issued', 'maiden name back',
+        '戸籍', '氏名変更',
+        '復氏', '旧姓',
+        '戸籍抄本', '戸籍謄本',
+        '本籍変更', '印鑑登録',
+        '名義変更',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26918,6 +26928,9 @@ export class VoiceCommands {
         // pass CDLXXXIX: still dividing the estate
         'still dividing', 'about to divide',
         'まだ協議中', 'これから協議',
+        // pass CDXC: still updating the name
+        'still updating', 'about to update',
+        'まだ変更中', 'これから変更',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
