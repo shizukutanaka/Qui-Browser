@@ -20487,6 +20487,15 @@ export class VoiceCommands {
         'window number called',
         '年金を納めて', '保険料を納めて',
         '納付書を払って', '整理券を取って',
+        // pass CDLX: parents' tech-help errand done
+        'phone set up', 'tablet configured',
+        'printer connected', 'passwords written down',
+        'apps installed', 'font enlarged',
+        'account created',
+        'スマホを設定して', 'タブレットを設定して',
+        'パスワードをメモして', 'アプリを入れて',
+        'プリンタを繋いで', '契約を変えて',
+        '親のパソコンを直して',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26569,6 +26578,8 @@ export class VoiceCommands {
         // pass CDLIX: still paying taxes
         'still paying taxes', 'about to pay',
         'まだ納付中', 'これから納める',
+        // pass CDLX: about to configure
+        'about to configure', 'これから設定する',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
