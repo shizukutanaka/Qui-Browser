@@ -19848,6 +19848,18 @@ export class VoiceCommands {
         '家具を引き取ってもらって', '実家を売却して',
         '蔵を片付けて', '屋根裏を片付けて',
         '思い出の品を分けて', '実家の荷物を運んで',
+        // pass CCCXCVIII: job-hunt event & internship end
+        'info session done', 'internship over',
+        'career fair done', 'networking event done',
+        'informational interview done', 'job fair done',
+        'exchanged business cards', 'submitted my resume',
+        'applied to the internship', 'mentor meeting done',
+        'career center visit done', 'networking done',
+        '会社説明会終了', 'インターン終了',
+        '就活イベント終了', 'キャリアフォーラム終了',
+        '企業訪問終了', '履歴書を出して',
+        'エントリーシートを出して', 'メンター面談終了',
+        'インターンシップ終了', '名刺を渡して',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25752,6 +25764,9 @@ export class VoiceCommands {
         // pass CCCXCVII: still clearing the old house
         'still sorting the estate', 'still at the old house',
         'まだ実家片付け中',
+        // pass CCCXCVIII: still at the job-hunt event
+        'still at the career fair', 'still at the info session',
+        'まだ説明会中', 'まだインターン中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
