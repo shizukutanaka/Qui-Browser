@@ -20325,6 +20325,15 @@ export class VoiceCommands {
         '限度額を確認して', '返礼品を選んで',
         '住民税の通知が来て', '確定申告の後片付け',
         '住民税を納めて', '納税を済ませて',
+        // pass CDXLIII: funeral arrangement done
+        'funeral arranged', 'coffin chosen',
+        'cemetery plot bought', 'obituary posted',
+        'mourners notified', 'wake room booked',
+        'shrine contacted', 'memorial done',
+        '葬儀を手配して', '棺を選んで',
+        '墓石を建てて', '会葬者に連絡して',
+        '通夜の席を取って', '戒名をもらって',
+        '香典を数えて', '納骨を済ませて',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26357,6 +26366,9 @@ export class VoiceCommands {
         // pass CDXLII: still doing furusato
         'still doing furusato', 'about to file furusato',
         'まだふるさと納税中', 'これからふるさと納税',
+        // pass CDXLIII: still arranging the funeral
+        'still arranging the funeral', 'about to arrange',
+        'まだ葬儀手配中', 'これから手配する',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
