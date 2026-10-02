@@ -20994,6 +20994,17 @@ export class VoiceCommands {
         '年金手帳', '第3号被保険者',
         '付加年金', '任意加入',
         '基礎年金番号', '滞納処分',
+        // pass DXIII: workers'-comp claim procedures done
+        'workers comp filed', 'claim accepted',
+        'medical benefits paid', 'disability rating assigned',
+        'appeal lodged',
+        '労災認定', '労災申請',
+        '療養補償', '休業補償',
+        '障害補償', '業務上疾病',
+        '通勤災害', '災害補償',
+        '労働基準監督署', '第三者行為災害',
+        '遺族補償', '安全衛生委員会',
+        '過労死認定',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27220,6 +27231,8 @@ export class VoiceCommands {
         // pass DXII: still mid exemption review
         'still on exemption', 'about to file the waiver',
         'まだ免除審査中', 'これから免除申請',
+        // pass DXIII: still mid claim evidence
+        'still gathering evidence',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
