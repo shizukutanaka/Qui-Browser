@@ -20983,6 +20983,17 @@ export class VoiceCommands {
         '入居面接', '住宅カード',
         'ur賃貸', '公社住宅',
         '家賃減額', '世帯人数',
+        // pass DXII: national-pension exemption procedures done
+        'pension exemption granted', 'student deferment filed',
+        'back-payment done', 'waiver approved',
+        'contribution receipt',
+        '国民年金免除', '全額免除',
+        '半額免除', '納付猶予',
+        '学生納付特例', '追納',
+        '保険料免除', '免除承認',
+        '年金手帳', '第3号被保険者',
+        '付加年金', '任意加入',
+        '基礎年金番号', '滞納処分',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27206,6 +27217,9 @@ export class VoiceCommands {
         // pass DXI: still mid housing waitlist
         'still on the waitlist', 'about to enter the lottery',
         'まだ抽選待ち',
+        // pass DXII: still mid exemption review
+        'still on exemption', 'about to file the waiver',
+        'まだ免除審査中', 'これから免除申請',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
