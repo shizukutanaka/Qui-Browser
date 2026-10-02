@@ -20747,6 +20747,16 @@ export class VoiceCommands {
         '財産分与', '慰謝料',
         '養育費', '面会交流',
         '合意書', '公正証書',
+        // pass CDLXXXIX: inheritance renunciation & estate-division done
+        'inheritance renounced', 'estate divided',
+        'heir agreement signed', 'inheritance tax filed',
+        'assets appraised', 'deed transferred',
+        'notarized will filed', 'limited acceptance',
+        '相続放棄', '遺産分割',
+        '分割協議', '相続税申告',
+        '限定承認', '遺言執行',
+        '相続人確定', '遺産目録',
+        '相続登記', '特別受益',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26905,6 +26915,9 @@ export class VoiceCommands {
         // pass CDLXXXVIII: still in divorce mediation
         'still mediating', 'about to mediate',
         'まだ調停中', 'これから調停',
+        // pass CDLXXXIX: still dividing the estate
+        'still dividing', 'about to divide',
+        'まだ協議中', 'これから協議',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
