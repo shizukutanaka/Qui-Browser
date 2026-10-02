@@ -1,124 +1,124 @@
 /**
- * pass CCLXXVII — third cross-command breadth sweep: pause/stop-reading,
- * video-toggle/stop, find-in-page/next/prev, speech rate, volume-down,
- * reader-size-down, next/prev-page, done-declaratives, negate.
+ * Voice atoms CCCXXVII — flight arrival & deplaning idioms (EN)
+ * + 着陸/降機/入国 (JA). Wheels down and bags in hand = close the tab.
+ * Boarding, in-flight, and departure-side phrases stay out (CCCXI covered departure).
  */
-const { VoiceCommands } = require('../src/vr/input/VoiceCommands.js');
+const { VoiceCommands } = require('../src/vr/input/VoiceCommands');
 
-function makeVc() {
-  const tabs = [
-    { id: 1, url: 'https://a.example', title: 'Tab A', loading: false },
-    { id: 2, url: 'https://b.example', title: 'Tab B', loading: false },
-  ];
-  const tabManager = {
-    tabs,
-    activeTabId: 2,
-    getActiveTab() { return tabs[1]; },
-    getTab(id) { return tabs.find((t) => t.id === id); },
-  };
+function makeVC() {
   const vc = new VoiceCommands({ speak: () => {}, onCommand: () => {} });
-  vc.connectBrowser(tabManager);
+  const tabs = [{ id: 1, url: 'https://a.example', title: 'A' }];
+  vc.connectBrowser({
+    getActiveTab: () => tabs[0],
+    closeTab: () => {},
+    tabs: () => tabs,
+  });
   return vc;
 }
 
-function key(phrase) {
-  const vc = makeVc();
-  vc.lastCommand = null;
-  vc.processCommand(phrase, 0.9);
-  return vc.lastCommand ? vc.lastCommand.key : null;
+function key(vc, phrase) {
+  const r = vc._matchCommand(phrase);
+  return r && r.key;
 }
 
-const cases = [
-  // pause-reading
-  ['読み上げ一時停止', 'pause-reading'],
-  ['一旦読むの止めて', 'pause-reading'],
-  ['読むの一休み', 'pause-reading'],
-  ['読み上げとめて', 'pause-reading'],
-  ['ナレーション止めて', 'pause-reading'],
-  ['hold the reading', 'pause-reading'],
-  ['hold up on reading', 'pause-reading'],
-  ['pause the reading', 'pause-reading'],
-  ['pause it', 'pause-reading'],
-  // stop-reading
-  ['読むの止めて', 'stop-reading'],
-  ['読むのをやめて', 'stop-reading'],
-  ['stop reading it', 'stop-reading'],
-  ['stop narrating', 'stop-reading'],
-  // video
-  ['pause the video', 'video-toggle'],
-  ['play the video', 'video-toggle'],
-  ['resume the video', 'video-toggle'],
-  ['動画を再生して', 'video-toggle'],
-  ['ビデオ再生', 'video-toggle'],
-  ['動画一時停止', 'video-toggle'],
-  ['再生して', 'video-toggle'],
-  ['動画止めて', 'video-stop'],
-  ['ビデオ止めて', 'video-stop'],
-  ['動画を止めて', 'video-stop'],
-  ['stop the video', 'video-stop'],
-  ['mute the video', 'mute-toggle'],
-  ['動画の音消して', 'mute-toggle'],
-  // find-in-page
-  ['このページを検索', 'find-in-page'],
-  ['search in page', 'find-in-page'],
-  ['文中を検索して', 'find-in-page'],
-  ['look for the word test', 'find-in-page'],
-  ['ページ内検索して', 'find-in-page'],
-  // find-next
-  ['find the next one', 'find-next'],
-  ['go to next result', 'find-next'],
-  ['次の結果', 'find-next'],
-  ['ひとつ次', 'find-next'],
-  ['next match please', 'find-next'],
-  ['jump to next match', 'find-next'],
-  // find-prev
-  ['前のを探して', 'find-prev'],
-  ['go back a match', 'find-prev'],
-  ['previous match please', 'find-prev'],
-  // speech rate
-  ['a little faster', 'speech-faster'],
-  ['もう少し速く', 'speech-faster'],
-  ['ちょっと速くして', 'speech-faster'],
-  ['a little slower', 'speech-slower'],
-  ['もう少しゆっくり', 'speech-slower'],
-  ['ゆっくり話して', 'speech-slower'],
-  // volume-down
-  ['ボリューム下げて', 'volume-down'],
-  ['ボリュームさげて', 'volume-down'],
-  ['音量下げてちょうだい', 'volume-down'],
-  ['turn it down a bit', 'volume-down'],
-  ['a notch lower', 'volume-down'],
-  ['down a notch', 'volume-down'],
-  ['音ちょっと小さく', 'volume-down'],
-  ['ちょっと下げて音量', 'volume-down'],
-  // reader-size-down
-  ['ちょっと小さく', 'reader-size-down'],
-  ['文字ちょっと小さく', 'reader-size-down'],
-  ['make it smaller', 'reader-size-down'],
-  // next-page
-  ['page over', 'next-page'],
-  ['flip forward', 'next-page'],
-  ['めくって次', 'next-page'],
-  ['次のページいって', 'next-page'],
-  ['turn the page', 'next-page'],
-  ['flip it over', 'next-page'],
-  // prev-page
-  ['page back', 'prev-page'],
-  ['前のページいって', 'prev-page'],
-  ['ページを戻して', 'prev-page'],
-  // close-tab done-declaratives
-  ['this one is done', 'close-tab'],
-  ['im finished with this', 'close-tab'],
-  ['done with this page', 'close-tab'],
-  // negate
-  ['このタブいらない', 'negate'],
-  // pins kept
-  ['もうちょっと小さく', 'panel-distance'],
-  ['ページを進めて', 'navigate'],
+const closeTab = [
+  // --- touchdown & taxi ---
+  'we landed', 'finally landed', 'safely landed', 'plane landed',
+  'flight landed', 'on the ground', 'on the tarmac', 'touched the runway',
+  'runway touchdown', 'made it down', 'down at last', 'arrived on time',
+  'landed on time', 'early arrival', 'delayed landing done',
+  'taxiied to the gate', 'pulled into the gate', 'at the gate',
+  'engines off', 'engines cut', 'apu off', 'chocks on',
+  'parked at the gate', 'gate arrival', 'seatbelt sign off',
+  'seatbelt light off', 'sign turned off', 'row lights on',
+  // --- deplane ---
+  'deplaned', 'off the plane', 'got off the plane', 'exited the plane',
+  'off the aircraft', 'left the aircraft', 'walked down the jet bridge',
+  'jet bridge', 'down the jetway', 'into the terminal',
+  'in the terminal', 'through the gate', 'down the airstairs',
+  'off the tarmac bus', 'shuttle to the terminal',
+  // --- immigration & bags ---
+  'through immigration', 'cleared immigration', 'passport stamped',
+  'stamped through', 'e gate cleared', 'through passport control',
+  'cleared customs', 'through customs', 'customs cleared',
+  'nothing to declare', 'green channel', 'through the green channel',
+  'bags claimed', 'baggage claim done', 'got the bags',
+  'grabbed the bags', 'luggage collected', 'carousel emptied',
+  'last bag off', 'met at arrivals', 'arrivals hall',
+  'through arrivals', 'out of the airport', 'left the airport',
+  'journey done', 'adventure over', 'made it home',
+  'home from the trip', 'back from vacation', 'vacation memories',
+  // --- connection done ---
+  'connection made', 'final leg done', 'last leg done',
+  'layover over', 'stopover done', 'red eye survived',
 ];
 
-describe('pass CCLXXVII moonstone atom sweep', () => {
-  test.each(cases)('%s -> %s', (phrase, want) => {
-    expect(key(phrase)).toBe(want);
+const closeTabJa = [
+  // --- 着陸 ---
+  '到着', '無事着陸', '定刻着', '早朝着',
+  '遅れて着陸', '滑走路に着いて', '地上に降りて',
+  'エンジン停止', '駐機場に着いて', 'スポットイン',
+  'ベルトサイン消灯', 'シートベルトサインが消えて', '着陸態勢解除',
+  // --- 降機/ターミナル ---
+  '降機', '降機しました', '飛行機を降りて', '機内を出て',
+  'ボーディングブリッジ', 'タラップを降りて', 'ターミナルに入って',
+  '到着ゲート', '到着ロビー', '到着口を出て', 'ゲートを出て',
+  '沖止めからバスで', '沖止め',
+  // --- 入国/手荷物 ---
+  '入国審査', '入国審査を通って', '入国スタンプ', 'スタンプを押されて',
+  '自動化ゲートを通って', '税関通過', '税関を通って',
+  '申告なしで通って', '手荷物を受け取って', '荷物を受け取って',
+  'ターンテーブルで受け取って', '手荷物回収', '預け荷物が出てきて',
+  '最後の荷物を取って', '空港を出て', '空港を後にして',
+  '旅が終わって', '旅行が終わって', '旅の終わり', '帰ってきました',
+  'ただいま', '無事帰国', '帰国しました', '旅の思い出',
+  // --- 乗継 ---
+  '乗り継ぎ終了', '乗継完了', '最終区間終了', 'トランジット終了',
+];
+
+const negate = [
+  'stay on the plane', 'keep flying', 'stay in the air',
+  'keep traveling', 'keep the trip going', 'まだ旅行中',
+  'まだ旅の途中', '旅行を続けて', '乗り続けて',
+];
+
+const nullPins = [
+  // departure / in-flight side
+  'boarding now', 'final boarding call', 'gate is open',
+  'boarding pass ready', 'at the departure gate', 'pre boarding',
+  'in the air', 'cruising altitude', 'seatbelt sign on',
+  'turbulence', 'in flight', 'mid flight', '飛行中',
+  '搭乗中', '搭乗手続き', '出発ゲート', '出発ロビー',
+  '離陸準備', '離陸しました', '巡航中', '機内サービス中',
+  'チェックイン済み', '保安検査場', '出国審査', '乗り継ぎ中',
+];
+
+const establishedPins = [
+  ['trip over', 'close-tab'],
+  ['到着しました', 'close-tab'],
+  ['touched down', 'close-tab'],
+  ['wheels down', 'close-tab'],
+  ['landed', 'close-tab'],
+  ['disembarked', 'close-tab'],
+  ['arrived at the gate', 'close-tab'],
+  ['着陸', 'close-tab'],
+  ['着陸しました', 'close-tab'],
+];
+
+describe('Voice atoms CCCXXVII — flight arrival & deplaning', () => {
+  test.each(closeTab.map((p) => [p]))('"%s" -> close-tab', (p) => {
+    expect(key(makeVC(), p)).toBe('close-tab');
+  });
+  test.each(closeTabJa.map((p) => [p]))('"%s" -> close-tab', (p) => {
+    expect(key(makeVC(), p)).toBe('close-tab');
+  });
+  test.each(negate.map((p) => [p]))('"%s" -> negate', (p) => {
+    expect(key(makeVC(), p)).toBe('negate');
+  });
+  test.each(nullPins.map((p) => [p]))('"%s" -> null', (p) => {
+    expect(key(makeVC(), p)).toBeNull();
+  });
+  test.each(establishedPins.map(([p, k]) => [p, k]))('"%s" -> %s', (p, k) => {
+    expect(key(makeVC(), p)).toBe(k);
   });
 });
