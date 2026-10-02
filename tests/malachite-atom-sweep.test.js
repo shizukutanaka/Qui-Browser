@@ -1,82 +1,111 @@
-// Voice atoms CCXCIX: EN sewing/fabric-dismantle idioms + JA 裁断/裂き/千切り chains (pass CCXCIX)
+/**
+ * Voice atoms CCCXXVI — market close & trading-day end idioms (EN)
+ * + 引け/手仕舞い/決済 (JA). The closing bell and flat positions = close the tab.
+ * Market open, positions on, and live quotes stay out.
+ */
 const { VoiceCommands } = require('../src/vr/input/VoiceCommands');
 
 function makeVC() {
   const vc = new VoiceCommands({ speak: () => {}, onCommand: () => {} });
+  const tabs = [{ id: 1, url: 'https://a.example', title: 'A' }];
   vc.connectBrowser({
-    getActiveTab: () => ({ title: 'Example Page', url: 'https://example.com' }),
+    getActiveTab: () => tabs[0],
     closeTab: () => {},
-    tabs: [{ title: 'Example Page' }],
+    tabs: () => tabs,
   });
   return vc;
 }
 
 function key(vc, phrase) {
-  vc.lastCommand = null;
-  vc.processCommand(phrase, 0.9);
-  return vc.lastCommand ? vc.lastCommand.key : null;
+  const r = vc._matchCommand(phrase);
+  return r && r.key;
 }
 
 const closeTab = [
-  // --- unweave / unstitch / seams ---
-  'unravel it all', 'unstitch it', 'unstitch it all', 'unsew it',
-  'rip out the seams', 'tear out the seams', 'pick out the stitches',
-  'snip the stitches', 'snip the threads', 'unpick it', 'unpick the seams',
-  'seam rip it', 'seam ripper it',
-  // --- fray / ribbons / tatters ---
-  'fray it', 'fray it out', 'let it fray', 'cut it to ribbons',
-  'slice it to ribbons', 'tatter it', 'tattered and done',
-  'shred it to shreds', 'shred the fabric', 'tear the fabric',
-  'rip the cloth', 'slash the fabric',
-  // --- rags / scraps / remnants ---
-  'cut it up into rags', 'cut it into rags', 'rags for it', 'rag pile it',
-  'toss it in the rag bin', 'rag bin it', 'lint bin it', 'scraps for it',
-  'offcuts for it', 'selvage it away', 'baste it away', 'hem it out',
-  'pinking shears it', 'rotary cutter it', 'die cut it',
-  'cut it off the bolt', 'off the bolt', 'bolt end it', 'remnant it',
-  'remnant bin it', 'scrap bag it', 'knot it off',
+  // --- bell & session end ---
+  'market closed', 'markets closed', 'rang the closing bell',
+  'rang the bell', 'bell rung', 'session closed', 'trading ended',
+  'trading done', 'trading halted', 'halted trading', 'session wrapped',
+  'market wrapped', 'market wrap done', 'exchange closed',
+  'floor closed', 'pit closed', 'pit emptied', 'trading floor emptied',
+  'board went dark', 'ticker stopped', 'tape stopped',
+  // --- positions flat ---
+  'positions closed', 'closed all positions', 'all positions flat',
+  'went flat', 'went to cash', 'all cash', 'flattened the book',
+  'unwound the position', 'sold out of everything', 'liquidated',
+  'exited the market', 'exited the position', 'cut the position',
+  'stopped out', 'took profits', 'took the profit', 'banked the gains',
+  'cashed out', 'cashed it in', 'locked in gains', 'booked the profit',
+  'booked the loss', 'cut losses', 'settled up', 'settled the account',
+  'account settled', 'margin settled', 'day trading done',
+  'swing closed', 'trade closed', 'trade is done', 'order filled',
+  'all orders filled', 'stopped trading', 'called it a day on the market',
+  // --- settlement & statements ---
+  'cleared the trades', 'trades settled', 'reconciled the book',
+  'books reconciled', 'statements reconciled', 'pnl booked',
+  'marked to market', 'eod report filed', 'market recap done',
 ];
 
 const closeTabJa = [
-  // --- 解き/ほどき ---
-  'ほぐして', '解いてしまって', '解きほぐして', 'ほどいて',
-  '糸をほどいて', '糸を解いて', '糸を抜いて', '糸を切って',
-  '縫い目を解いて', '縫い目をほどいて', '縫い目を切って',
-  '縫い目から外して', '解き明かして捨てて',
-  '織りほぐして', '織りを解いて', '編みほぐして', '編み目を解いて',
-  '毛糸をほどいて', '編み物を解いて',
-  // --- 裂き/切り刻み ---
-  'ずたずたに切って', 'ズタボロにして', 'ボロ布にして', '布切れにして',
-  '刻んで捨てて', '切れ端にして', '裂け目を入れて', '破れ布にして',
-  'ほつれさせて', 'ほつれにして', '裁ち切って',
-  // --- 裁断道具 ---
-  'はさみで切って', 'ハサミで切り刻んで', '鋏で裁断', 'カッターで切って',
-  '試し切りして', '見本切り', '裾を切って',
-  // --- 残布/古布/ウェス ---
-  '端切れにして', '残布にして', '反物ごと捨てて', '裂き布にして',
-  '古布にして', '雑巾にして', 'ぞうきんにして', 'ウェスにして',
-  'ウエスにして', 'ハギレにして', '切れっぱしにして',
+  // --- 引け ---
+  '引け', '前場引け', '後場引け', '立会終了', '立ち会い終了',
+  '取引が終わって', '市場が閉まって', '市場閉場', '終値がついて',
+  '引け値がついて', '東京市場終了', '取引所が閉まって',
+  '夜間取引終了', 'ザラバ終了', '寄り引け', '場が終わって',
+  // --- 手仕舞い/ポジション解消 ---
+  '手仕舞い', '手仕舞い売り', '手仕舞い買い', 'ノーポジ',
+  'ポジションを閉じて', 'ポジション解消', '全ポジションを解消',
+  'ポジションを畳んで', '建玉を解消して', '持ち高を整理して',
+  '持ち越しなし', 'キャッシュに戻して', '現金化しました',
+  '売却完了', '全売却', '利確', '利益確定', '利益を確定して',
+  '含み益を確定して', '損切り', '損切り済み', '損失を確定して',
+  'ロスカット', '強制決済', '反対売買済み',
+  // --- 決済/清算 ---
+  '決済', '決済完了', '決済済み', '清算終了', '清算完了',
+  '約定しました', '全約定', '注文が約定して', '約定確認',
+  '口座を精算して', '証拠金を清算して', '日計り終了',
+  '損益を確定して', '評価損益を確定して', '取引報告書が来て',
 ];
 
-describe('Voice atoms CCXCIX — sewing/fabric-dismantle idioms', () => {
+const negate = [
+  'keep trading', 'stay in the market', 'still holding',
+  'hold the position', 'keep the position open', 'まだ保有中',
+  'まだ取引中', 'ホールドして', '持ち続けて',
+];
+
+const nullPins = [
+  // market open / in progress
+  'market open', 'opening bell', 'pre market', 'premarket trading',
+  'market is open', 'in the green', 'in the red', 'watching the ticker',
+  'day trading', 'swing trading', 'holding a position',
+  '寄り付き', '寄り付きました', 'ザラ場', 'ザラバ中',
+  '取引中', '保有中', '建玉保有中', '前場寄り', '寄り前',
+  'PTS取引中', '監視中の銘柄',
+];
+
+const establishedPins = [
+  ['closing bell', 'close-tab'],
+  ['closing time', 'close-tab'],
+  ['大引け', 'close-tab'],
+  ['取引終了', 'close-tab'],
+  ['after hours', 'sleep-mode'],
+  ['手じまい', 'negate'],
+];
+
+describe('Voice atoms CCCXXVI — market close & trading-day end', () => {
   test.each(closeTab.map((p) => [p]))('"%s" -> close-tab', (p) => {
     expect(key(makeVC(), p)).toBe('close-tab');
   });
   test.each(closeTabJa.map((p) => [p]))('"%s" -> close-tab', (p) => {
     expect(key(makeVC(), p)).toBe('close-tab');
   });
-});
-
-describe('established pins kept', () => {
-  test('"undo the seams" -> reopen-tab (undo reads as restore)', () => {
-    expect(key(makeVC(), 'undo the seams')).toBe('reopen-tab');
+  test.each(negate.map((p) => [p]))('"%s" -> negate', (p) => {
+    expect(key(makeVC(), p)).toBe('negate');
   });
-});
-
-describe('null pins (mending/alteration, not disposal)', () => {
-  test.each([['mend it'], ['darn it'], ['sew it back'], ['patch it up'],
-    ['sew it up tight'], ['knit it back'], ['weave it back'], ['裾上げして'],
-  ])('"%s" stays null', (p) => {
+  test.each(nullPins.map((p) => [p]))('"%s" -> null', (p) => {
     expect(key(makeVC(), p)).toBeNull();
+  });
+  test.each(establishedPins.map(([p, k]) => [p, k]))('"%s" -> %s', (p, k) => {
+    expect(key(makeVC(), p)).toBe(k);
   });
 });
