@@ -20916,6 +20916,15 @@ export class VoiceCommands {
         '申込書提出', '訪問調査',
         '介護認定調査', '短期入所',
         'ショートステイ',
+        // pass DV: medical-expense deduction & high-cost care procedures done
+        'medical deduction filed', 'receipts totaled',
+        'self-medication tax claimed', 'hospital receipts sorted',
+        'セルフメディケーション', '領収書集計',
+        '病院領収書', '通院費',
+        '医療費明細書', '還付申請',
+        '交通費領収書', '薬代',
+        '入院費', '出産育児一時金',
+        '高額療養費',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27120,6 +27129,9 @@ export class VoiceCommands {
         'まだ転用中', 'これから転用',
         // pass DIV: still mid facility application
         'これから申込',
+        // pass DV: still mid deduction filing
+        'still totaling receipts', 'about to file the deduction',
+        'まだ集計中', 'これから控除',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
