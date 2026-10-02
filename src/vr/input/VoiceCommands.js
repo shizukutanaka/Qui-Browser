@@ -20100,6 +20100,16 @@ export class VoiceCommands {
         '車両保険に入って', 'ナンバーが届いて',
         '初ドライブをして', '慣らし運転をして',
         'ディーラーと話して',
+        // pass CDXX: new-job settling & onboarding
+        'first week survived', 'settled into the new job',
+        'probation review passed', 'three month mark hit',
+        'learned the ropes', 'team lunch done',
+        'intro meetings done', 'accounts set up',
+        '初週を終えて', '新しい職場に慣れて',
+        '試用期間を終えて', '三ヶ月を越えて',
+        '仕事を覚えて', 'チームランチをして',
+        '顔合わせを終えて', '社員証をもらって',
+        'アカウントを作って', 'メンターがついて',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26069,6 +26079,9 @@ export class VoiceCommands {
         'まだ大掃除中', 'まだ年賀状書き中',
         // pass CDXIX: still car shopping
         'still car shopping', 'まだ車選び中',
+        // pass CDXX: still ramping up
+        'still ramping up', 'still learning the codebase',
+        'まだ立ち上げ中', 'まだコードを理解中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
