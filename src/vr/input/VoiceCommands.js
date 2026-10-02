@@ -21337,6 +21337,22 @@ export class VoiceCommands {
         '漁港整備', '漁師会',
         '漁業従事者', '入会地',
         '漁業調整委員会', '漁業紛争',
+        // pass DXL: self-reliance support program procedures done
+        'support plan approved',
+        '生活困窮者自立支援', '自立相談支援',
+        'すまいサポート', '住宅入居支援',
+        '就労サポート', '一時生活支援',
+        '家計改善支援', '就労準備支援',
+        '学習支援', '子どもの学習支援',
+        '相談支援員', '支援員',
+        '支援プラン', 'プラン策定',
+        '食料支援', '住居確保給付金',
+        '自立促進', 'ハローワーク連携',
+        'ファミリーサポート', '訪問相談',
+        '生活支援', 'アドバイザー',
+        '相談窓口', '生活サポート',
+        '支援終了', '自立達成',
+        '自立指標',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27641,6 +27657,9 @@ export class VoiceCommands {
         // pass DXXXIX: still before fishing season
         'まだ漁期前', 'これから漁期',
         'まだ組合',
+        // pass DXL: still mid support consultation
+        'まだ相談中', 'これから相談',
+        'まだ支援中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
