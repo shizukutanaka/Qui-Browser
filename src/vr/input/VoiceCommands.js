@@ -21270,6 +21270,22 @@ export class VoiceCommands {
         '風水害', '霜害',
         '雪害', '干害',
         '病虫害', '鳥獣害',
+        // pass DXXXVI: cemetery & columbarium contract procedures done
+        'plot contract signed', 'burial rights granted',
+        'remains moved',
+        '墓地購入', '永代使用権',
+        '納骨堂', '改葬',
+        '墓石', '樹木葬',
+        '永代供養', '霊園',
+        '管理料', '墓所',
+        '埋蔵証明書', '受入証明書',
+        '改葬許可', '分骨',
+        '合祀', '供養塔',
+        '塔婆', '卒塔婆',
+        '墓地使用料', '墓地購入申込',
+        '墓地継承', '改葬届',
+        'お墓引越し', '納骨式',
+        '建立', '墓地管理規則',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27562,6 +27578,9 @@ export class VoiceCommands {
         // pass DXXXV: still mid crop insurance
         'still inspecting the field', 'about to file the loss',
         'まだ収穫前', 'まだ評価中',
+        // pass DXXXVI: still mid plot search
+        'still looking for a plot', 'about to visit the cemetery',
+        'まだ探し中', 'これから見学',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
