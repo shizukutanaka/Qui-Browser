@@ -20716,6 +20716,17 @@ export class VoiceCommands {
         '療育手帳', '認定調査',
         '自立支援医療', '障害等級',
         '障害福祉',
+        // pass CDLXXXVI: adult-guardianship & conservatorship filing done
+        'guardianship filed', 'conservator appointed',
+        'family court petition', 'power of attorney signed',
+        'estate managed', 'court order issued',
+        'legal capacity assessed', 'guardian named',
+        'voluntary guardianship',
+        '成年後見', '後見人',
+        '家庭裁判所', '任意後見',
+        '保佐', '補助',
+        '鑑定書', '財産目録',
+        '親権',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26866,6 +26877,9 @@ export class VoiceCommands {
         // pass CDLXXXV: still awaiting disability certification
         'still assessing', 'about to certify',
         'まだ認定中', 'これから認定',
+        // pass CDLXXXVI: still petitioning for guardianship
+        'still petitioning', 'about to petition',
+        'まだ申立中', 'これから申立',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
