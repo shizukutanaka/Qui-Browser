@@ -20375,6 +20375,16 @@ export class VoiceCommands {
         '部屋を掃除して', '敷金を返して',
         '敷金を差し引いて', '修理見積もりを取って',
         '壁紙を張り替えて', '退去立ち会いをして',
+        // pass CDXLVIII: pension-claim done
+        'pension claimed', 'pension filing done',
+        'nenkin applied', 'retirement benefit claimed',
+        'pension office visited', 'social security filed',
+        'pension book updated',
+        '年金請求をして', '裁定請求を出して',
+        '受給手続きを終えて', '年金手帳をもらって',
+        '年金が振り込まれて', '厚生年金を申請して',
+        '国民年金に加入して', '繰り上げ受給をして',
+        '年金相談を終えて',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26422,6 +26432,9 @@ export class VoiceCommands {
         // pass CDXLVII: still collecting rent
         'still collecting rent', 'about to inspect',
         'まだ家賃回収中', 'これから立ち会う',
+        // pass CDXLVIII: still claiming pension
+        'still claiming pension', 'about to claim',
+        'まだ年金手続き中', 'これから年金請求',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
