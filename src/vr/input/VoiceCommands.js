@@ -20120,6 +20120,15 @@ export class VoiceCommands {
         '聖地巡礼をして', '推し活をして',
         '痛バを作って', 'うちわを作って',
         'グッズ交換をして',
+        // pass CDXXII: mail-order delivery & receipt
+        'package received', 'delivery signed for',
+        'redelivery scheduled', 'amazon box opened',
+        'order unboxed', 'review left',
+        'packaging thrown out', 'returns sent',
+        '宅配を受け取って', '再配達を頼んで',
+        'コンビニで受け取って', '開封して',
+        'レビューを書いて', '梱包材を捨てて',
+        '返品を出して', '不在票を見て',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26095,6 +26104,9 @@ export class VoiceCommands {
         // pass CDXXI: still queueing for goods
         'still saving for merch', 'still queueing for goods',
         'まだグッズ待ち', 'まだ物販並び中',
+        // pass CDXXII: still tracking the package
+        'still tracking the package', 'still waiting for the parcel',
+        'まだ荷物待ち', 'まだ追跡中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
