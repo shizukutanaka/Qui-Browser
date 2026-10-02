@@ -21076,6 +21076,16 @@ export class VoiceCommands {
         '取引履歴開示', '貸金業者',
         '和解交渉', '時効援用',
         '時効の中断', '債権者一覧',
+        // pass DXXI: pension early/deferred election procedures done
+        'early pension elected', 'deferred pension elected',
+        'pension started', 'back payment received',
+        '年金繰上げ', '年金繰下げ',
+        '繰上げ受給', '繰下げ受給',
+        '受給開始', '請求書提出',
+        '支給開始', '減額率',
+        '増額率', '在職老齢年金',
+        '加給年金', '振替加算',
+        '厚生年金基金', '共済年金',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27324,6 +27334,9 @@ export class VoiceCommands {
         // pass DXX: still mid interest calculation
         'still calculating interest',
         'まだ利息計算中', 'これから過払い請求',
+        // pass DXXI: still mid pension election
+        'still deciding the start date', 'about to elect deferral',
+        'まだ受給時期検討中', 'これから繰下げ申請',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
