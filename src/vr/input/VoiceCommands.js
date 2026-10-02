@@ -20737,6 +20737,16 @@ export class VoiceCommands {
         '任意整理', '免責決定',
         '再生計画', '債権者集会',
         '弁護士相談', '整理終了',
+        // pass CDLXXXVIII: divorce mediation & custody agreement concluded
+        'mediation concluded', 'custody settled',
+        'divorce finalized', 'alimony set',
+        'property divided', 'settlement signed',
+        'support ordered', 'visitation arranged',
+        'decree issued',
+        '調停成立', '親権決定',
+        '財産分与', '慰謝料',
+        '養育費', '面会交流',
+        '合意書', '公正証書',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26892,6 +26902,9 @@ export class VoiceCommands {
         'まだ申立中', 'これから申立',
         // pass CDLXXXVII: still in repayment proceedings
         'still repaying',
+        // pass CDLXXXVIII: still in divorce mediation
+        'still mediating', 'about to mediate',
+        'まだ調停中', 'これから調停',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
