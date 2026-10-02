@@ -20554,6 +20554,13 @@ export class VoiceCommands {
         '片付け当番', 'お神酒を振る舞って',
         '境内を掃除して', 'お囃子を練習して',
         '提灯を片付けて',
+        // pass CDLXVIII: association accounting & dues collection done
+        'accounts settled', 'cash counted',
+        'treasurer done', 'receipts issued',
+        'funds handed',
+        '集金して', '集金袋を回して',
+        '領収書を書いて', '会計報告',
+        '保管して',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26658,6 +26665,9 @@ export class VoiceCommands {
         // pass CDLXVII: still on festival duty
         'still on duty', 'about to clean up',
         'まだ当番中', 'これから片付ける',
+        // pass CDLXVIII: still collecting dues
+        'still collecting', 'about to collect',
+        'まだ集金中', 'これから集金',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
