@@ -21649,6 +21649,16 @@ export class VoiceCommands {
         '面会報告', '帰住指導',
         '更生保護委員会', '奉仕月間',
         '釈放後支援',
+        // pass DLXVIII: gatekeeper trained & helpline staffed
+        'gatekeeper trained', 'helpline staffed',
+        'いのちの電話', '自殺予防',
+        'いのち支える', 'ゲートキーパー',
+        '自殺対策基本法', 'こころの健康相談',
+        '相談ダイヤル', 'よりあい',
+        'グリーフケア', '自死遺族',
+        'つながり支援', 'セーフティネット',
+        'こころの相談', '電話相談員',
+        '自殺対策強化月間', '悩み相談電話',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28032,6 +28042,9 @@ export class VoiceCommands {
         // pass DLXVII: still on parole
         'still on parole',
         'まだ観察中', 'これから面談',
+        // pass DLXVIII: still in training to be a listener
+        'still in training to be a listener',
+        'まだ研修前', 'これから応募',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
