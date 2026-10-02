@@ -19758,6 +19758,22 @@ export class VoiceCommands {
         '卒業検定合格', '路上教習終了',
         '学科試験合格', '教習終了',
         '卒検合格', '免許証を受け取って',
+        // pass CCCXCI: wake & funeral-attendance end
+        'wake over', 'viewing done',
+        'paid my respects', 'signed the guest book',
+        'offered incense', 'funeral attended',
+        'memorial attended', 'condolences given',
+        'brought the offering', 'sat with the family',
+        'drove in the procession', 'seen them off',
+        'back from the funeral',
+        'removed the armband', 'changed out of black',
+        '通夜終了', '告別式終了',
+        '焼香して', 'お悔やみを述べて',
+        '香典を渡して', '記帳して',
+        '喪主を務めて', '葬列が終わって',
+        '葬儀から帰って', '忌引きが明けて',
+        '喪服を脱いで', '礼服を畳んで',
+        '喪中が明けて',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25641,6 +25657,9 @@ export class VoiceCommands {
         // pass CCCXC: still learning to drive
         'still learning to drive', 'still in driving school',
         'まだ教習中',
+        // pass CCCXCI: still at the wake
+        'still at the wake', 'still in mourning',
+        'まだ通夜中', 'まだ弔問中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
