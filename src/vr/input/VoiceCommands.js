@@ -20561,6 +20561,13 @@ export class VoiceCommands {
         '集金して', '集金袋を回して',
         '領収書を書いて', '会計報告',
         '保管して',
+        // pass CDLXIX: mail-order returns & cooling-off done
+        'return shipped', 'item returned',
+        'exchange done', 'cooling off done',
+        'rma issued',
+        '返品して', '返金して',
+        '交換して', 'クーリングオフ',
+        '着払いで', '受け付けて',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26668,6 +26675,9 @@ export class VoiceCommands {
         // pass CDLXVIII: still collecting dues
         'still collecting', 'about to collect',
         'まだ集金中', 'これから集金',
+        // pass CDLXIX: still returning
+        'still returning', 'about to return',
+        'まだ返品中', 'これから返品',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
