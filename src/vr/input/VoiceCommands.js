@@ -21398,6 +21398,19 @@ export class VoiceCommands {
         '転籍届', '住基ネット',
         '戸籍届出', '受理証明書',
         '身分証明書',
+        // pass DXLV: after-school & temporary childcare procedures done
+        'daycare enrollment done',
+        'after-school club joined',
+        '放課後児童クラブ', '放課後クラブ',
+        '留守家庭児童', '一時保育',
+        '一時預かり', 'リフレッシュ保育',
+        '病児保育', '病後児保育',
+        '休日保育', '夜間保育',
+        '預かり保育', 'ファミサポ',
+        '提供会員', '依頼会員',
+        '援助会員', '開所時間',
+        '利用定員', '指導員',
+        '入会金', '保育料',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27717,6 +27730,9 @@ export class VoiceCommands {
         // pass DXLIV: still before certificate request
         'まだ申請前', 'これから請求',
         'まだ取得中',
+        // pass DXLV: still on childcare waitlist
+        'still on waitlist',
+        'まだ入会前', 'まだ待機中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
