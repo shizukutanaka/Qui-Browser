@@ -21286,6 +21286,23 @@ export class VoiceCommands {
         '墓地継承', '改葬届',
         'お墓引越し', '納骨式',
         '建立', '墓地管理規則',
+        // pass DXXXVII: crime-prevention association duties done
+        'patrol done', 'watch shift ended',
+        'crime report filed',
+        '防犯パトロール', '防犯協会',
+        '青色回転灯', '青パト',
+        '街路灯', '防犯カメラ',
+        'あんしん安全', 'まちづくり協議会',
+        '見守り活動', '登下校見守り',
+        'わかもん', 'シルバー防犯',
+        '町内パトロール', '防犯灯',
+        '交番', '駐在所',
+        '防犯連絡所', 'こども110番',
+        '空き巣', '防犯訓練',
+        '見守り隊', '振り込め詐欺',
+        '防犯セミナー', '特殊詐欺',
+        '還付金詐欺', 'オレオレ詐欺',
+        '防犯マップ',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27581,6 +27598,9 @@ export class VoiceCommands {
         // pass DXXXVI: still mid plot search
         'still looking for a plot', 'about to visit the cemetery',
         'まだ探し中', 'これから見学',
+        // pass DXXXVII: still mid watch duty
+        'still on patrol', 'about to join the watch',
+        'これから防犯', 'まだ登録前',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
