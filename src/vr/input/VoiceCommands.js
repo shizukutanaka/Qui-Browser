@@ -20568,6 +20568,14 @@ export class VoiceCommands {
         '返品して', '返金して',
         '交換して', 'クーリングオフ',
         '着払いで', '受け付けて',
+        // pass CDLXX: will & end-of-life planning done
+        'will written', 'estate planned',
+        'note finished', 'funeral wishes noted',
+        'accounts listed', 'advance directive',
+        '遺言を書いて',
+        '終活して', '相談して',
+        '公証して', '葬儀の希望',
+        '口座をまとめて', '延命処置',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26678,6 +26686,9 @@ export class VoiceCommands {
         // pass CDLXIX: still returning
         'still returning', 'about to return',
         'まだ返品中', 'これから返品',
+        // pass CDLXX: still writing
+        'still writing',
+        'まだ書いて', 'これから書く',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
