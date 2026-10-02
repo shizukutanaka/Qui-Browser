@@ -20129,6 +20129,15 @@ export class VoiceCommands {
         'コンビニで受け取って', '開封して',
         'レビューを書いて', '梱包材を捨てて',
         '返品を出して', '不在票を見て',
+        // pass CDXXIII: leave-end & trip wrap-up
+        'last day of leave', 'used up my pto',
+        'all leave burned', 'packed the bags',
+        'hotel checked out', 'travel journal done',
+        'laundry done after trip',
+        '有給を消化して', '休暇最終日',
+        '連休が終わって', '旅の荷物を片付けて',
+        '旅行日記を書いて', '旅行の洗濯をして',
+        '休みを使い切って', '有休を取りきって',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26107,6 +26116,8 @@ export class VoiceCommands {
         // pass CDXXII: still tracking the package
         'still tracking the package', 'still waiting for the parcel',
         'まだ荷物待ち', 'まだ追跡中',
+        // pass CDXXIII: still on leave
+        'still on leave', 'still vacationing',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
