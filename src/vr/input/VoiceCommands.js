@@ -20890,6 +20890,14 @@ export class VoiceCommands {
         '現況届', '支援員面談',
         '父子家庭', 'ひとり親家庭',
         '児童育成手当',
+        // pass DII: car-insurance grade-transfer / switch procedures done
+        'insurance grade transferred', 'no-claims bonus kept',
+        'new policy issued', 'coverage confirmed',
+        '等級継承', '無事故割引',
+        '新規契約', '保険切替',
+        '書類提出',
+        '補償内容', '車両保険',
+        '任意保険', '自賠責保険',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27086,6 +27094,9 @@ export class VoiceCommands {
         'まだ配慮申請中',
         // pass DI: still mid allowance claim
         'about to file the claim',
+        // pass DII: still mid insurance switch
+        'still switching insurers', 'about to switch insurers',
+        'まだ切替中', 'これから切替',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
