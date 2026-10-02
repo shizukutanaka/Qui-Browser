@@ -70,13 +70,14 @@ const closeTabJa = [
 const negate = [
   'keep the fire going', 'stay on the trail', 'keep climbing',
   'keep playing', 'まだ登ってる', '山に残って', '演奏を続けて',
+  'still touring',
 ];
 
 const nullPins = [
   // set-up / ongoing — not teardown
   'bank the fire', 'rope up', 'summit bid', 'base camp',
   'pitch the tent', 'set up camp', 'tune the guitar', 'sound check',
-  'still touring', 'first song', 'アンコール',
+  'first song', 'アンコール',
   '焚き火を起こして', 'テントを張って',
   '登山開始', '登り始めて', 'サウンドチェック', 'リハーサル',
   'チューニングして',
