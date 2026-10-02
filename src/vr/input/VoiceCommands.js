@@ -21639,6 +21639,16 @@ export class VoiceCommands {
         '社会奉仕', 'ボランティア登録証',
         '活動証明書', 'ボランティア休暇',
         '職場ボランティア',
+        // pass DLXVII: probation-mentor commissioned & parole supervised
+        'probation-mentor commissioned', 'parole supervised',
+        '保護司', '更生保護',
+        '保護観察', '社会復帰支援',
+        '出所支援', '再犯防止',
+        '更生保護施設', '保護司会',
+        '保護司委嘱', '保護司研修',
+        '面会報告', '帰住指導',
+        '更生保護委員会', '奉仕月間',
+        '釈放後支援',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28019,6 +28029,9 @@ export class VoiceCommands {
         // pass DLXVI: still unregistered as a volunteer
         'still unregistered as a volunteer',
         'まだ未加入', 'これから災害派遣',
+        // pass DLXVII: still on parole
+        'still on parole',
+        'まだ観察中', 'これから面談',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
