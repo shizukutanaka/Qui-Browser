@@ -16027,6 +16027,102 @@ export class VoiceCommands {
         'delete the tab', 'kill this', 'kill it dead', 'nuke this',
         'nuke the tab', 'scrap it', 'scrap this', 'get rid of the tab',
         'get rid of this one', 'close it away',
+        // pass CCC: transport/journey-end idioms — line/terminus
+        'end of the line', 'this is the end of the line', 'dead end ahead',
+        'this is the last stop', 'terminus', 'the terminus',
+        'train terminates here', 'this train terminates', 'terminal station',
+        'end station', 'last station', 'final station',
+        'the station is the end',
+        // pass CCC: disembark / get off
+        'all change', 'all change please', 'everyone off', 'off the train',
+        'time to disembark', 'disembark now', 'disembarked',
+        'please exit the train', 'exit the vehicle', 'leave the vehicle',
+        'get off here', 'getting off here', 'this is where we get off',
+        'this is our stop', 'our stop', 'my stop',
+        'drop me off', 'drop me here',
+        // pass CCC: arrival / destination
+        'we have arrived', 'we arrived', 'you have arrived',
+        'made it home', 'home at last', 'home again',
+        'pulling into the station', 'pulled into the station',
+        'pull into the station', 'arriving at the station',
+        'destination reached', 'reached our destination',
+        'final destination', 'the home stretch', 'homestretch',
+        // pass CCC: road end / parking
+        'last exit', 'take the last exit', 'the off ramp', 'take the off ramp',
+        'exit here', 'pull off the road', 'park it', 'park the car', 'parked',
+        'into the driveway', 'into the garage', 'in the garage', 'garage it',
+        'kickstand down', 'kickstands down',
+        // pass CCC: maritime arrival
+        'landfall', 'make landfall', 'we made landfall', 'into port',
+        'pull into port', 'into harbour', 'into the harbor', 'come into port',
+        'dock it', 'dock the ship', 'docked', 'moor it', 'moored',
+        'tie it up at the dock', 'tie up at the pier', 'berth it',
+        'drop anchor', 'anchor down', 'go ashore', 'shores at last',
+        'the voyage is over',
+        // pass CCC: aviation arrival
+        'landed', 'land it', 'touch down', 'touched down', 'final approach',
+        'on final approach', 'wheels down', 'on the tarmac', 'at the gate',
+        'arrived at the gate', 'gate arrival', 'deplane', 'deplane now',
+        'deboard', 'powered down', 'engine off', 'engines off',
+        'shut down the engines', 'taxi to the hangar', 'to the hangar',
+        'hangar it', 'chocks down', 'chocks on',
+        // pass CCC: journey/ride over
+        'the journey is over', 'end of the journey', 'trip over',
+        'the trip is over', 'ride over', 'the ride is over',
+        'excursion over', 'tour over', 'the tour is over', 'sightseeing done',
+        'scenic route done', 'last leg', 'the last leg', 'final leg',
+        'service ends here', 'line ends here', 'service suspended',
+        'service discontinued', 'not in service', 'deadhead', 'deadhead run',
+        'deadheading', 'off duty', 'shift is done',
+        // pass CCC: depot / yard
+        'roll into the depot', 'to the depot', 'into the yard', 'yard it',
+        'rail yard it', 'siding it', 'onto the siding', 'to the barn',
+        'into the barn', 'to the roundhouse', 'roundhouse it',
+        // pass CCC: JA 終点/終着
+        '終点', '終点です', '終点駅', '終着駅', '終点につきます',
+        'まもなく終点', 'この電車は終点です', 'このバスは終点です',
+        '終点なので降りて', '終点についた', '終点につきました',
+        'ここが終点', 'この駅が終点', '終わりの駅', '最後の駅',
+        // pass CCC: JA 終電/最終便
+        '終電', '終電です', '終電だ', '終電にして', '最終電車',
+        '最終列車', '終バス', '最終バス', '最終便', '最終便です',
+        'ラストラン', 'ラストランです',
+        // pass CCC: JA 降車
+        '全員降車', '降車してください', 'お降りください', '降りてください',
+        'ここで降りる', 'ここで降ります', 'お客様はお降りください',
+        'バスを降りて', '降車ボタンを押して', '出口はあちらです',
+        'お出口は左側です', 'ご乗車ありがとうございました',
+        'ご利用ありがとうございました',
+        // pass CCC: JA 到着
+        '到着しました', '到着です', '目的地に到着', '目的地です',
+        'まもなく到着', '着きました', '着いた', '定刻到着',
+        '到着口へ', '到着ロビーに向かって',
+        // pass CCC: JA 運行終了/回送
+        '運行終了', '本日の運行は終了しました', '運転終了', '終運転',
+        '回送', '回送です', '回送にして', '回送車両', '運休', '運休です',
+        '運休にして', '折り返し運転にして', '乗務終了', '乗務を終えて',
+        '運転を終えて',
+        // pass CCC: JA 車庫/留置
+        '車庫に入れて', '車庫入れ', '車庫に戻して', '車両基地へ',
+        '留置線へ', '留置線に入れて', '電車区に入れて', '車両センターへ',
+        '検車区に入れて',
+        // pass CCC: JA 船舶
+        '着岸', '着岸しました', '入港', '入港しました', '接岸',
+        '接岸しました', '停泊して', '係留して', '錨を下ろして',
+        '岸壁につけて', '波止場につけて', '岸に着けて', '桟橋につけて',
+        '埠頭につけて', '投錨', '錨泊', '静泊', '帰港', '帰港して',
+        '母港へ', '母港に帰って', '母港に戻して',
+        // pass CCC: JA 航空/駐車
+        '着陸', '着陸しました', '着陸した', '最終着陸',
+        'ゲートに着いて', 'ターミナルに着いて', '駐機場へ',
+        '駐機場に入れて', 'エンジン停止', 'エンジンを止めて',
+        'シートベルトサイン消灯', '格納庫へ', '格納庫に入れて',
+        'パーキングに入れて', '駐車して', '駐車しました',
+        // pass CCC: JA 旅/行程終了
+        '旅の終わり', '旅を終えて', '旅は終わった', '終旅',
+        '帰還して', '帰還しました', '帰投', '凱旋', '凱旋して',
+        '行程終了', '行程を終えて', '巡業終わり', '行脚終わり',
+        '行き止まり', 'デッドエンド', '袋小路', '突き当たり',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -18831,7 +18927,7 @@ export class VoiceCommands {
         'queue it up', 'line it up', 'ご覧なさい',
         /did it (load|open|close)/i, /is it open/i, 'still open', 'its still open',
         '閉じたっけ', '閉じるっけ', '閉じてたっけ', '開いてたっけ',
-        /たまま$/, /たばかり[。！？!?]?$/, /だまま$/,
+        /(?<!乗せ)たまま$/, /たばかり[。！？!?]?$/, /だまま$/,
         /かける$/, /[ちじ]ゃいそう/, /られそう$/,
         '開きっぱ', '閉じっぱ', 'つけっぱ', '消えっぱ',
         '閉じつつある', '閉じ終わった', '閉じ終えた', '消え終わった', '落ち終わった',
@@ -19140,7 +19236,10 @@ export class VoiceCommands {
         /close\s+all\s+tabs/i, /close every tab/i, /close all the tabs/i,
         /close (all )?my tabs/i, /^close everything$/i,
         /close all of them/i, /close (them|'em|em) all/i, /^close (em|'em)$/i,
-        'close up shop', 'close em down', 'close it all down'],
+        'close up shop', 'close em down', 'close it all down',
+        // pass CCC: fleet-wide service end
+        'all lines terminate', 'all services ended', 'terminate all services',
+        '全線運休', '全線終了', '全車両回送'],
       action: () => {
         if (!tabManager) {
           this.speak('タブがありません');
@@ -21599,6 +21698,9 @@ export class VoiceCommands {
         '閉じんなー', '閉じんなって', '閉じんなっちゃ', '閉じんとこや',
         '閉じせんどこ', '閉じせんどいと', '閉じまんどこ',
         '閉じまいとく', '閉じまいとこ',
+        // pass CCC: stay-aboard forms (keep-open via journey metaphor)
+        'stay on the train', 'stay aboard', 'keep riding', 'remain seated',
+        '乗り続けて', '乗せたまま', 'まだ乗ってる',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
