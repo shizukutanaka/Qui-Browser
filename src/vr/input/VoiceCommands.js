@@ -21303,6 +21303,22 @@ export class VoiceCommands {
         '防犯セミナー', '特殊詐欺',
         '還付金詐欺', 'オレオレ詐欺',
         '防犯マップ',
+        // pass DXXXVIII: foster parent certification procedures done
+        'foster license granted', 'child placed',
+        '里親認定', '里親登録',
+        '里親養親', '養育里親',
+        '専門里親', '親戚里親',
+        '里親研修', '基礎研修',
+        '登録前研修', '研修修了',
+        '認定委員会',
+        '委託児童', '児童委託',
+        '養育委託', '措置費',
+        '養育費支給', '里親手当',
+        '児童養護施設', 'ファミリーホーム',
+        '委託解除', '児童自立支援施設',
+        '社会的養護', '一時保護',
+        '保護者支援', '里親会',
+        '養育記録', '委託契約書',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27601,6 +27617,9 @@ export class VoiceCommands {
         // pass DXXXVII: still mid watch duty
         'still on patrol', 'about to join the watch',
         'これから防犯', 'まだ登録前',
+        // pass DXXXVIII: still mid foster process
+        'still in training',
+        'まだ里親', 'これから里親',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
