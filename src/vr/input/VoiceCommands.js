@@ -20870,6 +20870,17 @@ export class VoiceCommands {
         '寺侍', '境内掃除',
         'お寺の手伝い', '教会奉仕',
         '讃美歌練習',
+        // pass D: workplace disability-accommodation procedures done
+        'accommodations approved', 'workplace assessment done',
+        'support plan signed', 'reasonable adjustments made',
+        'desk moved', 'job coach assigned',
+        'ergonomic chair ordered', 'disability disclosure done',
+        'screen reader set up', 'commute support arranged',
+        '合理的配慮', '配慮申請',
+        '障害者雇用', '職場適応',
+        '支援計画', 'ジョブコーチ',
+        '通勤支援', '作業環境整備',
+        '支援員手配', 'バリアフリー工事',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27061,6 +27072,9 @@ export class VoiceCommands {
         // pass CDXCIX: still mid volunteer service
         'about to volunteer',
         'まだ奉仕中', 'これから奉仕',
+        // pass D: still mid accommodation request
+        'still arranging accommodations', 'about to request accommodations',
+        'まだ配慮申請中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
