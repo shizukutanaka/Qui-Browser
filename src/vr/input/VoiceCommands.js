@@ -21015,6 +21015,17 @@ export class VoiceCommands {
         '架空請求', '利殖勧誘',
         'マルチ商法', '特定商取引法',
         '契約書受領',
+        // pass DXV: social-welfare fund loan procedures done
+        'welfare loan approved', 'small loan disbursed',
+        'repayment set', 'funds deposited',
+        'loan matured',
+        '生活福祉資金', '小口資金',
+        '一時生活再建費', '福祉資金貸付',
+        '償還計画', '連帯保証人',
+        '貸付決定', '借受申込',
+        '自立支援資金', '社協窓口',
+        '送金受領', '据置期間',
+        '返済据置', '貸付終了',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27245,6 +27256,9 @@ export class VoiceCommands {
         'still gathering evidence',
         // pass DXIV: still mid rescission negotiation
         'still seeking redress',
+        // pass DXV: still mid loan review
+        'still awaiting disbursement', 'about to request the loan',
+        'まだ貸付審査中', 'これから貸付申請',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
