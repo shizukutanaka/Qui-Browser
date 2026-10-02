@@ -21133,6 +21133,18 @@ export class VoiceCommands {
         '境界層', '非課税世帯',
         '生活保護受給', '還付手続き',
         '窓口負担',
+        // pass DXXVI: property/injury insurance claim procedures done
+        'insurance claim settled', 'payout received',
+        'claim denied', 'damage assessed',
+        '傷害保険', '地震保険',
+        '火災保険請求', '保険金請求',
+        '損害保険', '保険金支払い',
+        '鑑定人', '損害調査',
+        '保険証券番号', '保険金額',
+        '免責金額', '時価額',
+        '新価', '見舞金支払い',
+        '損害認定', '支払い拒否',
+        '示談交渉', '再調査依頼',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27396,6 +27408,9 @@ export class VoiceCommands {
         // pass DXXV: still mid tier assessment
         'still reviewing the tier', 'about to apply for the limit',
         'まだ認定審査中', 'これから限度額申請',
+        // pass DXXVI: still mid damage claim
+        'still gathering receipts', 'about to file the damage claim',
+        'まだ査定待ち', 'これから保険請求',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
