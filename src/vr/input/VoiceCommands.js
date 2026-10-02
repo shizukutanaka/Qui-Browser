@@ -20334,6 +20334,16 @@ export class VoiceCommands {
         '墓石を建てて', '会葬者に連絡して',
         '通夜の席を取って', '戒名をもらって',
         '香典を数えて', '納骨を済ませて',
+        // pass CDXLIV: second-career done
+        'rehired', 'second career started',
+        'senior job landed', 'post retirement job found',
+        'part time job started', 'first paycheck',
+        'new routine settled', 'badge got',
+        'retired again',
+        '再就職が決まって', 'セカンドキャリアに入って',
+        'シニアジョブに就いて', 'パートを始めて',
+        '初給料が入って', '新しい日常に慣れて',
+        '再び引退して', '就活を終えて',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26369,6 +26379,9 @@ export class VoiceCommands {
         // pass CDXLIII: still arranging the funeral
         'still arranging the funeral', 'about to arrange',
         'まだ葬儀手配中', 'これから手配する',
+        // pass CDXLIV: still job hunting
+        'still job hunting',
+        'まだ仕事探し中', 'これから応募する',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
