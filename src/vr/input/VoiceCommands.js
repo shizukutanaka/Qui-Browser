@@ -20907,6 +20907,15 @@ export class VoiceCommands {
         '地目変更', '登記簿謄本',
         '測量完了', '境界確定',
         '農業委員会', '農地法',
+        // pass DIV: special-nursing-home (tokuyou) application procedures done
+        'eligibility interview done', 'assessment visit done',
+        'waiting list joined', 'documents mailed',
+        'priority ranked',
+        '特養申込', '入所申込書',
+        '判定会議', '順位待ち',
+        '申込書提出', '訪問調査',
+        '介護認定調査', '短期入所',
+        'ショートステイ',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27109,6 +27118,8 @@ export class VoiceCommands {
         // pass DIII: still mid farmland conversion
         'still converting farmland', 'about to convert',
         'まだ転用中', 'これから転用',
+        // pass DIV: still mid facility application
+        'これから申込',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
