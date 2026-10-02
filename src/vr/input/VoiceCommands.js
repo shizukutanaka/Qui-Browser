@@ -20072,6 +20072,15 @@ export class VoiceCommands {
         '当番を決めて', '町内費を払って',
         '掃除当番を終えて', '大家に挨拶して',
         '自治会に入って', '回覧を渡して',
+        // pass CDXVII: family milestone ceremonies
+        'omiyamairi done', 'baby blessed',
+        'shichi go san done', 'photos taken',
+        'coming of age done', 'seijin shiki done',
+        'half birthday celebrated', 'first birthday done',
+        'お宮参りをして', '初参りをして',
+        '七五三をして', 'お参り終了',
+        '成人式をして', '前撮りをして',
+        '食い初めをして', 'お食い初めをして',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26033,6 +26042,9 @@ export class VoiceCommands {
         // pass CDXVI: still new to the area
         'still new to the area', 'still learning the rules',
         'まだ回覧板中',
+        // pass CDXVII: still planning the ceremony
+        'still planning the ceremony', 'still choosing outfits',
+        'まだ式の準備中', 'まだ写真選び中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
