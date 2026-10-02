@@ -19661,6 +19661,26 @@ export class VoiceCommands {
         'pta総会終了', '役員仕事終了',
         'お迎え終了', '連絡帳を出して',
         '提出物を出して', '昼食当番終了',
+        // pass CCCLXXXV: garden & yard-work end
+        'garden weeded', 'beds weeded',
+        'mulch laid', 'compost turned',
+        'plants repotted', 'seedlings transplanted',
+        'bulbs planted', 'roses pruned',
+        'trees staked',
+        'fence painted', 'deck stained',
+        'pressure washing done', 'gutter cleaned',
+        'leaves raked', 'snow shoveled',
+        'tools put away', 'shed locked',
+        'watering done',
+        '草むしり終了', '草刈り終了',
+        '芝刈り終了', '生垣を刈って',
+        'マルチを敷いて', '堆肥を返して',
+        '道具をしまって', '物置を閉めて',
+        '植え替え終了', '苗を植えて',
+        '球根を植えて', 'バラを剪定して',
+        '支柱を立てて', '柵を塗って',
+        'デッキを塗って', '高圧洗浄終了',
+        '雨樋を掃除して', '雪かき終了',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25526,6 +25546,9 @@ export class VoiceCommands {
         // pass CCCLXXXIV: still at the school event
         'still at the school event', 'still at pickup',
         'まだ学校行事中', 'まだお迎え中',
+        // pass CCCLXXXV: still gardening
+        'still gardening', 'still weeding',
+        'まだ作業中', 'まだ草むしり中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
