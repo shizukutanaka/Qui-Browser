@@ -20529,6 +20529,13 @@ export class VoiceCommands {
         'パスポートを更新して', '申請して',
         '受け取って', '新しいパスポート',
         '更新手続き',
+        // pass CDLXV: dental appointment & checkup done
+        'dentist visit', 'appointment booked',
+        'follow up done', 'teeth checked',
+        'prescription picked',
+        '定期検診', '予約して',
+        '呼ばれて', 'フッ素を塗って',
+        'クリーニング', '虫歯を治して',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26625,6 +26632,9 @@ export class VoiceCommands {
         // pass CDLXIV: still renewing
         'still renewing',
         'まだ更新中', 'これから更新する',
+        // pass CDLXV: still at the dentist
+        'still at the dentist',
+        'これから歯医者',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
