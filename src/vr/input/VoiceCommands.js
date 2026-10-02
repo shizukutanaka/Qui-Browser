@@ -20385,6 +20385,17 @@ export class VoiceCommands {
         '年金が振り込まれて', '厚生年金を申請して',
         '国民年金に加入して', '繰り上げ受給をして',
         '年金相談を終えて',
+        // pass CDXLIX: condo/HOA management done
+        'hoa dues paid', 'assessment passed',
+        'board elected', 'reserve funded',
+        'repairs approved', 'rules amended',
+        'proxy sent', 'minutes circulated',
+        'bylaws updated',
+        '管理費を払って', '管理組合の総会を終えて',
+        '修繕積立金を払って', '理事会を終えて',
+        '大規模修繕を終えて', '議案書を読んで',
+        '委任状を出して', '管理規約を改正して',
+        '議事録を回して', '会計報告を受けて',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26435,6 +26446,9 @@ export class VoiceCommands {
         // pass CDXLVIII: still claiming pension
         'still claiming pension', 'about to claim',
         'まだ年金手続き中', 'これから年金請求',
+        // pass CDXLIX: still paying dues
+        'still paying dues',
+        'まだ管理費支払中', 'これから総会に出る',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
