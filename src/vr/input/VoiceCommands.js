@@ -17500,6 +17500,34 @@ export class VoiceCommands {
         '退職日が決まって', '最終出社', '最終出社日', '送別会終了',
         '退職手続き完了', '離職票を受け取って', '会社を去って',
         '不採用', 'お見送り', '不採用通知',
+        // pass CCCXXX: ship/release & deadline-clear
+        'shipped it', 'its shipped', 'ship it', 'released', 'release done',
+        'release complete', 'went live', 'gone live', 'live in prod',
+        'in production', 'pushed to prod', 'deployed', 'deploy done',
+        'rolled out', 'rollout done', 'rollout complete',
+        'tagged the release', 'rc tagged', 'went gold', 'gold master',
+        'release cut', 'changelog updated',
+        'merged the pr', 'pr merged', 'merged', 'merged to main',
+        'code complete', 'feature complete', 'implementation done',
+        'all checks green', 'ci green', 'tests passing', 'qa passed',
+        'code review done', 'approved and merged', 'signed off on it',
+        'submitted for review', 'review complete',
+        'deadline met', 'met the deadline', 'made the deadline',
+        'delivered', 'handed it in', 'turned it in', 'submission in',
+        'demo done', 'demo complete', 'sprint done', 'sprint ended',
+        'sprint closed', 'milestone hit', 'milestone reached',
+        'リリース完了', 'リリースしました', 'リリース済み', '出荷',
+        '出荷しました', '出荷完了', '納品しました', '納品完了', '本番適用',
+        '本番反映', 'デプロイ完了', 'デプロイしました', '本番環境に反映',
+        'タグを打って', 'リリースタグ', 'ゴールドマスター', 'パッケージ化完了',
+        '更新履歴を書いて', 'チェンジログ更新',
+        '実装完了', '実装が終わって', 'コードフリーズ', 'レビュー完了',
+        'レビューが通って', 'マージしました', 'prをマージして',
+        'プルリクをマージして', 'mainにマージ', 'ci緑', 'テスト全部通って',
+        'qa合格', '検品済み', '受入テスト完了', '受け入れテスト完了',
+        '締切に間に合って', '締め切りをクリア', '納期を守って', '期日に納めて',
+        'デモ終了', 'スプリント終了', 'スプリントレビュー終了',
+        'マイルストーン達成', '成果物を提出して', '提出完了',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -22235,7 +22263,7 @@ export class VoiceCommands {
         'これ印刷して',
         'PDFに保存', 'PDFで保存', 'PDFとして保存', 'PDFを保存', 'PDFで出力',
         'pdfにして', 'プリンターに送って',
-        /(?<!in )(?<!keep )print/i, /save (as |to )?pdf/i, /export (as |to )?pdf/i],
+        /(?<!in )(?<!keep )\bprint\b/i, /save (as |to )?pdf/i, /export (as |to )?pdf/i],
       action: () => {
         this.speak('このブラウザでは印刷できません');
         return { action: 'print' };
@@ -23191,6 +23219,10 @@ export class VoiceCommands {
         // pass CCCXXIX: still in the process
         'keep applying', 'stay in the process', 'still interviewing',
         'keep job hunting', 'まだ面接中', 'まだ選考中', '就活を続けて',
+        // pass CCCXXX: not shipped yet
+        'keep it in staging', 'stay in development', 'dont ship yet',
+        'keep working on the branch', 'まだ開発中', 'まだ実装中',
+        'リリースを待って', 'スプリントを続けて',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
