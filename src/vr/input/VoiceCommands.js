@@ -19822,6 +19822,20 @@ export class VoiceCommands {
         'チームビルディング終了', '歓迎会終了',
         '添乗員さんにお礼を言って',
         '合宿から帰って', '研修合宿終了',
+        // pass CCCXCVI: campaign & election-night end
+        'campaign over', 'election day over',
+        'polls done', 'ballot counted',
+        'won the seat', 'lost the race',
+        'victory speech given',
+        'rallied out', 'canvassing done',
+        'signs taken down', 'campaign office closed',
+        'rallies all done', 'final rally done',
+        '投票日終了', '開票速報終了',
+        '落選しました', '敗戦宣言',
+        '勝利宣言', '勝利演説終了',
+        '街頭演説終了', '演説会終了',
+        '選挙カーを納めて', '看板を外して',
+        '事務所を畳んで',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25720,6 +25734,9 @@ export class VoiceCommands {
         // pass CCCXCV: still on the retreat
         'still on the retreat', 'still at the offsite',
         'まだ合宿中', 'まだ旅行先',
+        // pass CCCXCVI: still campaigning
+        'still campaigning', 'still on the trail',
+        'まだ応援中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
