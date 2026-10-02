@@ -16233,6 +16233,48 @@ export class VoiceCommands {
         '出前にして', '持ち帰りにして', 'デリバリーして',
         'メニューから外して', '品切れにして', '売り切れにして',
         '限定終了', '提供終了', '厨房を閉めて',
+        // pass CCCIII: camp teardown / strike camp
+        'strike camp', 'break camp', 'pack up camp', 'camp packed',
+        'decamp', 'decamp it', 'fold the tent', 'roll the tent',
+        'tent down', 'poles down', 'take down the tent', 'douse the fire',
+        'put out the campfire', 'dead out', 'cold ashes', 'ashes cold',
+        'wet the ashes', 'stir the ashes dead', 'smother the fire',
+        'fire watch done', 'bear bag down', 'leave no trace', 'trace erased',
+        // pass CCCIII: gear stow / trail & summit end
+        'hang the pack', 'boots off', 'roll the sleeping bag', 'stow the gear',
+        'store the gear', 'gear stowed', 'pack the mule', 'load the canoe',
+        'canoe loaded', 'paddle home', 'home by dark', 'last night out',
+        'end of the trail', 'the trails end', 'trail ends here',
+        'off the mountain', 'come off the mountain', 'back down',
+        'rappel down', 'off belay', 'hike over', 'hike done', 'day hike done',
+        'out of the woods', 'made it out', 'back to trailhead',
+        'trailhead reached', 'camp broke', 'site cleaned', 'clean camp',
+        'bagged the peak', 'summit bagged', 'bagged it', 'tagged the summit',
+        // pass CCCIII: concert end / strike the stage
+        'encore over', 'no more encores', 'last song', 'final number',
+        'closing number', 'dropped the mic', 'drop the mic',
+        'kill the amp', 'amps off', 'power down the pa', 'wrap the set',
+        'the set is done', 'play them out', 'outro plays', 'the outro plays',
+        'final chord', 'last note', 'roadies load out', 'load out done',
+        'strike the stage', 'band packed up', 'house music on',
+        'amps to the truck',
+        // pass CCCIII: JA キャンプ撤収/下山
+        '撤収', '撤収する', 'キャンプ撤収', 'テントを畳んで', 'テント畳み',
+        'ポールを外して', 'ペグを抜いて', 'タープを畳んで',
+        '焚き火を消して', '完全消火', '消し炭', '火の始末',
+        '水をかけて消して', '灰を冷まして', '炭を片付けて',
+        'シュラフを畳んで', '寝袋をしまって', '装備をしまって',
+        'ギアをしまって', '荷造りして', '原状回復して', '跡を消して',
+        'サイトを掃除して', 'キャンプ終わり', '最後の夜', '帰路につこう',
+        '下山', '下山します', '山を下りて', '尾根を下りて', '登山終了',
+        '山行終了', '登頂完了', '頂上制覇', '下山完了', '登山口に戻って',
+        '撤収にして',
+        // pass CCCIII: JA 演奏終了
+        '演奏終了', '楽屋撤収', 'ステージ撤収', '最終曲', 'ラストナンバー',
+        'ラストソング', '鳴り止んだ', '演奏を畳んで', 'アンコール終わり',
+        'アンプを切って', 'PAを落として', 'セットリスト終わり',
+        'セトリ終わり', '楽器をしまって', 'ケースにしまって', '最後の音',
+        '余韻が消えた',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -20489,7 +20531,7 @@ export class VoiceCommands {
     });
     this.registerCommand('speech-pitch-status', {
       patterns: ['ピッチは', '声の高さは', '現在のピッチ', '今のピッチ',
-        /voice pitch/i, /pitch/i],
+        /voice pitch/i, /pitch(?!ing| (?:the|a|an|your|my|our|his|her|their) )/i],
       action: () => {
         this.speak(`声の高さは${this._speechPitch}倍です`);
         return { action: 'speech-pitch-status', pitch: this._speechPitch };
@@ -21817,6 +21859,9 @@ export class VoiceCommands {
         '連載を続けて', '撮り続けて', '刊行を続けて',
         // pass CCCII: keep-it-open forms
         'hold it open', 'stay open', '残しておいて', '開けておいて',
+        // pass CCCIII: keep-camping / keep-playing forms
+        'keep the fire going', 'stay on the trail', 'keep climbing',
+        'keep playing', 'まだ登ってる', '山に残って', '演奏を続けて',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
