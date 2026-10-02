@@ -21700,6 +21700,16 @@ export class VoiceCommands {
         '家賃債務保証', '緊急連絡先登録',
         '見守りサービス', '居住支援団体',
         'あんしん入居',
+        // pass DLXXIII: shelter entered & transition-house moved in
+        'shelter entered', 'transition-house moved in',
+        '母子生活支援施設', '母子自立支援員',
+        '母子寮', '婦人保護施設',
+        '婦人相談所', 'dvシェルター',
+        '民間シェルター', 'ステップハウス',
+        '母子自立支援プログラム', '配偶者暴力相談支援センター',
+        'dv相談ナビ', '緊急一時保護',
+        '自立訓練プログラム', '婦人相談員',
+        '母子福祉寮',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28098,6 +28108,9 @@ export class VoiceCommands {
         // pass DLXXII: still houseless
         'still houseless',
         'まだ住宅探し中', 'これから入居審査',
+        // pass DLXXIII: still fleeing
+        'still fleeing',
+        'まだ避難中', 'これから避難所',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
