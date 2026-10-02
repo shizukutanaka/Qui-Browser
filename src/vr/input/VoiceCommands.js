@@ -2674,7 +2674,7 @@ export class VoiceCommands {
         'バイバイです',
         'sayonara', 'au revoir', 'arrivederci', 'tschuss', 'auf wiedersehen',
         'bon voyage', 'safe travels', 'safe journey', 'godspeed',
-        'fare thee well', 'farewell for now',
+        'fare thee well', 'farewell for now', 'one for the road',
         'until we meet again', 'till we meet again', 'until next time', 'till next time',
         'see you on the other side', 'see you in the next life', 'see you in another life',
         'catch you in the next life', 'meet again in another life', 'until another life',
@@ -3904,6 +3904,39 @@ export class VoiceCommands {
         'call it a night',
         // pass CCLXXIX
         '寝てもいいよ',
+        // pass CCCVI: bedtime self-sleep EN
+        'hit the sack', 'hitting the hay', 'off to bed', 'off to dreamland',
+        'bedtime', 'time for bed', 'tuck in for the night',
+        'down for the night', 'retire for the night', 'turning in',
+        'turn in early', 'snooze it', 'catch some zzz', 'zzz it',
+        'saw logs', 'forty winks', 'nod off', 'drift off', 'drifted off',
+        'count sheep', 'night night', 'nighty night',
+        'nodding off to sleep', 'shut eye', 'get some shut-eye',
+        'close my eyes', 'past my bedtime', 'night cap', 'nightcap it',
+        // pass CCCVI: taps / curfew / sundown
+        'taps', 'taps played', 'bugle call taps', 'sunset',
+        'sun is down', 'sun went down', 'sundown', 'darkness falls',
+        'night falls', 'dusk settled', 'evening came', 'curfew',
+        'curfew time', 'past curfew', 'cinderella time',
+        'stroke of midnight', 'midnight struck', 'after hours',
+        'the hour is late', 'witching hour',
+        // pass CCCVI: pillow ritual
+        'fluff the pillow', 'pillow fluffed', 'pull the covers',
+        'blanket pulled', 'under the covers', 'covers up',
+        'warm the bed', 'bed warmed', 'eyes shut',
+        // pass CCCVI: JA 就寝
+        '寝ましょう', '就寝', '就寝時間', '寝る時間', 'お休み', '晚安',
+        '寝るとしよう', '床に就く', '床につく', '布団に入る',
+        '布団にもぐる', '床につこう', '寝床に入って', '横になって',
+        '横になります', 'もう眠い', '眠くなった', '瞼が重い',
+        '夢を見に行って', '夢の中へ', 'おやすみして', '眠りに落ちて',
+        'ぐっすり寝て', '熟睡して', '一眠りして', '仮眠して',
+        // pass CCCVI: JA 門限/夜更かし終了
+        '門限', '門限時間', '門限過ぎてる', '夜更かしはここまで',
+        'もう夜遅い', '日が暮れた', '日が落ちた', '日没', '夕暮れ',
+        '暮れなずむ', '夜のとばり', '宵闇', '真夜中', '夜中になった',
+        '丑三つ時', '深夜です', 'お布団を敷いて', '枕を整えて',
+        '瞼を閉じて', '窓を閉めて眠る', '窓を閉めて寝る',
         /sleep mode/i, /power (saving|saver|off)/i],
       action: () => {
         this.speak('スリープや電源はヘッドセット本体のボタンで操作してください');
@@ -16368,6 +16401,9 @@ export class VoiceCommands {
         // pass CCCV: JA 振る/見限る
         '振って', '振ってしまって', '捨ててしまって', '見捨ててしまって',
         '愛想を尽かして', '見限って', '見切りをつけて', '諦めてしまって',
+        // pass CCCVI: object-sleep — put the tab to bed
+        'put it to bed', 'put the tab to bed', 'tuck it in',
+        'rock it to sleep', 'sing it a lullaby', 'lullaby time',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -21055,7 +21091,12 @@ export class VoiceCommands {
         '背景を暗く', '目に優しく', '目に優しいモード', 'ブルーライト',
         'ブルーライトカット', '夜用モード', 'ダークテーマ',
         /dark mode/i, /night mode/i, /dark theme/i, /turn on dark/i, /lights out(?! (?:for|close|on))/i,
-        /night time/i],
+        /night time/i,
+        // pass CCCVI: light-extinction (lights out family)
+        'lights off', 'kill the lights', 'douse the lights',
+        'extinguish the lights', 'dim the lights', 'black out the room',
+        'curtains drawn', 'close the curtains', 'draw the blinds',
+        'pull the shades', 'shutters closed'],
       action: () => {
         this.speak('ダークモードはありません。ハイコントラストモードが使えます');
         return { action: 'dark-mode' };
@@ -21075,8 +21116,14 @@ export class VoiceCommands {
         /make (it|the screen) (brighter|dimmer|darker)/i, /^brighten$/i,
         // pass CCLXXIX
         '暗くして画面', '画面暗くして',
+        // pass CCCVI: JA 消灯/遮光
+        '消灯', '消灯時間', '照明を消して',
+        'ライトを消して', '明かりを消して', '灯りを消して',
+        '火を消して', '灯を消して', 'ランプを消して',
+        '遮光カーテン', 'カーテンを引いて',
+        'ブラインドを下ろして',
         /dim (it|the screen)/i, /darken it/i, /too bright/i, /way too bright/i,
-        /^blinding$/i, /(?<!turn (?:off|out) the )lights on/i, /light it up/i],
+        /^blinding$/i, /(?<!turn (?:off|out) the )(?<!keep the )lights on/i, /light it up/i],
       action: () => {
         this.speak('明るさはヘッドセット本体の設定で変更してください');
         return { action: 'brightness' };
@@ -21961,6 +22008,10 @@ export class VoiceCommands {
         // pass CCCV: stay together — do not end it
         'stay together', 'keep the ring', 'work it out', 'still engaged',
         'まだ付き合ってる', '関係を続けて',
+        // pass CCCVI: staying-up forms
+        'stay up', 'stay awake', 'keep the lights on',
+        'burn the midnight oil', 'pull an all-nighter',
+        '夜更かしして', 'まだ起きてる',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
