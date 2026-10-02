@@ -20503,6 +20503,15 @@ export class VoiceCommands {
         'タイヤを交換して', 'スタッドレスに変えて',
         'シートカバーを付けて', 'トランクを整理して',
         '車検を終えて',
+        // pass CDLXII: insurance-review & policy-checkup done
+        'policy reviewed', 'coverage compared',
+        'rider added', 'beneficiary changed',
+        'agent consulted', 'premium lowered',
+        'deductible raised', 'policy renewed',
+        '保険を見直して', '保障を比較して',
+        '特約をつけて', '受取人を変えて',
+        '保険料を下げて', '証券を確認して',
+        '契約者を変えて', '生命保険を見直して',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26590,6 +26599,9 @@ export class VoiceCommands {
         // pass CDLXI: still washing the car
         'still washing the car', 'about to swap tires',
         'まだ洗車中', 'これからタイヤを換える',
+        // pass CDLXII: still comparing
+        'still comparing', 'about to renew',
+        'まだ見直し中', 'これから見直す',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
