@@ -20881,6 +20881,15 @@ export class VoiceCommands {
         '支援計画', 'ジョブコーチ',
         '通勤支援', '作業環境整備',
         '支援員手配', 'バリアフリー工事',
+        // pass DI: single-parent allowance & support procedures done
+        'allowance claim filed', 'single parent registered',
+        'renewal filed', 'support meeting done',
+        'family court done',
+        'ひとり親', '母子手当',
+        '支給認定', '所得証明',
+        '現況届', '支援員面談',
+        '父子家庭', 'ひとり親家庭',
+        '児童育成手当',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27075,6 +27084,8 @@ export class VoiceCommands {
         // pass D: still mid accommodation request
         'still arranging accommodations', 'about to request accommodations',
         'まだ配慮申請中',
+        // pass DI: still mid allowance claim
+        'about to file the claim',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
