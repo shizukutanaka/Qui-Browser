@@ -20583,6 +20583,15 @@ export class VoiceCommands {
         '固定電話を解約して', 'ガスを止めて',
         'メーターを読んで', '名義を変えて',
         '電話を止めて', '契約者を変更して',
+        // pass CDLXXII: mourning-year & memorial etiquette done
+        'sympathy cards sent', 'memorial gifts sent',
+        'return gifts done', 'condolence money returned',
+        'mourning cards printed', 'anniversary service booked',
+        'temple notified', 'incense offered',
+        '喪中はがき', '年賀欠礼',
+        '香典返しをして', '忌明けをして',
+        '法要の案内を出して', 'お寺に連絡して',
+        '線香をあげて', '仏壇を掃除して',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26699,6 +26708,8 @@ export class VoiceCommands {
         // pass CDLXXI: still switching contracts
         'still switching',
         'これから解約',
+        // pass CDLXXII: still printing
+        'これから印刷',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
