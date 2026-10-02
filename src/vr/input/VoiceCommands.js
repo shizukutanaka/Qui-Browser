@@ -21579,6 +21579,16 @@ export class VoiceCommands {
         '面接指導', '求職活動実績',
         '雇用継続給付', '再就職支援',
         '早期就職', 'ハローワーク紹介',
+        // pass DLXI: legal-aid grant & counsel retained
+        'legal aid granted', 'retainer signed',
+        '法律扶助', '民事法律扶助',
+        '司法書士費用', '弁護士費用',
+        '相談援助', '費用立替',
+        '無料相談', '法テラス',
+        '法律相談予約', '相談枠',
+        '申込審査', '立替金償還',
+        '弁護士紹介', '書類作成援助',
+        '裁判費用援助', '代理人指定',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27941,6 +27951,9 @@ export class VoiceCommands {
         // pass DLX: still looking for work
         'still looking for work',
         'まだ求職中', 'これから面接',
+        // pass DLXI: still without counsel
+        'still without counsel',
+        'まだ申込前', 'これから審査',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
