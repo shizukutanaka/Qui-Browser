@@ -20027,6 +20027,17 @@ export class VoiceCommands {
         'ナンバーをつけて', '乗って帰って',
         '初乗りして', '試乗して',
         '原付を受け取って',
+        // pass CDXIII: pet adoption & welcome home
+        'adopted a dog', 'brought the puppy home',
+        'adoption done', 'picked up the cat',
+        'vaccinations done', 'microchipped',
+        'registered the dog', 'pet insurance done',
+        'first night home', 'crate set up',
+        '犬を迎え入れて', '子犬を連れて帰って',
+        '里親になって', '猫を拾って',
+        'ワクチンを打って', 'マイクロチップを入れて',
+        '登録を済ませて', 'ペット保険に入って',
+        '最初の夜を過ごして', 'ケージを組み立てて',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25976,6 +25987,9 @@ export class VoiceCommands {
         // pass CDXII: still bike shopping
         'still bike shopping', 'still waiting for the bike',
         'まだバイク探し中', 'まだ納車待ち',
+        // pass CDXIII: still looking for a pet
+        'still looking for a pet', 'still waiting for the puppy',
+        'まだペット探し中', 'まだ里親待ち',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
