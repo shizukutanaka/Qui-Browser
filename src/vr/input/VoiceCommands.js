@@ -19716,6 +19716,23 @@ export class VoiceCommands {
         '窓を閉めて', '雨戸を閉めて',
         '台風対策終了', '家に入って',
         '物干し竿をしまって',
+        // pass CCCLXXXVIII: neighbor-greeting & community end
+        'meet the neighbors done', 'said hello around',
+        'greeted the neighbors', 'brought the gift around',
+        'introduced myself', 'moving announcement',
+        'neighborhood watch done', 'block party done',
+        'community clean up done', 'park clean up done',
+        'volunteer cleanup done', 'hoa meeting done',
+        'neighborhood association done',
+        'shared the harvest', 'dropped off the gift',
+        'welcome basket delivered', 'came back from the event',
+        '挨拶回り終了', '引っ越し挨拶終了',
+        '近所に挨拶して', '手土産を配って',
+        '自己紹介して',
+        '町内清掃終了', 'ボランティア清掃終了',
+        '班長を終えて',
+        'おすそ分けして', '差し入れを届けて',
+        '行事から帰って',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25590,6 +25607,9 @@ export class VoiceCommands {
         // pass CCCLXXXVII: still raining
         'still raining', 'still storming',
         'まだ降ってる', 'まだ嵐',
+        // pass CCCLXXXVIII: still greeting/at event
+        'still at the block party', 'still greeting',
+        'まだ挨拶中', 'まだ行事中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
