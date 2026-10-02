@@ -19993,6 +19993,17 @@ export class VoiceCommands {
         '住宅保険を決めて', 'ローンが通って',
         'ローン審査に通って', '仮審査が通って',
         '申し込みが通って', '団信に入って',
+        // pass CDX: appliance delivery & setup
+        'fridge delivered', 'washer installed',
+        'new furniture in', 'delivery done',
+        'installation done', 'appliance set up',
+        'old appliance hauled', 'setup complete',
+        'crew left',
+        '冷蔵庫が届いて', '洗濯機を設置して',
+        '家具が届いて', '配送が終わって',
+        '設置が終わって', '家電を設置して',
+        '古いのを引き取って', '設置業者が帰って',
+        '保証書に登録して',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25933,6 +25944,9 @@ export class VoiceCommands {
         // pass CDIX: still in underwriting
         'still waiting on insurance', 'still in underwriting',
         'まだ審査中', 'まだ保険手続き中',
+        // pass CDX: still waiting on delivery
+        'still waiting for delivery', 'still installing',
+        'まだ配送待ち', 'まだ設置中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
