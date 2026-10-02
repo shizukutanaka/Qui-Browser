@@ -21201,6 +21201,21 @@ export class VoiceCommands {
         '報酬支給', '非常招集',
         '緊急出動', 'ポンプ操作',
         'ホース巻き', '消防本部',
+        // pass DXXXI: ETC card & vehicle-tax procedures done
+        'etc card issued', 'vehicle tax paid',
+        'weight tax settled',
+        'etcカード', 'etc車載器',
+        '車載器取付', '利用照会',
+        '通行料金', '自動車税',
+        '軽自動車税', '自賠責保険料',
+        '環境性能割',
+        '取得税', '納税証明書',
+        '車検証', '使用者変更',
+        '名義変更届', '抹消登録',
+        '一時抹消', '廃車手続き',
+        '陸運局', '自動車登録',
+        'ナンバー交付', '封印取付',
+        '検査標章', '車検予約',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27479,6 +27494,9 @@ export class VoiceCommands {
         // pass DXXX: still mid brigade duty
         'still on standby', 'about to join the brigade',
         'これから入団',
+        // pass DXXXI: still mid car paperwork
+        'still waiting for the card', 'about to register the car',
+        'これから車検',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
