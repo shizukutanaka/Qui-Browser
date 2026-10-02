@@ -3850,7 +3850,7 @@ export class VoiceCommands {
         'プロフィール', 'プロフィールを開いて', 'プロフィールを見せて',
         'パスワード', 'パスワードを教えて', 'パスワードを変えて',
         'パスワードを変更', 'パスワード管理', 'ユーザー名', 'ユーザ名',
-        /log ?in/i, /sign ?in/i, /log ?out/i, /sign ?out/i,
+        /log ?in\b/i, /sign ?in\b/i, /log ?out\b/i, /sign ?out\b/i,
         /(sign|log) me (in|out)/i,
         /my (account|profile|password)/i],
       action: () => {
@@ -16404,6 +16404,47 @@ export class VoiceCommands {
         // pass CCCVI: object-sleep — put the tab to bed
         'put it to bed', 'put the tab to bed', 'tuck it in',
         'rock it to sleep', 'sing it a lullaby', 'lullaby time',
+        // pass CCCVII: broadcast sign-off — the station signing off
+        'signing off the air', 'sign off the mic', 'off air for good',
+        'clear the airwaves', 'broadcast ends', 'broadcast is over',
+        'station sign-off', 'final transmission', 'last transmission',
+        'transmission ends', 'stop broadcasting', 'cease transmission',
+        'going dark on air', 'power down the transmitter',
+        'kill the signal', 'feed is cut', 'signal lost forever',
+        'dead air', 'fill the dead air',
+        // pass CCCVII: TV sign-off ritual
+        'test pattern', 'test card', 'color bars',
+        'national anthem played', 'fades to black', 'fade to static',
+        'static screen', 'snow on the screen', 'credits rolled',
+        'that is a wrap on air', 'wrap on the broadcast',
+        'thats all folks', 'good night and good luck',
+        'good night everybody', 'so long everybody',
+        'until tomorrow night', 'see you tomorrow night',
+        'stay tuned elsewhere', 'program concludes',
+        'concluding broadcast', 'the end of the show',
+        'curtain on the broadcast',
+        // pass CCCVII: radio / podcast end
+        'podcast over', 'episode wrapped', 'end of the episode',
+        'last episode ever', 'series finale', 'finale episode',
+        'closing theme plays', 'theme music fades', 'outro music',
+        'mics down', 'cut the mic', 'kill the mic feed',
+        // pass CCCVII: JA 放送終了/停波
+        '放送終了', '放送を終えて', '放送を終了して', '番組終了',
+        '番組が終わった', '番組を終えて', '終電放送', 'クロージング',
+        'クロージングです', 'お別れの時間です',
+        '本日の放送は終了です', '今日の放送は終わり', '放送打ち切り',
+        '打ち切りにして', '番組を打ち切って', '最終回', '最終回です',
+        '最終放送', '最終番組', 'シリーズ最終回',
+        '停波', '停波時間', '電波を止めて', '電波停止', '送信を止めて',
+        '送信終了', '信号を切って', '信号消失', '電波塔を止めて',
+        'オフエア', 'オフエアにして', 'エア切れ', '砂嵐', '砂嵐画面',
+        'カラーバー', 'テストパターン', '試験電波', '音声消失',
+        '映像消失', 'ブラックアウト放送',
+        // pass CCCVII: JA エンディング/収録終了
+        'エンディング', 'エンディングです', 'エンドロールが流れて',
+        'テーマ曲が流れて', 'アウトロ',
+        'マイクを下ろして', '収録終了', '収録を終えて',
+        '生放送終了', '生中継終了', '配信を終えて', '配信終了',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -22012,6 +22053,9 @@ export class VoiceCommands {
         'stay up', 'stay awake', 'keep the lights on',
         'burn the midnight oil', 'pull an all-nighter',
         '夜更かしして', 'まだ起きてる',
+        // pass CCCVII: staying on air
+        'stay on the air', 'keep broadcasting', 'still on air',
+        'stay tuned', 'まだ放送中', '放送を続けて', '放送中です',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
