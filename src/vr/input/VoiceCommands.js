@@ -21462,6 +21462,17 @@ export class VoiceCommands {
         '運転免許試験場', '運転技能検査',
         '自転車講習', '安全運転管理者',
         '運転記録証明書', '運転免許停止',
+        // pass DL: community comprehensive support & care-prevention done
+        'care plan approved',
+        'prevention program joined',
+        '地域包括支援センター', '包括支援センター',
+        'ケアマネジメント', '介護予防ケア',
+        '介護予防事業', '筋力向上訓練',
+        '閉じこもり予防', '認知症予防',
+        '介護予防教室', 'シルバーリハビリ',
+        '高齢者見守り', '見守りネットワーク',
+        '避難行動要支援者', '高齢者名簿',
+        '地域包括ケア', '在宅医療連携',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27794,6 +27805,9 @@ export class VoiceCommands {
         'まだ任期中', 'これから赴任',
         // pass DXLIX: still licensed / before surrender
         'still licensed', 'これから返納',
+        // pass DL: still before care use
+        'still in care',
+        'まだ利用前', 'これからケアプラン',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
