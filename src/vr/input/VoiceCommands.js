@@ -20167,6 +20167,16 @@ export class VoiceCommands {
         '体操着を買って', '上履きに名前をつけて',
         '学用品を揃えて', '制服を受け取って',
         '入学準備ができて', '入学通知を読んで',
+        // pass CDXXVII: club & circle enrollment done
+        'joined the club', 'club signup done',
+        'first practice attended', 'club dues paid',
+        'jersey issued', 'locker assigned',
+        'circle registered', 'lesson trial done',
+        'class booked', 'first session attended',
+        '部活に入って', 'サークルに入って',
+        '入部届を出して', '部費を払って',
+        'ユニフォームをもらって', 'ロッカーをもらって',
+        '習い事を申し込んで', '初回参加をして',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26155,6 +26165,9 @@ export class VoiceCommands {
         'まだ梅雨の中', 'まだ蒸し暑い',
         // pass CDXXVI: still packing the bag
         'still packing the bag', 'still labeling',
+        // pass CDXXVII: still deciding on clubs
+        'still deciding on clubs', 'still shopping around',
+        'まだ部活選び中', 'まだ迷ってる',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
