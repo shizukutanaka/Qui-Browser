@@ -21529,6 +21529,16 @@ export class VoiceCommands {
         '融資申込', '創業融資',
         '創業スクール', '専門家派遣',
         'ビジネスサポート',
+        // pass DLVI: medical-expense subsidy paperwork done
+        'subsidy card received', 'medical voucher issued',
+        '特定医療費受給者証', '乳幼児医療費助成',
+        '子ども医療費助成', 'ひとり親医療費助成',
+        '難病医療費助成', '医療費受給者証',
+        '福祉医療', '障害者医療助成',
+        '医療券交付', '助成申請',
+        '所得審査', '受給者証交付',
+        '負担額軽減', '小児慢性特定疾病',
+        '児童医療費',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27876,6 +27886,9 @@ export class VoiceCommands {
         // pass DLV: still in the business-support program
         'still in the program',
         'まだ参加中', 'これから融資',
+        // pass DLVI: still under subsidy income review
+        'still under income review',
+        'まだ受給前', 'これから助成申請',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
