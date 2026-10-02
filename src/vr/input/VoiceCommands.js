@@ -20236,6 +20236,16 @@ export class VoiceCommands {
         'ブースを出て', '車中泊して',
         '道の駅を出て', '車で寝て',
         'フリードリンクを飲んで', 'ネカフェ代を払って',
+        // pass CDXXXIV: glasses & hearing-aid purchase done
+        'prescription updated', 'contacts ordered',
+        'first contacts', 'hearing aids fitted',
+        'batteries stocked', 'frames picked',
+        'lenses replaced',
+        'メガネを注文して', '新しいメガネを受け取って',
+        '度数を測って', 'コンタクトを注文して',
+        '初めてのコンタクトをして', '補聴器を合わせて',
+        '電池を買って', 'フレームを選んで',
+        'レンズを交換して', '保証を登録して',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26245,6 +26255,9 @@ export class VoiceCommands {
         // pass CDXXXIII: still at the netcafe
         'still at the netcafe', 'still sleeping in the car',
         'まだネカフェ中', 'まだ車中泊中',
+        // pass CDXXXIV: still waiting for glasses
+        'still waiting for glasses', 'still adjusting',
+        'まだメガネ待ち', 'まだ慣れてない',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
