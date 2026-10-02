@@ -21619,6 +21619,16 @@ export class VoiceCommands {
         '入浴券', '福祉パス',
         '敬老祝賀金', '長寿表彰',
         '還暦祝い',
+        // pass DLXV: victim support granted & counseling session done
+        'victim support granted', 'counseling session done',
+        '犯罪被害相談', '犯罪被害者支援室',
+        '被害者支援', '被害者給付',
+        '遺族支援', '犯罪被害年金',
+        '犯罪被害給付制度', '医療費支給',
+        '慰謝料請求', '被害者手帳',
+        '被害者家族会', '支援センター',
+        '加害者家族相談', '少年被害相談',
+        '被害届不受理',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27993,6 +28003,9 @@ export class VoiceCommands {
         // pass DLXIV: still not of age
         'still not of age',
         'まだ敬老前', 'これから祝賀会',
+        // pass DLXV: still traumatized
+        'still traumatized',
+        'まだ支援前', 'これから被害申請',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
