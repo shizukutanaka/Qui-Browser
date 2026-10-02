@@ -20576,6 +20576,13 @@ export class VoiceCommands {
         '終活して', '相談して',
         '公証して', '葬儀の希望',
         '口座をまとめて', '延命処置',
+        // pass CDLXXI: landline & utility contract changes done
+        'landline cancelled', 'gas shut off',
+        'meter read', 'contract switched',
+        'power connected', 'billing name changed',
+        '固定電話を解約して', 'ガスを止めて',
+        'メーターを読んで', '名義を変えて',
+        '電話を止めて', '契約者を変更して',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26689,6 +26696,9 @@ export class VoiceCommands {
         // pass CDLXX: still writing
         'still writing',
         'まだ書いて', 'これから書く',
+        // pass CDLXXI: still switching contracts
+        'still switching',
+        'これから解約',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
