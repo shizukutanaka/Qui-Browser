@@ -20038,6 +20038,17 @@ export class VoiceCommands {
         'ワクチンを打って', 'マイクロチップを入れて',
         '登録を済ませて', 'ペット保険に入って',
         '最初の夜を過ごして', 'ケージを組み立てて',
+        // pass CDXIV: gardening & veggie patch
+        'planted the tomatoes', 'seedlings in',
+        'pots repotted', 'garden bed made',
+        'herbs planted', 'watered everything',
+        'soil turned', 'compost added',
+        'started a garden', 'veggie patch done',
+        'トマトを植えて', '鉢替えをして',
+        '花壇を作って', 'ハーブを植えて',
+        '水やりを終えて', '土を耕して',
+        '堆肥を入れて', '家庭菜園を始めて',
+        '畑を作って',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25990,6 +26001,9 @@ export class VoiceCommands {
         // pass CDXIII: still looking for a pet
         'still looking for a pet', 'still waiting for the puppy',
         'まだペット探し中', 'まだ里親待ち',
+        // pass CDXIV: still planting
+        'still planting', 'まだ植え付け中',
+        'まだガーデニング中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
