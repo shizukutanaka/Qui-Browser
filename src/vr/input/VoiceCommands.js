@@ -21216,6 +21216,19 @@ export class VoiceCommands {
         '陸運局', '自動車登録',
         'ナンバー交付', '封印取付',
         '検査標章', '車検予約',
+        // pass DXXXII: education endowment insurance procedures done
+        'policy enrolled', 'premium paid',
+        'maturity payout received', 'surrendered the policy',
+        '学資保険', 'こども保険',
+        '教育資金', '満期保険金',
+        '祝い金', '払込終了',
+        '保険料払込', '契約者貸付',
+        '解約返戻金', '返戻率',
+        '育英年金', '養育年金',
+        '被保険者変更', '受取人変更',
+        '告知書', '医師審査',
+        '付加特約', '出生前加入',
+        '終身保険',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27497,6 +27510,8 @@ export class VoiceCommands {
         // pass DXXXI: still mid car paperwork
         'still waiting for the card', 'about to register the car',
         'これから車検',
+        // pass DXXXII: still mid premium payments
+        'まだ保険料払込中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
