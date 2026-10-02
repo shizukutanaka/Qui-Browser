@@ -19568,6 +19568,27 @@ export class VoiceCommands {
         '式典を出て', '答辞を読んで',
         '祝辞が終わって', '証書をもらって',
         '写真を撮って卒業',
+        // pass CCCLXXX: birth & newborn homecoming end
+        'baby born', 'brought baby home',
+        'newborn home', 'mom discharged maternity',
+        'welcome home baby', 'baby arrived',
+        'labor over', 'healthy baby',
+        'due date passed',
+        'car seat installed', 'nursery done',
+        'crib assembled', 'bottles sterilized',
+        'name registered', 'birth cert filed',
+        'gender revealed', 'registry closed',
+        'first bath done',
+        '出産しました', '無事生まれて',
+        '母子退院', '赤ちゃんを連れて帰って',
+        '新生児を迎えて', 'ベビーシートを取り付けて',
+        'ベビールーム完成', '名前を届け出て',
+        '出生届を出して', '命名式終了',
+        'お七夜終了', '出産祝いをもらって',
+        'ベビーシャワー終了', '性別を発表して',
+        '初めての沐浴', '沐浴を終えて',
+        '陣痛が終わって', '安産でした',
+        '母子ともに元気', '予定日が過ぎて',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25418,6 +25439,9 @@ export class VoiceCommands {
         // pass CCCLXXIX: still in the ceremony
         'still at graduation', 'still in the ceremony',
         'まだ式中', 'まだ卒業式中',
+        // pass CCCLXXX: still pregnant/in labor
+        'still pregnant', 'still in labor',
+        'まだ妊娠中', 'まだ陣痛中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
