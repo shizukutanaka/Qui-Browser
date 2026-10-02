@@ -19774,6 +19774,16 @@ export class VoiceCommands {
         '葬儀から帰って', '忌引きが明けて',
         '喪服を脱いで', '礼服を畳んで',
         '喪中が明けて',
+        // pass CCCXCII: tab-settle & receipt wrap-up
+        'paid my share', 'collected the money',
+        'settled up with everyone', 'receipt handed around',
+        'tip left', 'bill folded',
+        'table vacated', 'receipts photographed',
+        'check split', 'check closed',
+        '割り勘済み', '伝票をまとめて',
+        '集金終了', '立て替えて',
+        '請求書を撮って', '勘定が済んで',
+        '二次会の会計',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25660,6 +25670,9 @@ export class VoiceCommands {
         // pass CCCXCI: still at the wake
         'still at the wake', 'still in mourning',
         'まだ通夜中', 'まだ弔問中',
+        // pass CCCXCII: still at the table
+        'still drinking', 'still at the table',
+        'まだ飲んでる', 'まだ食事中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
