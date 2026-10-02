@@ -20004,6 +20004,17 @@ export class VoiceCommands {
         '設置が終わって', '家電を設置して',
         '古いのを引き取って', '設置業者が帰って',
         '保証書に登録して',
+        // pass CDXI: gym & class signup
+        'joined the gym', 'gym membership done',
+        'signed up for classes', 'enrolled in the course',
+        'trial class done', 'membership activated',
+        'paid the dues', 'got the membership card',
+        'dojo joined',
+        'ジムに入会して', 'ジム契約をして',
+        'レッスンを申し込んで', 'コースに申し込んで',
+        '体験レッスンを受けて', '初回利用をして',
+        '会員証を受け取って', '月謝を払って',
+        '道場に入門して', 'スクールに入会して',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25947,6 +25958,9 @@ export class VoiceCommands {
         // pass CDX: still waiting on delivery
         'still waiting for delivery', 'still installing',
         'まだ配送待ち', 'まだ設置中',
+        // pass CDXI: still choosing a gym
+        'still deciding on a gym', 'still touring gyms',
+        'まだジム探し中', 'まだ検討中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
