@@ -20496,6 +20496,13 @@ export class VoiceCommands {
         'パスワードをメモして', 'アプリを入れて',
         'プリンタを繋いで', '契約を変えて',
         '親のパソコンを直して',
+        // pass CDLXI: car-detailing & tire-swap done
+        'tires swapped', 'winter tires on',
+        'summers on', 'seat covers on',
+        'trunk emptied',
+        'タイヤを交換して', 'スタッドレスに変えて',
+        'シートカバーを付けて', 'トランクを整理して',
+        '車検を終えて',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26580,6 +26587,9 @@ export class VoiceCommands {
         'まだ納付中', 'これから納める',
         // pass CDLX: about to configure
         'about to configure', 'これから設定する',
+        // pass CDLXI: still washing the car
+        'still washing the car', 'about to swap tires',
+        'まだ洗車中', 'これからタイヤを換える',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
