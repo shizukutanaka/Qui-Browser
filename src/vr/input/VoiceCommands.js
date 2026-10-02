@@ -20206,6 +20206,16 @@ export class VoiceCommands {
         'メッセージカードを回して', '寄せ書きを渡して',
         '花束を用意して', '送別の挨拶をして',
         '引き継ぎを終えて', 'お別れメールを送って',
+        // pass CDXXXI: vaccine & screening booking done
+        'vaccine booked', 'got the shot',
+        'booster done', 'flu shot done',
+        'observation over', 'screening booked',
+        'checkup scheduled', 'reminder set',
+        'ワクチンを予約して', '接種してきて',
+        '3回目を打って', 'インフルの注射をして',
+        '経過観察が終わって', '副反応が出て',
+        '検診を予約して', '人間ドックを予約して',
+        'リマインダーを設定して', '接種証明をもらって',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26206,6 +26216,9 @@ export class VoiceCommands {
         // pass CDXXX: still collecting signatures
         'still collecting signatures', 'still planning the sendoff',
         'まだ寄せ書き集め中', 'まだ送別会の準備中',
+        // pass CDXXXI: still waiting out the shot
+        'still waiting out the shot', 'still sore',
+        'まだ経過観察中', 'まだ腕が痛い',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
