@@ -19872,6 +19872,19 @@ export class VoiceCommands {
         '相見積もり終了', '申し込みを出して',
         '仮審査を通して', '敷金を振り込んで',
         '連帯保証人を立てて', '契約説明を聞いて',
+        // pass CD: packing & move-prep done
+        'boxes packed', 'packed the boxes',
+        'all packed', 'boxes taped',
+        'boxes labeled', 'movers booked',
+        'elevator booked', 'utilities scheduled',
+        'gas shutoff booked', 'water transfer done',
+        'mover confirmed', 'boxes counted',
+        'stuff decluttered', 'threw out the junk',
+        '荷造り終了', '箱詰め終了',
+        '梱包終了', '段ボールに詰めて',
+        '業者を予約して', 'エレベーターを予約して',
+        'ガス停止を予約して', '水道を止めて',
+        '不用品を捨てて', '荷物を数えて',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25782,6 +25795,9 @@ export class VoiceCommands {
         // pass CCCXCIX: still viewing places
         'still viewing apartments', 'still at the viewing',
         'まだ内見中', 'まだ見学中',
+        // pass CD: still packing
+        'still boxing things up',
+        'まだ荷造り中', 'まだ梱包中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
