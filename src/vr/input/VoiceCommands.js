@@ -19510,6 +19510,27 @@ export class VoiceCommands {
         '被せ物をつけて', '入れ歯ができて',
         '銀歯が入って', '治療完了歯',
         '歯医者を卒業して', '半年検診終了',
+        // pass CCCLXXVII: loan payoff & debt-clear end
+        'mortgage paid off', 'car loan done',
+        'bank released title', 'pink slip in hand',
+        'title in hand',
+        'loan paid off', 'student loans gone',
+        'closed the loan', 'promissory done',
+        'balloon paid', 'lien released',
+        'refinanced done',
+        'credit card paid off', 'balance zero',
+        'last payment made', 'final installment paid',
+        'payments finished', 'all paid off',
+        'made the last payment', 'debt free',
+        'ローン完済', '住宅ローン終了',
+        '最終返済', '残債を払って',
+        '完済しました', '繰り上げ返済',
+        '車のローン終了', '奨学金を返して',
+        'リボ払い終了', '分割を払い終えて',
+        '抵当権を抹消して', '所有権を取得して',
+        'タイトルを受け取って', '引き落とし最終',
+        '借り入れを返して', '無借金になって',
+        'クレジットカードを払って', '最終回ローン',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25350,6 +25371,10 @@ export class VoiceCommands {
         // pass CCCLXXVI: still in braces/treatment
         'still in braces', 'still wearing aligners',
         'まだ矯正中', 'まだ治療中',
+        // pass CCCLXXVII: still paying off
+        'still paying off the loan', 'still in debt',
+        'still owe money',
+        'まだ返済中', 'まだローン中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
