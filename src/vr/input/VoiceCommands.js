@@ -20156,6 +20156,17 @@ export class VoiceCommands {
         '扇風機を出して', 'エアコンを掃除して',
         'すだれをかけて', '蚊帳を張って',
         '冬服をしまって', '防寒具をしまって',
+        // pass CDXXVI: school-entrance prep done
+        'backpack bought', 'randoseru arrived',
+        'labels done', 'name tags sewn',
+        'lunch set ready', 'gym clothes bought',
+        'indoor shoes marked', 'school supplies stocked',
+        'uniform fitted', 'class letter read',
+        'ランドセルが届いて', '名札をつけて',
+        '名前を書いて', 'お弁当セットを買って',
+        '体操着を買って', '上履きに名前をつけて',
+        '学用品を揃えて', '制服を受け取って',
+        '入学準備ができて', '入学通知を読んで',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26142,6 +26153,8 @@ export class VoiceCommands {
         // pass CDXXV: still in rainy season
         'still in rainy season', 'still humid',
         'まだ梅雨の中', 'まだ蒸し暑い',
+        // pass CDXXVI: still packing the bag
+        'still packing the bag', 'still labeling',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
