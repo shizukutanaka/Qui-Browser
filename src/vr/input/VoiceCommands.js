@@ -19649,6 +19649,18 @@ export class VoiceCommands {
         '合鍵を作って', '鍵を交換して',
         '害虫駆除終了', '点検が終わって',
         'エレベーターが直って', 'ガス点検終了',
+        // pass CCCLXXXIV: school-event & PTA end
+        'class visit done', 'observation day done',
+        'parent teacher conference done',
+        'field day done', 'field trip over',
+        'school festival done',
+        'pta meeting done', 'chaperone shift done',
+        'handed in the form', 'lunch duty done',
+        '授業参観終了', '懇談会終了',
+        '遠足終了', '校外学習終了',
+        'pta総会終了', '役員仕事終了',
+        'お迎え終了', '連絡帳を出して',
+        '提出物を出して', '昼食当番終了',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25511,6 +25523,9 @@ export class VoiceCommands {
         // pass CCCLXXXIII: still leaking/broken
         'still leaking',
         'まだ故障中', 'まだ水漏れ中',
+        // pass CCCLXXXIV: still at the school event
+        'still at the school event', 'still at pickup',
+        'まだ学校行事中', 'まだお迎え中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
