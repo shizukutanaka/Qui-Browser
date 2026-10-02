@@ -20462,6 +20462,15 @@ export class VoiceCommands {
         '名簿を作って', '会費を集めて',
         '連絡を回して', '出欠を取って',
         '案内状を送って', '宛名書きをして',
+        // pass CDLVII: school-contactbook & submission errand done
+        'form signed', 'lunch money sent',
+        'homework signed', 'diary written',
+        'contact book filled', 'supply list bought',
+        'name tags done', 'uniform marked',
+        '連絡帳を書いて', '保護者欄に記入して',
+        '担任に連絡して', '学用品を買って',
+        '名札を縫って', '上履きに名前を書いて',
+        '持ち物に記名して',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26536,6 +26545,9 @@ export class VoiceCommands {
         // pass CDLVI: still writing letters
         'still writing letters', 'about to write',
         'まだ執筆中', 'これから手紙を書く',
+        // pass CDLVII: still filling forms
+        'still filling forms', 'about to sign',
+        'まだ記入中', 'これから提出する',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
