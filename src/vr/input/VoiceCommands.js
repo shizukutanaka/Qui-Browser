@@ -19589,6 +19589,24 @@ export class VoiceCommands {
         '初めての沐浴', '沐浴を終えて',
         '陣痛が終わって', '安産でした',
         '母子ともに元気', '予定日が過ぎて',
+        // pass CCCLXXXI: proposal & wedding-prep done
+        'ring on her finger', 'engaged',
+        'venue booked', 'date set wedding',
+        'wedding venue locked', 'officiant booked',
+        'save the dates sent', 'invitations mailed',
+        'guest list finalized', 'registry done wedding',
+        'dress picked', 'menu picked',
+        'seating chart done', 'cake tasted',
+        'flowers ordered wedding', 'band booked',
+        'honeymoon booked', 'rehearsal done wedding',
+        'オーケーをもらって', '式場を予約して',
+        '日取りを決めて', '招待状を送って',
+        'ドレスを選んで', '引出物を決めて',
+        '席次表ができて', 'ケーキを試食して',
+        '生花を頼んで', 'バンドを予約して',
+        '新婚旅行を予約して', 'ゲストリスト完成',
+        'リハーサル終了結婚式', '入籍しました',
+        '婚姻届を出して', '指輪をはめて',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25442,6 +25460,9 @@ export class VoiceCommands {
         // pass CCCLXXX: still pregnant/in labor
         'still pregnant', 'still in labor',
         'まだ妊娠中', 'まだ陣痛中',
+        // pass CCCLXXXI: still planning/waiting
+        'still planning the wedding', 'still waiting for an answer',
+        'まだ準備中', 'まだ婚活中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
