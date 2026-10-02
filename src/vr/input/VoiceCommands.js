@@ -20654,6 +20654,17 @@ export class VoiceCommands {
         '受付番号が出て', '還付予定',
         '送信済み', '申告書を送信して',
         'マイナカードを読んで', 'スマホ申告',
+        // pass CDLXXX: relocation & transfer expense settlement done
+        'expense settled', 'transfer allowance received',
+        'relocation reimbursed', 'receipts submitted',
+        'advance repaid', 'expense report approved',
+        'settlement paid', 'moving costs covered',
+        'allowance deposited',
+        '引っ越し代が出て', '転勤手当',
+        '引っ越し費用を精算して', '前払いを返して',
+        '経費申請が通って', '交通費精算',
+        '仮払い', '立替金',
+        '赴任旅費',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26791,6 +26802,9 @@ export class VoiceCommands {
         // pass CDLXXIX: still transmitting the filing
         'still transmitting', 'about to transmit',
         'まだ送信中', 'これから送信',
+        // pass CDLXXX: still settling the expenses
+        'still settling', 'about to settle',
+        'まだ精算中', 'これから精算',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
