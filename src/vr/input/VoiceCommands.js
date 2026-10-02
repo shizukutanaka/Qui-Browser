@@ -20935,6 +20935,14 @@ export class VoiceCommands {
         '育休延長', '男性育休',
         'パパ育休', '出産手当金',
         '育児休業給付', '職場復帰',
+        // pass DVII: national-health-insurance switch & enrollment done
+        'nhi enrolled',
+        'premium notice arrived',
+        '国保切替', '国民健康保険',
+        '社会保険加入', '被扶養者届',
+        '保険料通知', '任意継続手続き',
+        '退職後保険', '健康保険料',
+        '介護保険料', '後期高齢者',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27145,6 +27153,8 @@ export class VoiceCommands {
         // pass DVI: still mid leave application
         'still applying for leave',
         'まだ育休中', 'これから育休',
+        // pass DVII: still mid insurance switch
+        'still switching insurance', 'about to switch coverage',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
