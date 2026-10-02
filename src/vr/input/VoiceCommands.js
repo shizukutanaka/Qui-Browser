@@ -21473,6 +21473,18 @@ export class VoiceCommands {
         '高齢者見守り', '見守りネットワーク',
         '避難行動要支援者', '高齢者名簿',
         '地域包括ケア', '在宅医療連携',
+        // pass DLI: care-worker qualification & training procedures done
+        'care worker certified',
+        '介護福祉士', '実務者研修',
+        '初任者研修', '介護職員初任者',
+        '介護支援専門員', '介護職員処遇改善',
+        '処遇改善加算', '介護報酬',
+        '介護給付費', '加算算定',
+        '人材育成', '介護人材',
+        '介護職員', '資格取得支援',
+        '働きながら資格', 'ケアワーカー',
+        '福祉専門職', '国家試験受験',
+        '受験資格',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27808,6 +27820,8 @@ export class VoiceCommands {
         // pass DL: still before care use
         'still in care',
         'まだ利用前', 'これからケアプラン',
+        // pass DLI: still studying for care qualification
+        'still studying care', 'これから研修',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
