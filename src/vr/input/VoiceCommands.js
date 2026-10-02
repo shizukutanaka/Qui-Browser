@@ -21353,6 +21353,22 @@ export class VoiceCommands {
         '相談窓口', '生活サポート',
         '支援終了', '自立達成',
         '自立指標',
+        // pass DXLI: disability welfare service procedures done
+        'day service contract signed',
+        '障害福祉サービス', '受給者証',
+        '通所介護', '居宅介護',
+        '重度訪問介護', '同行援護',
+        '行動援護', '就労継続支援',
+        '就労移行支援', '就労定着支援',
+        '継続支援a型', '継続支援b型',
+        '自立訓練', '自立生活援助',
+        '共同生活援助', 'グループホーム',
+        '福祉ホーム', '放課後等デイサービス',
+        '児童発達支援', '保育所等訪問支援',
+        '療育', '障害児通所支援',
+        '計画相談支援', 'サービス管理責任者',
+        'サビ管', '支給決定',
+        '障害支援区分', 'モニタリング',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27660,6 +27676,10 @@ export class VoiceCommands {
         // pass DXL: still mid support consultation
         'まだ相談中', 'これから相談',
         'まだ支援中',
+        // pass DXLI: still mid welfare service use
+        'still in rehab',
+        'まだ利用中', 'これから利用',
+        'まだ契約前',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
