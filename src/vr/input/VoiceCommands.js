@@ -19798,6 +19798,17 @@ export class VoiceCommands {
         'メールを全部返して', '終電を逃して',
         'タクシーで帰って', '繁忙期を乗り切って',
         '修羅場が終わって',
+        // pass CCCXCIV: long-holiday aftermath & return-to-routine
+        'back at the grind', 'holiday blues gone',
+        'unpacked the souvenirs', 'thank you gifts handed out',
+        'vacation photos uploaded', 'out of office off',
+        'autoresponder off', 'back in the routine',
+        'caught up on sleep', 'recovered from jet lag',
+        'golden week done', 'vacation done and dusted',
+        'お盆明け', '休みが終わって',
+        '不在通知を切って', '旅の疲れを取って',
+        '連休が明けて', '休暇明け',
+        '土産話が終わって', '旅の写真を整理して',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25690,6 +25701,9 @@ export class VoiceCommands {
         // pass CCCXCIII: still at the office late
         'still working late', 'still at the desk',
         'まだ残業中', 'まだ会社にいる',
+        // pass CCCXCIV: still on break
+        'still away', 'still on break',
+        'まだ休み中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
