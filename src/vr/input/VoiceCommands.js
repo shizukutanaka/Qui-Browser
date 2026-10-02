@@ -20110,6 +20110,16 @@ export class VoiceCommands {
         '仕事を覚えて', 'チームランチをして',
         '顔合わせを終えて', '社員証をもらって',
         'アカウントを作って', 'メンターがついて',
+        // pass CDXXI: oshikatsu & fan-activity errands
+        'goods bought', 'live merch done',
+        'fan meet done', 'seichi done',
+        'pilgrimage done', 'photo spot done',
+        'oshikatsu done', 'support event done',
+        'banner made', 'uchiwa made',
+        'グッズを買って', '物販を済ませて',
+        '聖地巡礼をして', '推し活をして',
+        '痛バを作って', 'うちわを作って',
+        'グッズ交換をして',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26082,6 +26092,9 @@ export class VoiceCommands {
         // pass CDXX: still ramping up
         'still ramping up', 'still learning the codebase',
         'まだ立ち上げ中', 'まだコードを理解中',
+        // pass CDXXI: still queueing for goods
+        'still saving for merch', 'still queueing for goods',
+        'まだグッズ待ち', 'まだ物販並び中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
