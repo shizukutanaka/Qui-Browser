@@ -20857,6 +20857,19 @@ export class VoiceCommands {
         '送迎', 'お迎え',
         '制服購入', '発表会申込',
         '級審査', '教室入会',
+        // pass CDXCIX: temple/church volunteer service done
+        'ushered the service', 'served at mass',
+        'altar guild done', 'sacristy tidied',
+        'temple grounds cleaned', 'sutra copied',
+        'dana box counted', 'usher duty done',
+        'collection plate passed',
+        '奉仕活動', 'お堂掃除',
+        '写経', 'お布施',
+        '檀家', '法要手伝い',
+        '神社奉納', '宮仕え',
+        '寺侍', '境内掃除',
+        'お寺の手伝い', '教会奉仕',
+        '讃美歌練習',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27045,6 +27058,9 @@ export class VoiceCommands {
         'still in lessons', 'about to start lessons',
         'まだ習い事中', 'これから習い事',
         'まだ送迎中',
+        // pass CDXCIX: still mid volunteer service
+        'about to volunteer',
+        'まだ奉仕中', 'これから奉仕',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
