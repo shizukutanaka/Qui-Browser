@@ -20705,6 +20705,17 @@ export class VoiceCommands {
         '自立支援計画', '就労支援',
         '介護扶助', '一時扶助',
         '保護費',
+        // pass CDLXXXV: disability certificate & pension filing done
+        'disability certificate issued', 'disability pension filed',
+        'handbook issued', 'grade certified',
+        'mental disability grade', 'physical disability filed',
+        'rehabilitation card', 'disability benefits',
+        'welfare card issued',
+        '障害者手帳', '障害年金',
+        '精神障害者手帳', '身体障害者',
+        '療育手帳', '認定調査',
+        '自立支援医療', '障害等級',
+        '障害福祉',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -24005,7 +24016,7 @@ export class VoiceCommands {
         'セキュリティ状態', '危険なサイト', 'セキュアですか',
         '危険ですか', '危ないですか', '暗号化されてる', '暗号化されている',
         '暗号化されてますか', '接続は安全', '通信は安全',
-        /certificate(?!\s+of\s+(?:occupancy|incorporation|deposit|insurance|origin))/i,
+        /(?<!disability )certificate(?!\s+of\s+(?:occupancy|incorporation|deposit|insurance|origin))/i,
         /is (it|this) secure/i, /is this (safe|https)/i, /secure connection/i],
       action: () => {
         const url = tabManager?.getActiveTab?.()?.currentUrl;
@@ -26852,6 +26863,9 @@ export class VoiceCommands {
         // pass CDLXXXIII: still claiming benefits
         'still claiming',
         'まだ受給中',
+        // pass CDLXXXV: still awaiting disability certification
+        'still assessing', 'about to certify',
+        'まだ認定中', 'これから認定',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
