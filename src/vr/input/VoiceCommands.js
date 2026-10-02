@@ -20972,6 +20972,17 @@ export class VoiceCommands {
         '民事調停申立', '支払督促',
         '仮執行', '債務承認',
         '和解書',
+        // pass DXI: public-housing application procedures done
+        'housing application entered', 'lottery won',
+        'move-in approved',
+        'application withdrawn',
+        '市営住宅', '県営住宅',
+        '公営住宅', '団地申込',
+        '入居抽選', '当選通知',
+        '申込期間', '収入証明',
+        '入居面接', '住宅カード',
+        'ur賃貸', '公社住宅',
+        '家賃減額', '世帯人数',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27192,6 +27203,9 @@ export class VoiceCommands {
         // pass DX: still mid notice drafting
         'still drafting the letter', 'about to send the notice',
         'まだ送付前', 'これから送付',
+        // pass DXI: still mid housing waitlist
+        'still on the waitlist', 'about to enter the lottery',
+        'まだ抽選待ち',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
