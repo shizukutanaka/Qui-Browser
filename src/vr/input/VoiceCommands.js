@@ -21369,6 +21369,16 @@ export class VoiceCommands {
         '計画相談支援', 'サービス管理責任者',
         'サビ管', '支給決定',
         '障害支援区分', 'モニタリング',
+        // pass DXLII: mental-health welfare procedures done
+        'outpatient treatment started',
+        'peer support meeting done',
+        '精神保健福祉', '精神障害者保健福祉手帳',
+        '精神通院', '相談支援事業',
+        'ピアサポート', '作業所',
+        '就労移行', '社会復帰',
+        '退院支援', '精神保健福祉センター',
+        '保健所', '地域活動支援センター',
+        '精神障害者', '障害福祉計画',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27680,6 +27690,9 @@ export class VoiceCommands {
         'still in rehab',
         'まだ利用中', 'これから利用',
         'まだ契約前',
+        // pass DXLII: still mid mental-health treatment
+        'still in treatment',
+        'これから受診', 'まだ相談前',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
