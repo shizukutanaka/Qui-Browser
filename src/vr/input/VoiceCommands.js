@@ -20512,6 +20512,15 @@ export class VoiceCommands {
         '特約をつけて', '受取人を変えて',
         '保険料を下げて', '証券を確認して',
         '契約者を変えて', '生命保険を見直して',
+        // pass CDLXIII: declutter & resale-shop errand done
+        'stuff sold', 'donated the clothes',
+        'books sold', 'furniture hauled',
+        'listed it online', 'sold the bike',
+        'bagged it all',
+        '不用品を売って', '服をまとめて',
+        '古着を出して', '本を売って',
+        '出品して', 'リサイクルショップに持って',
+        '家具を処分して',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26602,6 +26611,9 @@ export class VoiceCommands {
         // pass CDLXII: still comparing
         'still comparing', 'about to renew',
         'まだ見直し中', 'これから見直す',
+        // pass CDLXIII: still decluttering
+        'still decluttering', 'about to donate',
+        'まだ片付け中', 'これから処分する',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
