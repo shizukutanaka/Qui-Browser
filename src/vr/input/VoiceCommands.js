@@ -21679,6 +21679,17 @@ export class VoiceCommands {
         '徘徊見守り', '認知症対応型デイ',
         '認知症サポーター', 'オレンジプラン',
         'アルツハイマー月間',
+        // pass DLXXI: welfare-council joined & community-bus boarded
+        'welfare-council joined', 'community-bus boarded',
+        '社会福祉協議会', '社協',
+        '地域福祉コーディネーター', '福祉有償運送',
+        '地域福祉ボランティア', '福祉バス',
+        '移送サービス', '善意銀行',
+        'たすけあい', '共生型デイ',
+        '地域福祉計画', '近隣支え合い',
+        '助け合い活動', '福祉おばさん',
+        '福祉おじさん', '福祉委員',
+        '町内福祉員',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28071,6 +28082,9 @@ export class VoiceCommands {
         // pass DLXX: still awaiting assessment
         'still awaiting assessment',
         'まだ介護前', 'これから認定審査',
+        // pass DLXXI: still awaiting welfare review
+        'still awaiting welfare review',
+        'まだ相談窓口', 'これから登録面談',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
