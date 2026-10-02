@@ -20355,6 +20355,15 @@ export class VoiceCommands {
         '親戚に連絡して', '顔合わせが終わって',
         '三三九度が終わって', '涙を拭いて',
         '二次会を見送って',
+        // pass CDXLVI: real-estate selling done
+        'valuation booked', 'agent chosen',
+        'listing prepared', 'photos staged',
+        'asking price set', 'decluttered house',
+        'broker called', 'sold sign up',
+        '査定を受けて', '仲介業者を決めて',
+        '掃除を済ませて', '希望価格を決めて',
+        '不用品を処分して', '売り出しを始めて',
+        '引き渡しを終えて', '確定申告を終えて',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26396,6 +26405,9 @@ export class VoiceCommands {
         // pass CDXLV: still preparing the speech
         'still preparing the speech',
         'まだスピーチ準備中', 'これから練習する',
+        // pass CDXLVI: still selling
+        'still selling', 'about to list',
+        'まだ売り出し中', 'これから査定する',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
