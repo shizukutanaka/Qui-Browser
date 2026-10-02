@@ -19152,6 +19152,33 @@ export class VoiceCommands {
         '監視員が下がって', 'デッキを畳んで',
         'ビーチを後にして', 'サンダルに履き替えて',
         '濡れた水着をしまって',
+        // pass CCCLXIV: museum & exhibit end
+        'museum visit done', 'galleries all seen',
+        'last gallery done', 'exhibition done',
+        'show closed museum', 'saw the exhibition',
+        'guided tour done museum', 'audio guide returned',
+        'map turned in', 'timed ticket done',
+        'out of the exhibit',
+        'gift shop done museum', 'bought the catalog',
+        'postcards bought', 'badge off museum',
+        'last tank seen', 'planetarium done',
+        'feeding time seen', 'safari done park',
+        'botanical garden done', 'conservatory done',
+        'observatory done', 'lighthouse climbed',
+        'palace tour done', 'temple visit done',
+        'stamp rally done', 'all stamps collected',
+        '美術館終了', '博物館終了', '展示を見て',
+        '全館見て', '最後の展示',
+        '図録を買って', 'ポストカードを買って',
+        'ミュージアムショップを出て',
+        '音声ガイドを返して',
+        '動物園終了', '水族館終了', '最後の水槽',
+        'ショーが終わって水族館',
+        '植物園を出て', '温室を出て',
+        '展望台を降りて', 'お城を見て',
+        '城巡り終了', '寺社を回って',
+        '神社を参って', 'お寺を参って',
+        'スタンプラリー終了',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -24956,6 +24983,8 @@ export class VoiceCommands {
         'still at the con', 'まだイベント中',
         // pass CCCLXIII: still at the beach
         'still at the beach', 'まだ海で',
+        // pass CCCLXIV: still at the museum
+        'still at the museum', 'まだ美術館',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
