@@ -20786,6 +20786,19 @@ export class VoiceCommands {
         '失踪届', '行方不明者',
         '七年経過', '遺産凍結',
         '捜索願', '捜索終了',
+        // pass CDXCIII: amended-return & correction-of-record procedures done
+        'amended return filed', 'correction filed',
+        'refund claim filed', 'overpayment refunded',
+        'tax office contacted', 'deduction added',
+        'receipt resubmitted', 'blue return filed',
+        'white return filed', 'audit closed',
+        'notice answered',
+        '修正申告', '更生の請求',
+        '還付申告', '過納金',
+        '追徴課税', '青色申告',
+        '白色申告', '税務署',
+        '控除追加', '領収書再提出',
+        '異議申立',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26957,6 +26970,10 @@ export class VoiceCommands {
         'still searching', 'search ongoing',
         'still searching for them',
         'まだ捜索中', 'これから捜索',
+        // pass CDXCIII: still amending the return
+        'still amending', 'about to amend',
+        'まだ修正中', 'これから修正',
+        'まだ更生中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
