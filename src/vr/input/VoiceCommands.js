@@ -20344,6 +20344,17 @@ export class VoiceCommands {
         'シニアジョブに就いて', 'パートを始めて',
         '初給料が入って', '新しい日常に慣れて',
         '再び引退して', '就活を終えて',
+        // pass CDXLV: parents-side wedding done
+        'kimono rented', 'speech rehearsed',
+        'parents speech done', 'congrats money wrapped',
+        'guests met', 'both families met',
+        'sankon done', 'tears dried',
+        'second party seen off',
+        '留袖を借りて', 'スピーチを練習して',
+        '両家の挨拶をして', 'ご祝儀を包んで',
+        '親戚に連絡して', '顔合わせが終わって',
+        '三三九度が終わって', '涙を拭いて',
+        '二次会を見送って',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26382,6 +26393,9 @@ export class VoiceCommands {
         // pass CDXLIV: still job hunting
         'still job hunting',
         'まだ仕事探し中', 'これから応募する',
+        // pass CDXLV: still preparing the speech
+        'still preparing the speech',
+        'まだスピーチ準備中', 'これから練習する',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
