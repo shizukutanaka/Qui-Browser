@@ -20296,6 +20296,16 @@ export class VoiceCommands {
         '固定費を削って', '請求を見直して',
         '引き落としを変えて', '通信費を下げて',
         'ジムを退会して', '動画配信を止めて',
+        // pass CDXL: baby-gear & hospital prep done
+        'stroller bought', 'baby clothes washed',
+        'diapers stocked', 'nursery set up',
+        'hospital bag packed', 'maternity leave started',
+        'baby registry done',
+        'ベビーベッドを組み立てて', 'ベビーカーを買って',
+        'チャイルドシートを付けて', 'ベビー服を洗って',
+        'おむつを買い置きして', '哺乳瓶を消毒して',
+        'ベビールームを整えて', '入院バッグを用意して',
+        '産休に入って', '出産準備リストを終えて',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26322,6 +26332,9 @@ export class VoiceCommands {
         // pass CDXXXIX: still comparing plans
         'still comparing plans', 'still on the old plan',
         'まだプラン比較中', 'まだ旧プラン中',
+        // pass CDXL: still shopping for baby
+        'still shopping for baby', 'still expecting',
+        'まだ買い足し中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
