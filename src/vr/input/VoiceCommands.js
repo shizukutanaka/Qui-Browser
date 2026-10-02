@@ -21560,6 +21560,16 @@ export class VoiceCommands {
         '防火対象物', '消防署予防課',
         '点検報告書', '危険物申請',
         '大量危険物', '少量危険物',
+        // pass DLIX: invoice-system & consumption-tax paperwork done
+        'invoice number issued', 'tax return amended',
+        'インボイス登録', 'インボイス番号',
+        '適格請求書', '簡易課税',
+        '課税事業者', '免税事業者',
+        '消費税申告', '消費税還付',
+        '登録通知', '適格請求書発行事業者',
+        '登録申請書', '税務署窓口',
+        '消費税届出', '課税選択',
+        '免税適用',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27916,6 +27926,9 @@ export class VoiceCommands {
         // pass DLVIII: still awaiting the fire inspector
         'still awaiting the inspector',
         'まだ点検前', 'これから届出',
+        // pass DLIX: still unregistered for the invoice system
+        'still unregistered',
+        'まだ届出前', 'これから登録',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
