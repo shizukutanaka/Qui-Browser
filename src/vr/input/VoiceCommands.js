@@ -20846,6 +20846,17 @@ export class VoiceCommands {
         '法務局', '登記完了',
         '商業登記', '会社印',
         '印鑑届',
+        // pass CDXCVIII: kids' lesson signup & transport logistics done
+        'lessons signed up', 'first lesson done',
+        'monthly fee paid', 'dropoff done',
+        'uniform bought', 'recital registered',
+        'class switched',
+        'おけいこ',
+        '月謝', '入門',
+        '体験レッスン', '初回レッスン',
+        '送迎', 'お迎え',
+        '制服購入', '発表会申込',
+        '級審査', '教室入会',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27030,6 +27041,10 @@ export class VoiceCommands {
         'still transferring', 'about to transfer',
         'まだ承継中', 'これから承継',
         'まだ登記中',
+        // pass CDXCVIII: kids still in lessons / mid transport
+        'still in lessons', 'about to start lessons',
+        'まだ習い事中', 'これから習い事',
+        'まだ送迎中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
