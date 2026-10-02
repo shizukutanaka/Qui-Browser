@@ -20600,6 +20600,14 @@ export class VoiceCommands {
         '服薬ゼリー', '宅配弁当を頼んで',
         'デイサービスに申し込んで', '薬を分けて',
         'リハビリ予約', '訪問看護',
+        // pass CDLXXIV: vehicle disposal & deregistration done
+        'junked the car', 'plates surrendered',
+        'sold the clunker', 'scrap dealer came',
+        'ownership transferred', 'title signed',
+        'car picked up', 'inspection expired',
+        'ナンバーを返して', '車を手放して',
+        '車検を切って', 'リサイクル料金を払って',
+        '車を引き取って',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26721,6 +26729,8 @@ export class VoiceCommands {
         // pass CDLXXIII: still setting up services
         'still sorting',
         'まだ申込中', 'これから申し込む',
+        // pass CDLXXIV: still selling the car
+        'about to sell', 'これから売る',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
