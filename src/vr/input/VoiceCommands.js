@@ -21497,6 +21497,17 @@ export class VoiceCommands {
         '教科書無償', '給食費',
         '就学費援助', '内申書',
         '通学区域', '学校選択制',
+        // pass DLIII: parenting-support center & playgroup visits done
+        'playgroup attended', 'spot confirmed',
+        'こども家庭センター', '児童家庭相談所',
+        '育児相談', '子育てコンシェルジュ',
+        'こども食堂', '子育て広場',
+        '育児サークル', '親子ひろば',
+        'つどいの広場', '地域子育て支援拠点',
+        '赤ちゃんひろば', 'ハローベビー',
+        '妊婦相談', '産後ケア',
+        '母子健康手帳', '乳幼児健診',
+        '育児パッケージ', '子ども見守り',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27837,6 +27848,8 @@ export class VoiceCommands {
         // pass DLII: still waiting for school placement
         'still waiting for placement',
         'まだ入学前', 'これから転校',
+        // pass DLIII: still waiting for a playgroup spot
+        'still waiting for a spot', 'これから参加',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
