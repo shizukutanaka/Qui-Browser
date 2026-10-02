@@ -21518,6 +21518,17 @@ export class VoiceCommands {
         '貸出申請', '利用許可書',
         '利用票', 'キャンセル待ち',
         '施設使用料', '区民センター',
+        // pass DLV: small-business support consultations done
+        'mentoring session done',
+        '商工会', '商工会議所',
+        '創業塾', '経営相談',
+        'マル経', '経営力強化支援',
+        '中小企業支援センター', 'よろず支援拠点',
+        '資金調達', '経営改善計画',
+        '記帳指導', '税務相談',
+        '融資申込', '創業融資',
+        '創業スクール', '専門家派遣',
+        'ビジネスサポート',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27862,6 +27873,9 @@ export class VoiceCommands {
         'still waiting for a spot', 'これから参加',
         // pass DLIV: still waiting for a facility room
         'still waiting for the room', 'まだ予約前',
+        // pass DLV: still in the business-support program
+        'still in the program',
+        'まだ参加中', 'これから融資',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
