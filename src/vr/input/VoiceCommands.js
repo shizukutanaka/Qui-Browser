@@ -21539,6 +21539,17 @@ export class VoiceCommands {
         '所得審査', '受給者証交付',
         '負担額軽減', '小児慢性特定疾病',
         '児童医療費',
+        // pass DLVII: city health-screening paperwork done
+        'screening voucher received', 'health checkup done',
+        '検診票', '健康診査',
+        '集団検診', 'がん検診',
+        '特定健診', '後期高齢者健診',
+        '胃がん検診', '大腸がん検診',
+        '肺がん検診', '乳がん検診',
+        '子宮がん検診', '骨粗鬆症検診',
+        '肝炎ウイルス検診', '結核健診',
+        '歯周病検診', '問診票',
+        '受診券',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27889,6 +27900,9 @@ export class VoiceCommands {
         // pass DLVI: still under subsidy income review
         'still under income review',
         'まだ受給前', 'これから助成申請',
+        // pass DLVII: still waiting for screening results
+        'still waiting for results',
+        'まだ受診前', 'これから検診',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
