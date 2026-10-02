@@ -21750,6 +21750,16 @@ export class VoiceCommands {
         '汲取料金', 'し尿処理',
         '家庭系ごみ', '生活排水',
         '下水道使用料', '下水道接続',
+        // pass DLXXVIII: occupational-disease certified & compensation exam done
+        'occupational-disease certified', 'compensation exam done',
+        'じん肺', '塵肺',
+        '炭鉱じん肺', '石綿健康被害',
+        'アスベスト救済', '公害健康被害補償',
+        '公害健康被害手当', '公害医療手当',
+        '公害認定', '公害病',
+        '職業性疾病', '職業病認定',
+        '二次健康診断', '特殊健康診断',
+        '定期健康診断', '雇入れ時健康診断',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28163,6 +28173,9 @@ export class VoiceCommands {
         // pass DLXXVII: still on a septic tank
         'still on a septic tank',
         'まだ接続前', 'これから設置申請',
+        // pass DLXXVIII: still awaiting diagnosis
+        'still awaiting diagnosis',
+        'まだ認定前', 'まだ職業性確認',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
