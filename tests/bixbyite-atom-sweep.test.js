@@ -80,7 +80,7 @@ const nullPins = [
   // beginnings / mid-year
   'new year', 'happy new year', 'new years resolution', 'spring is coming',
   '新年', 'あけましておめでとう', '明けましておめでとう', '今年の目標',
-  '初売り', '書き初め', '年中行事', '夏休み',
+  '初売り', '書き初め', '年中行事',
 ];
 
 const establishedPins = [

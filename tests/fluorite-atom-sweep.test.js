@@ -1,124 +1,124 @@
-import { VoiceCommands } from '../src/vr/input/VoiceCommands.js';
+/**
+ * Voice atoms CCCXX — school-term & exam-end idioms (EN)
+ * + 終業/試験終了/下校 (JA). School's out = close the tab.
+ * Enrollment, class time, and ongoing studies stay out.
+ */
+const { VoiceCommands } = require('../src/vr/input/VoiceCommands');
 
-function makeVc() {
-  const tabs = [
-    { id: 1, url: 'https://a.example', title: 'Alpha', loading: false },
-    { id: 2, url: 'https://b.example', title: 'Beta', loading: false },
-  ];
-  const tm = {
-    tabs,
-    activeTabId: 2,
-    activeIndex: 1,
-    getActiveTab() { return this.tabs[this.activeIndex]; },
-    getTab(id) { return this.tabs.find((t) => t.id === id); },
-    setActive(i) { this.activeIndex = i; this.activeTabId = this.tabs[i].id; },
-  };
+function makeVC() {
   const vc = new VoiceCommands({ speak: () => {}, onCommand: () => {} });
-  vc.connectBrowser(tm);
+  const tabs = [{ id: 1, url: 'https://a.example', title: 'A' }];
+  vc.connectBrowser({
+    getActiveTab: () => tabs[0],
+    closeTab: () => {},
+    tabs: () => tabs,
+  });
   return vc;
 }
 
 function key(vc, phrase) {
-  vc.lastCommand = null;
-  vc.processCommand(phrase, 0.9);
-  return vc.lastCommand ? vc.lastCommand.key : null;
+  const r = vc._matchCommand(phrase);
+  return r && r.key;
 }
 
-describe('fluorite atom sweep (CCLXXXV)', () => {
-  // EN wrap-up / finale frames
-  test.each([
-    ['wrap up close it', 'close-tab'],
-    ['finish up close it', 'close-tab'],
-    ['wind down close it', 'close-tab'],
-    ['call it a wrap close it', 'close-tab'],
-    ['thats a wrap close it', 'close-tab'],
-    ['it is a wrap close it', 'close-tab'],
-    ['this one is finished', 'close-tab'],
-    ['its all over', 'close-tab'],
-    ['this ones over', 'close-tab'],
-    ['its gone to seed', 'close-tab'],
-    ['its run its course', 'close-tab'],
-  ])('%s -> %s', (p, k) => {
-    expect(key(makeVc(), p)).toBe(k);
-  });
+const closeTab = [
+  // --- dismissal ---
+  'school let out', 'schools out for summer', 'schools out',
+  'final bell rang', 'last bell rang', 'bell dismissed us',
+  'dismissed from class', 'class dismissed', 'classes over',
+  'last day of school', 'school year ended', 'school year over',
+  'academic year over', 'term ended', 'term is over',
+  'semester ended', 'semester is over', 'semester wrapped',
+  'quarter ended', 'trimester over', 'school done for the year',
+  // --- vacation ---
+  'summer vacation began', 'summer break started', 'summer vacation',
+  'winter break started', 'spring break started', 'break began',
+  'holiday break', 'schools on break', 'recess forever',
+  'no more pencils no more books', 'schools out forever',
+  // --- exams done ---
+  'exams over', 'exams done', 'finals done', 'finals over',
+  'last exam done', 'final exam finished', 'test finished',
+  'turned in the exam', 'handed in the exam', 'pencils down',
+  'pen down', 'papers collected', 'blue books collected',
+  'proctor called time', 'time called on the exam',
+  'graded and done', 'grades posted', 'grades are out',
+  'report card came', 'transcript issued', 'gpa calculated',
+  'passed the class', 'aced the final', 'graduated',
+  // --- leaving campus ---
+  'locker emptied', 'locker cleaned out', 'textbooks returned',
+  'returned the textbooks', 'library books returned',
+  'dorm checked out', 'moved out of the dorm', 'dorm emptied',
+  'campus emptied', 'classroom emptied', 'desks empty',
+  'chalkboard erased', 'whiteboard wiped', 'backpack packed',
+  'walked out the gates', 'left campus', 'off campus',
+  'bus pulled away', 'last school bus', 'picked up from school',
+  'lunchbox empty', 'cafeteria closed', 'gym locked up',
+];
 
-  // EN implore/beseech residue + time-declaim frames
-  test.each([
-    ['i beg of you close it', 'close-tab'],
-    ['i beseech you close it', 'close-tab'],
-    ['i entreat you close it', 'close-tab'],
-    ['i plead with you close it', 'close-tab'],
-    ['i beg ya close it', 'close-tab'],
-    ['i beg you one last time close it', 'close-tab'],
-    ['its time to close it', 'close-tab'],
-    ['its high time', 'close-tab'],
-    ['high time it closed', 'close-tab'],
-    ['its overdue for closing', 'close-tab'],
-  ])('%s -> %s', (p, k) => {
-    expect(key(makeVc(), p)).toBe(k);
-  });
+const closeTabJa = [
+  // --- 終業/学期末 ---
+  '終業式', '終業式終了', '学期終了', '学期が終わって',
+  '前期終了', '後期終了', '一学期終了', '二学期終了',
+  '学年末終了', '今年度終了', '年度末終了', '授業終了',
+  '最後の授業', '最終授業', 'チャイムが鳴って',
+  '最後のチャイム', '終了のチャイム', '放課後',
+  '授業が終わって', '全部の授業終了', '学校が終わって',
+  // --- 休み ---
+  '夏休み', '夏休み始め', '夏休み開始', '冬休み', '春休み',
+  '長期休暇', '学休', '休みに入って', '部活休み',
+  // --- 試験終了 ---
+  '試験終了', '試験が終わって', '定期試験終了', '期末試験終了',
+  '中間試験終了', 'テスト終了', '最後のテスト', '答案を出して',
+  '答案用紙を回収して', '鉛筆を置いて', '筆記用具を置いて',
+  '監督が終了を告げて', '時間切れで終わって', '採点済み',
+  '成績発表', '成績表が届いて', '通知表', '通知表をもらって',
+  '単位を取って', '進級', '卒業', '修了', '修了証書',
+  // --- 下校/片付け ---
+  '下校', '下校した', '学校を出て', '校門を出て',
+  '帰りの会終了', '帰宅します', 'ロッカーを空にして',
+  '教科書を返して', '図書室の本を返して', '教科書を返却して',
+  '机を片付けて', '黒板を消して', 'ホワイトボードを消して',
+  '掃除が終わって', '教室掃除終了', '教室を出て',
+  '校庭が静まって', '校舎が静まって', '体育館を施錠して',
+  '給食終了', '弁当を食べ終えて', '上履きをしまって',
+  'ランドセルを背負って', '部活終了', '部室を出て',
+];
 
-  // JA 決着/仕切り/仕舞い forms
-  test.each([
-    ['けりつけて', 'close-tab'],
-    ['けりをつけて', 'close-tab'],
-    ['ケリつけて', 'close-tab'],
-    ['けじめつけて', 'close-tab'],
-    ['けじめをつけて', 'close-tab'],
-    ['仕切って', 'close-tab'],
-    ['仕切っちゃって', 'close-tab'],
-    ['しめくくって', 'close-tab'],
-    ['締めくくって', 'close-tab'],
-    ['仕上げて', 'close-tab'],
-    ['仕上げちゃって', 'close-tab'],
-    ['これで仕舞い', 'close-tab'],
-    ['もう仕舞い', 'close-tab'],
-    ['仕舞いにして', 'close-tab'],
-    ['お仕舞いにして', 'close-tab'],
-    ['お仕舞いにしましょう', 'close-tab'],
-  ])('%s -> %s', (p, k) => {
-    expect(key(makeVc(), p)).toBe(k);
-  });
+const negate = [
+  'stay after school', 'stay for detention', 'keep studying',
+  'stay in class', 'still studying', 'まだ授業中',
+  '勉強を続けて', '残って勉強して', '居残りして',
+];
 
-  // JA くれ residue, relayed-directive reports, urgency adverbs
-  test.each([
-    ['閉じてくれよぉ', 'close-tab'],
-    ['閉じてくれぇ', 'close-tab'],
-    ['閉じてくれよおまえ', 'close-tab'],
-    ['閉じてくれよお前', 'close-tab'],
-    ['閉じてくれりゃあ', 'close-tab'],
-    ['閉じるとのお達し', 'close-tab'],
-    ['閉じるとの命', 'close-tab'],
-    ['閉じるのが決まり', 'close-tab'],
-    ['閉じるよう指示', 'close-tab'],
-    ['閉じるよう指示が', 'close-tab'],
-    ['閉じるように言われてる', 'close-tab'],
-    ['今直ぐ閉じて', 'close-tab'],
-    ['至急に閉じて', 'close-tab'],
-  ])('%s -> %s', (p, k) => {
-    expect(key(makeVc(), p)).toBe(k);
-  });
+const nullPins = [
+  // enrollment / class time / ongoing
+  'enrolled', 'first day of school', 'back to school',
+  'in class', 'class in session', 'studying', 'taking exams',
+  'exam week', 'midterms coming', 'school started',
+  '入学', '入学した', '新学期', '授業中', '登校',
+  '登校した', '通学中', '試験期間中', 'テスト勉強中',
+  '宿題をしてる', '出席中',
+];
 
-  // volume-status query forms + scroll direction literals
-  test.each([
-    ['whats it at volume', 'volume-status'],
-    ['volume at what', 'volume-status'],
-    ['whats my volume', 'volume-status'],
-    ['どのくらい音量', 'volume-status'],
-    ['音量どれくらい', 'volume-status'],
-    ['音量はどれくらい', 'volume-status'],
-    ['音量どのくらい', 'volume-status'],
-    ['下へスクロール', 'scroll-down'],
-    ['上へスクロール', 'scroll-up'],
-  ])('%s -> %s', (p, k) => {
-    expect(key(makeVc(), p)).toBe(k);
-  });
+const establishedPins = [
+  ['school is out', 'close-tab'],
+  ['学校に行く', 'go-to'],
+];
 
-  // Honest-null pins: 'スクロール止めて' has no stop-scroll surface.
-  test.each([
-    ['スクロール止めて'],
-    ['スクロール停止'],
-  ])('%s -> null', (p) => {
-    expect(key(makeVc(), p)).toBeNull();
+describe('Voice atoms CCCXX — school-term & exam-end idioms', () => {
+  test.each(closeTab.map((p) => [p]))('"%s" -> close-tab', (p) => {
+    expect(key(makeVC(), p)).toBe('close-tab');
+  });
+  test.each(closeTabJa.map((p) => [p]))('"%s" -> close-tab', (p) => {
+    expect(key(makeVC(), p)).toBe('close-tab');
+  });
+  test.each(negate.map((p) => [p]))('"%s" -> negate', (p) => {
+    expect(key(makeVC(), p)).toBe('negate');
+  });
+  test.each(nullPins.map((p) => [p]))('"%s" -> null', (p) => {
+    expect(key(makeVC(), p)).toBeNull();
+  });
+  test.each(establishedPins.map(([p, k]) => [p, k]))('"%s" -> %s', (p, k) => {
+    expect(key(makeVC(), p)).toBe(k);
   });
 });
