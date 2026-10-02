@@ -19809,6 +19809,19 @@ export class VoiceCommands {
         '不在通知を切って', '旅の疲れを取って',
         '連休が明けて', '休暇明け',
         '土産話が終わって', '旅の写真を整理して',
+        // pass CCCXCV: company-trip & retreat end
+        'company trip done', 'team retreat done',
+        'offsite done', 'back from the retreat',
+        'group tour done', 'field work done',
+        'team building done', 'thank you party done',
+        'farewell party done',
+        'luggage claimed', 'saw the tour guide off',
+        'retreat wrapped', 'training camp wrapped',
+        '社員旅行終了', '研修旅行終了',
+        '団体旅行終了', '慰安旅行終了',
+        'チームビルディング終了', '歓迎会終了',
+        '添乗員さんにお礼を言って',
+        '合宿から帰って', '研修合宿終了',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25704,6 +25717,9 @@ export class VoiceCommands {
         // pass CCCXCIV: still on break
         'still away', 'still on break',
         'まだ休み中',
+        // pass CCCXCV: still on the retreat
+        'still on the retreat', 'still at the offsite',
+        'まだ合宿中', 'まだ旅行先',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
