@@ -20767,6 +20767,17 @@ export class VoiceCommands {
         '戸籍抄本', '戸籍謄本',
         '本籍変更', '印鑑登録',
         '名義変更',
+        // pass CDXCI: adoption & special-adoption procedures done
+        'adoption finalized', 'adoption granted',
+        'home study done', 'agency matched',
+        'special adoption granted', 'custody transferred',
+        'birth parents consented', 'family court approved',
+        'adoption registered',
+        '養子縁組', '特別養子',
+        '普通養子', '縁組成立',
+        '里親', '児童相談所',
+        '実親同意', '家庭裁判所許可',
+        '入籍済み', '里子',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26931,6 +26942,9 @@ export class VoiceCommands {
         // pass CDXC: still updating the name
         'still updating', 'about to update',
         'まだ変更中', 'これから変更',
+        // pass CDXCI: still in the adoption process
+        'still adopting',
+        'まだ縁組中', 'これから縁組',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
