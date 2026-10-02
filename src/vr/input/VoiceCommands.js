@@ -21508,6 +21508,16 @@ export class VoiceCommands {
         '妊婦相談', '産後ケア',
         '母子健康手帳', '乳幼児健診',
         '育児パッケージ', '子ども見守り',
+        // pass DLIV: community-facility bookings done
+        'facility booking confirmed', 'community hall reserved',
+        '公民館', '自治会館',
+        '集会所', 'コミュニティセンター',
+        '生涯学習センター', '市民ホール',
+        '体育館予約', '施設利用申込',
+        '使用料支払い', '団体登録',
+        '貸出申請', '利用許可書',
+        '利用票', 'キャンセル待ち',
+        '施設使用料', '区民センター',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27850,6 +27860,8 @@ export class VoiceCommands {
         'まだ入学前', 'これから転校',
         // pass DLIII: still waiting for a playgroup spot
         'still waiting for a spot', 'これから参加',
+        // pass DLIV: still waiting for a facility room
+        'still waiting for the room', 'まだ予約前',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
