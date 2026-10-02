@@ -19531,6 +19531,25 @@ export class VoiceCommands {
         'タイトルを受け取って', '引き落とし最終',
         '借り入れを返して', '無借金になって',
         'クレジットカードを払って', '最終回ローン',
+        // pass CCCLXXVIII: recital & performance end
+        'performance over', 'encore played',
+        'played my last note', 'piece played through',
+        'program finished',
+        'stage emptied', 'music stand folded',
+        'instrument cased', 'hall emptied out',
+        'orchestra concert done', 'choir sang last note',
+        'conservatory recital done', 'solo nailed',
+        'festival set done', 'concert done',
+        'gig wrapped', 'set finished',
+        'アンコールを終えて', '拍手が止んで',
+        '舞台を出て', '舞台袖に入って',
+        '合唱終了', '合奏終了',
+        '吹奏楽終了', '部の発表終了',
+        '音楽会終了', 'ステージを降りて',
+        '舞台を降りて', 'コンクール終了',
+        '演奏を終えて', '楽器をケースに',
+        '残響が消えて', '本番が終わって',
+        '演奏し終えて',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25375,6 +25394,9 @@ export class VoiceCommands {
         'still paying off the loan', 'still in debt',
         'still owe money',
         'まだ返済中', 'まだローン中',
+        // pass CCCLXXVIII: still performing
+        'still performing', 'still on stage',
+        'まだ演奏中', 'まだリハーサル中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
