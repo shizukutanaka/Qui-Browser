@@ -21599,6 +21599,16 @@ export class VoiceCommands {
         '動物愛護推進員', '犬鑑札',
         '注射済票', '飼育放棄',
         '動物愛護週間',
+        // pass DLXIII: environmental filing & emissions report done
+        'environmental filing accepted', 'emissions report filed',
+        '公害係', '環境課',
+        '公害苦情', '騒音規制',
+        '振動規制', '悪臭対策',
+        '環境影響評価', '環境アセスメント',
+        '事前協議', '事業所廃水',
+        '排出ガス規制', '土壌汚染調査',
+        '地盤沈下', '埋立申請',
+        '公害防止協定', '環境審議会',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27967,6 +27977,9 @@ export class VoiceCommands {
         // pass DLXII: still unvaccinated
         'still unvaccinated',
         'まだ注射前', 'これから登録申請',
+        // pass DLXIII: still under environmental review
+        'still under environmental review',
+        'まだ調査前', 'これから環境申請',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
