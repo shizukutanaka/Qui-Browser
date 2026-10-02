@@ -12,32 +12,38 @@ function makeVC() {
 const key = (vc, p) => vc._matchCommand(p)?.key ?? null;
 
 const closeTab = [
-  // subsidy & grant application procedures done
-  'grant application filed', 'housing subsidy done',
-  'renovation grant claimed', 'documents accepted',
+  // agricultural mutual-aid insurance procedures done
+  'mutual aid enrolled', 'crop claim paid',
 ];
 const closeTabJa = [
-  '補助金申請', '助成金',
-  '住宅補助金', 'リフォーム補助金',
-  '省エネ補助金', '交付決定',
-  '申請済み', '給付手続き',
-  '事業復活支援金', '入金確認',
-  '補正予算', '学校給食費',
+  '農業共済', '共済掛金',
+  '農業保険', '収穫保険',
+  '被害認定', '損害評価',
+  '共済金', '掛金納付',
+  '引受検査', '品質検査',
+  'ほ場', '圃場',
+  '作況', '作柄',
+  '収量', '基準収量',
+  '補償額', '保険期間',
+  '加入申込', '加入記載',
+  '目減り', '獣害',
+  '風水害', '霜害',
+  '雪害', '干害',
+  '病虫害', '鳥獣害',
 ];
 const negate = [
-  'still applying for the grant', 'about to apply for the subsidy',
-  'これから補助',
+  'still inspecting the field', 'about to file the loss',
+  'まだ収穫前', 'まだ評価中',
 ];
 const nullPins = [
-  'mid application', 'grant pending',
+  'mid harvest report',
 ];
 const establishedPins = [
-  ['subsidy approved', 'close-tab'],
-  ['まだ申請中', 'negate'],
-  ['こどもエコすまい', 'negate'],
+  ['damage assessed', 'close-tab'],
+  ['これから加入', 'negate'],
 ];
 
-describe('pass DVIII: subsidy & grant application idioms (sasara)', () => {
+describe('pass DXXXV: agricultural mutual-aid insurance idioms (sasara)', () => {
   let vc;
   beforeEach(() => { vc = makeVC(); });
 
