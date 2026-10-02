@@ -20015,6 +20015,18 @@ export class VoiceCommands {
         '体験レッスンを受けて', '初回利用をして',
         '会員証を受け取って', '月謝を払って',
         '道場に入門して', 'スクールに入会して',
+        // pass CDXII: bike & motorcycle pickup
+        'bike picked up', 'motorcycle delivered',
+        'got the bike', 'picked up the scooter',
+        'registration done', 'plates on',
+        'insurance set',
+        'rode it home', 'first ride done',
+        'test ride done',
+        '自転車を受け取って', 'バイクが納車されて',
+        'バイクを買って', '登録が終わって',
+        'ナンバーをつけて', '乗って帰って',
+        '初乗りして', '試乗して',
+        '原付を受け取って',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25961,6 +25973,9 @@ export class VoiceCommands {
         // pass CDXI: still choosing a gym
         'still deciding on a gym', 'still touring gyms',
         'まだジム探し中', 'まだ検討中',
+        // pass CDXII: still bike shopping
+        'still bike shopping', 'still waiting for the bike',
+        'まだバイク探し中', 'まだ納車待ち',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
