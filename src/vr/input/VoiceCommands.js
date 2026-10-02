@@ -19941,6 +19941,21 @@ export class VoiceCommands {
         '新築披露終了', 'ハウスウォーミング終了',
         'お披露目会終了', '人を招いて',
         '家のお披露目', '地鎮祭をして',
+        // pass CDVI: DIY & small-renovation done
+        'project done', 'painted the room',
+        'shelf hung', 'shelves up',
+        'furniture assembled', 'put together the shelf',
+        'drilled the holes', 'mounted the tv',
+        'curtain rods up', 'hooks hung',
+        'wallpaper done', 'floor laid',
+        'tiles grouted', 'renovation done',
+        'diy終了', '日曜大工終了',
+        '部屋を塗って', '棚をつけて',
+        '家具を組み立てて', '組み立て終了',
+        'テレビをつけて', 'カーテンレールをつけて',
+        'フックをつけて', '壁紙を貼って',
+        '床を張って', 'タイルを埋めて',
+        'リフォーム終了',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25869,6 +25884,9 @@ export class VoiceCommands {
         // pass CDV: still greeting / hosting
         'still greeting neighbors', 'still at the housewarming',
         'まだ挨拶回り中', 'まだ披露会中',
+        // pass CDVI: still on the project
+        'still doing diy', 'still at the project',
+        'まだdiy中', 'まだ塗装中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
