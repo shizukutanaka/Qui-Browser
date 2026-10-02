@@ -20675,6 +20675,16 @@ export class VoiceCommands {
         '納付書で払って', '口座振替',
         'コンビニ納付', 'スマホ決済で納付',
         '延納',
+        // pass CDLXXXII: daycare & childcare application done
+        'daycare applied', 'enrollment secured',
+        'waitlist confirmed', 'enrollment papers in',
+        'care arranged', 'nursery spot secured',
+        'club registered', 'placement made',
+        '保育園に申し込んで', '入園手続き',
+        '児童クラブ', '学童保育',
+        '就労証明', '入園面接',
+        '保活', '入園決定',
+        '延長保育', '園庭開放',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26817,6 +26827,8 @@ export class VoiceCommands {
         'まだ精算中', 'これから精算',
         // pass CDLXXXI: still paying
         'still paying',
+        // pass CDLXXXII: still waiting for a spot
+        'still waiting',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
