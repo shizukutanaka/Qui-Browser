@@ -16275,6 +16275,56 @@ export class VoiceCommands {
         'アンプを切って', 'PAを落として', 'セットリスト終わり',
         'セトリ終わり', '楽器をしまって', 'ケースにしまって', '最後の音',
         '余韻が消えた',
+        // pass CCCIV: shift end / clock-out
+        'clock out', 'clock me out', 'clocking out', 'punch out',
+        'punch me out', 'punch the clock out', 'time card punched',
+        'timesheet done', 'sign off for the day',
+        'log off shift', 'shift is over', 'shift ended', 'end of shift',
+        'end of my shift', 'my shift is done', 'shift wrapped',
+        'last shift done', 'double shift over', 'quitting time',
+        'whistle blew', 'five oclock shadow', 'nine to five done',
+        'off the clock', 'im off the clock', 'off duty now',
+        'done for the day', 'wrap for the day', 'wrap it up for today',
+        'days work done', 'honest days work', 'put in my hours',
+        'hours logged', 'eod done', 'end of day wrap',
+        'close of business', 'closing time work',
+        // pass CCCIV: tools down / job done
+        'down tools', 'tools down', 'hang up the apron', 'hang up the hat',
+        'hang up the hard hat', 'apron off', 'gloves off', 'helmet off',
+        'power down the tools', 'bench cleared', 'lock the toolbox',
+        'sweep the floor and go', 'mop it up and leave', 'counters wiped',
+        'lights off in the shop', 'shop lights out',
+        'kill the lights and go', 'lock up the shop', 'shutter the counter',
+        'register counted', 'drawer counted', 'tills counted', 'safe locked',
+        'keys turned', 'badge out', 'swipe out', 'tap out the badge',
+        'turning in the badge', 'key turned',
+        // pass CCCIV: commute / leaving
+        'out the door', 'im out the door', 'head home', 'heading home',
+        'off to home', 'beeline home', 'commute home', 'train home',
+        'car keys out', 'drive home now', 'walked out the gate',
+        'badge out', 'badge me out', 'elevator down to lobby',
+        'stairs to the street',
+        // pass CCCIV: JA 退勤/終業
+        '退勤', '退勤します', '退勤打刻', '打刻して帰る',
+        'タイムカード切って', 'タイムカードを切る', '定時退社',
+        '定時で帰る', '定時上がり', '終業', '終業のチャイム',
+        'チャイムが鳴った', '今日の仕事終わり', '仕事終わり', '業務終了',
+        '本日の業務終了', '勤務終了', '残業終わり', 'ノー残業デー',
+        '早退させて', 'しごおわ', '仕事納め', '納会', '年末仕事納め',
+        '御用納め', '大納会', '納会終わり',
+        // pass CCCIV: JA 作業終了/片付け
+        '作業終了', '作業を畳んで', '工具をしまって', '道具を片付けて',
+        '機械を止めて', 'エプロンを外して', '手袋を外して',
+        'ヘルメットを脱いで', '現場を締めて', '工場を閉めて',
+        '照明を落として', '電気を消して', '施錠して', '戸締まりして',
+        'レジを締めて', '売上を締めて', '金庫を閉めて',
+        '清掃して帰る', '掃除して終わり',
+        // pass CCCIV: JA 帰宅
+        '帰宅します', '家に帰る', '帰路に着く', '終電で帰る',
+        '満員電車で帰る', 'デスクを片付けて', '椅子をしまって',
+        'パソコンを閉じて', 'PCを畳んで', 'パソコンを畳んで',
+        'パソコンをたたんで', 'バッグを持って帰る',
+        'お疲れ様でした',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -19241,7 +19291,7 @@ export class VoiceCommands {
         'ミュートを解除して', '音をつけて', '音をならして', '音ありにして',
         // 'mute the mic' = stop listening; 'mute other tabs' has no per-tab
         // surface — neither should toggle the master volume.
-        new RegExp('(un)?mute(?!d\\b)(?!\\s+(?:other\\s+tabs?|the\\s+mic|mic\\b|microphone' +
+        new RegExp('\\b(?:un)?mute(?!d\\b)(?!\\s+(?:other\\s+tabs?|the\\s+mic|mic\\b|microphone' +
           '|(the\\s+)?(' + EN_NUM + '|[0-9]+)(st|nd|rd|th)?\\s+tab|tab\\s+(?:number\\s+)?(' + EN_NUM + '|[0-9]+)))', 'i')],
       action: (transcript) => {
         const want = /unmute|解除|戻して|外して|つけて|ならして|ありにして/i.test(transcript)
@@ -19545,7 +19595,7 @@ export class VoiceCommands {
         /stop everything/i, /stop all/i, /cancel all/i, /cancel everything/i,
         'enough', 'thats enough', 'that will do', 'enough of that',
         'cut it out', 'cut that out', 'knock it off', 'pack it in',
-        'wrap it up', 'wrap up', 'call it', 'call it a day', 'call it quits', 'calling it quits', 'thats a wrap',
+        'wrap it up', 'wrap up', 'call it', 'call it a day', 'call it a day already', 'call it quits', 'calling it quits', 'thats a wrap',
         'knock that off', 'cut it', 'quit it', 'quit that', 'cease', 'desist', 'halt',
         'thatll do', 'that will do it', 'thats plenty', 'that is enough',
         'no more of that', 'no more please', 'enough now', 'enough of this',
@@ -21862,6 +21912,9 @@ export class VoiceCommands {
         // pass CCCIII: keep-camping / keep-playing forms
         'keep the fire going', 'stay on the trail', 'keep climbing',
         'keep playing', 'まだ登ってる', '山に残って', '演奏を続けて',
+        // pass CCCIV: keep-working forms
+        'keep working', 'stay on the clock',
+        'still on shift', 'まだ仕事中', 'まだ勤務中', '仕事を続けて',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
