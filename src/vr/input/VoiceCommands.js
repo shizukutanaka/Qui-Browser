@@ -20266,6 +20266,17 @@ export class VoiceCommands {
         '写真を提出して', '事故証明を取って',
         '修理が認められて', '車が戻ってきて',
         '免責額を払って', '保険金が下りて',
+        // pass CDXXXVII: job-change agent & interview pipeline done
+        'agent registered', 'resume submitted',
+        'scout replied', 'first interview done',
+        'second interview done', 'final interview done',
+        'reference check done', 'salary negotiated',
+        'start date agreed',
+        'エージェントに登録して', '職務経歴書を出して',
+        'スカウトに返信して', '一次面接を終えて',
+        '二次面接を終えて', '最終面接を終えて',
+        'リファレンスチェックが終わって', '年収を交渉して',
+        '入社日が決まって', '内定を承諾して',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26284,6 +26295,8 @@ export class VoiceCommands {
         // pass CDXXXVI: still waiting on the claim
         'still waiting on the claim', 'still under review',
         'まだ請求処理中', 'まだ示談交渉中',
+        // pass CDXXXVII: still waiting on the offer
+        'still waiting on the offer', 'まだ内定待ち',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
