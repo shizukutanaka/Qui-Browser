@@ -21229,6 +21229,17 @@ export class VoiceCommands {
         '告知書', '医師審査',
         '付加特約', '出生前加入',
         '終身保険',
+        // pass DXXXIII: care-insurance premium billing procedures done
+        'premium refunded', 'collection suspended',
+        'installment arranged', 'back premiums settled',
+        '徴収猶予', '延滞金',
+        '督促', '催告状',
+        '特別徴収', '普通徴収',
+        '年金天引き', '納期限',
+        '財産差押',
+        '災害免除', '所得段階',
+        '保険料率', '基準額',
+        '過誤納金', '第2号被保険者',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27512,6 +27523,9 @@ export class VoiceCommands {
         'これから車検',
         // pass DXXXII: still mid premium payments
         'まだ保険料払込中',
+        // pass DXXXIII: still mid premium billing
+        'still paying premiums', 'about to request the refund',
+        'これから保険料納付',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
