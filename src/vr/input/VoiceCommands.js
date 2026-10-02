@@ -20727,6 +20727,16 @@ export class VoiceCommands {
         '保佐', '補助',
         '鑑定書', '財産目録',
         '親権',
+        // pass CDLXXXVII: personal bankruptcy & debt restructuring done
+        'bankruptcy filed', 'discharge granted',
+        'debts discharged', 'petition filed',
+        'restructuring approved', 'plan confirmed',
+        'trustee assigned', 'credit counseling done',
+        'exempt assets',
+        '個人再生', '債務整理',
+        '任意整理', '免責決定',
+        '再生計画', '債権者集会',
+        '弁護士相談', '整理終了',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26880,6 +26890,8 @@ export class VoiceCommands {
         // pass CDLXXXVI: still petitioning for guardianship
         'still petitioning', 'about to petition',
         'まだ申立中', 'これから申立',
+        // pass CDLXXXVII: still in repayment proceedings
+        'still repaying',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
