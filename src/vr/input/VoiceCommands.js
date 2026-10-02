@@ -20521,6 +20521,14 @@ export class VoiceCommands {
         '古着を出して', '本を売って',
         '出品して', 'リサイクルショップに持って',
         '家具を処分して',
+        // pass CDLXIV: passport renewal & ID-photo errand done
+        'photo taken', 'id photo taken',
+        'renewal submitted', 'new passport arrived',
+        'collected the passport', 'forms filled',
+        'fee paid', 'visa applied',
+        'パスポートを更新して', '申請して',
+        '受け取って', '新しいパスポート',
+        '更新手続き',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26614,6 +26622,9 @@ export class VoiceCommands {
         // pass CDLXIII: still decluttering
         'still decluttering', 'about to donate',
         'まだ片付け中', 'これから処分する',
+        // pass CDLXIV: still renewing
+        'still renewing',
+        'まだ更新中', 'これから更新する',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
