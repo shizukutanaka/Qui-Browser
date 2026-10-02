@@ -21388,6 +21388,16 @@ export class VoiceCommands {
         '限度額適用認定証', '資格喪失',
         '医療費自己負担', '広域連合',
         '健診受診券',
+        // pass DXLIV: certificate & seal-registry procedures done
+        '住民票の写し', '住民票コード',
+        '印鑑証明', '印鑑登録証',
+        '廃印届', '紛失届',
+        'コンビニ交付', '交付申請',
+        '除票', '改製原戸籍',
+        '附票', '本籍地',
+        '転籍届', '住基ネット',
+        '戸籍届出', '受理証明書',
+        '身分証明書',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27704,6 +27714,9 @@ export class VoiceCommands {
         'これから受診', 'まだ相談前',
         // pass DXLIII: still before elderly-insurance switch
         'まだ加入前', 'これから移行',
+        // pass DXLIV: still before certificate request
+        'まだ申請前', 'これから請求',
+        'まだ取得中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
