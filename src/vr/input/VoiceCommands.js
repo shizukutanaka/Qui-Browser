@@ -20091,6 +20091,15 @@ export class VoiceCommands {
         'おせちを予約して', '鏡餅を飾って',
         'しめ縄を飾って', '大掃除を終えて',
         'こたつを出して', '年末準備を終えて',
+        // pass CDXIX: car purchase & delivery
+        'car bought', 'car delivered',
+        'took delivery', 'car insurance set',
+        'plates arrived', 'first drive done',
+        'broke it in', 'dealer paperwork done',
+        '納車された', '納車を受けて',
+        '車両保険に入って', 'ナンバーが届いて',
+        '初ドライブをして', '慣らし運転をして',
+        'ディーラーと話して',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26058,6 +26067,8 @@ export class VoiceCommands {
         // pass CDXVIII: still cleaning / writing cards
         'still cleaning the house', 'still writing cards',
         'まだ大掃除中', 'まだ年賀状書き中',
+        // pass CDXIX: still car shopping
+        'still car shopping', 'まだ車選び中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
