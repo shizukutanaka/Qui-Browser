@@ -21026,6 +21026,16 @@ export class VoiceCommands {
         '自立支援資金', '社協窓口',
         '送金受領', '据置期間',
         '返済据置', '貸付終了',
+        // pass DXVI: vocational training benefit procedures done
+        'training benefit granted', 'course completed',
+        'tuition reimbursed', 'benefit paid',
+        '教育訓練給付', '一般教育訓練',
+        '専門実践教育訓練', '給付金支給',
+        '資格取得費', 'ハローワーク申請',
+        '受講完了', '講座修了',
+        '受講料', '通信教育終了',
+        '対象講座', '支給申請',
+        '合格証',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27259,6 +27269,9 @@ export class VoiceCommands {
         // pass DXV: still mid loan review
         'still awaiting disbursement', 'about to request the loan',
         'まだ貸付審査中', 'これから貸付申請',
+        // pass DXVI: still mid course attendance
+        'still in the course', 'まだ受講中',
+        'これから受講',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
