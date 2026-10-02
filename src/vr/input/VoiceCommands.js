@@ -20592,6 +20592,14 @@ export class VoiceCommands {
         '香典返しをして', '忌明けをして',
         '法要の案内を出して', 'お寺に連絡して',
         '線香をあげて', '仏壇を掃除して',
+        // pass CDLXXIII: elderly meal-delivery & medication management set up
+        'meal delivery set up', 'pill organizer filled',
+        'weekly delivery', 'pharmacy delivery',
+        'grocery delivery set', 'rehab scheduled',
+        '配食サービス', 'お薬カレンダー',
+        '服薬ゼリー', '宅配弁当を頼んで',
+        'デイサービスに申し込んで', '薬を分けて',
+        'リハビリ予約', '訪問看護',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26710,6 +26718,9 @@ export class VoiceCommands {
         'これから解約',
         // pass CDLXXII: still printing
         'これから印刷',
+        // pass CDLXXIII: still setting up services
+        'still sorting',
+        'まだ申込中', 'これから申し込む',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
