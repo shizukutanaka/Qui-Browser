@@ -20285,6 +20285,17 @@ export class VoiceCommands {
         '要介護認定が出て', 'スロープをつけて',
         '手すりをつけて', 'デイサービスを申し込んで',
         '初回訪問が終わって',
+        // pass CDXXXIX: household-budget optimization done
+        'switched sims', 'plan downgraded',
+        'subscriptions cancelled', 'bundle reviewed',
+        'fixed costs cut', 'bills audited',
+        'autopay switched', 'gym cancelled',
+        'streaming paused',
+        '格安simに乗り換えて', 'プランを下げて',
+        'サブスクを解約して', 'セット割を見直して',
+        '固定費を削って', '請求を見直して',
+        '引き落としを変えて', '通信費を下げて',
+        'ジムを退会して', '動画配信を止めて',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26308,6 +26319,9 @@ export class VoiceCommands {
         // pass CDXXXVIII: still touring facilities
         'still touring facilities', 'still waiting for assessment',
         'まだ施設探し中', 'まだ認定待ち',
+        // pass CDXXXIX: still comparing plans
+        'still comparing plans', 'still on the old plan',
+        'まだプラン比較中', 'まだ旧プラン中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
