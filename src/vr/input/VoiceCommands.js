@@ -21036,6 +21036,16 @@ export class VoiceCommands {
         '受講料', '通信教育終了',
         '対象講座', '支給申請',
         '合格証',
+        // pass DXVII: disaster-relief certificate & aid procedures done
+        'damage report filed', 'relief fund granted',
+        'shelter registered', 'emergency housing assigned',
+        '罹災証明', '被災証明',
+        '被害届', '被災届出',
+        '災害救助', '避難所登録',
+        '見舞金', '義援金',
+        '仮設住宅入居', '浸水被害',
+        '半壊認定', '全壊認定',
+        '応急修理', '住宅再建',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27272,6 +27282,9 @@ export class VoiceCommands {
         // pass DXVI: still mid course attendance
         'still in the course', 'まだ受講中',
         'これから受講',
+        // pass DXVII: still mid damage assessment
+        'still assessing damage', 'about to report the damage',
+        'まだ被害調査中', 'これから罹災申請',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
