@@ -20943,6 +20943,15 @@ export class VoiceCommands {
         '保険料通知', '任意継続手続き',
         '退職後保険', '健康保険料',
         '介護保険料', '後期高齢者',
+        // pass DVIII: subsidy & grant application procedures done
+        'grant application filed', 'housing subsidy done',
+        'renovation grant claimed', 'documents accepted',
+        '補助金申請', '助成金',
+        '住宅補助金', 'リフォーム補助金',
+        '省エネ補助金', '交付決定',
+        '申請済み', '給付手続き',
+        '事業復活支援金', '入金確認',
+        '補正予算', '学校給食費',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27155,6 +27164,9 @@ export class VoiceCommands {
         'まだ育休中', 'これから育休',
         // pass DVII: still mid insurance switch
         'still switching insurance', 'about to switch coverage',
+        // pass DVIII: still mid grant application
+        'still applying for the grant', 'about to apply for the subsidy',
+        'これから補助',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
