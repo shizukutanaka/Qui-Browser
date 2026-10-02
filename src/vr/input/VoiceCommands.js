@@ -19836,6 +19836,18 @@ export class VoiceCommands {
         '街頭演説終了', '演説会終了',
         '選挙カーを納めて', '看板を外して',
         '事務所を畳んで',
+        // pass CCCXCVII: estate & parents-home clearout
+        'house cleared out', 'estate cleared',
+        'keepsakes boxed', 'junk hauled away',
+        'sold the old house', 'empty house cleaned',
+        'attic emptied', 'cleared the old home',
+        'donated the furniture', 'photos divided up',
+        'took what i wanted', 'cleanout done',
+        '実家の片付け終了', '形見分け終了',
+        '空き家を片付けて', '残置物を処分して',
+        '家具を引き取ってもらって', '実家を売却して',
+        '蔵を片付けて', '屋根裏を片付けて',
+        '思い出の品を分けて', '実家の荷物を運んで',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25737,6 +25749,9 @@ export class VoiceCommands {
         // pass CCCXCVI: still campaigning
         'still campaigning', 'still on the trail',
         'まだ応援中',
+        // pass CCCXCVII: still clearing the old house
+        'still sorting the estate', 'still at the old house',
+        'まだ実家片付け中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
