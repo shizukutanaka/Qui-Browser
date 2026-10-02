@@ -21740,6 +21740,16 @@ export class VoiceCommands {
         '妊婦健診受診票', '出生連絡票',
         '乳児家庭全戸訪問', 'こんにちは赤ちゃん',
         '新生児聴覚検査', '新生児訪問指導',
+        // pass DLXXVII: septic tank installed & pump-out scheduled
+        'septic tank installed', 'pump-out scheduled',
+        '汲取り', '浄化槽設置',
+        '浄化槽維持管理', '浄化槽点検',
+        '浄化槽清掃', '法定検査',
+        '浄化槽使用廃止', '合併処理浄化槽',
+        '単独処理浄化槽', '転換補助金',
+        '汲取料金', 'し尿処理',
+        '家庭系ごみ', '生活排水',
+        '下水道使用料', '下水道接続',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28150,6 +28160,9 @@ export class VoiceCommands {
         // pass DLXXVI: still expecting the visit
         'still expecting the visit',
         'まだ健診前', 'これから相談訪問',
+        // pass DLXXVII: still on a septic tank
+        'still on a septic tank',
+        'まだ接続前', 'これから設置申請',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
