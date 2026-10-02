@@ -19747,6 +19747,17 @@ export class VoiceCommands {
         '印鑑登録終了', '証明書を発行して',
         '手数料を払って', '収入印紙を貼って',
         '実印を押して',
+        // pass CCCXC: driving-school & license-test end
+        'driving school done', 'passed the driving test',
+        'got my license', 'provisional license',
+        'learners permit done', 'behind the wheel done',
+        'driving lesson done', 'final driving exam',
+        'road test passed', 'written test passed',
+        'graduated driving school', 'license in hand',
+        '教習所終了', '仮免許を取って',
+        '卒業検定合格', '路上教習終了',
+        '学科試験合格', '教習終了',
+        '卒検合格', '免許証を受け取って',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25627,6 +25638,9 @@ export class VoiceCommands {
         // pass CCCLXXXIX: still at the office
         'still at the city hall', 'still in the office',
         'まだ役所にいる', 'まだ窓口にいる',
+        // pass CCCXC: still learning to drive
+        'still learning to drive', 'still in driving school',
+        'まだ教習中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
