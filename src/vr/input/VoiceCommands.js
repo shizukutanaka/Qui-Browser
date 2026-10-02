@@ -21629,6 +21629,16 @@ export class VoiceCommands {
         '被害者家族会', '支援センター',
         '加害者家族相談', '少年被害相談',
         '被害届不受理',
+        // pass DLXVI: volunteer insurance enrolled & relief deployment done
+        'volunteer insurance enrolled', 'relief deployment done',
+        '災害ボランティア', 'ボランティア保険',
+        'ボランティア活動保険', '社会貢献活動保険',
+        'ボランティアセンター', '災害救援ボランティア',
+        '復興ボランティア', '被災地支援',
+        'ボランティア証明書', 'ボランティア保険加入',
+        '社会奉仕', 'ボランティア登録証',
+        '活動証明書', 'ボランティア休暇',
+        '職場ボランティア',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28006,6 +28016,9 @@ export class VoiceCommands {
         // pass DLXV: still traumatized
         'still traumatized',
         'まだ支援前', 'これから被害申請',
+        // pass DLXVI: still unregistered as a volunteer
+        'still unregistered as a volunteer',
+        'まだ未加入', 'これから災害派遣',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
