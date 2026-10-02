@@ -20415,6 +20415,14 @@ export class VoiceCommands {
         '引き継ぎ資料を渡して', '次期役員に引き継いで',
         '実行委員を終えて', '当番表を回して',
         'ベルマーク集計を終えて',
+        // pass CDLII: narai-goto level-up done
+        'level cleared', 'advanced class reached',
+        'final lesson done', 'swim class passed',
+        'piano book finished', 'belt rank earned',
+        '級が上がって', '上級クラスに進んで',
+        '最後のレッスンを終えて', '進級テストに受かって',
+        '教室を卒業して', '水泳教室を終えて',
+        'ピアノ教室を卒業して',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26474,6 +26482,9 @@ export class VoiceCommands {
         // pass CDLI: still on the pta
         'still on the pta', 'about to hand over',
         'まだ役員中', 'これから引き継ぐ',
+        // pass CDLII: still taking lessons
+        'still taking lessons', 'about to finish level',
+        'まだ教室に通って', 'これから進級テスト',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
