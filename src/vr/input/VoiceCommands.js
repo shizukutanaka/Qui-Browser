@@ -20177,6 +20177,16 @@ export class VoiceCommands {
         '入部届を出して', '部費を払って',
         'ユニフォームをもらって', 'ロッカーをもらって',
         '習い事を申し込んで', '初回参加をして',
+        // pass CDXXVIII: festival & live-expedition return done
+        'festival done', 'made it back from the show',
+        'setlist saved', 'haul shown off',
+        'light stick packed', 'photos sorted',
+        'cosplay stored', 'off day recovered',
+        'フェスから帰って', 'ライブ遠征から帰って',
+        'セトリを保存して', '耳鳴りが残って',
+        '戦利品を広げて', 'ペンライトをしまって',
+        '写真を整理して', 'コスプレをしまって',
+        '打ち上げが終わって', 'オフ日に休んで',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26168,6 +26178,9 @@ export class VoiceCommands {
         // pass CDXXVII: still deciding on clubs
         'still deciding on clubs', 'still shopping around',
         'まだ部活選び中', 'まだ迷ってる',
+        // pass CDXXVIII: still at the festival
+        'still at the festival', 'still traveling home',
+        'まだフェス中', 'まだ帰り道',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
