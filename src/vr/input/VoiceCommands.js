@@ -21710,6 +21710,16 @@ export class VoiceCommands {
         'dv相談ナビ', '緊急一時保護',
         '自立訓練プログラム', '婦人相談員',
         '母子福祉寮',
+        // pass DLXXIV: care-facility admitted & small-multifunction enrolled
+        'care-facility admitted', 'small-multifunction enrolled',
+        '介護老人保健施設', '老健',
+        '介護医療院', 'ケアハウス',
+        '軽費老人ホーム', '養護老人ホーム',
+        'サービス付き高齢者向け住宅', 'ケア付き高齢者住宅',
+        '地域密着型サービス', '地域密着型介護',
+        '定期巡回', '随時対応型',
+        '夜間対応型', '小規模多機能',
+        '看護小規模多機能', '複合型サービス',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28111,6 +28121,9 @@ export class VoiceCommands {
         // pass DLXXIII: still fleeing
         'still fleeing',
         'まだ避難中', 'これから避難所',
+        // pass DLXXIV: still waitlisted for care
+        'still waitlisted for care',
+        'まだ入所前', 'これから施設入所',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
