@@ -20256,6 +20256,16 @@ export class VoiceCommands {
         '出頭して', '点数が戻って',
         '講習を受けて', '放置違反金を払って',
         '免停が明けて', '保険を更新して',
+        // pass CDXXXVI: insurance claim & accident wrap-up done
+        'claim approved', 'claim paid out',
+        'adjuster visited', 'photos submitted',
+        'police report filed', 'repairs authorized',
+        'deductible paid',
+        '保険金を請求して', '示談が成立して',
+        '事故処理が終わって', '保険会社に連絡して',
+        '写真を提出して', '事故証明を取って',
+        '修理が認められて', '車が戻ってきて',
+        '免責額を払って', '保険金が下りて',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26271,6 +26281,9 @@ export class VoiceCommands {
         // pass CDXXXV: still fighting the ticket
         'still fighting the ticket', 'still pending',
         'まだ違反処理中', 'まだ裁判待ち',
+        // pass CDXXXVI: still waiting on the claim
+        'still waiting on the claim', 'still under review',
+        'まだ請求処理中', 'まだ示談交渉中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
