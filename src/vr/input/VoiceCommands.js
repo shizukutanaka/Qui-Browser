@@ -20925,6 +20925,16 @@ export class VoiceCommands {
         '交通費領収書', '薬代',
         '入院費', '出産育児一時金',
         '高額療養費',
+        // pass DVI: parental-leave application procedures done
+        'parental leave filed', 'leave request approved',
+        'childcare leave starts', 'benefit application done',
+        'return date set', 'leave extended',
+        '育休申請', '産休申請',
+        '育児休業', '育休給付金',
+        '休業届', '復帰予定',
+        '育休延長', '男性育休',
+        'パパ育休', '出産手当金',
+        '育児休業給付', '職場復帰',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27132,6 +27142,9 @@ export class VoiceCommands {
         // pass DV: still mid deduction filing
         'still totaling receipts', 'about to file the deduction',
         'まだ集計中', 'これから控除',
+        // pass DVI: still mid leave application
+        'still applying for leave',
+        'まだ育休中', 'これから育休',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
