@@ -20396,6 +20396,15 @@ export class VoiceCommands {
         '大規模修繕を終えて', '議案書を読んで',
         '委任状を出して', '管理規約を改正して',
         '議事録を回して', '会計報告を受けて',
+        // pass CDL: grandparent-visit done
+        'grandkids dropped off', 'care visit done',
+        'grandma fed', 'meds sorted',
+        'photos shown', 'stories heard',
+        'grandchild slept over',
+        '孫を預かって', '祖父母に会って',
+        '実家の親を見舞って', '薬を仕分けして',
+        '昔話を聞いて', 'お泊まりさせて',
+        'おじいちゃんに会って', 'おばあちゃんに会って',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26449,6 +26458,9 @@ export class VoiceCommands {
         // pass CDXLIX: still paying dues
         'still paying dues',
         'まだ管理費支払中', 'これから総会に出る',
+        // pass CDL: still visiting grandma
+        'still visiting grandma', 'about to visit',
+        'まだ見舞い中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
