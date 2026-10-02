@@ -21550,6 +21550,16 @@ export class VoiceCommands {
         '肝炎ウイルス検診', '結核健診',
         '歯周病検診', '問診票',
         '受診券',
+        // pass DLVIII: fire-prevention inspection & filing done
+        'fire inspection passed',
+        '防火管理者', '防火管理点検',
+        '消防立入検査', '消防予防申請',
+        '消防設備点検', '避難訓練実施',
+        '火災予防運動', '防火管理講習',
+        '防災管理新規講習', '消防計画',
+        '防火対象物', '消防署予防課',
+        '点検報告書', '危険物申請',
+        '大量危険物', '少量危険物',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27903,6 +27913,9 @@ export class VoiceCommands {
         // pass DLVII: still waiting for screening results
         'still waiting for results',
         'まだ受診前', 'これから検診',
+        // pass DLVIII: still awaiting the fire inspector
+        'still awaiting the inspector',
+        'まだ点検前', 'これから届出',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
