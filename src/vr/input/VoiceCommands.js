@@ -20962,6 +20962,16 @@ export class VoiceCommands {
         '中間検査', '構造計算',
         '建ぺい率', '容積率',
         '接道',
+        // pass DX: content-certified mail & demand-letter procedures done
+        'demand letter sent', 'certified mail delivered',
+        'receipt confirmed', 'letter returned',
+        'deadline lapsed',
+        '内容証明', '催告書',
+        '送達確認', '送付済み',
+        '受取拒否', '回答期限',
+        '民事調停申立', '支払督促',
+        '仮執行', '債務承認',
+        '和解書',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27179,6 +27189,9 @@ export class VoiceCommands {
         'これから補助',
         // pass DIX: still mid permit
         'still getting the permit', 'about to break ground',
+        // pass DX: still mid notice drafting
+        'still drafting the letter', 'about to send the notice',
+        'まだ送付前', 'これから送付',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
