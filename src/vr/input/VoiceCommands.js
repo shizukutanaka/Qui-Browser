@@ -21436,6 +21436,20 @@ export class VoiceCommands {
         '労働組合', '団体交渉',
         '労働条件', '就業規則',
         '年次有給',
+        // pass DXLVIII: regional revitalization corps & local-business support done
+        'region support request done',
+        'tour of duty finished',
+        '地域活性化・企業人', '地域おこし協力隊',
+        '協力隊員', '活動終了',
+        '起業支援', '定住推進',
+        '応援団', 'まちおこし',
+        '集落支援', '農商工連携',
+        '地域ビジネス', '移住定住',
+        '過疎地域', '道の駅',
+        '地産地消', '特産品',
+        '地域ブランド', 'ふるさと名物',
+        '全国地域情報', '地域資源',
+        '地域活性化支援',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27764,6 +27778,8 @@ export class VoiceCommands {
         // pass DXLVII: still mid labor dispute
         'still in dispute',
         'これから申告', 'まだ交渉中',
+        // pass DXLVIII: still serving in the corps
+        'まだ任期中', 'これから赴任',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
