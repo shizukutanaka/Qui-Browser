@@ -21450,6 +21450,18 @@ export class VoiceCommands {
         '地域ブランド', 'ふるさと名物',
         '全国地域情報', '地域資源',
         '地域活性化支援',
+        // pass DXLIX: senior-driver course & license procedures done
+        'senior driving course done',
+        '免許返納', '運転免許返納',
+        '運転経歴証明書', '高齢運転者講習',
+        '認知機能検査', '運転免許センター',
+        '更新講習', '免許更新',
+        '運転免許証', 'ゴールド免許',
+        '優良運転者', '違反者講習',
+        '初心運転者', '指定自動車教習所',
+        '運転免許試験場', '運転技能検査',
+        '自転車講習', '安全運転管理者',
+        '運転記録証明書', '運転免許停止',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27780,6 +27792,8 @@ export class VoiceCommands {
         'これから申告', 'まだ交渉中',
         // pass DXLVIII: still serving in the corps
         'まだ任期中', 'これから赴任',
+        // pass DXLIX: still licensed / before surrender
+        'still licensed', 'これから返納',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
