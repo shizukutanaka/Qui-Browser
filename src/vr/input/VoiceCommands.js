@@ -19699,6 +19699,23 @@ export class VoiceCommands {
         '家を出て', '電車に乗って',
         '家族が出て', '朝の支度終了',
         '犬を散歩して', '花に水をやって',
+        // pass CCCLXXXVII: storm-over & laundry-in
+        'rain stopped', 'storm passed',
+        'typhoon gone', 'sun came out',
+        'cleared up', 'rainbow out',
+        'brought the laundry in', 'laundry taken in',
+        'futon aired', 'shoes dried',
+        'umbrella closed', 'windows closed',
+        'shutters down', 'storm shutters up',
+        'typhoon prep done', 'came inside',
+        'clothesline emptied',
+        '雨がやんで', '雷雨が去って',
+        '台風が去って', '晴れてきて',
+        '虹が出て',
+        '靴を乾かして', '傘を閉じて',
+        '窓を閉めて', '雨戸を閉めて',
+        '台風対策終了', '家に入って',
+        '物干し竿をしまって',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25570,6 +25587,9 @@ export class VoiceCommands {
         // pass CCCLXXXVI: still getting ready
         'still getting ready', 'still in the bathroom',
         'まだ準備中です', 'まだお風呂中',
+        // pass CCCLXXXVII: still raining
+        'still raining', 'still storming',
+        'まだ降ってる', 'まだ嵐',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
