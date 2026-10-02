@@ -21056,6 +21056,16 @@ export class VoiceCommands {
         '医療給付', '法定給付',
         '付加給付', '自費診療',
         '傷病年金',
+        // pass DXIX: mynumber-card renewal procedures done
+        'mynumber card renewed', 'pin reset done',
+        'card reissued', 'card collected',
+        'マイナンバーカード更新', '暗証番号再設定',
+        '署名用電子証明書', '券面更新',
+        '受取完了', '顔写真更新',
+        '通知カード', '仮カード',
+        '引替証', '個人番号カード',
+        '有効期限切れ', '再発行手数料',
+        '交付受領',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27298,6 +27308,9 @@ export class VoiceCommands {
         // pass DXVIII: still mid sick leave
         'still on sick leave', 'about to apply for the allowance',
         'まだ療養中', 'これから手当申請',
+        // pass DXIX: still mid card pickup
+        'still waiting for pickup', 'about to renew the card',
+        'まだ受取待ち', 'これからカード更新',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
