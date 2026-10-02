@@ -21066,6 +21066,16 @@ export class VoiceCommands {
         '引替証', '個人番号カード',
         '有効期限切れ', '再発行手数料',
         '交付受領',
+        // pass DXX: overpayment refund claim procedures done
+        'overpayment claim filed', 'attorney consulted',
+        'claim settled', 'debt barred',
+        '過払い金', '過払い金請求',
+        '返還請求', 'グレーゾーン',
+        '引き直し計算', '利息制限法',
+        '出資法', '払いすぎた利息',
+        '取引履歴開示', '貸金業者',
+        '和解交渉', '時効援用',
+        '時効の中断', '債権者一覧',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27311,6 +27321,9 @@ export class VoiceCommands {
         // pass DXIX: still mid card pickup
         'still waiting for pickup', 'about to renew the card',
         'まだ受取待ち', 'これからカード更新',
+        // pass DXX: still mid interest calculation
+        'still calculating interest',
+        'まだ利息計算中', 'これから過払い請求',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
