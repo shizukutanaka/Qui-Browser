@@ -20695,6 +20695,16 @@ export class VoiceCommands {
         '失業認定', '就職手当',
         '再就職手当', '雇用保険',
         '離職理由',
+        // pass CDLXXXIV: public welfare & livelihood-assistance filing done
+        'welfare applied', 'housing support granted',
+        'income verified', 'welfare officer visited',
+        'support started', 'livelihood protected',
+        'benefit granted', 'self support plan made',
+        '生活保護', '住宅扶助',
+        '収入認定', '資産調査',
+        '自立支援計画', '就労支援',
+        '介護扶助', '一時扶助',
+        '保護費',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
