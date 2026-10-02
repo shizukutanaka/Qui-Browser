@@ -21423,6 +21423,19 @@ export class VoiceCommands {
         '保険料納付状況', '見込額',
         '試算結果', '老齢年金',
         '特別支給', 'カード再交付',
+        // pass DXLVII: labor-standards report & tribunal procedures done
+        'labor report filed',
+        '労基署', '労働審判',
+        '残業代請求', '賃金未払い',
+        '未払い残業', '割増賃金',
+        '固定残業代', '36協定',
+        '勤怠記録', '退勤打刻',
+        'パワハラ', 'セクハラ',
+        'モラハラ', '不当解雇',
+        '解雇予告', '配置転換',
+        '労働組合', '団体交渉',
+        '労働条件', '就業規則',
+        '年次有給',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27748,6 +27761,9 @@ export class VoiceCommands {
         // pass DXLVI: still checking pension records
         'still checking records',
         'まだ確認前', 'これから照会',
+        // pass DXLVII: still mid labor dispute
+        'still in dispute',
+        'これから申告', 'まだ交渉中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
