@@ -19333,6 +19333,32 @@ export class VoiceCommands {
         'レタッチ終了', '写真を納品して',
         'アルバムを納品して', 'ギャラリーを共有して',
         '写真データを渡して', '撮影データを渡して',
+        // pass CCCLXX: commute & school-run end
+        'made it to work', 'at my desk now',
+        'commute done', 'rush hour over',
+        'through the ticket gate', 'off the train commute',
+        'walked in the door', 'home from work',
+        'home from school', 'last transfer done',
+        'caught the bus', 'caught my train',
+        'bike locked up', 'parked at the station',
+        'train pulled in station', 'crowded train survived',
+        'seat found train', 'missed the rush',
+        'commute survived', 'back before dark',
+        'kids at school', 'drop off done commute',
+        'school run done', 'walked to the office',
+        'biked to work done',
+        '通勤終了', '会社についた', 'オフィス到着',
+        '改札を出て', '乗り換え終了',
+        'ラッシュを抜けて', '満員電車を下りて',
+        '自転車を止めて', '終電に間に合って',
+        '帰宅して家に', '家についた',
+        'ただいま帰宅', '通学終了',
+        '学校についた', '登校しました',
+        '下校して家に', '送りました子供',
+        '子供を送って', 'チャリを止めて',
+        '駐輪場に停めて', '定期を通して',
+        '電車を降りて', '座れました電車',
+        '通勤ラッシュ終了',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25151,6 +25177,9 @@ export class VoiceCommands {
         // pass CCCLXIX: still shooting/editing photos
         'still shooting photo', 'still editing photos',
         'まだ撮影中', 'まだ編集中写真',
+        // pass CCCLXX: still commuting
+        'still commuting', 'still on the train',
+        'まだ通勤中', 'まだ電車の中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
