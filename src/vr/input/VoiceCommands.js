@@ -19860,6 +19860,18 @@ export class VoiceCommands {
         '企業訪問終了', '履歴書を出して',
         'エントリーシートを出して', 'メンター面談終了',
         'インターンシップ終了', '名刺を渡して',
+        // pass CCCXCIX: viewing & estimate-done
+        'apartment tour done', 'saw the place',
+        'got an estimate', 'quotes collected',
+        'applied for the place', 'application sent',
+        'lease preview done', 'deposit wired',
+        'guarantor arranged', 'walked through the unit',
+        'viewed the unit', 'left a deposit',
+        '内見終了', '内覧終了',
+        '見学終了', '見積もりを取って',
+        '相見積もり終了', '申し込みを出して',
+        '仮審査を通して', '敷金を振り込んで',
+        '連帯保証人を立てて', '契約説明を聞いて',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25767,6 +25779,9 @@ export class VoiceCommands {
         // pass CCCXCVIII: still at the job-hunt event
         'still at the career fair', 'still at the info session',
         'まだ説明会中', 'まだインターン中',
+        // pass CCCXCIX: still viewing places
+        'still viewing apartments', 'still at the viewing',
+        'まだ内見中', 'まだ見学中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
