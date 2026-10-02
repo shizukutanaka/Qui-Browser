@@ -3999,7 +3999,7 @@ export class VoiceCommands {
         '音楽を再生', '音楽を聴きたい', '音楽をかけて', 'ラジオ',
         'テレビを見て', 'ラジオをつけて',
         /^(set|start) (a )?timer/i, /^(open|check) (my )?(email|mail|calendar)(?!.*\btab\b)/i,
-        /(?<!un)call (?!it\b|upon\b|close\b|the\b|time\b|in\b|pest\b)\w+/i,
+        /(?<!un)call (?!it\b|upon\b|close\b|the\b|time\b|in\b|pest\b|off\b)\w+/i,
         'アンインストール', 'インストールして', 'アプリをインストール',
         'ホーム画面に追加', 'add to home screen', 'install the app',
         'install it', 'uninstall', 'uninstall it',
@@ -16325,6 +16325,49 @@ export class VoiceCommands {
         'パソコンを閉じて', 'PCを畳んで', 'パソコンを畳んで',
         'パソコンをたたんで', 'バッグを持って帰る',
         'お疲れ様でした',
+        // pass CCCV: engagement off / wedding cancelled
+        'call off the wedding', 'wedding is off', 'the weddings off',
+        'engagement broken', 'engagement is off', 'broken engagement',
+        'call off the engagement', 'break off the engagement',
+        'gave back the ring', 'give the ring back', 'return the ring',
+        'ring returned', 'no wedding bells', 'cancel the caterer',
+        'left at the altar', 'jilted it', 'runaway bride',
+        // pass CCCV: breakup / sever ties
+        'breakup time', 'dumped it', 'get dumped', 'curb it',
+        'break it off', 'broke it off', 'breaking it off', 'cut ties',
+        'walk away from it', 'split up', 'kick it to the curb please',
+        'out on the curb', 'cut all ties', 'sever the tie',
+        'walked away', 'done with it romantically',
+        'thats over between us', 'we are through', 'through with it',
+        'over between us', 'split it up', 'parted ways',
+        'part ways with it', 'go our separate ways', 'separate ways',
+        'calling it over',
+        // pass CCCV: divorce / papers
+        'divorce papers', 'sign the papers', 'papers signed',
+        'file for divorce', 'filed the papers', 'dissolve the union',
+        'annulment', 'annul it', 'get an annulment', 'dissolution filed',
+        'custody battle over', 'alimony settled', 'decree absolute',
+        'decree nisi granted', 'irreconcilable differences',
+        'united it is not', 'untying the knot', 'untie the knot',
+        'knot untied',
+        // pass CCCV: JA 破談/婚約解消
+        '破談', '婚約解消', '婚約を解消', '婚約破棄', '婚約を破って',
+        '指輪を返して', '指輪を返却', '結婚をやめて', '結婚はなし',
+        '結婚取り消し', '披露宴をキャンセル', '挙式中止',
+        '結納を返して', 'エンゲージ解除', 'ブライダル解約',
+        // pass CCCV: JA 別れ/離縁
+        '別れよう', 'お別れにして', '別れ話を切り出して', '関係を清算',
+        '関係を終わらせて', '付き合いを終えて', '縁を絶って',
+        '絶縁して', '絶縁状を出して', '仲違いして', '疎遠にして',
+        '距離を置いて', '冷却期間を置いて', '別居して',
+        '家を出て行って', '追い出して', '追い出せ',
+        // pass CCCV: JA 離婚
+        '離婚', '離婚届', '離婚届を出して', '離婚して', '離縁', '離縁状',
+        '三行半', '離婚調停', '協議離婚', '慰謝料を請求',
+        '親権を取って', '籍を抜いて', '夫婦を解消', '婚姻を解消',
+        // pass CCCV: JA 振る/見限る
+        '振って', '振ってしまって', '捨ててしまって', '見捨ててしまって',
+        '愛想を尽かして', '見限って', '見切りをつけて', '諦めてしまって',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -21915,6 +21958,9 @@ export class VoiceCommands {
         // pass CCCIV: keep-working forms
         'keep working', 'stay on the clock',
         'still on shift', 'まだ仕事中', 'まだ勤務中', '仕事を続けて',
+        // pass CCCV: stay together — do not end it
+        'stay together', 'keep the ring', 'work it out', 'still engaged',
+        'まだ付き合ってる', '関係を続けて',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
