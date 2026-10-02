@@ -19918,6 +19918,19 @@ export class VoiceCommands {
         '入居日が決まって', '敷金を払って',
         '初月家賃を払って', '火災保険に入って',
         '契約が済んで', '大家に会って',
+        // pass CDIV: home-purchase closing
+        'house bought', 'bought the house',
+        'mortgage approved', 'loan approved',
+        'loan application done', 'offer accepted on the house',
+        'went into escrow', 'closed on the house',
+        'inspection done', 'appraisal done',
+        'title done', 'deed done',
+        '住宅ローンが通って', 'ローン審査を通して',
+        '売買契約を結んで', '決済を済ませて',
+        '登記が終わって', '内覧会をして',
+        '検査を受けて', '査定をして',
+        'マンションを買って', '家を買って',
+        '手付金を払って',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25840,6 +25853,9 @@ export class VoiceCommands {
         // pass CDIII: still at the signing
         'still signing paperwork', 'still at the signing',
         'まだ契約手続き中',
+        // pass CDIV: still house hunting / in escrow
+        'still house hunting', 'still in escrow',
+        'まだ物件探し中', 'まだローン審査中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
