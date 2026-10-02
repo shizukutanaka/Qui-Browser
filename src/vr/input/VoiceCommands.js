@@ -20634,6 +20634,15 @@ export class VoiceCommands {
         'ideco', '積立設定をして',
         '初回注文して', '口座開設して',
         '本人確認をして', '入金して',
+        // pass CDLXXVIII: year-end adjustment & deduction forms submitted
+        'adjustment submitted', 'withholding done',
+        'deduction forms in', 'dependent declared',
+        'insurance deduction claimed', 'payroll closed',
+        'spouse declared', 'tax slip arrived',
+        '年末調整', '扶養控除',
+        '保険料控除', '配偶者控除',
+        '源泉徴収票が来て', '基礎控除',
+        '控除証明書',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26765,6 +26774,9 @@ export class VoiceCommands {
         // pass CDLXXVII: still setting up the account
         'still investing', 'about to invest',
         'これから口座開設',
+        // pass CDLXXVIII: still filling out forms
+        'still filling',
+        'これから提出',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
