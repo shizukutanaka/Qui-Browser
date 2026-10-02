@@ -21096,6 +21096,18 @@ export class VoiceCommands {
         '同一世帯', '加算額',
         '中核家族', '除籍謄本',
         '受給権者',
+        // pass DXXIII: kindergarten enrollment procedures done
+        'kindergarten applied', 'entrance fee paid',
+        'uniform measured', 'interview passed',
+        'admission letter received',
+        '幼稚園入園', '入園願書',
+        '入園料', '願書提出',
+        '制服採寸', '年少',
+        '年中', '年長',
+        '満3歳', 'プレ保育',
+        '未就園児', '入園準備',
+        '園バス', '保護者会',
+        '入園式',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27350,6 +27362,9 @@ export class VoiceCommands {
         // pass DXXII: still mid survivor claim
         'still gathering documents', 'about to file the survivor claim',
         'まだ書類収集中', 'これから遺族年金請求',
+        // pass DXXIII: still mid school tour
+        'still touring schools', 'about to submit the application',
+        'まだ園見学中', 'これから入園手続き',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
