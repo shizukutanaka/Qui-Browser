@@ -20898,6 +20898,15 @@ export class VoiceCommands {
         '書類提出',
         '補償内容', '車両保険',
         '任意保険', '自賠責保険',
+        // pass DIII: farmland conversion & field-inheritance procedures done
+        'field inheritance filed', 'land registry updated',
+        'heir division done', 'boundary survey done',
+        'land use changed',
+        '農地転用', '転用許可',
+        '畑の相続', '農地相続',
+        '地目変更', '登記簿謄本',
+        '測量完了', '境界確定',
+        '農業委員会', '農地法',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27097,6 +27106,9 @@ export class VoiceCommands {
         // pass DII: still mid insurance switch
         'still switching insurers', 'about to switch insurers',
         'まだ切替中', 'これから切替',
+        // pass DIII: still mid farmland conversion
+        'still converting farmland', 'about to convert',
+        'まだ転用中', 'これから転用',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
