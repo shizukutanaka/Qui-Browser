@@ -20625,6 +20625,15 @@ export class VoiceCommands {
         '扶養に入って', '被扶養者',
         '任意継続', '国保に入って',
         '資格取得届',
+        // pass CDLXXVII: brokerage & tax-free account setup done
+        'nisa opened', 'brokerage account opened',
+        'ideco set up', 'first trade placed',
+        'portfolio funded', 'risk profile done',
+        'account verified', 'documents uploaded',
+        'nisa口座', 'つみたてnisa',
+        'ideco', '積立設定をして',
+        '初回注文して', '口座開設して',
+        '本人確認をして', '入金して',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26753,6 +26762,9 @@ export class VoiceCommands {
         // pass CDLXXVI: still enrolled
         'still enrolled', 'about to enroll',
         'まだ加入中', 'これから加入',
+        // pass CDLXXVII: still setting up the account
+        'still investing', 'about to invest',
+        'これから口座開設',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
