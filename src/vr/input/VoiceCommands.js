@@ -16638,6 +16638,50 @@ export class VoiceCommands {
         '旅行終了', '旅行が終わった', '旅が終わった', '休暇終了',
         '休暇が終わった', '連休終了', '観光終了', '現実に戻って',
         '日常に戻って', '家路につく', '家路', '帰宅ラッシュ',
+        // pass CCCXII: year winding down
+        'year wound down', 'year in the books', 'year ended',
+        'the year is over', 'year comes to a close', 'years end',
+        'end of the year', 'years end approaches', 'closing the year',
+        'out with the old', 'turn of the year', 'as the year closes',
+        'year draws to an end', 'year wrapped up', 'year reviewed',
+        'year retrospect done', 'year in review done',
+        // pass CCCXII: New Year's Eve ritual
+        'ball dropped', 'the ball has dropped', 'countdown ended',
+        'countdown hit zero', 'ten seconds left in the year',
+        'times square emptied', 'auld lang syne sung',
+        'sang auld lang syne', 'new years eve over', 'nye over',
+        'new years eve ended', 'confetti swept up',
+        'champagne finished', 'resolutions made', 'last toast of the year',
+        'fireworks finale done', 'midnight passed', 'clock struck new year',
+        // pass CCCXII: calendar / fiscal close
+        'calendar turned', 'last page of the calendar',
+        'calendar year ended', 'calendar flipped to january',
+        'january first', 'first of january', 'new calendar up',
+        'fiscal year closed', 'fy ended', 'fy closed', 'books closed for the year',
+        'year end close done', 'year end accounting done',
+        'annual report filed', 'year end settlement', 'books balanced for the year',
+        // pass CCCXII: holidays over
+        'holiday season ended', 'holidays over', 'christmas over',
+        'yuletide over', 'twelve days over', 'epiphany passed',
+        'tree came down', 'decorations down', 'lights taken down',
+        'ornaments boxed', 'back from the holidays', 'winter break over',
+        // pass CCCXII: JA 年末/年越し
+        '年末', '年越し', '年越しそばを食べて', '大晦日',
+        '年が明けて', '年が明けた', '新年が始まって', '除夜',
+        '除夜の鐘', '除夜の鐘が鳴り終わって', '鐘が鳴り終わって',
+        'カウントダウン終了', 'カウントダウンが終わって', 'ゆく年くる年終了',
+        '師走', '見納め', '納め', '年末年始終了', '年の瀬',
+        '一年が終わって', '今年も終わり', '今年が終わって',
+        // pass CCCXII: JA 決算/年度末
+        '年度末', '年度替わり', '会計年度終了', '決算終了',
+        '年末調整終了', '年度末処理', '決算を締めて', '帳簿を締めて',
+        '年次報告完了', '歳末', '歳末セール終了',
+        // pass CCCXII: JA 正月明け
+        'お正月が終わって', '正月明け', '松の内', '松が取れて',
+        '七草', '七草がゆを食べて', '年賀状をしまって',
+        '飾りを片付けて', '門松を外して', 'しめ縄を外して',
+        '鏡餅を下げて', '鏡開き', 'お年玉を配って', '初詣を済ませて',
+        '冬休みが終わって', '連休明け', '年末休暇終了',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -22264,6 +22308,9 @@ export class VoiceCommands {
         // pass CCCXI: extend the stay
         'extend the stay', 'stay another night', 'late checkout please',
         'keep the room', 'もう一泊して', '滞在を延ばして', 'まだ滞在中',
+        // pass CCCXII: keep celebrating
+        'keep the holidays going', 'stay for new years', 'still celebrating',
+        'まだ正月気分', 'お祝いを続けて', '年末気分のまま',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
