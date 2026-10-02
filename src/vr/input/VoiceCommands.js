@@ -20198,6 +20198,14 @@ export class VoiceCommands {
         '懐中電灯を確認して', '台風が過ぎて',
         '雨戸を戻して', '停電が復旧して',
         '飛散物を片付けて', 'ハザードマップを確認して',
+        // pass CDXXX: send-off & farewell organizer done
+        'farewell card signed', 'message card passed',
+        'bouquet ordered', 'sendoff speech done',
+        'saw them off', 'handed over duties',
+        'goodbye email sent',
+        'メッセージカードを回して', '寄せ書きを渡して',
+        '花束を用意して', '送別の挨拶をして',
+        '引き継ぎを終えて', 'お別れメールを送って',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26195,6 +26203,9 @@ export class VoiceCommands {
         // pass CDXXIX: still without power
         'still without power', 'still hunkered down',
         'まだ停電中', 'まだ警戒中',
+        // pass CDXXX: still collecting signatures
+        'still collecting signatures', 'still planning the sendoff',
+        'まだ寄せ書き集め中', 'まだ送別会の準備中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
