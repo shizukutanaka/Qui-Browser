@@ -20187,6 +20187,17 @@ export class VoiceCommands {
         '戦利品を広げて', 'ペンライトをしまって',
         '写真を整理して', 'コスプレをしまって',
         '打ち上げが終わって', 'オフ日に休んで',
+        // pass CDXXIX: disaster prep & typhoon aftermath done
+        'emergency kit packed', 'gobag ready',
+        'water stocked', 'batteries charged',
+        'flashlight checked', 'typhoon passed',
+        'shutters put away', 'debris cleared',
+        'hazard map checked',
+        '非常持出を用意して', '備蓄を確認して',
+        '水を備蓄して', '乾電池を買って',
+        '懐中電灯を確認して', '台風が過ぎて',
+        '雨戸を戻して', '停電が復旧して',
+        '飛散物を片付けて', 'ハザードマップを確認して',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26181,6 +26192,9 @@ export class VoiceCommands {
         // pass CDXXVIII: still at the festival
         'still at the festival', 'still traveling home',
         'まだフェス中', 'まだ帰り道',
+        // pass CDXXIX: still without power
+        'still without power', 'still hunkered down',
+        'まだ停電中', 'まだ警戒中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
