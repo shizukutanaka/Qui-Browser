@@ -19490,6 +19490,26 @@ export class VoiceCommands {
         'ホールを出て', '換金しました',
         '換金を済ませて', '軍資金を使い切って',
         '負けましたパチンコ', '勝ち逃げして',
+        // pass CCCLXXVI: dental treatment & braces-off end
+        'braces off', 'braces removed',
+        'retainer fitted', 'aligners done',
+        'last aligner tray', 'teeth straightened',
+        'off the braces',
+        'whitening done',
+        'filling done', 'root canal done',
+        'tooth pulled', 'implant done',
+        'crown set', 'denture fitted',
+        'wisdom teeth out', 'gum graft healed',
+        'dental work done', 'mouth healed',
+        'six month checkup done',
+        '矯正が外れて', '矯正終了',
+        'リテーナーをつけて', 'マウスピース終了',
+        '歯が綺麗になって', 'ホワイトニング終了',
+        '詰め物を入れて', '根管治療終了',
+        '親知らずを抜いて', 'インプラント終了',
+        '被せ物をつけて', '入れ歯ができて',
+        '銀歯が入って', '治療完了歯',
+        '歯医者を卒業して', '半年検診終了',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25327,6 +25347,9 @@ export class VoiceCommands {
         // pass CCCLXXV: still playing/at the track
         'still playing pachinko', 'still at the track',
         'まだパチンコ中', 'まだ麻雀中',
+        // pass CCCLXXVI: still in braces/treatment
+        'still in braces', 'still wearing aligners',
+        'まだ矯正中', 'まだ治療中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
