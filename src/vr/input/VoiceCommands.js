@@ -19931,6 +19931,16 @@ export class VoiceCommands {
         '検査を受けて', '査定をして',
         'マンションを買って', '家を買って',
         '手付金を払って',
+        // pass CDV: housewarming & greetings
+        'housewarming over', 'met the neighbors',
+        'dropped off gifts', 'gift delivered',
+        'welcome mat out', 'had people over',
+        'toured the new place', 'new home shown',
+        'blessed the house', 'house blessed',
+        '近所挨拶を終えて', '新居披露終了',
+        '新築披露終了', 'ハウスウォーミング終了',
+        'お披露目会終了', '人を招いて',
+        '家のお披露目', '地鎮祭をして',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25856,6 +25866,9 @@ export class VoiceCommands {
         // pass CDIV: still house hunting / in escrow
         'still house hunting', 'still in escrow',
         'まだ物件探し中', 'まだローン審査中',
+        // pass CDV: still greeting / hosting
+        'still greeting neighbors', 'still at the housewarming',
+        'まだ挨拶回り中', 'まだ披露会中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
