@@ -21669,6 +21669,16 @@ export class VoiceCommands {
         '若者サポートステーション', 'ジョブカフェ',
         '若者自立相談', 'サポステ',
         '若者自立塾',
+        // pass DLXX: dementia cafe attended & supporter trained
+        'dementia cafe attended', 'dementia-supporter trained',
+        '認知症カフェ', 'オレンジカフェ',
+        '認知症初期集中支援チーム', '認知症地域支援推進員',
+        'もの忘れ相談', '認知機能評価',
+        '家族介護教室', '介護者教室',
+        '認知症サポーター養成', 'オレンジパートナー',
+        '徘徊見守り', '認知症対応型デイ',
+        '認知症サポーター', 'オレンジプラン',
+        'アルツハイマー月間',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28058,6 +28068,9 @@ export class VoiceCommands {
         // pass DLXIX: still socially withdrawn
         'still socially withdrawn',
         'まだ閉じこもり中', 'これから相談予約',
+        // pass DLXX: still awaiting assessment
+        'still awaiting assessment',
+        'まだ介護前', 'これから認定審査',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
