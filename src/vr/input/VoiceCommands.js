@@ -20277,6 +20277,14 @@ export class VoiceCommands {
         '二次面接を終えて', '最終面接を終えて',
         'リファレンスチェックが終わって', '年収を交渉して',
         '入社日が決まって', '内定を承諾して',
+        // pass CDXXXVIII: care facility arrangement done
+        'facility toured', 'care manager met',
+        'level assessed', 'ramp installed',
+        'handrails installed', 'day service booked',
+        '施設を見学して', 'ケアマネと面談して',
+        '要介護認定が出て', 'スロープをつけて',
+        '手すりをつけて', 'デイサービスを申し込んで',
+        '初回訪問が終わって',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26297,6 +26305,9 @@ export class VoiceCommands {
         'まだ請求処理中', 'まだ示談交渉中',
         // pass CDXXXVII: still waiting on the offer
         'still waiting on the offer', 'まだ内定待ち',
+        // pass CDXXXVIII: still touring facilities
+        'still touring facilities', 'still waiting for assessment',
+        'まだ施設探し中', 'まだ認定待ち',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
