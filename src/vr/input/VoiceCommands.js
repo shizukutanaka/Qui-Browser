@@ -20685,6 +20685,16 @@ export class VoiceCommands {
         '就労証明', '入園面接',
         '保活', '入園決定',
         '延長保育', '園庭開放',
+        // pass CDLXXXIII: unemployment & jobseeker filing done
+        'unemployment filed', 'jobseeker registered',
+        'benefit days counted', 'first payment received',
+        'work search logged', 'hello work done',
+        'severance paid', 'benefits started',
+        '失業保険', '求職登録',
+        '受給資格', '給付日数',
+        '失業認定', '就職手当',
+        '再就職手当', '雇用保険',
+        '離職理由',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26829,6 +26839,9 @@ export class VoiceCommands {
         'still paying',
         // pass CDLXXXII: still waiting for a spot
         'still waiting',
+        // pass CDLXXXIII: still claiming benefits
+        'still claiming',
+        'まだ受給中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
