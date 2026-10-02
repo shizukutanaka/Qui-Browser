@@ -20306,6 +20306,16 @@ export class VoiceCommands {
         'おむつを買い置きして', '哺乳瓶を消毒して',
         'ベビールームを整えて', '入院バッグを用意して',
         '産休に入って', '出産準備リストを終えて',
+        // pass CDXLI: recital prep done
+        'costume fitted', 'costume picked up',
+        'tickets reserved', 'last rehearsal done',
+        'flowers ordered', 'video booked',
+        'program printed', 'recital prep done',
+        '衣装を受け取って', '衣装合わせが終わって',
+        'チケットを取って', 'リハーサルが終わって',
+        '通しリハが終わって', '最後の練習が終わって',
+        '花束を注文して', 'ビデオを予約して',
+        'パンフレットを印刷して', '発表会準備が終わって',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
