@@ -21570,6 +21570,15 @@ export class VoiceCommands {
         '登録申請書', '税務署窓口',
         '消費税届出', '課税選択',
         '免税適用',
+        // pass DLX: reemployment-support benefit granted / placement done
+        'reemployment allowance granted', 'placed in a new job',
+        '求職者支援', '就職促進手当',
+        '常用就職支度手当', '就職支度金',
+        '職業紹介', '職業相談',
+        '求人票', '紹介状',
+        '面接指導', '求職活動実績',
+        '雇用継続給付', '再就職支援',
+        '早期就職', 'ハローワーク紹介',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27929,6 +27938,9 @@ export class VoiceCommands {
         // pass DLIX: still unregistered for the invoice system
         'still unregistered',
         'まだ届出前', 'これから登録',
+        // pass DLX: still looking for work
+        'still looking for work',
+        'まだ求職中', 'これから面接',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
