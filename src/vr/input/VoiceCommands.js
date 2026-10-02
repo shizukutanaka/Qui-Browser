@@ -19681,6 +19681,24 @@ export class VoiceCommands {
         '支柱を立てて', '柵を塗って',
         'デッキを塗って', '高圧洗浄終了',
         '雨樋を掃除して', '雪かき終了',
+        // pass CCCLXXXVI: morning-routine end
+        'flossed', 'showered and dressed',
+        'got dressed', 'dressed for work',
+        'hair done',
+        'packed my bag', 'coffee made',
+        'breakfast done', 'bed made morning',
+        'out the door on time', 'caught the train',
+        'commute done morning', 'kids off to school',
+        'family out the door', 'morning routine done',
+        'walked the dog morning', 'watered the plants morning',
+        '歯磨き終了', '顔を洗って',
+        'シャワーを浴びて', '服を着て',
+        '化粧終了', '髪を整えて',
+        'カバンを準備して', 'お弁当を作って',
+        'コーヒーを淹れて', '朝ごはん終了',
+        '家を出て', '電車に乗って',
+        '家族が出て', '朝の支度終了',
+        '犬を散歩して', '花に水をやって',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25549,6 +25567,9 @@ export class VoiceCommands {
         // pass CCCLXXXV: still gardening
         'still gardening', 'still weeding',
         'まだ作業中', 'まだ草むしり中',
+        // pass CCCLXXXVI: still getting ready
+        'still getting ready', 'still in the bathroom',
+        'まだ準備中です', 'まだお風呂中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
