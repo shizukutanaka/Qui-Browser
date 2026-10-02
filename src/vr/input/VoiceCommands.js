@@ -21172,6 +21172,20 @@ export class VoiceCommands {
         '住民訴訟', '監査請求書',
         '陳情', '請願',
         '審査会意見',
+        // pass DXXIX: patent & trademark filing done
+        'patent filed', 'trademark registered',
+        'application published', 'office action answered',
+        '特許出願', '商標登録',
+        '実用新案', '意匠登録',
+        '出願公開', '審査請求',
+        '拒絶理由通知', '応答期間',
+        '分割出願', '優先権主張',
+        '国際出願', 'pct出願',
+        '登録査定', '拒絶査定',
+        '特許料納付', '年金納付',
+        '侵害警告', '先行技術調査',
+        '弁理士相談', '出願人名義',
+        '職務発明', '特許庁',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27444,6 +27458,9 @@ export class VoiceCommands {
         // pass DXXVIII: still mid disclosure wait
         'still awaiting disclosure', 'about to request records',
         'これから開示請求',
+        // pass DXXIX: still mid patent prep
+        'still drafting claims', 'about to file the application',
+        'まだ審査請求前', 'これから出願',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
