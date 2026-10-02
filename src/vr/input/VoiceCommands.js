@@ -21240,6 +21240,20 @@ export class VoiceCommands {
         '災害免除', '所得段階',
         '保険料率', '基準額',
         '過誤納金', '第2号被保険者',
+        // pass DXXXIV: land readjustment procedures done
+        'land readjustment approved', 'final plot assigned',
+        '区画整理', '換地',
+        '仮換地', '清算金',
+        '地権者', '土地区画整理事業',
+        '事業認可', '縦覧',
+        '縦覧期間', '換地計画',
+        '換地処分', '保留地',
+        '減歩', '減歩率',
+        '公共施設', '移転補償',
+        '工事費負担', '組合設立',
+        '総会決議', '評価額',
+        '従前', '従後',
+        '換地証明', '登記協力',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27526,6 +27540,9 @@ export class VoiceCommands {
         // pass DXXXIII: still mid premium billing
         'still paying premiums', 'about to request the refund',
         'これから保険料納付',
+        // pass DXXXIV: still mid land readjustment
+        'still negotiating the swap', 'about to file objections',
+        'これから換地',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
