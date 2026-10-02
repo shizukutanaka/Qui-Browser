@@ -21411,6 +21411,18 @@ export class VoiceCommands {
         '援助会員', '開所時間',
         '利用定員', '指導員',
         '入会金', '保育料',
+        // pass DXLVI: pension record & statement procedures done
+        'pension statement checked',
+        'record verified',
+        'ねんきん定期便', 'ねんきんネット',
+        '年金ダイヤル', '年金記録',
+        '被保険者記録', '加入記録',
+        '記録確認', '年金相談',
+        '共済組合', '基金代行',
+        '脱退一時金', '加入期間',
+        '保険料納付状況', '見込額',
+        '試算結果', '老齢年金',
+        '特別支給', 'カード再交付',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27733,6 +27745,9 @@ export class VoiceCommands {
         // pass DXLV: still on childcare waitlist
         'still on waitlist',
         'まだ入会前', 'まだ待機中',
+        // pass DXLVI: still checking pension records
+        'still checking records',
+        'まだ確認前', 'これから照会',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
