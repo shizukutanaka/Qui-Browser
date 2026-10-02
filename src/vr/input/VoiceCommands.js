@@ -21730,6 +21730,16 @@ export class VoiceCommands {
         '航空運賃割引', '鉄道割引',
         'タクシー券', '福祉乗車証',
         '介護保険負担減額', '減免申請',
+        // pass DLXXVI: newborn visit done & hearing screen passed
+        'newborn visit done', 'hearing screen passed',
+        '保健師', '助産師',
+        '母乳相談', '離乳食指導',
+        '母乳外来', '両親学級',
+        '妊婦教室', '母親学級',
+        '妊婦歯科健診', '妊婦健診券',
+        '妊婦健診受診票', '出生連絡票',
+        '乳児家庭全戸訪問', 'こんにちは赤ちゃん',
+        '新生児聴覚検査', '新生児訪問指導',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28137,6 +28147,9 @@ export class VoiceCommands {
         // pass DLXXV: still not eligible
         'still not eligible',
         'まだ減免前', 'これから割引申請',
+        // pass DLXXVI: still expecting the visit
+        'still expecting the visit',
+        'まだ健診前', 'これから相談訪問',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
