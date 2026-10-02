@@ -21005,6 +21005,16 @@ export class VoiceCommands {
         '労働基準監督署', '第三者行為災害',
         '遺族補償', '安全衛生委員会',
         '過労死認定',
+        // pass DXIV: consumer-fraud rescission procedures done
+        'contract rescinded', 'refund recovered',
+        'fraud reported',
+        '契約取消', '悪質商法',
+        '訪問販売', '点検商法',
+        '消費者センター', '被害回復',
+        '内金返還', '解約通知',
+        '架空請求', '利殖勧誘',
+        'マルチ商法', '特定商取引法',
+        '契約書受領',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27233,6 +27243,8 @@ export class VoiceCommands {
         'まだ免除審査中', 'これから免除申請',
         // pass DXIII: still mid claim evidence
         'still gathering evidence',
+        // pass DXIV: still mid rescission negotiation
+        'still seeking redress',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
