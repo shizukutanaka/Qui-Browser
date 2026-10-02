@@ -21108,6 +21108,20 @@ export class VoiceCommands {
         '未就園児', '入園準備',
         '園バス', '保護者会',
         '入園式',
+        // pass DXXIV: vacant-house bank & relocation procedures done
+        'moved to the countryside', 'relocation grant received',
+        'trial housing entered', 'empty house registered',
+        'town tour done',
+        '空き家バンク', '移住支援金',
+        '移住相談', 'お試し住宅',
+        '空き家登録', 'uiターン',
+        '地方移住', '田舎暮らし',
+        'ふるさと回帰', '移住体験',
+        '定住促進', '移住フェア',
+        '空き家改修', '田舎物件',
+        '限界集落', '二拠点生活',
+        'デュアルライフ', '関係人口',
+        'ワーケーション', '移住計画',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27365,6 +27379,9 @@ export class VoiceCommands {
         // pass DXXIII: still mid school tour
         'still touring schools', 'about to submit the application',
         'まだ園見学中', 'これから入園手続き',
+        // pass DXXIV: still mid relocation
+        'about to register the property',
+        'これから移住',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
