@@ -20060,6 +20060,18 @@ export class VoiceCommands {
         'カーシェアを申し込んで', '充電器を設置して',
         'ev充電を設置して', '充電スポットを作って',
         '専用駐車場を決めて', '駐車許可証をもらって',
+        // pass CDXVI: neighborhood & community
+        'joined the neighborhood association',
+        'met the block captain', 'circulated the notice board',
+        'passed the kairanban', 'garbage rules learned',
+        'duty roster set', 'community dues paid',
+        'street cleaning done', 'met the landlord',
+        'said hi to the neighbors',
+        '町内会に入って', '回覧板を回して',
+        '組長に会って', 'ゴミのルールを覚えて',
+        '当番を決めて', '町内費を払って',
+        '掃除当番を終えて', '大家に挨拶して',
+        '自治会に入って', '回覧を渡して',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26018,6 +26030,9 @@ export class VoiceCommands {
         // pass CDXV: still looking for parking
         'still looking for parking', 'still applying',
         'まだ駐車場探し中', 'まだ申し込み中',
+        // pass CDXVI: still new to the area
+        'still new to the area', 'still learning the rules',
+        'まだ回覧板中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
