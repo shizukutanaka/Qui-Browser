@@ -21379,6 +21379,15 @@ export class VoiceCommands {
         '退院支援', '精神保健福祉センター',
         '保健所', '地域活動支援センター',
         '精神障害者', '障害福祉計画',
+        // pass DXLIII: late-elderly medical insurance procedures done
+        'insurance card received',
+        'copay tier set',
+        'high-cost refund filed',
+        '後期高齢者医療', '保険証交付',
+        '負担割合', '特定疾病',
+        '限度額適用認定証', '資格喪失',
+        '医療費自己負担', '広域連合',
+        '健診受診券',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27693,6 +27702,8 @@ export class VoiceCommands {
         // pass DXLII: still mid mental-health treatment
         'still in treatment',
         'これから受診', 'まだ相談前',
+        // pass DXLIII: still before elderly-insurance switch
+        'まだ加入前', 'これから移行',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
