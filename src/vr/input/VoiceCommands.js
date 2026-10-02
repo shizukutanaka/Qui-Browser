@@ -20822,6 +20822,18 @@ export class VoiceCommands {
         '特別養護老人ホーム', '特養',
         '有料老人ホーム', 'サービス付き高齢者住宅',
         'サ高住',
+        // pass CDXCVI: care-taxi & home-visit care service contracts done
+        'care contract signed', 'home visit booked',
+        'care taxi arranged', 'helper assigned',
+        'service started', 'schedule fixed',
+        'provider picked',
+        '介護タクシー', '訪問介護',
+        '介護契約',
+        'ホームヘルパー',
+        'サービス開始', '利用開始',
+        '初回訪問', '事業者決定',
+        'デイケア',
+        '紹介済み',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26999,6 +27011,9 @@ export class VoiceCommands {
         'まだ更生中',
         // pass CDXCV: still mid move-in
         'まだ入居中',
+        // pass CDXCVI: still arranging care services
+        'still arranging', 'about to book',
+        'まだ手配中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
