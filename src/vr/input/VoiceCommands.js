@@ -21158,6 +21158,20 @@ export class VoiceCommands {
         'おたより作成', '生活困窮者',
         '独居老人訪問', '虐待通報',
         '民生委員として',
+        // pass DXXVIII: FOI & resident-audit procedures done
+        'disclosure request filed', 'documents disclosed',
+        'request granted', 'audit petition filed',
+        '情報公開請求', '開示請求',
+        '公文書開示', '不開示決定',
+        '部分開示', '第三者意見',
+        '延長決定', '開示決定',
+        '開示実施', '請求取下げ',
+        '審査会', '情報公開条例',
+        '住民監査請求', '監査結果',
+        '勧告', '監査委員',
+        '住民訴訟', '監査請求書',
+        '陳情', '請願',
+        '審査会意見',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27427,6 +27441,9 @@ export class VoiceCommands {
         // pass DXXVII: still mid commissioner term
         'about to be commissioned',
         'まだ巡回中', 'これから委員活動',
+        // pass DXXVIII: still mid disclosure wait
+        'still awaiting disclosure', 'about to request records',
+        'これから開示請求',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
