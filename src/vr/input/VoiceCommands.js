@@ -20364,6 +20364,17 @@ export class VoiceCommands {
         '掃除を済ませて', '希望価格を決めて',
         '不用品を処分して', '売り出しを始めて',
         '引き渡しを終えて', '確定申告を終えて',
+        // pass CDXLVII: landlord-side done
+        'tenant screened', 'lease renewed',
+        'key returned', 'unit cleaned',
+        'deposit refunded', 'deposit kept',
+        'repair quoted', 'painting done',
+        'walkthrough inspected',
+        '入居者を審査して', '契約を更新して',
+        '家賃を回収して', '鍵を返してもらって',
+        '部屋を掃除して', '敷金を返して',
+        '敷金を差し引いて', '修理見積もりを取って',
+        '壁紙を張り替えて', '退去立ち会いをして',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26408,6 +26419,9 @@ export class VoiceCommands {
         // pass CDXLVI: still selling
         'still selling', 'about to list',
         'まだ売り出し中', 'これから査定する',
+        // pass CDXLVII: still collecting rent
+        'still collecting rent', 'about to inspect',
+        'まだ家賃回収中', 'これから立ち会う',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
