@@ -20536,6 +20536,15 @@ export class VoiceCommands {
         '定期検診', '予約して',
         '呼ばれて', 'フッ素を塗って',
         'クリーニング', '虫歯を治して',
+        // pass CDLXVI: farm co-op & field-planting done
+        'planting done', 'seeds in',
+        'fields planted', 'crop shipped',
+        'coop visited', 'dues paid',
+        'tractor returned', 'rice planted',
+        '作付け終了', '種をまいて',
+        '出荷して', '組合費を払って',
+        '田植え終了', '畑を耕して',
+        '野菜を出荷して',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26635,6 +26644,8 @@ export class VoiceCommands {
         // pass CDLXV: still at the dentist
         'still at the dentist',
         'これから歯医者',
+        // pass CDLXVI: still planting
+        'これから植える',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
