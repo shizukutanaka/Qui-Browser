@@ -21319,6 +21319,24 @@ export class VoiceCommands {
         '社会的養護', '一時保護',
         '保護者支援', '里親会',
         '養育記録', '委託契約書',
+        // pass DXXXIX: fishing rights & co-op procedures done
+        'fishing rights granted', 'coop membership joined',
+        'quota set',
+        '漁業権', '入会権',
+        '漁業権免許', '共同漁業権',
+        '定置漁業権', '区画漁業権',
+        '漁業協同組合', '漁協',
+        '組合員', '出資金',
+        '漁業組合', '総代会',
+        '漁場', '漁獲高',
+        '漁獲量', '漁獲規則',
+        '採捕規則', '禁漁期間',
+        '解禁日', '遊漁料',
+        '遊漁券', '漁船登録',
+        '漁船検査', '漁港',
+        '漁港整備', '漁師会',
+        '漁業従事者', '入会地',
+        '漁業調整委員会', '漁業紛争',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27620,6 +27638,9 @@ export class VoiceCommands {
         // pass DXXXVIII: still mid foster process
         'still in training',
         'まだ里親', 'これから里親',
+        // pass DXXXIX: still before fishing season
+        'まだ漁期前', 'これから漁期',
+        'まだ組合',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
