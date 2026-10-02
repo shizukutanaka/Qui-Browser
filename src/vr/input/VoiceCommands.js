@@ -20423,6 +20423,16 @@ export class VoiceCommands {
         '最後のレッスンを終えて', '進級テストに受かって',
         '教室を卒業して', '水泳教室を終えて',
         'ピアノ教室を卒業して',
+        // pass CDLIII: certification-exam done
+        'exam sat', 'results posted',
+        'score report in', 'cert mailed',
+        'proctored exam done', 'toefl taken',
+        'exam fee paid', 'retake passed',
+        '検定を受けて', '試験に受かって',
+        '合否が出て', 'スコアレポートが届いて',
+        '資格証が届いて', '受験料を払って',
+        '再受験に受かって', '簿記試験を受けて',
+        '英検を受けて', '漢検を受けて',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26485,6 +26495,9 @@ export class VoiceCommands {
         // pass CDLII: still taking lessons
         'still taking lessons', 'about to finish level',
         'まだ教室に通って', 'これから進級テスト',
+        // pass CDLIII: still studying for the exam
+        'still studying for the exam', 'about to sit the exam',
+        'まだ試験勉強中', 'これから受験する',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
