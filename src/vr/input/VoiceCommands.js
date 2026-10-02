@@ -20480,6 +20480,13 @@ export class VoiceCommands {
         '任期を終えて', '印鑑を返して',
         '掲示板を更新して', '総会資料を作って',
         '引き継ぎメモを渡して', '後任を決めて',
+        // pass CDLIX: tax & municipal-payment errand done
+        'property tax paid', 'installment paid',
+        'payment slip stamped', 'receipt kept',
+        'notice mailed back', 'counter visited',
+        'window number called',
+        '年金を納めて', '保険料を納めて',
+        '納付書を払って', '整理券を取って',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26559,6 +26566,9 @@ export class VoiceCommands {
         'まだ記入中', 'これから提出する',
         // pass CDLVIII: still on the board
         'still on the board', 'まだ班長中',
+        // pass CDLIX: still paying taxes
+        'still paying taxes', 'about to pay',
+        'まだ納付中', 'これから納める',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
