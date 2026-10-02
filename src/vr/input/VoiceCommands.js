@@ -21690,6 +21690,16 @@ export class VoiceCommands {
         '助け合い活動', '福祉おばさん',
         '福祉おじさん', '福祉委員',
         '町内福祉員',
+        // pass DLXXII: housing-support joined & safety-net registered
+        'housing-support joined', 'safety-net registered',
+        '住宅セーフティネット', '居住支援協議会',
+        '円滑入居賃貸住宅', 'サポート付き住宅',
+        '拒まない賃貸住宅', '高齢者住宅',
+        '障害者住宅', '住宅確保要配慮者',
+        '民間賃貸促進', '空き家再生',
+        '家賃債務保証', '緊急連絡先登録',
+        '見守りサービス', '居住支援団体',
+        'あんしん入居',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28085,6 +28095,9 @@ export class VoiceCommands {
         // pass DLXXI: still awaiting welfare review
         'still awaiting welfare review',
         'まだ相談窓口', 'これから登録面談',
+        // pass DLXXII: still houseless
+        'still houseless',
+        'まだ住宅探し中', 'これから入居審査',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
