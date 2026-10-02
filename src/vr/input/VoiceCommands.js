@@ -20316,6 +20316,15 @@ export class VoiceCommands {
         '通しリハが終わって', '最後の練習が終わって',
         '花束を注文して', 'ビデオを予約して',
         'パンフレットを印刷して', '発表会準備が終わって',
+        // pass CDXLII: furusato & resident-tax done
+        'furusato filed', 'furusato done',
+        'hometown tax done', 'one stop filed',
+        'resident tax adjusted', 'tax notice arrived',
+        'donation limit checked', 'return gifts picked',
+        'ふるさと納税を済ませて', 'ワンストップを出して',
+        '限度額を確認して', '返礼品を選んで',
+        '住民税の通知が来て', '確定申告の後片付け',
+        '住民税を納めて', '納税を済ませて',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26345,6 +26354,9 @@ export class VoiceCommands {
         // pass CDXL: still shopping for baby
         'still shopping for baby', 'still expecting',
         'まだ買い足し中',
+        // pass CDXLII: still doing furusato
+        'still doing furusato', 'about to file furusato',
+        'まだふるさと納税中', 'これからふるさと納税',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
