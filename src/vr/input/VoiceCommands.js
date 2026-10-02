@@ -21760,6 +21760,16 @@ export class VoiceCommands {
         '職業性疾病', '職業病認定',
         '二次健康診断', '特殊健康診断',
         '定期健康診断', '雇入れ時健康診断',
+        // pass DLXXIX: bike registration done & impounded bike reclaimed
+        'bike registration done', 'impounded bike reclaimed',
+        '防犯登録', '自転車駐車',
+        '放置自転車', '撤去警告',
+        '保管引取', '防犯登録番号',
+        '自転車保険加入', '安全利用促進',
+        '駐輪料金', '定期駐輪券',
+        '乗入禁止', '違法駐輪',
+        '電動自転車', '自転車安全基準',
+        'ヘルメット努力義務', '自転車保険',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28176,6 +28186,9 @@ export class VoiceCommands {
         // pass DLXXVIII: still awaiting diagnosis
         'still awaiting diagnosis',
         'まだ認定前', 'まだ職業性確認',
+        // pass DLXXIX: still unregistered for the bike
+        'still unregistered for the bike',
+        'まだ防犯登録前', 'まだ駐輪前',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
