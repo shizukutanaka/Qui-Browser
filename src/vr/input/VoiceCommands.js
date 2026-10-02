@@ -19465,6 +19465,31 @@ export class VoiceCommands {
         'エンディングノートを書いて', '財産目録を作って',
         '遺族年金手続き終了', '名義変更をして墓',
         '葬儀社を決めて', '棺を納めて',
+        // pass CCCLXXV: pachinko & racetrack end
+        'pachinko done', 'last ball spent',
+        'slots done parlor', 'parlor emptied',
+        'smoke cleared parlor',
+        'mahjong done', 'hanchan over',
+        'keno done', 'bingo done',
+        'lottery scratched',
+        'race over track', 'bet settled',
+        'bookie paid', 'stable closed',
+        'track done', 'paddock emptied',
+        'last race done', 'day at the races done',
+        'cashed the ticket', 'ticket cashed track',
+        'winnings collected',
+        'パチンコ終了', '出玉を流して',
+        '景品を受け取って', '玉を流して',
+        'スロット終了', '閉店パチンコ',
+        '麻雀終了', '半荘終了',
+        '競馬終了', '馬券を清算して',
+        '払い戻しを受けて', 'パドックを出て',
+        '賭けを終えて', 'ボート終了',
+        '競輪終了', 'オート終了',
+        'ラストレース終了', '館を出てパチンコ',
+        'ホールを出て', '換金しました',
+        '換金を済ませて', '軍資金を使い切って',
+        '負けましたパチンコ', '勝ち逃げして',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25299,6 +25324,9 @@ export class VoiceCommands {
         // pass CCCLXXIV: still in probate
         'still in probate', 'still sorting belongings',
         'まだ相続手続き中', 'まだ遺品整理中',
+        // pass CCCLXXV: still playing/at the track
+        'still playing pachinko', 'still at the track',
+        'まだパチンコ中', 'まだ麻雀中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
