@@ -20145,6 +20145,17 @@ export class VoiceCommands {
         '還付金が入って', '納付を済ませて',
         '書類を整理して', 'レシートを分けて',
         '書類を保管して', '延納を申請して',
+        // pass CDXXV: tsuyu-lift & summer-setup done
+        'rainy season over', 'tsuyu lifted',
+        'wardrobe switched', 'summer clothes out',
+        'fan set up', 'ac serviced',
+        'heat curtain up', 'mosquito net hung',
+        'winter clothes stored', 'cold gear put away',
+        '梅雨が明けて', '梅雨明けしました',
+        '衣替えをして', '夏服を出して',
+        '扇風機を出して', 'エアコンを掃除して',
+        'すだれをかけて', '蚊帳を張って',
+        '冬服をしまって', '防寒具をしまって',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26128,6 +26139,9 @@ export class VoiceCommands {
         // pass CDXXIV: still waiting for the refund
         'still waiting for the refund', 'still sorting receipts',
         'まだ還付待ち', 'まだ書類整理中',
+        // pass CDXXV: still in rainy season
+        'still in rainy season', 'still humid',
+        'まだ梅雨の中', 'まだ蒸し暑い',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
