@@ -21122,6 +21122,17 @@ export class VoiceCommands {
         '限界集落', '二拠点生活',
         'デュアルライフ', '関係人口',
         'ワーケーション', '移住計画',
+        // pass DXXV: care-insurance copay-tier procedures done
+        'burden tier assessed', 'limit amount approved',
+        'copay refund received', 'tier changed',
+        '負担割合証', '負担限度額認定',
+        '限度額認定証', '所得区分',
+        '高額介護サービス費', '高額医療介護合算',
+        '特定入所者介護', '施設食費',
+        '居住費', '世帯分離',
+        '境界層', '非課税世帯',
+        '生活保護受給', '還付手続き',
+        '窓口負担',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27382,6 +27393,9 @@ export class VoiceCommands {
         // pass DXXIV: still mid relocation
         'about to register the property',
         'これから移住',
+        // pass DXXV: still mid tier assessment
+        'still reviewing the tier', 'about to apply for the limit',
+        'まだ認定審査中', 'これから限度額申請',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
