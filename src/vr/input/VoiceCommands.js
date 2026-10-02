@@ -20453,6 +20453,15 @@ export class VoiceCommands {
         '書留を出して', '返送して',
         '伝票を書いて', 'ポストに投函して',
         '郵便局を出て', 'ゆうパックを出して',
+        // pass CDLVI: letter-writing & reunion-committee done
+        'letter written', 'invites mailed',
+        'address book updated', 'roster done',
+        'dues collected', 'reminder sent',
+        'rsvp count done', 'venue confirmed',
+        '手紙を書いて', 'お礼状を出して',
+        '名簿を作って', '会費を集めて',
+        '連絡を回して', '出欠を取って',
+        '案内状を送って', '宛名書きをして',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26524,6 +26533,9 @@ export class VoiceCommands {
         // pass CDLV: still mailing
         'still mailing', 'about to mail',
         'まだ発送中', 'これから発送する',
+        // pass CDLVI: still writing letters
+        'still writing letters', 'about to write',
+        'まだ執筆中', 'これから手紙を書く',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
