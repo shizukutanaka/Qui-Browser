@@ -19359,6 +19359,30 @@ export class VoiceCommands {
         '駐輪場に停めて', '定期を通して',
         '電車を降りて', '座れました電車',
         '通勤ラッシュ終了',
+        // pass CCCLXXI: vacation-return & long-weekend end
+        'weekend over', 'long weekend over',
+        'reality check back', 'sunday night back',
+        'monday reset', 'back in the grind',
+        'back to the grind', 'days off used',
+        'pto over', 'staycation done',
+        'staycation over',
+        'suitcase unpacked', 'unpacked the suitcase',
+        'jet lag gone', 'jet lag over',
+        'beat the jet lag', 'souvenirs handed out',
+        'gifts handed out trip', 'mail collected home',
+        'plants watered back', 'fridge restocked home',
+        'laundry done back', 'album done trip',
+        'back at the desk', 'office bound again',
+        'routine resumed',
+        '週末終了', '三連休終了',
+        '休み明け', '休暇明け',
+        'ゴールデンウィーク終了', 'シルバーウィーク終了',
+        '休暇を終えて', '仕事モードに戻って',
+        '旅の思い出をしまって', '土産を配って',
+        '時差ボケが治って', 'スーツケースを空にして',
+        '旅行から戻って', '帰省から戻って',
+        '羽伸ばし終了', '骨休め終了',
+        'リフレッシュ休暇終了',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25180,6 +25204,9 @@ export class VoiceCommands {
         // pass CCCLXX: still commuting
         'still commuting', 'still on the train',
         'まだ通勤中', 'まだ電車の中',
+        // pass CCCLXXI: still on vacation
+        'still on vacation', 'still on holiday',
+        'まだ休暇中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
