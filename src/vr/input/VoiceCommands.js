@@ -21186,6 +21186,21 @@ export class VoiceCommands {
         '侵害警告', '先行技術調査',
         '弁理士相談', '出願人名義',
         '職務発明', '特許庁',
+        // pass DXXX: volunteer fire-brigade enrollment done
+        'joined the fire brigade', 'drill completed',
+        'brigade resigned',
+        '消防団', '消防団入団',
+        '入団届', '退団届',
+        '消防団員', '分団',
+        '部隊編成', '消防訓練',
+        '訓練礼式', '操法大会',
+        '出初式', '年末警戒',
+        '火災警戒', '警防活動',
+        '消火栓確認', '水利確認',
+        '防火パトロール', '団員手当',
+        '報酬支給', '非常招集',
+        '緊急出動', 'ポンプ操作',
+        'ホース巻き', '消防本部',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27461,6 +27476,9 @@ export class VoiceCommands {
         // pass DXXIX: still mid patent prep
         'still drafting claims', 'about to file the application',
         'まだ審査請求前', 'これから出願',
+        // pass DXXX: still mid brigade duty
+        'still on standby', 'about to join the brigade',
+        'これから入団',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
