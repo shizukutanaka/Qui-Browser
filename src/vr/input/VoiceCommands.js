@@ -20810,6 +20810,18 @@ export class VoiceCommands {
         'ビザ更新', '資格変更',
         '入国管理局', '入管局',
         '認定証明書', '再入国許可',
+        // pass CDXCV: elder-care facility move-in contract procedures done
+        'moved into the home', 'nursing home contract signed',
+        'facility tour done', 'level of care assessed',
+        'care plan signed', 'room assigned',
+        'belongings moved in',
+        '老人ホーム',
+        '施設見学',
+        '入居一時金', 'ケアプラン',
+        '部屋決定', '持ち物搬入',
+        '特別養護老人ホーム', '特養',
+        '有料老人ホーム', 'サービス付き高齢者住宅',
+        'サ高住',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26985,6 +26997,8 @@ export class VoiceCommands {
         'still amending', 'about to amend',
         'まだ修正中', 'これから修正',
         'まだ更生中',
+        // pass CDXCV: still mid move-in
+        'まだ入居中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
