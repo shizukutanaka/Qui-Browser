@@ -20433,6 +20433,15 @@ export class VoiceCommands {
         '資格証が届いて', '受験料を払って',
         '再受験に受かって', '簿記試験を受けて',
         '英検を受けて', '漢検を受けて',
+        // pass CDLIV: cleanup & recycling-duty done
+        'cans sorted', 'cardboard bundled',
+        'collection done', 'gomi station swept',
+        'bulky trash scheduled', 'duty rota done',
+        'street swept',
+        '缶を分別して', '瓶を洗って',
+        '段ボールを束ねて', '集会所を掃除して',
+        '粗大ゴミを予約して', '回収当番を終えて',
+        '町内清掃を終えて', 'ゴミ集積所を掃除して',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26498,6 +26507,9 @@ export class VoiceCommands {
         // pass CDLIII: still studying for the exam
         'still studying for the exam', 'about to sit the exam',
         'まだ試験勉強中', 'これから受験する',
+        // pass CDLIV: still on cleanup duty
+        'still on cleanup duty', 'about to sort',
+        'まだ清掃当番中', 'これから分別する',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
