@@ -20778,6 +20778,14 @@ export class VoiceCommands {
         '里親', '児童相談所',
         '実親同意', '家庭裁判所許可',
         '入籍済み', '里子',
+        // pass CDXCII: presumed-death declaration & missing-person procedures done
+        'presumed dead', 'missing person found',
+        'vanished for seven years', 'estate opened',
+        'survivor benefits paid', 'search called off',
+        '失踪宣告', '認定死亡',
+        '失踪届', '行方不明者',
+        '七年経過', '遺産凍結',
+        '捜索願', '捜索終了',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26945,6 +26953,10 @@ export class VoiceCommands {
         // pass CDXCI: still in the adoption process
         'still adopting',
         'まだ縁組中', 'これから縁組',
+        // pass CDXCII: search still running / person still missing
+        'still searching', 'search ongoing',
+        'still searching for them',
+        'まだ捜索中', 'これから捜索',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
