@@ -20799,6 +20799,17 @@ export class VoiceCommands {
         '白色申告', '税務署',
         '控除追加', '領収書再提出',
         '異議申立',
+        // pass CDXCIV: permanent-residency & naturalization procedures done
+        'permanent residency granted', 'naturalization approved',
+        'visa renewed', 'residence card issued',
+        'immigration appointment done', 'certificate of eligibility',
+        'reentry permit stamped', 'status changed',
+        '永住権', '永住許可',
+        '帰化', '帰化申請',
+        '在留資格', '在留カード',
+        'ビザ更新', '資格変更',
+        '入国管理局', '入管局',
+        '認定証明書', '再入国許可',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -24099,7 +24110,7 @@ export class VoiceCommands {
         'セキュリティ状態', '危険なサイト', 'セキュアですか',
         '危険ですか', '危ないですか', '暗号化されてる', '暗号化されている',
         '暗号化されてますか', '接続は安全', '通信は安全',
-        /(?<!disability )certificate(?!\s+of\s+(?:occupancy|incorporation|deposit|insurance|origin))/i,
+        /(?<!disability )certificate(?!\s+of\s+(?:occupancy|incorporation|deposit|insurance|origin|eligibility))/i,
         /is (it|this) secure/i, /is this (safe|https)/i, /secure connection/i],
       action: () => {
         const url = tabManager?.getActiveTab?.()?.currentUrl;
