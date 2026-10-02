@@ -21086,6 +21086,16 @@ export class VoiceCommands {
         '増額率', '在職老齢年金',
         '加給年金', '振替加算',
         '厚生年金基金', '共済年金',
+        // pass DXXII: survivor pension claim procedures done
+        'survivor pension claimed', 'unpaid pension claimed',
+        'widow pension granted', 'death benefit received',
+        '遺族年金', '遺族基礎年金',
+        '遺族厚生年金', '未支給年金',
+        '寡婦年金', '死亡一時金',
+        '年金請求書', '生計維持',
+        '同一世帯', '加算額',
+        '中核家族', '除籍謄本',
+        '受給権者',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27337,6 +27347,9 @@ export class VoiceCommands {
         // pass DXXI: still mid pension election
         'still deciding the start date', 'about to elect deferral',
         'まだ受給時期検討中', 'これから繰下げ申請',
+        // pass DXXII: still mid survivor claim
+        'still gathering documents', 'about to file the survivor claim',
+        'まだ書類収集中', 'これから遺族年金請求',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
