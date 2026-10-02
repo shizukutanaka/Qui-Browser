@@ -20227,6 +20227,15 @@ export class VoiceCommands {
         '図書カードを更新して', 'コピーを取って',
         'スキャンを保存して', '本を借りて',
         '期限内に返して',
+        // pass CDXXXIII: manga-cafe & car-camp checkout done
+        'netcafe done', 'slept at the manga cafe',
+        'left the booth', 'car slept',
+        'roadside station done', 'slept in the car',
+        'free drinks had', 'netcafe bill paid',
+        'ネカフェを出て', '漫画喫茶を出て',
+        'ブースを出て', '車中泊して',
+        '道の駅を出て', '車で寝て',
+        'フリードリンクを飲んで', 'ネカフェ代を払って',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26233,6 +26242,9 @@ export class VoiceCommands {
         // pass CDXXXII: still overdue
         'still overdue', 'まだ延滞中',
         'まだ借りてる',
+        // pass CDXXXIII: still at the netcafe
+        'still at the netcafe', 'still sleeping in the car',
+        'まだネカフェ中', 'まだ車中泊中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
