@@ -21789,6 +21789,16 @@ export class VoiceCommands {
         '申請手数料', '所在図',
         '配置図', '承諾書',
         '標章交付', '車庫代替',
+        // pass DLXXXII: boat license renewed & vessel inspection passed
+        'boat license renewed', 'vessel inspection passed',
+        '船舶検査証書', '海技免状',
+        '小型船舶免許', 'ボート免許',
+        '船舶検査', '船舶登録',
+        'マリーナ', '桟橋',
+        '係留', '水上安全',
+        '救命胴衣', '船舶保険',
+        '定期検査', '航行区域',
+        '船長', '臨時検査',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28214,6 +28224,9 @@ export class VoiceCommands {
         // pass DLXXXI: still waiting on the garage
         'still waiting on the garage',
         'まだ保管場所前', 'これから車庫証明',
+        // pass DLXXXII: still unlicensed for the boat
+        'still unlicensed for the boat',
+        'まだ免許前', 'まだ検査前',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
