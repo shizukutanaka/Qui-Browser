@@ -20952,6 +20952,16 @@ export class VoiceCommands {
         '申請済み', '給付手続き',
         '事業復活支援金', '入金確認',
         '補正予算', '学校給食費',
+        // pass DIX: building-permit application procedures done
+        'permit approved', 'blueprint submitted',
+        'inspection scheduled', 'occupancy permit granted',
+        'contractor hired',
+        '建築確認', '確認済証',
+        '着工届', '完了届',
+        '検査済証', '設計事務所',
+        '中間検査', '構造計算',
+        '建ぺい率', '容積率',
+        '接道',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27167,6 +27177,8 @@ export class VoiceCommands {
         // pass DVIII: still mid grant application
         'still applying for the grant', 'about to apply for the subsidy',
         'これから補助',
+        // pass DIX: still mid permit
+        'still getting the permit', 'about to break ground',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
