@@ -3204,11 +3204,11 @@ export class VoiceCommands {
     this.registerCommand('scoped-help', {
       // 'help me'/'help me please' are cries for help itself, not a topic
       // query — the (?!me) lookahead passes them to the 'help' command.
-      patterns: [/(.+)について教えて/, new RegExp('help (?!me\\b|please\\b|if\\b|it\\b|a lot if\\b|by (?:decree|order|proclamation|edict|statute|fiat)\\b)' +
+      patterns: [/(.+)について教えて/, new RegExp('help\\b (?!me\\b|please\\b|if\\b|it\\b|a lot if\\b|by (?:decree|order|proclamation|edict|statute|fiat)\\b)' +
         '(?:with |about )?(.+?)(?:\\s+please)?$', 'i')],
       action: (transcript) => {
         const m = transcript.match(/(.+)について教えて/) ||
-          transcript.match(/help (?!me\b|please\b)(?:with |about )?(.+?)(?:\s+please)?$/i);
+          transcript.match(/help\b (?!me\b|please\b)(?:with |about )?(.+?)(?:\s+please)?$/i);
         const term = (m ? m[1] : '').toLowerCase();
         const hits = [];
         for (const [name, cmd] of this.commands) {
@@ -16193,6 +16193,46 @@ export class VoiceCommands {
         'オールアップ', '編集終了', 'ポスプロ終わり', '最終カット',
         'カット割り終わり', 'フェードアウト', '暗転', '暗転して',
         '真っ暗にして', 'フェードしてブラック',
+        // pass CCCII: kitchen/meal-disposal — clear the table idioms
+        'clear the table', 'clear the plates', 'wash the dishes',
+        'do the dishes', 'dry the dishes', 'put the dishes away',
+        'scrape the plate', 'lick the plate clean', 'clean your plate',
+        'empty plate', 'last bite', 'final bite', 'clean plate club',
+        'finish your food', 'bus the table', 'wipe the table',
+        'mop the floor with it', 'sweep it into the bin', 'kitchen closed',
+        'orders up', 'chefs kiss goodbye',
+        // pass CCCII: dog scraps / takeaway / menu removal
+        'feed it to the dog', 'give it to the dog', 'scraps for the dog',
+        'doggy bag it', 'doggie bag', 'to-go box', 'leftovers for it',
+        'make it leftovers', 'second helping of nothing',
+        'cook its goose', 'goose is cooked', 'turkey is done',
+        'stick a fork in it', 'fork it', 'slice and dice it',
+        'chop it fine',
+        'blend it', 'liquidize it', 'shred it coleslaw-style',
+        'gut and scale it', 'shuck it', 'husk it', 'peel it', 'core it',
+        'blacken it', 'crisp it up', 'cook it well done', 'overcook it',
+        'menu item removed', 'cut from the menu', 'dropped from the menu',
+        'not on the menu anymore', 'sold out of it', 'all out of it',
+        'last course', 'dessert time', 'check please',
+        // pass CCCII: JA 食事/調理 — 食べ尽くし・餌・廃棄
+        '食べてしまって', '食べちゃって', '完食して', '残さず食べて',
+        'きれいに食べて', '犬にやって', '猫にやって', '餌にして',
+        '餌食にして', 'エサにして', '残り物にして', 'お持ち帰りにして',
+        '土産にして', '漬けて捨てて', '茹でて捨てて', '煮て捨てて',
+        '焼いて捨てて', '揚げて捨てて', '蒸して捨てて', '炒めて捨てて',
+        '焦がして', '真っ黒に焼いて', 'よく焼いて', 'こんがり焼いて',
+        '丸焦げにして', '炭にして', '灰にして',
+        // pass CCCII: JA 粉砕/捌き/下膳/会計
+        'ミンチにして', 'きざんで', '撹拌して', 'ミキサーにかけて',
+        '粉砕機で砕いて', '捌いて', 'さばいて', '三枚におろして',
+        '骨を抜いて', '皮を剥いて', '殻を剥いて', '頭を落として',
+        '内臓を抜いて', '芯を抜いて', 'へたを取って', '筋を取って',
+        '皿を下げて', '食器を下げて', '食器を片付けて',
+        'テーブルを拭いて', '食事終わり', 'ごちそうさま', 'ご馳走様',
+        'お会計', 'お勘定', 'チェックお願い', '出前を頼んで',
+        '出前にして', '持ち帰りにして', 'デリバリーして',
+        'メニューから外して', '品切れにして', '売り切れにして',
+        '限定終了', '提供終了', '厨房を閉めて',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -21775,6 +21815,8 @@ export class VoiceCommands {
         'keep the presses rolling', 'keep printing', 'stay in print',
         'still in print', 'keep the book open', '執筆を続けて',
         '連載を続けて', '撮り続けて', '刊行を続けて',
+        // pass CCCII: keep-it-open forms
+        'hold it open', 'stay open', '残しておいて', '開けておいて',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
