@@ -19627,6 +19627,28 @@ export class VoiceCommands {
         'パソコンをセットアップして', 'osを入れて',
         'アップデート終了', 'バックアップを取って',
         'スマートホームをつなげて', 'テレビを壁掛けして',
+        // pass CCCLXXXIII: home-repair & contractor visit end
+        'repairman left', 'repair done home',
+        'electrician left', 'plumber left',
+        'locksmith done', 'exterminator done',
+        'pest control done',
+        'leak fixed', 'pipe fixed',
+        'ac repaired', 'furnace fixed',
+        'washer fixed', 'fridge fixed',
+        'dishwasher repaired', 'oven fixed',
+        'water heater fixed', 'hot water back',
+        'power back on', 'key made',
+        'lock rekeyed', 'elevator fixed',
+        'generator serviced',
+        '業者が帰って', '水漏れを直して',
+        '水道を直して', '洗濯機を直して',
+        '冷蔵庫を直して', '食洗機を直して',
+        '給湯器を直して', 'お湯が出るようになって',
+        '電気が復旧して', '電気屋さんが帰って',
+        '水道屋さんが帰って', '鍵屋が帰って',
+        '合鍵を作って', '鍵を交換して',
+        '害虫駆除終了', '点検が終わって',
+        'エレベーターが直って', 'ガス点検終了',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25486,6 +25508,9 @@ export class VoiceCommands {
         // pass CCCLXXXII: still setting up
         'still setting up', 'still without internet',
         'まだ設定中', 'まだネットなし',
+        // pass CCCLXXXIII: still leaking/broken
+        'still leaking',
+        'まだ故障中', 'まだ水漏れ中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
