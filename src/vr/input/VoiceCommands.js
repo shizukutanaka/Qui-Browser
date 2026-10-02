@@ -19607,6 +19607,26 @@ export class VoiceCommands {
         '新婚旅行を予約して', 'ゲストリスト完成',
         'リハーサル終了結婚式', '入籍しました',
         '婚姻届を出して', '指輪をはめて',
+        // pass CCCLXXXII: connectivity & device setup done
+        'fiber installed', 'modem set up',
+        'internet live', 'router configured',
+        'utilities transferred', 'power turned on',
+        'gas connected', 'phone line active',
+        'new phone set up', 'phone activated',
+        'sim swapped', 'plan changed',
+        'data transferred', 'contacts imported',
+        'os installed', 'updates done',
+        'backup done', 'smart home paired',
+        'tv mounted',
+        '回線開通', '光回線終了',
+        'モデムを置いて', 'ルーターを設定して',
+        'ネットがついて', '水道を使えるようにして',
+        '新しいスマホを設定して', '機種変更終了',
+        'simを差し替えて', 'プランを変えて',
+        'データを移して', '連絡先を移して',
+        'パソコンをセットアップして', 'osを入れて',
+        'アップデート終了', 'バックアップを取って',
+        'スマートホームをつなげて', 'テレビを壁掛けして',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25463,6 +25483,9 @@ export class VoiceCommands {
         // pass CCCLXXXI: still planning/waiting
         'still planning the wedding', 'still waiting for an answer',
         'まだ準備中', 'まだ婚活中',
+        // pass CCCLXXXII: still setting up
+        'still setting up', 'still without internet',
+        'まだ設定中', 'まだネットなし',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
