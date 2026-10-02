@@ -21589,6 +21589,16 @@ export class VoiceCommands {
         '申込審査', '立替金償還',
         '弁護士紹介', '書類作成援助',
         '裁判費用援助', '代理人指定',
+        // pass DLXII: pet registration & rabies vaccination done
+        'dog registered', 'rabies shot done',
+        '狂犬病予防注射', '犬の登録',
+        '動物取扱業', '特定動物',
+        'ペット飼育届', '動物愛護センター',
+        '収容犬', 'マイクロチップ登録',
+        '飼い主届出', '譲渡会',
+        '動物愛護推進員', '犬鑑札',
+        '注射済票', '飼育放棄',
+        '動物愛護週間',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27954,6 +27964,9 @@ export class VoiceCommands {
         // pass DLXI: still without counsel
         'still without counsel',
         'まだ申込前', 'これから審査',
+        // pass DLXII: still unvaccinated
+        'still unvaccinated',
+        'まだ注射前', 'これから登録申請',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
