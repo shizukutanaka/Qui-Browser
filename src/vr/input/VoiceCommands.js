@@ -20643,6 +20643,17 @@ export class VoiceCommands {
         '保険料控除', '配偶者控除',
         '源泉徴収票が来て', '基礎控除',
         '控除証明書',
+        // pass CDLXXIX: e-Tax / electronic filing transmitted
+        'etax submitted', 'mynaportal linked',
+        'card reader paired', 'e filing done',
+        'acceptance number issued', 'refund scheduled',
+        'electronic filing', 'tax return sent',
+        'submission accepted',
+        'e-tax送信', 'マイナポータル',
+        'icカードリーダー', '電子申告',
+        '受付番号が出て', '還付予定',
+        '送信済み', '申告書を送信して',
+        'マイナカードを読んで', 'スマホ申告',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26777,6 +26788,9 @@ export class VoiceCommands {
         // pass CDLXXVIII: still filling out forms
         'still filling',
         'これから提出',
+        // pass CDLXXIX: still transmitting the filing
+        'still transmitting', 'about to transmit',
+        'まだ送信中', 'これから送信',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
