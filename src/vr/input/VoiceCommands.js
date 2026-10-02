@@ -20442,6 +20442,17 @@ export class VoiceCommands {
         '段ボールを束ねて', '集会所を掃除して',
         '粗大ゴミを予約して', '回収当番を終えて',
         '町内清掃を終えて', 'ゴミ集積所を掃除して',
+        // pass CDLV: mailing & post-office errand done
+        'package shipped', 'parcel mailed',
+        'stamps bought', 'postcard sent',
+        'registered mail sent', 'returns mailed',
+        'label printed', 'mailbox emptied',
+        'po box checked',
+        '荷物を発送して', '小包を出して',
+        '切手を買って', 'はがきを出して',
+        '書留を出して', '返送して',
+        '伝票を書いて', 'ポストに投函して',
+        '郵便局を出て', 'ゆうパックを出して',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26510,6 +26521,9 @@ export class VoiceCommands {
         // pass CDLIV: still on cleanup duty
         'still on cleanup duty', 'about to sort',
         'まだ清掃当番中', 'これから分別する',
+        // pass CDLV: still mailing
+        'still mailing', 'about to mail',
+        'まだ発送中', 'これから発送する',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
