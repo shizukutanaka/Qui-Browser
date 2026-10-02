@@ -21770,6 +21770,25 @@ export class VoiceCommands {
         '乗入禁止', '違法駐輪',
         '電動自転車', '自転車安全基準',
         'ヘルメット努力義務', '自転車保険',
+        // pass DLXXX: sign permit granted & illegal billboard removed
+        'sign permit granted', 'illegal billboard removed',
+        '屋外広告物', '広告板',
+        '許可申請', '表示面積',
+        '広告料', '広告条例',
+        '違反広告物', '除却',
+        '看板設置', '袖看板',
+        '突出し看板', '電柱広告',
+        '旗竿広告', '野立て看板',
+        '簡易広告', '広告主',
+        // pass DLXXXI: garage registration done & shako-shomei done
+        'garage registration done', 'shako-shomei done',
+        '車庫証明', '保管場所証明',
+        '保管場所', '使用承諾証明',
+        '保管場所届出', '車庫届',
+        '警察署管轄', '軽自動車届出',
+        '申請手数料', '所在図',
+        '配置図', '承諾書',
+        '標章交付', '車庫代替',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28189,6 +28208,12 @@ export class VoiceCommands {
         // pass DLXXIX: still unregistered for the bike
         'still unregistered for the bike',
         'まだ防犯登録前', 'まだ駐輪前',
+        // pass DLXXX: still unlicensed for the sign
+        'still unlicensed for the sign',
+        'まだ許可前', 'まだ設置前',
+        // pass DLXXXI: still waiting on the garage
+        'still waiting on the garage',
+        'まだ保管場所前', 'これから車庫証明',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
