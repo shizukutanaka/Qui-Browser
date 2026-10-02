@@ -21046,6 +21046,16 @@ export class VoiceCommands {
         '仮設住宅入居', '浸水被害',
         '半壊認定', '全壊認定',
         '応急修理', '住宅再建',
+        // pass DXVIII: health-insurance leave benefit procedures done
+        'sick pay granted', 'injury allowance filed',
+        'leave benefit extended', 'benefit terminated',
+        '傷病手当金', '傷病手当',
+        '育児手当', '給与明細差引',
+        '標準報酬月額', '休業給付',
+        '被保険者証', '療養費',
+        '医療給付', '法定給付',
+        '付加給付', '自費診療',
+        '傷病年金',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27285,6 +27295,9 @@ export class VoiceCommands {
         // pass DXVII: still mid damage assessment
         'still assessing damage', 'about to report the damage',
         'まだ被害調査中', 'これから罹災申請',
+        // pass DXVIII: still mid sick leave
+        'still on sick leave', 'about to apply for the allowance',
+        'まだ療養中', 'これから手当申請',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
