@@ -20049,6 +20049,17 @@ export class VoiceCommands {
         '水やりを終えて', '土を耕して',
         '堆肥を入れて', '家庭菜園を始めて',
         '畑を作って',
+        // pass CDXV: parking & ev charger
+        'parking spot rented', 'monthly parking done',
+        'garage contract done', 'dedicated spot assigned',
+        'parking pass issued',
+        'carshare signed up', 'registered for carshare',
+        'charger installed', 'ev charger in',
+        '駐車場を契約して', '月極を契約して',
+        '車庫を借りて', 'カーシェアに登録して',
+        'カーシェアを申し込んで', '充電器を設置して',
+        'ev充電を設置して', '充電スポットを作って',
+        '専用駐車場を決めて', '駐車許可証をもらって',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26004,6 +26015,9 @@ export class VoiceCommands {
         // pass CDXIV: still planting
         'still planting', 'まだ植え付け中',
         'まだガーデニング中',
+        // pass CDXV: still looking for parking
+        'still looking for parking', 'still applying',
+        'まだ駐車場探し中', 'まだ申し込み中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
