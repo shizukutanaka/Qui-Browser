@@ -19956,6 +19956,19 @@ export class VoiceCommands {
         'フックをつけて', '壁紙を貼って',
         '床を張って', 'タイルを埋めて',
         'リフォーム終了',
+        // pass CDVII: roommate & cohabiting
+        'moved in together', 'started living together',
+        'roommate moved in', 'found a roommate',
+        'house rules set', 'chores divided',
+        'rent split done', 'shared space set up',
+        'met the roommate', 'roommate interview done',
+        'cohabiting started', 'moved in with partner',
+        '同棲を始めて', '同居を始めて',
+        'ルームメイトが入って', 'ルームメイトを決めて',
+        'ルールを決めて', '家事分担を決めて',
+        '家賃を折半して', '共有スペースを整えて',
+        '同居人に会って', '面談をして',
+        'シェアハウスに入って', '二人暮らしを始めて',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25887,6 +25900,9 @@ export class VoiceCommands {
         // pass CDVI: still on the project
         'still doing diy', 'still at the project',
         'まだdiy中', 'まだ塗装中',
+        // pass CDVII: still looking for a roommate
+        'still looking for a roommate',
+        'まだルームメイト探し中', 'まだ調整中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
