@@ -19969,6 +19969,19 @@ export class VoiceCommands {
         '家賃を折半して', '共有スペースを整えて',
         '同居人に会って', '面談をして',
         'シェアハウスに入って', '二人暮らしを始めて',
+        // pass CDVIII: household bills & bookkeeping
+        'rent paid', 'utilities paid',
+        'paid the electric bill', 'water bill paid',
+        'gas bill paid', 'internet bill paid',
+        'set up autopay', 'direct debit done',
+        'household budget done', 'balanced the budget',
+        'entered the expenses', 'bookkeeping done',
+        'billing done',
+        '家賃を払って', '電気代を払って',
+        '水道代を払って', 'ガス代を払って',
+        'ネット代を払って', '口座振替にして',
+        '家計簿をつけて', '支出を記録して',
+        '請求書を払って', '振り込みをして',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -25903,6 +25916,9 @@ export class VoiceCommands {
         // pass CDVII: still looking for a roommate
         'still looking for a roommate',
         'まだルームメイト探し中', 'まだ調整中',
+        // pass CDVIII: still paying / budgeting
+        'still paying bills', 'still doing the budget',
+        'まだ支払い中', 'まだ家計簿中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
