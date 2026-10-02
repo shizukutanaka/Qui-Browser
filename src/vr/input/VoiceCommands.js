@@ -21609,6 +21609,16 @@ export class VoiceCommands {
         '排出ガス規制', '土壌汚染調査',
         '地盤沈下', '埋立申請',
         '公害防止協定', '環境審議会',
+        // pass DLXIV: senior-honoring ceremony attended & benefit card issued
+        'senior-benefit card issued', 'respect-day party attended',
+        '敬老会', '敬老祝賀会',
+        '百寿者訪問', '長寿祝い金',
+        '米寿祝い', '古希祝い',
+        '敬老の日', '敬老バス券',
+        '老人クラブ', '老人会員証',
+        '入浴券', '福祉パス',
+        '敬老祝賀金', '長寿表彰',
+        '還暦祝い',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27980,6 +27990,9 @@ export class VoiceCommands {
         // pass DLXIII: still under environmental review
         'still under environmental review',
         'まだ調査前', 'これから環境申請',
+        // pass DLXIV: still not of age
+        'still not of age',
+        'まだ敬老前', 'これから祝賀会',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
