@@ -20545,6 +20545,15 @@ export class VoiceCommands {
         '出荷して', '組合費を払って',
         '田植え終了', '畑を耕して',
         '野菜を出荷して',
+        // pass CDLXVII: local-festival role & cleanup done
+        'festival duty done', 'parade marshalled',
+        'float returned', 'cleanup crew done',
+        'mikoshi carried', 'drinks served',
+        '祭りの当番', '屋台の当番',
+        'パレードを終えて', '神輿を担いで',
+        '片付け当番', 'お神酒を振る舞って',
+        '境内を掃除して', 'お囃子を練習して',
+        '提灯を片付けて',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26646,6 +26655,9 @@ export class VoiceCommands {
         'これから歯医者',
         // pass CDLXVI: still planting
         'これから植える',
+        // pass CDLXVII: still on festival duty
+        'still on duty', 'about to clean up',
+        'まだ当番中', 'これから片付ける',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
