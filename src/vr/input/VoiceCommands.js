@@ -20834,6 +20834,18 @@ export class VoiceCommands {
         '初回訪問', '事業者決定',
         'デイケア',
         '紹介済み',
+        // pass CDXCVII: business succession & officer-change registration done
+        'business transferred', 'succession filed',
+        'officer change registered', 'share transfer done',
+        'new representative appointed', 'registration complete',
+        'articles amended', 'handover finished',
+        '事業承継', '役員変更',
+        '登記申請', '代表取締役',
+        '株式譲渡', '定款変更',
+        '承継完了',
+        '法務局', '登記完了',
+        '商業登記', '会社印',
+        '印鑑届',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -27014,6 +27026,10 @@ export class VoiceCommands {
         // pass CDXCVI: still arranging care services
         'still arranging', 'about to book',
         'まだ手配中',
+        // pass CDXCVII: still mid-succession / mid-registration
+        'still transferring', 'about to transfer',
+        'まだ承継中', 'これから承継',
+        'まだ登記中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
