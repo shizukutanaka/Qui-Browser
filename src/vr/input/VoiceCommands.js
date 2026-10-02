@@ -20665,6 +20665,16 @@ export class VoiceCommands {
         '経費申請が通って', '交通費精算',
         '仮払い', '立替金',
         '赴任旅費',
+        // pass CDLXXXI: tax payment method executed
+        'direct debit set', 'card payment made',
+        'qr payment done', 'installments arranged',
+        'tax paid in full', 'payment slip settled',
+        'bank transfer done', 'payment deadline met',
+        '振替納税', 'クレジットカードで納付',
+        'qrコードで納付', '分割納付',
+        '納付書で払って', '口座振替',
+        'コンビニ納付', 'スマホ決済で納付',
+        '延納',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26805,6 +26815,8 @@ export class VoiceCommands {
         // pass CDLXXX: still settling the expenses
         'still settling', 'about to settle',
         'まだ精算中', 'これから精算',
+        // pass CDLXXXI: still paying
+        'still paying',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
