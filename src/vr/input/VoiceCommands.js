@@ -20471,6 +20471,15 @@ export class VoiceCommands {
         '担任に連絡して', '学用品を買って',
         '名札を縫って', '上履きに名前を書いて',
         '持ち物に記名して',
+        // pass CDLVIII: neighborhood-officer handover done
+        'handed the badge', 'ledger handed over',
+        'seal returned', 'notice posted',
+        'board updated', 'new officer elected',
+        'term done',
+        '班長を交代して', '役を引き継いで',
+        '任期を終えて', '印鑑を返して',
+        '掲示板を更新して', '総会資料を作って',
+        '引き継ぎメモを渡して', '後任を決めて',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -26548,6 +26557,8 @@ export class VoiceCommands {
         // pass CDLVII: still filling forms
         'still filling forms', 'about to sign',
         'まだ記入中', 'これから提出する',
+        // pass CDLVIII: still on the board
+        'still on the board', 'まだ班長中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
