@@ -22103,6 +22103,20 @@ export class VoiceCommands {
         '開票管理者', '選挙監視員',
         '立会人', '政見放送',
         'ポスター掲示',
+        // pass DCIX: foster placement made & child-welfare intake done
+        'foster placement made', 'child-welfare intake done',
+        '乳児院', '児童心理治療施設',
+        '一時保護所', '一時保護委託',
+        '児童家庭支援センター', '認定こども園',
+        '児童厚生員', '児童指導員',
+        '児童心理司', '児童福祉法',
+        '児童福祉審議会', '施設入所',
+        '施設措置', '措置解除',
+        '施設内虐待', '児童虐待通報',
+        '虐待通告', '虐待防止法',
+        '児童憲章', '要保護児童対策地域協議会',
+        '要保護児童', '児童家庭課',
+        '子ども家庭課', '児童センター',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28609,6 +28623,9 @@ export class VoiceCommands {
         // pass DCVIII: still awaiting the filing
         'still awaiting the filing',
         'まだ立候補前', 'これから立候補届',
+        // pass DCIX: still awaiting the facility placement
+        'still awaiting the facility placement',
+        'まだ措置前', 'これから措置申請',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
