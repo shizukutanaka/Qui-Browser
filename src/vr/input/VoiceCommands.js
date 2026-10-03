@@ -22749,6 +22749,26 @@ export class VoiceCommands {
         'スポーツ少年団', '体育協会',
         '競技団体', 'スポーツ推進委員',
         'スポーツリーダー', 'スポーツマスタープラン',
+        // pass DCLI: cabinet order issued & agency regulation posted
+        'cabinet order issued', 'agency regulation posted',
+        '内閣府', '内閣官房',
+        '首相官邸', '総理大臣',
+        '国務大臣', '大臣政務官',
+        '大臣補佐官', '事務次官',
+        '官房長官', 'デジタル庁',
+        'こども家庭庁', '復興庁',
+        '内閣法制局', '法務省',
+        '財務省', '文部科学省',
+        '厚生労働省', '農林水産省',
+        '経済産業省', '国税庁',
+        '文化庁', '消防庁',
+        '会計検査院', '人事院',
+        '公正取引委員会', '個人情報保護委員会',
+        '中央労働委員会', '国家公務員倫理審査会',
+        '最高検察庁', '次長検事',
+        '検事長', '閣議決定',
+        '大臣官房', '内閣総理大臣',
+        '中央省庁', '特命担当大臣',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29385,6 +29405,9 @@ export class VoiceCommands {
         'still awaiting the sports charter',
         'まだ大会前', 'これから部活登録',
         'これから競技登録',
+        // pass DCLI: still awaiting the agency review
+        'still awaiting the agency review',
+        'まだ閣議前', 'これから審査請求',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
