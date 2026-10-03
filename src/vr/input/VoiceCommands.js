@@ -22549,6 +22549,22 @@ export class VoiceCommands {
         '治安出動', '警戒監視',
         '自衛官', '任期制隊員',
         '防衛記念章', '演習場',
+        // pass DCXXXIX: bill passed the diet & plenary vote taken
+        'bill passed the diet', 'plenary vote taken',
+        '国会', '衆議院',
+        '参議院', '国会議員',
+        '国会審議', '国会法',
+        '国会召集', '常会',
+        '臨時会', '特別会',
+        '国会図書館', '法制局',
+        '議院運営委員会', '予算委員会',
+        '決算委員会', '本会議',
+        '委員会審査', '質問主意書',
+        '国政調査権', '証人喚問',
+        '議事録', '議長',
+        '議員立法', '内閣提出法案',
+        '起立採決', '記名投票',
+        '国会解散',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29147,6 +29163,9 @@ export class VoiceCommands {
         // pass DCXXXVIII: still awaiting the defense review
         'still awaiting the defense review',
         'まだ入隊前', 'これから入隊',
+        // pass DCXXXIX: still awaiting the diet session
+        'still awaiting the diet session',
+        'まだ委員会前', 'これから採決',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
