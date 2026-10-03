@@ -23397,6 +23397,27 @@ export class VoiceCommands {
         '宇宙状況監視', '宇宙天気',
         '民間宇宙', '宇宙ビジネス',
         '宇宙旅行', '宇宙航空研究開発機構',
+        // pass DCLXXXIII: heritage & festival designations
+        'heritage registered', 'festival designated',
+        '文化基本法', '芸術文化振興',
+        '伝統文化', '文化財保護法',
+        '古都保存法', '景観法',
+        '重要伝統的建造物群', '町並み保存',
+        '日本遺産', '地域文化',
+        '重要無形文化財', '人間国宝',
+        '伝統工芸', '伝統芸能',
+        '歌舞伎', '能楽',
+        '文楽', '邦楽',
+        '茶道', '華道',
+        '書道', '工芸美術',
+        '日本画', '俳句',
+        '短歌', '俳諧',
+        '落語', '漫才',
+        '寄席',
+        '国立劇場', '国立博物館',
+        '博物館法', '公立博物館',
+        '歴史民俗資料館', '国立文楽劇場',
+        'メディア芸術', '日本芸術文化振興会',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -30143,6 +30164,10 @@ export class VoiceCommands {
         'still awaiting the launch window',
         'まだ打上げ前', 'これから打ち上げ',
         'まだ投入前',
+        // pass DCLXXXIII: heritage designation / preservation reports
+        'still awaiting the heritage designation',
+        'まだ保護前', 'まだ保存前',
+        'まだ保護中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
