@@ -22263,6 +22263,21 @@ export class VoiceCommands {
         '特産品開発', '道の駅認定',
         '産業祭', '創業支援',
         '事業継続補助',
+        // pass DCXX: race-day entries closed & offtrack payout done
+        'race-day entries closed', 'offtrack payout done',
+        '公営競技', '競艇',
+        'ボートレース', '競輪',
+        'オートレース', '地方競馬',
+        '場外発売', '場外勝馬投票券発売所',
+        '投票券', '勝馬投票券',
+        '払戻金', 'ギャンブル依存',
+        'ギャンブル依存症', '依存対策',
+        '入場制限', '入場料',
+        'ナイター競走', '競走場',
+        '検量', '枠番',
+        '出走表', '競技場管理',
+        '地方競馬全国協会', '競馬法',
+        '自転車競技法', 'モーターボート競走法',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28804,6 +28819,9 @@ export class VoiceCommands {
         // pass DCXIX: still awaiting the site decision
         'still awaiting the site decision',
         'まだ出店前', 'これから出店',
+        // pass DCXX: still awaiting the race entry
+        'still awaiting the race entry',
+        'まだ投票前', 'まだ場外発売前',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
