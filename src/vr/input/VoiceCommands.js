@@ -21890,6 +21890,17 @@ export class VoiceCommands {
         '個票', '標本調査',
         '統計集計', '統計審議会',
         '基幹統計', '地域メッシュ',
+        // pass DXCI: landslide zone designated & retaining wall approved
+        'landslide zone designated', 'retaining wall approved',
+        '土砂災害', '急傾斜地',
+        '警戒区域', '特別警戒区域',
+        'イエローゾーン', 'レッドゾーン',
+        '砂防指定地', '地すべり防止区域',
+        '崩壊危険区域', '土石流',
+        '警戒避難体制', 'ハザードマップ',
+        '斜面崩壊', '崖地',
+        '擁壁工事', 'のり面',
+        '危険箇所', '土砂災害防止法',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28342,6 +28353,9 @@ export class VoiceCommands {
         // pass DXC: still awaiting the census form
         'still awaiting the census form',
         'まだ回答前', 'これから回答',
+        // pass DXCI: still in the landslide zone
+        'still in the landslide zone',
+        'まだ警戒前', 'これから指定申請',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
