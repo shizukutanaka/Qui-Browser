@@ -51,7 +51,7 @@ const nullPins = [
   'lunch box', 'coffee mug', 'break room',
   'vending machine',
   '休憩の途中', 'これから休憩',
-  '自動販売機', '売店', '給湯室',
+  '自動販売機コーナー', '売店', '給湯室',
 ];
 const establishedPins = [
   ['弁当を食べ終えて', 'close-tab'],
