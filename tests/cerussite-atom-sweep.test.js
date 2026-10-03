@@ -90,7 +90,7 @@ const negate = [
 const nullPins = [
   // service openings / ongoing
   'service begins', 'going to church', 'sunday service', 'mass begins',
-  '礼拝中', '説教中', '初詣', 'amen',
+  '礼拝中', '説教中', '二年参り', 'amen',
 ];
 
 const establishedPins = [
