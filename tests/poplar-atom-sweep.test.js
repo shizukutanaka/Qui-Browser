@@ -56,7 +56,7 @@ const nullPins = [
   'sheet music', 'set list', 'gig bag',
   'amp room',
   '練習の途中', 'これからリハ',
-  '譜面', '楽屋', 'アンプ',
+  '譜面', '楽屋口', 'アンプ',
 ];
 const establishedPins = [
   ['rehearsal done', 'close-tab'],
