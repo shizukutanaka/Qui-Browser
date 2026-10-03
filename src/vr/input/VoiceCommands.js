@@ -22075,6 +22075,19 @@ export class VoiceCommands {
         '座標系', '測地系',
         '建設コンサルタント', '測量成果',
         '測量技師', '測量計画機関',
+        // pass DCVII: redevelopment association approved & rights converted
+        'redevelopment association approved', 'rights converted',
+        '再開発組合', '都市再開発',
+        '第一種市街地再開発', '第二種市街地再開発',
+        '再開発促進区域', '再開発実施',
+        '権利変換', '再開発組合設立',
+        '事業計画', '施行地区',
+        '床販売', '保留床',
+        '再開発調査', '地権者説明会',
+        'まちづくり推進', '再開発事業',
+        '市街地再開発事業', '優良建築物等整備事業',
+        '再開発緊急整備', 'まちづくり団体',
+        'まちづくり協定', 'まちづくり推進委員会',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28575,6 +28588,9 @@ export class VoiceCommands {
         // pass DCVI: still awaiting the survey registration
         'still awaiting the survey registration',
         'まだ測量前', 'これから測量届',
+        // pass DCVII: still awaiting the redevelopment plan
+        'still awaiting the redevelopment plan',
+        'まだ再開発前', 'これから組合設立',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
