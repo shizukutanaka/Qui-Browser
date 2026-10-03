@@ -18924,6 +18924,14 @@ export class VoiceCommands {
         'delete the tab', 'kill this', 'kill it dead', 'nuke this',
         'nuke the tab', 'scrap it', 'scrap this', 'get rid of the tab',
         'get rid of this one', 'close it away',
+        // pass DCCXXXIII: shorthand & court-records domain
+        'stenographer certified', 'court reporter licensed', 'typist registered',
+        '法廷通訳士', '司法通訳', '医療通訳士', '医療通訳', 'コミュニティ通訳', '手話通訳士', '手話通訳者', '手話通訳士認定', '手話検定', '日本手話', '手指日本語対応',
+        '要約筆記者', '要約筆記', '速記者', '速記士', '議事録作成', '文字通訳', '字幕制作', 'テープ起こし', '議事録士', '会議録作成者', 'スタノグラファー', 'スピードライティング',
+        '司法記録官', '裁判速記官', '証言録取', '供述調書', '取調べ録画', '公判記録', '判決要旨', '裁判書記官', '検事記録官', '公安調査庁記録官', '書記官', '裁判所書記官',
+        '簡易裁判所書記官', '家庭裁判所書記官', '控訴記録', '上告記録', '記録課', '記録係', '執行官', '執行吏', '競売執行官', '執行手続', '執行文', '債務名義', '強制執行官',
+        '民事執行', '債権執行', '不動産執行', '物件執行', '仮差押', '仮処分執行', '保全執行', '登記所勤務', '供託所', '供託', '供託書', '供託手続', '提訴記録', '調書作成',
+        '調書検証', '証拠調書', '供述書', '答弁書作成', '準備書面作成', '判決謄本', '判決書記録', '判決登記',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -24497,6 +24505,9 @@ export class VoiceCommands {
         '閉じんなー', '閉じんなって', '閉じんなっちゃ', '閉じんとこや',
         '閉じせんどこ', '閉じせんどいと', '閉じまんどこ',
         '閉じまいとく', '閉じまいとこ',
+        // pass DCCXXXIII: certification reports
+        'still awaiting the stenographer license', 'still awaiting the reporter cert', 'まだ認定試験前', 'まだ採用前', 'これから登録',
+        'まだ研修中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
