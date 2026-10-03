@@ -22730,6 +22730,25 @@ export class VoiceCommands {
         '大学入試センター', '国立高等専門学校',
         '公立大学', '大学情報公開',
         '大学評価',
+        // pass DCL: sports grant approved & stadium permit granted
+        'sports grant approved', 'stadium permit granted',
+        'スポーツ基本法', 'スポーツ庁',
+        '日本スポーツ協会', 'スポーツ振興',
+        '体育施設', '運動部活動',
+        '部活動指導員', '地域移行',
+        'プロスポーツ', 'スポーツ審議会',
+        '国民体育大会', 'スポーツ祭',
+        'オリンピック', 'パラリンピック',
+        'フェアプレー', 'ドーピング検査',
+        'スポーツ安全保険', 'スポーツ医学',
+        'スポーツ施設整備', '体育の日',
+        'スポーツ週間', '体育教員',
+        '学校体育指導', '地域スポーツクラブ',
+        '総合型地域スポーツクラブ', 'スポーツ指導員',
+        'スポーツ指導者', 'ジュニアスポーツクラブ',
+        'スポーツ少年団', '体育協会',
+        '競技団体', 'スポーツ推進委員',
+        'スポーツリーダー', 'スポーツマスタープラン',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29362,6 +29381,10 @@ export class VoiceCommands {
         'still awaiting the university charter',
         'まだ認証前', 'これから設置認可',
         'これから評価提出',
+        // pass DCL: still awaiting the sports charter
+        'still awaiting the sports charter',
+        'まだ大会前', 'これから部活登録',
+        'これから競技登録',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
