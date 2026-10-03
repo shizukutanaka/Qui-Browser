@@ -23225,6 +23225,27 @@ export class VoiceCommands {
         '処分業許可', '運搬業許可',
         '排出事業者', '不法投棄',
         'アスベスト処理', '循環資源',
+        // pass DCLXXV: retrofit completed & performance rating obtained
+        'retrofit completed', 'performance rating obtained',
+        '耐震基準', '耐震改修',
+        '耐震診断', '住宅耐震',
+        '断熱等級', '省エネ基準',
+        '省エネ住宅', '長期優良住宅',
+        '認定長期優良住宅', '低炭素住宅',
+        '住宅性能評価', '建設住宅性能評価',
+        '住宅性能表示',
+        '瑕疵担保', '瑕疵担保保険',
+        'ホームインスペクション', 'リフォーム助成',
+        'フラット35', '住宅ローン減税',
+        'すまい給付金', '不動産取得税',
+        '既存住宅', '中古住宅',
+        '新築住宅', '建売住宅',
+        '宅地造成', '擁壁',
+        '造成宅地防災', '地盤調査',
+        '地盤補強', '液状化',
+        '盛土規制',
+        '日影規制', '建蔽率',
+        '斜線規制',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29942,6 +29963,9 @@ export class VoiceCommands {
         // pass DCLXXIV: disposal permit / carry-out reports
         'still awaiting the disposal permit',
         'まだ処分前', 'これから搬出',
+        // pass DCLXXV: seismic rating / construction-start reports
+        'still awaiting the seismic rating',
+        'まだ診断前', 'まだ着工前',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
