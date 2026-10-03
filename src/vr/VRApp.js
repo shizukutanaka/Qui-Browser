@@ -76,7 +76,8 @@ import {
   stepperRegion,
   formatValue,
   settingsButtonCaption,
-  shouldAnnounceSettingsButton
+  shouldAnnounceSettingsButton,
+  cycleOptionLabel
 } from './settingsStepper.js';
 import { layoutSettingsPanel, PANEL_W as SETTINGS_PANEL_W } from './ui/settingsLayout.js';
 
@@ -1370,7 +1371,7 @@ export class VRApp {
       ctx.fillText(label, 24, 62);
       ctx.textAlign = 'right';
       ctx.fillStyle = buttonAccentColor('#ffcc88', hc);
-      ctx.fillText(`${current} ▸`, w - 24, 62);
+      ctx.fillText(`${cycleOptionLabel(key, current)} ▸`, w - 24, 62);
       tex.needsUpdate = true;
     };
     draw(false);
@@ -1388,11 +1389,11 @@ export class VRApp {
           apply(next);
         }
         draw(true);
-        this._announceSettingsButton('cycle', label, next, {}, true);
+        this._announceSettingsButton('cycle', label, next, { key }, true);
       },
       onHover: () => {
         draw(true);
-        this._announceSettingsButton('cycle', label, this.settings[key]);
+        this._announceSettingsButton('cycle', label, this.settings[key], { key });
       },
       onHoverEnd: () => draw(false)
     });

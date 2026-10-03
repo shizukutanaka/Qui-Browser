@@ -124,6 +124,10 @@ const CATALOG = {
     'vr.value.off': 'OFF',
     'vr.value.left': 'Left',
     'vr.value.right': 'Right',
+    'vr.value.sensitive': 'Sensitive',
+    'vr.value.moderate': 'Moderate',
+    'vr.value.tolerant': 'Tolerant',
+    'vr.value.disabled': 'Disabled',
     // VR Status Messages
     'vr.msg.captionsEnabled': 'Captions enabled',
     'vr.msg.keyboardCancelled': 'Keyboard cancelled',
@@ -282,6 +286,10 @@ const CATALOG = {
     'vr.value.off': 'オフ',
     'vr.value.left': '左',
     'vr.value.right': '右',
+    'vr.value.sensitive': '敏感',
+    'vr.value.moderate': '標準',
+    'vr.value.tolerant': '強い',
+    'vr.value.disabled': '無効',
     // VR Status Messages
     'vr.msg.captionsEnabled': 'キャプション有効',
     'vr.msg.keyboardCancelled': 'キーボードキャンセル',

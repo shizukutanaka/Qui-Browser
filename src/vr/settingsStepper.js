@@ -10,7 +10,7 @@ import { t } from '../i18n/i18n.js';
 
 // Fractional x boundaries of the minus / value / plus regions.
 export const MINUS_MAX_U = 0.25; // u < 0.25  → decrement
-export const PLUS_MIN_U = 0.75;  // u > 0.75  → increment
+export const PLUS_MIN_U = 0.75; // u > 0.75  → increment
 
 /**
  * Step a numeric value by `delta` steps, clamped to [min, max] and snapped to
@@ -55,6 +55,24 @@ export function stepperRegion(u) {
 }
 
 /**
+ * Settings whose cycle options are language text rather than opaque
+ * identifiers — display them through t() under `vr.value.<value>` (WCAG
+ * 3.1.2). Options not listed (e.g. engine names) pass through unchanged.
+ */
+const LOCALIZED_CYCLE_OPTIONS = { motionSensitivity: true };
+
+/**
+ * The label a cycle button paints for `value` — the setting key decides
+ * whether the option is translated.
+ */
+export function cycleOptionLabel(key, value) {
+  if (LOCALIZED_CYCLE_OPTIONS[key]) {
+    return t(`vr.value.${value}`);
+  }
+  return String(value);
+}
+
+/**
  * Format a value for display, with an optional unit suffix.
  */
 export function formatValue(value, { step = 1, unit = '' } = {}) {
@@ -85,7 +103,7 @@ export function settingsButtonCaption(type, label, value, opts = {}) {
     return `${label}: ${formatValue(value, opts)}`;
   }
   if (type === 'cycle') {
-    return `${label}: ${value}`;
+    return `${label}: ${cycleOptionLabel(opts.key, value)}`;
   }
   return label; // action button
 }

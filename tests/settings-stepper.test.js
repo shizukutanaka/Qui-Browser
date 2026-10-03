@@ -1,9 +1,18 @@
 /**
  * Unit tests for the pure numeric settings-stepper helpers.
  */
+global.document = { documentElement: { lang: 'en' } };
+const { setLanguage, t } = require('../src/i18n/i18n.js');
 const {
-  stepValue, decimalsFor, stepperRegion, formatValue, settingsButtonCaption,
-  shouldAnnounceSettingsButton, MINUS_MAX_U, PLUS_MIN_U
+  stepValue,
+  decimalsFor,
+  stepperRegion,
+  formatValue,
+  settingsButtonCaption,
+  shouldAnnounceSettingsButton,
+  cycleOptionLabel,
+  MINUS_MAX_U,
+  PLUS_MIN_U
 } = require('../src/vr/settingsStepper.js');
 
 describe('stepValue', () => {
@@ -88,10 +97,10 @@ describe('settingsButtonCaption — gaze-dwell hover announcement text', () => {
   });
 
   test('stepper announces label and formatted value', () => {
-    expect(settingsButtonCaption('stepper', 'Snap Angle', 30, { step: 15, unit: '°' }))
-      .toBe('Snap Angle: 30°');
-    expect(settingsButtonCaption('stepper', 'Move Speed', 1.5, { step: 0.5, unit: ' m/s' }))
-      .toBe('Move Speed: 1.5 m/s');
+    expect(settingsButtonCaption('stepper', 'Snap Angle', 30, { step: 15, unit: '°' })).toBe('Snap Angle: 30°');
+    expect(settingsButtonCaption('stepper', 'Move Speed', 1.5, { step: 0.5, unit: ' m/s' })).toBe(
+      'Move Speed: 1.5 m/s'
+    );
   });
 
   test('cycle announces label and current selection', () => {
@@ -106,6 +115,48 @@ describe('settingsButtonCaption — gaze-dwell hover announcement text', () => {
 
   test('unknown type falls back to label', () => {
     expect(settingsButtonCaption('unknown', 'Widget', true)).toBe('Widget');
+  });
+});
+
+describe('cycleOptionLabel — displayed value for cycle buttons (WCAG 3.1.2)', () => {
+  afterEach(() => setLanguage('en'));
+
+  test('localizes comfort preset names for the session language', () => {
+    setLanguage('ja');
+    expect(cycleOptionLabel('motionSensitivity', 'sensitive')).toBe(t('vr.value.sensitive'));
+    expect(cycleOptionLabel('motionSensitivity', 'moderate')).toBe(t('vr.value.moderate'));
+    expect(cycleOptionLabel('motionSensitivity', 'tolerant')).toBe(t('vr.value.tolerant'));
+    expect(cycleOptionLabel('motionSensitivity', 'disabled')).toBe(t('vr.value.disabled'));
+    expect(t('vr.value.sensitive')).not.toBe('sensitive');
+  });
+
+  test('passes through identifiers that are not language text (engine names)', () => {
+    setLanguage('ja');
+    expect(cycleOptionLabel('searchEngine', 'duckduckgo')).toBe('duckduckgo');
+  });
+
+  test('unknown keys pass the raw value through', () => {
+    expect(cycleOptionLabel('unknownKey', 'x')).toBe('x');
+  });
+
+  test('EN output is unchanged', () => {
+    expect(cycleOptionLabel('motionSensitivity', 'tolerant')).toBe('Tolerant');
+  });
+});
+
+describe('settingsButtonCaption — localized cycle announce', () => {
+  afterEach(() => setLanguage('en'));
+
+  test('announces the localized option when opts.key is given', () => {
+    setLanguage('ja');
+    expect(settingsButtonCaption('cycle', '快適性', 'sensitive', { key: 'motionSensitivity' })).toBe(
+      `快適性: ${t('vr.value.sensitive')}`
+    );
+  });
+
+  test('unchanged when opts.key is absent (backward compatible)', () => {
+    setLanguage('ja');
+    expect(settingsButtonCaption('cycle', 'Search', 'bing')).toBe('Search: bing');
   });
 });
 
