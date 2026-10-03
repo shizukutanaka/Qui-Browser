@@ -21799,6 +21799,17 @@ export class VoiceCommands {
         '救命胴衣', '船舶保険',
         '定期検査', '航行区域',
         '船長', '臨時検査',
+        // pass DLXXXIII: logging notice filed & forest co-op joined
+        'logging notice filed', 'forest co-op joined',
+        '森林組合', '間伐',
+        '造林', '森林経営計画',
+        '林道', '保安林',
+        '立木', '伐採届',
+        '林地開発', '森林環境税',
+        '木材', '製材',
+        '森林所有者', '境界',
+        '共用林', '入会林',
+        '森林認証', '植樹',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28227,6 +28238,9 @@ export class VoiceCommands {
         // pass DLXXXII: still unlicensed for the boat
         'still unlicensed for the boat',
         'まだ免許前', 'まだ検査前',
+        // pass DLXXXIII: still awaiting the felling permit
+        'still awaiting the felling permit',
+        'まだ伐採前', 'これから伐採届',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
