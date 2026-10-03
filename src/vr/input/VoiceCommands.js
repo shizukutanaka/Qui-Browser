@@ -22145,6 +22145,21 @@ export class VoiceCommands {
         '奨学金停止', '奨学生証',
         '支援区分', '奨学金振込',
         '予約採用', '在学採用',
+        // pass DCXII: bed-report filed & hospital accreditation done
+        'bed-report filed', 'hospital accreditation done',
+        '病院機能評価', '医療安全支援センター',
+        '院内感染対策', '医療ソーシャルワーカー',
+        '入院時食事療養費', '差額ベッド料',
+        '地域医療構想', '病床機能報告',
+        'かかりつけ医機能', '医療広告規制',
+        '医療事故調査制度', '院内調査',
+        '医療メディエーター', '医療連携室',
+        '地域包括ケア医療', '在宅医療連携拠点',
+        '病床規制', '医療計画',
+        '医療審議会', '医療法人',
+        '特定機能病院', '地域医療支援病院',
+        '入院基本料', '診療報酬',
+        'レセプト',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28660,6 +28675,9 @@ export class VoiceCommands {
         // pass DCXI: still awaiting the scholarship
         'still awaiting the scholarship',
         'まだ奨学金前', 'これから奨学金申請',
+        // pass DCXII: still awaiting the accreditation
+        'still awaiting the accreditation',
+        'まだ審査前', 'まだ評価前',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
