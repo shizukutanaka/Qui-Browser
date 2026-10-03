@@ -23193,6 +23193,22 @@ export class VoiceCommands {
         '物品購入', '役務調達',
         '政府調達協定', '中央調達',
         '障害者優先調達',
+        // pass DCLXXIII: financial regulation & payments administration
+        'audit passed',
+        '前払式支払手段', '資金移動業者',
+        '電子決済等代行業者', '収納代行',
+        '暗号資産交換業', 'ステーブルコイン',
+        '仮想通貨交換所', 'キャッシュレス',
+        'qrコード決済', '電子マネー',
+        'プリペイドカード', 'ポイント還元',
+        'マネーロンダリング', '犯罪収益移転防止法',
+        '本人確認', 'ekyc',
+        '振込詐欺', '反社会的勢力',
+        '反社チェック', '預金保険',
+        'ペイオフ', '割賦販売',
+        '消費者金融', '闇金',
+        '行検', '登録金融機関',
+        '認可金融機関',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29903,6 +29919,10 @@ export class VoiceCommands {
         // pass DCLXXII: award notice / bidding reports
         'still awaiting the award notice',
         'これから入札', 'まだ入札前',
+        // pass DCLXXIII: examination / registration / licensing reports
+        'still awaiting the examination',
+        'still awaiting the registration number',
+        'これから認可申請',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
