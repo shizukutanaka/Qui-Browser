@@ -23139,6 +23139,22 @@ export class VoiceCommands {
         '障害者差別', 'サポートブック',
         'ヘルプマーク', 'バリアフリー認証',
         '駅員研修',
+        // pass DCLXX: archive cataloged & disclosure granted
+        'archive cataloged', 'disclosure granted',
+        '公文書管理法', '公文書館',
+        '国立公文書館', '行政文書',
+        '保存期間', '文書保存',
+        '文書廃棄', '文書管理規程',
+        '記録管理', '電子記録',
+        '行政文書管理', '歴史公文書',
+        '公文書公開', '文書請求',
+        '閲覧請求', '実施機関',
+        '特定歴史公文書', '指定機関',
+        '秘密保護', '個人情報保護法',
+        '情報公開制度', '不開示情報',
+        '情報公開審査会', '公文書館職員',
+        'アーキビスト', '個人情報ファイル簿',
+        'オープンデータ', '統計情報',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29840,6 +29856,9 @@ export class VoiceCommands {
         // pass DCLXIX: accessibility audit / support-application reports
         'still awaiting the accessibility audit',
         'まだ整備前', 'これから支援申請',
+        // pass DCLXX: records review / disclosure / viewing reports
+        'still awaiting the records review',
+        'まだ開示前', 'これから閲覧',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
