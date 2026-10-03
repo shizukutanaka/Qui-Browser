@@ -21901,6 +21901,17 @@ export class VoiceCommands {
         '斜面崩壊', '崖地',
         '擁壁工事', 'のり面',
         '危険箇所', '土砂災害防止法',
+        // pass DXCII: consumer complaint filed & fraud case reported
+        'consumer complaint filed', 'fraud case reported',
+        '消費生活相談', '消費生活センター',
+        '電話勧誘', '消費者庁',
+        '消費者委員会', '消費者被害',
+        '消費者相談員', '消費者団体',
+        '消費者ホットライン', '適格消費者団体',
+        '差止請求', '消費者契約法',
+        '団体訴訟', '景品表示法',
+        '不当表示', '優良誤認',
+        '有利誤認', '消費者紛争',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28356,6 +28367,9 @@ export class VoiceCommands {
         // pass DXCI: still in the landslide zone
         'still in the landslide zone',
         'まだ警戒前', 'これから指定申請',
+        // pass DXCII: still waiting on the consumer case
+        'still waiting on the consumer case',
+        'まだ被害届前', 'これから消費者相談',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
