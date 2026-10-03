@@ -34,7 +34,7 @@ const nullPins = [
   'about to stock up', 'mid typhoon',
   'evacuation route', 'supply checklist',
   'これから備蓄', '台風の途中',
-  '避難経路', '備蓄リスト',
+  '運転停止', '備蓄リスト',
 ];
 const establishedPins = [
   ['power back on', 'close-tab'],

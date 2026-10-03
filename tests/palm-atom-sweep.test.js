@@ -56,7 +56,7 @@ const negate = [
 const nullPins = [
   'about to drill', 'mid drill', 'evacuation route',
   'muster point', 'fire exit', 'emergency kit',
-  '訓練の途中', 'これから訓練', '避難経路', '防災リュック',
+  '訓練の途中', 'これから訓練', '起動調整', '防災リュック',
 ];
 const establishedPins = [
   ['drill done', 'close-tab'],

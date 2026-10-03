@@ -23155,6 +23155,25 @@ export class VoiceCommands {
         '情報公開審査会', '公文書館職員',
         'アーキビスト', '個人情報ファイル簿',
         'オープンデータ', '統計情報',
+        // pass DCLXXI: reactor licensed & inspection completed
+        'reactor licensed', 'inspection completed',
+        '原子力規制庁', '原子力規制',
+        '原子力基本法', '原子炉等規制法',
+        '放射線障害防止法', '新規制基準',
+        '放射線管理', '核物質管理',
+        '適合性審査', '安全審査',
+        '運転期間延長', '定期検査報告',
+        '使用済燃料', '再処理',
+        '廃止措置', '特定原子力施設',
+        '原子力事業者', '核燃料',
+        '廃炉', '原発',
+        '原子炉', '燃料棒',
+        '軽水炉', '高速増殖炉',
+        '避難計画', '避難経路',
+        '原子力災害対策', '原子力緊急事態',
+        '原子力防災', '原子力安全',
+        '重大事故対策', '放射線監視',
+        '原子力防災組織', '放射線',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29859,6 +29878,9 @@ export class VoiceCommands {
         // pass DCLXX: records review / disclosure / viewing reports
         'still awaiting the records review',
         'まだ開示前', 'これから閲覧',
+        // pass DCLXXI: license decision / inspection / operation reports
+        'still awaiting the license decision',
+        'これから検査', 'まだ運転前',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
