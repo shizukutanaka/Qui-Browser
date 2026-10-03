@@ -21912,6 +21912,17 @@ export class VoiceCommands {
         '団体訴訟', '景品表示法',
         '不当表示', '優良誤認',
         '有利誤認', '消費者紛争',
+        // pass DXCIII: temp agency registered & dispatch contract signed
+        'temp agency registered', 'dispatch contract signed',
+        '労働者派遣', '派遣契約',
+        '派遣先', '派遣元',
+        '職業安定法', '職業安定所',
+        '有料職業紹介', '無料職業紹介',
+        '日雇い', '日雇労働者',
+        '請負契約', '派遣期間制限',
+        '雇用安定措置', '派遣均等待遇',
+        '紹介予定派遣', '登録型派遣',
+        '常用型派遣', '労働者供給',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28370,6 +28381,9 @@ export class VoiceCommands {
         // pass DXCII: still waiting on the consumer case
         'still waiting on the consumer case',
         'まだ被害届前', 'これから消費者相談',
+        // pass DXCIII: still on dispatch duty
+        'still on dispatch duty',
+        'まだ派遣登録前', 'これから派遣契約',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
