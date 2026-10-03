@@ -52,7 +52,7 @@ const nullPins = [
   'train pass', 'commuter pass', 'bike lock',
   'station platform',
   '通勤の途中', 'これから通勤',
-  '定期券', '駐輪場',
+  '定期乗車券', '駐輪場',
 ];
 const establishedPins = [
   ['traffic cleared', 'close-tab'],
