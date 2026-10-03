@@ -23921,6 +23921,26 @@ export class VoiceCommands {
         '管制官',
         '航空管制官', '航空管制部',
         'フライト',
+        // pass DCCIII: banking, moneylending & credit
+        'bank charter granted', 'lender registered',
+        '預金', '貯金',
+        '銀行業', '信託銀行',
+        '第二地方銀行',
+        '中央銀行', '政府系金融機関',
+        '政策投資銀行',
+        '国際協力銀行', '銀行協会',
+        '全銀協',
+        '貸金業', '上限金利',
+        'グレーゾーン金利',
+        '総量規制', '指定信用情報機関',
+        '信用情報',
+        'サービサー', 'ファクタリング',
+        'リース会社',
+        'クレジットカード', '銀行代理業',
+        '貸金業登録',
+        '貸金業務取扱主任者', '返済能力調査',
+        '信用供与',
+        '与信', '融資審査',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -30755,6 +30775,10 @@ export class VoiceCommands {
         'still awaiting the slot ruling',
         'まだ搭乗前', 'まだ到着前',
         'これから出発', 'まだ着陸前',
+        // pass DCCIII: lending / credit reports
+        'まだ融資前', 'まだ与信前',
+        'まだ借入前', 'これから借入',
+        'まだ査定前',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
