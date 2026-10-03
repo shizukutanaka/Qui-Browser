@@ -22444,6 +22444,21 @@ export class VoiceCommands {
         '管区気象台', '海洋気象台',
         '航空気象', '気象データ',
         'アメダス',
+        // pass DCXXXII: verdict handed down & court session adjourned
+        'verdict handed down', 'court session adjourned',
+        '司法試験', '法曹三者',
+        '裁判員制度', '検察庁',
+        '検事総長', '最高裁判所',
+        '高等裁判所', '地方裁判所',
+        '簡易裁判所', '地方検察庁',
+        '少年審判', '民事調停',
+        '調停委員', '司法委員会',
+        '裁判書記官', '執行官',
+        '司法修習', '判例集',
+        '検事', '判事',
+        '控訴審', '判決宣告',
+        '刑事裁判', '訴訟費用',
+        '訴訟記録', '判示事項',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29021,6 +29036,9 @@ export class VoiceCommands {
         // pass DCXXXI: still awaiting the weather report
         'still awaiting the weather report',
         'まだ警報前', 'これから観測開始',
+        // pass DCXXXII: still awaiting the verdict
+        'still awaiting the verdict',
+        'まだ判決前', 'これから控訴',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
