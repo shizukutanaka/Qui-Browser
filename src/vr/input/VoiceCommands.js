@@ -22035,6 +22035,20 @@ export class VoiceCommands {
         '粗大ごみ収集', 'ごみ袋指定',
         'ごみ有料化', '不法投棄取締',
         '廃棄物処理法',
+        // pass DCIV: broker license granted & agency disclosure signed
+        'broker license granted', 'agency disclosure signed',
+        '宅地建物取引業', '宅建業免許',
+        '宅地建物取引士', '宅建士',
+        '宅建業免許更新', '契約書交付',
+        '媒介契約', '専任媒介',
+        '一般媒介', '専属専任',
+        '媒介報酬', '国土交通大臣免許',
+        '都道府県知事免許', '宅建業法',
+        '宅地建物取引業者', '業務停止処分',
+        '取引実績報告', '保証協会',
+        '宅建業協会', '供託金',
+        '営業保証金', '宅建試験',
+        '宅建登録',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28526,6 +28540,9 @@ export class VoiceCommands {
         // pass DCIII: still awaiting the waste permit
         'still awaiting the waste permit',
         'まだ稼働前', 'これから建設申請',
+        // pass DCIV: still awaiting the broker license
+        'still awaiting the broker license',
+        'まだ媒介前', 'これから媒介契約',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
