@@ -22675,6 +22675,23 @@ export class VoiceCommands {
         '畜産農家', '畜産物価格',
         '酪農経営', '肉牛生産',
         '乳価', '生乳生産',
+        // pass DCXLVII: logistics plan approved & freight permit granted
+        'logistics plan approved', 'freight permit granted',
+        '物流効率化法', '物流二〇二四年問題',
+        '運輸安全マネジメント評価', '宅配便',
+        'トラック運送業', '貸切バス',
+        '乗合バス', '共同輸送',
+        'モーダルシフト', '鉄道貨物',
+        '内航海運', '物流センター',
+        '共同配送', 'ラストワンマイル',
+        '標準貨物運送約款', '輸送力供給',
+        '幹線輸送', '海上輸送',
+        '港湾運送', '外航海運',
+        '物流拠点', '運送支払',
+        '物流人材', '物流施設',
+        '荷役作業', '運送業免許',
+        '旅客運送業免許', '貨物運送業免許',
+        '運輸調査',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29297,6 +29314,9 @@ export class VoiceCommands {
         // pass DCXLVI: still awaiting the livestock permit
         'still awaiting the livestock permit',
         'まだ飼養前', 'これから飼育届',
+        // pass DCXLVII: still awaiting the freight license
+        'still awaiting the freight license',
+        'これから開業', 'これから輸送届',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
