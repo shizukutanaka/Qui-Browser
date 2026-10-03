@@ -22131,6 +22131,20 @@ export class VoiceCommands {
         '生活管理指導表', '牛乳中止',
         '学校衛生委員会', '体育祭',
         '体力テスト', '学校保健委員会',
+        // pass DCXI: scholarship granted & loan deferment approved
+        'scholarship granted', 'loan deferment approved',
+        '奨学金', '給付奨学金',
+        '貸与奨学金', '第一種奨学金',
+        '第二種奨学金', 'スカラーシップ',
+        '奨学金返還', '返還猶予',
+        '減額返還', '機関保証',
+        '返還期限', '返還免除',
+        '高等教育無償化', '授業料減免',
+        '入学金減免', '緊急採用奨学金',
+        '在学猶予', '奨学金継続願',
+        '奨学金停止', '奨学生証',
+        '支援区分', '奨学金振込',
+        '予約採用', '在学採用',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28643,6 +28657,9 @@ export class VoiceCommands {
         // pass DCX: still awaiting the lunch menu
         'still awaiting the lunch menu',
         'まだ給食前', 'これから健診',
+        // pass DCXI: still awaiting the scholarship
+        'still awaiting the scholarship',
+        'まだ奨学金前', 'これから奨学金申請',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
