@@ -22278,6 +22278,21 @@ export class VoiceCommands {
         '出走表', '競技場管理',
         '地方競馬全国協会', '競馬法',
         '自転車競技法', 'モーターボート競走法',
+        // pass DCXXI: grower certified & crop plan approved
+        'grower certified', 'crop plan approved',
+        '農業基本法', '食料自給率',
+        '担い手', '認定農業者',
+        '認定新規就農者', '農業経営基盤強化',
+        '営農計画', '集落営農',
+        '農地中間管理機構', '中山間地域',
+        '鳥獣害防止', '病害虫防除',
+        '米生産調整', '政府米',
+        '食糧管理法', '米価審議会',
+        '家畜改良増殖法', '飼料需給',
+        '農産物検査', '農業改良普及',
+        '普及指導員', '営農指導',
+        '農業経営', '販売契約',
+        '産地形成',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28822,6 +28837,9 @@ export class VoiceCommands {
         // pass DCXX: still awaiting the race entry
         'still awaiting the race entry',
         'まだ投票前', 'まだ場外発売前',
+        // pass DCXXI: still awaiting the grower certification
+        'still awaiting the grower certification',
+        'これから営農計画',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
