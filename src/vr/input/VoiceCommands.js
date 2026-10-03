@@ -21956,6 +21956,17 @@ export class VoiceCommands {
         '配水管', '汚水処理',
         '受益者負担金', '下水道工事',
         '下水排除', '排水設備工事',
+        // pass DXCVII: welfare equipment rented & home ramp funded
+        'welfare equipment rented', 'home ramp funded',
+        '福祉用具貸与', '福祉用具購入',
+        '住宅改修', '手すり設置',
+        '段差解消', '介護保険住宅改修',
+        '福祉用具レンタル', '車いす貸与',
+        '介護ベッド', '移動用リフト',
+        '歩行器', '補装具',
+        '補装具費支給', '日常生活用具',
+        '障害者用具', '給付券',
+        '福祉用具専門相談員', 'スロープ設置',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28426,6 +28437,9 @@ export class VoiceCommands {
         // pass DXCVI: still before the hookup
         'still before the hookup',
         'まだ開栓前', 'これから給水申請',
+        // pass DXCVII: still awaiting the equipment loan
+        'still awaiting the equipment loan',
+        'まだ貸与前', 'これから改修申請',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
