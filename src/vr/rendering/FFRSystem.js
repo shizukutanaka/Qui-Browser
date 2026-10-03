@@ -3,18 +3,25 @@
  * Reduces GPU load by 25-40% by lowering resolution at screen edges
  *
  * John Carmack principle: Simple, effective, necessary
+ *
+ * Writes go through `renderer.xr.setFoveation()` — the same entry point
+ * three.js uses — which lands `fixedFoveation` on the base layer the
+ * compositor actually displays and is re-applied on each session start.
+ * Detecting support reads the layer three.js installed (`getBaseLayer()`):
+ * per spec, `fixedFoveation` is a float on runtimes that support it and
+ * null otherwise.
  */
 
 export class FFRSystem {
   constructor() {
     this.enabled = false;
+    this.supported = false;
     this.intensity = 0.5; // 0-1 range
-    this.projectionLayer = null;
-    this.glBinding = null;
+    this._xr = null;
     this.gpuLoadThresholds = {
-      high: 0.85,    // >85% GPU = aggressive foveation
-      medium: 0.75,  // >75% GPU = medium foveation
-      low: 0.5       // <50% GPU = light foveation
+      high: 0.85, // >85% GPU = aggressive foveation
+      medium: 0.75, // >75% GPU = medium foveation
+      low: 0.5 // <50% GPU = light foveation
     };
 
     // FR-4.2: predicted gaze foveation via head-motion stability.
@@ -22,47 +29,35 @@ export class FFRSystem {
     // approximation we observe head angular velocity — a still head implies
     // fixation (periphery can be lower-res), a moving head implies scanning
     // (need uniform quality).
-    this._prevHeadQuat = null;   // {x,y,z,w} from the previous frame
-    this._headVelocity = 0;      // smoothed angular velocity (rad/s)
+    this._prevHeadQuat = null; // {x,y,z,w} from the previous frame
+    this._headVelocity = 0; // smoothed angular velocity (rad/s)
     this.predictedGazeEnabled = false;
   }
 
   /**
-   * Initialize FFR with WebXR session
+   * Initialize FFR for an active WebXR session.
    * @param {XRSession} session - Active WebXR session
-   * @param {WebGLRenderingContext} gl - WebGL context
+   * @param {WebGLRenderer} renderer - three.js renderer (owns the XR manager)
+   * @returns {Promise<boolean>} true when fixed foveation is supported
    */
-  async initialize(session, gl) {
-    if (!session || !gl) {
-      console.warn('FFRSystem: Invalid session or GL context');
+  async initialize(session, renderer) {
+    const xr = renderer && renderer.xr;
+    if (!session || !xr || typeof xr.setFoveation !== 'function') {
+      console.warn('FFRSystem: Invalid session or renderer');
       return false;
     }
 
-    try {
-      // Create XR WebGL binding
-      this.glBinding = new XRWebGLBinding(session, gl);
-
-      // Get projection layer for FFR control
-      this.projectionLayer = this.glBinding.getProjectionLayer();
-
-      if (!this.projectionLayer) {
-        console.warn('FFRSystem: No projection layer available');
-        return false;
-      }
-
-      // Check if FFR is supported
-      if (typeof this.projectionLayer.fixedFoveation === 'undefined') {
-        console.warn('FFRSystem: Fixed foveation not supported on this device');
-        return false;
-      }
-
-      this.enabled = true;
-      console.debug('FFRSystem: Initialized successfully');
-      return true;
-    } catch (error) {
-      console.error('FFRSystem: Initialization error', error);
+    const baseLayer = typeof xr.getBaseLayer === 'function' ? xr.getBaseLayer() : null;
+    if (!baseLayer || typeof baseLayer.fixedFoveation !== 'number') {
+      console.warn('FFRSystem: Fixed foveation not supported on this device');
       return false;
     }
+
+    this._xr = xr;
+    this.enabled = true;
+    this.supported = true;
+    console.debug('FFRSystem: Initialized successfully');
+    return true;
   }
 
   /**
@@ -70,14 +65,14 @@ export class FFRSystem {
    * @param {number} intensity - Foveation level (0-1)
    */
   enable(intensity = 0.5) {
-    if (!this.enabled || !this.projectionLayer) {
+    if (!this.enabled) {
       console.warn('FFRSystem: Not initialized');
       return;
     }
 
     // Clamp intensity between 0 and 1
     this.intensity = Math.max(0, Math.min(1, intensity));
-    this.projectionLayer.fixedFoveation = this.intensity;
+    this._xr.setFoveation(this.intensity);
 
     console.debug(`FFRSystem: Enabled with intensity ${this.intensity}`);
   }
@@ -86,11 +81,11 @@ export class FFRSystem {
    * Disable FFR (set to no foveation)
    */
   disable() {
-    if (!this.enabled || !this.projectionLayer) {
+    if (!this.enabled) {
       return;
     }
 
-    this.projectionLayer.fixedFoveation = 0;
+    this._xr.setFoveation(0);
     console.debug('FFRSystem: Disabled');
   }
 
@@ -99,7 +94,7 @@ export class FFRSystem {
    * @param {number} gpuLoad - Current GPU load (0-1)
    */
   setDynamicFFR(gpuLoad) {
-    if (!this.enabled || !this.projectionLayer) {
+    if (!this.enabled) {
       return;
     }
 
@@ -121,7 +116,7 @@ export class FFRSystem {
 
     // Smooth transition to avoid jarring changes
     this.intensity += (targetIntensity - this.intensity) * 0.1;
-    this.projectionLayer.fixedFoveation = this.intensity;
+    this._xr.setFoveation(this.intensity);
   }
 
   /**
@@ -131,7 +126,7 @@ export class FFRSystem {
     return {
       enabled: this.enabled,
       intensity: this.intensity,
-      supported: this.projectionLayer !== null
+      supported: this.supported
     };
   }
 
@@ -142,11 +137,11 @@ export class FFRSystem {
    * updatePredictedGazeFoveation().
    */
   adjustIntensity(delta) {
-    if (!this.enabled || !this.projectionLayer) {
+    if (!this.enabled) {
       return;
     }
     this.intensity = Math.max(0, Math.min(1, this.intensity + delta));
-    this.projectionLayer.fixedFoveation = this.intensity;
+    this._xr.setFoveation(this.intensity);
   }
 
   /**
@@ -168,9 +163,9 @@ export class FFRSystem {
       // Angular velocity: 2·acos(|q1·q2|) / dt
       const dot = Math.abs(
         this._prevHeadQuat.x * quat.x +
-        this._prevHeadQuat.y * quat.y +
-        this._prevHeadQuat.z * quat.z +
-        this._prevHeadQuat.w * quat.w
+          this._prevHeadQuat.y * quat.y +
+          this._prevHeadQuat.z * quat.z +
+          this._prevHeadQuat.w * quat.w
       );
       const angleDelta = 2 * Math.acos(Math.min(1, dot));
       const angularVelocity = angleDelta / dtSeconds;
@@ -196,20 +191,18 @@ export class FFRSystem {
    * Intended to be called after trackHeadPose() in the same frame.
    */
   updatePredictedGazeFoveation() {
-    if (!this.predictedGazeEnabled || !this.projectionLayer) {
+    if (!this.predictedGazeEnabled || !this.enabled) {
       return;
     }
 
-    const SLOW = 0.05;  // rad/s — below this: fixating
-    const FAST = 0.50;  // rad/s — above this: scanning
-    const t = Math.max(0, Math.min(1,
-      (this._headVelocity - SLOW) / (FAST - SLOW)
-    ));
+    const SLOW = 0.05; // rad/s — below this: fixating
+    const FAST = 0.5; // rad/s — above this: scanning
+    const t = Math.max(0, Math.min(1, (this._headVelocity - SLOW) / (FAST - SLOW)));
 
     // Still head (t=0) → intensity 0.8; fast head (t=1) → intensity 0.2.
     const target = 0.8 - 0.6 * t;
     this.intensity += (target - this.intensity) * 0.1;
-    this.projectionLayer.fixedFoveation = Math.max(0, Math.min(1, this.intensity));
+    this._xr.setFoveation(Math.max(0, Math.min(1, this.intensity)));
   }
 
   /**
@@ -217,9 +210,9 @@ export class FFRSystem {
    */
   dispose() {
     this.disable();
-    this.projectionLayer = null;
-    this.glBinding = null;
+    this._xr = null;
     this.enabled = false;
+    this.supported = false;
   }
 }
 
@@ -229,7 +222,7 @@ export class FFRSystem {
  * const ffrSystem = new FFRSystem();
  *
  * // In XR session start
- * await ffrSystem.initialize(xrSession, gl);
+ * await ffrSystem.initialize(xrSession, renderer);
  * ffrSystem.enable(0.5); // Medium foveation
  *
  * // In render loop

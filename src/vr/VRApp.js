@@ -3745,9 +3745,14 @@ export class VRApp {
     const gl = this.renderer.getContext();
     if (this.ffrSystem && session) {
       try {
-        await this.ffrSystem.initialize(session, gl);
-        this.ffrSystem.enable(0.5);
-        console.debug('VRApp: FFR enabled for session');
+        const ffrOk = await this.ffrSystem.initialize(session, this.renderer);
+        if (ffrOk) {
+          this.ffrSystem.enable(0.5);
+          console.debug('VRApp: FFR enabled for session');
+        } else {
+          this.showVRToast(t('vr.error.foveationUnavailable'), { type: 'warn' });
+          this.ffrSystem = null;
+        }
       } catch (e) {
         console.error('VRApp: FFR session init failed', e);
         this.showVRToast(t('vr.error.foveationUnavailable'), { type: 'warn' });

@@ -65,7 +65,7 @@ describe('src/vr/input/JapaneseIME', () => {
   test('incremental composition: lone n shows ん, then resolves to な with the vowel', () => {
     // processInput appends and reconverts the whole buffer each keystroke, so a
     // transient ん after the first 'n' must resolve to な once the vowel arrives.
-    expect(ime.convertRomajiToHiragana('n')).toBe('ん');  // mid-composition
+    expect(ime.convertRomajiToHiragana('n')).toBe('ん'); // mid-composition
     expect(ime.convertRomajiToHiragana('na')).toBe('な'); // after the vowel
   });
 
@@ -114,39 +114,39 @@ describe('src/vr/rendering/FFRSystem', () => {
   test('enable() before initialization is a safe no-op (does not throw)', () => {
     const ffr = new FFRSystem();
     expect(() => ffr.enable(0.8)).not.toThrow();
-    expect(ffr.projectionLayer).toBeFalsy();
+    expect(ffr._xr).toBeFalsy();
   });
 
   test('enable() clamps intensity into [0, 1] and writes fixedFoveation', () => {
     const ffr = new FFRSystem();
-    // Simulate a ready WebXR projection layer.
+    // Simulate a ready three.js XR manager.
     ffr.enabled = true;
-    ffr.projectionLayer = { fixedFoveation: 0 };
+    ffr._xr = { setFoveation: jest.fn() };
 
     ffr.enable(2.0);
     expect(ffr.intensity).toBe(1);
-    expect(ffr.projectionLayer.fixedFoveation).toBe(1);
+    expect(ffr._xr.setFoveation).toHaveBeenLastCalledWith(1);
 
     ffr.enable(-1);
     expect(ffr.intensity).toBe(0);
-    expect(ffr.projectionLayer.fixedFoveation).toBe(0);
+    expect(ffr._xr.setFoveation).toHaveBeenLastCalledWith(0);
 
     ffr.enable(0.5);
-    expect(ffr.projectionLayer.fixedFoveation).toBeCloseTo(0.5);
+    expect(ffr._xr.setFoveation).toHaveBeenLastCalledWith(0.5);
   });
 
   test('disable() sets fixedFoveation to 0', () => {
     const ffr = new FFRSystem();
     ffr.enabled = true;
-    ffr.projectionLayer = { fixedFoveation: 0.7 };
+    ffr._xr = { setFoveation: jest.fn() };
     ffr.disable();
-    expect(ffr.projectionLayer.fixedFoveation).toBe(0);
+    expect(ffr._xr.setFoveation).toHaveBeenLastCalledWith(0);
   });
 
   test('adjustIntensity() nudges intensity and clamps to [0,1]', () => {
     const ffr = new FFRSystem();
     ffr.enabled = true;
-    ffr.projectionLayer = { fixedFoveation: 0 };
+    ffr._xr = { setFoveation: jest.fn() };
     ffr.intensity = 0.5;
 
     ffr.adjustIntensity(0.2);
@@ -162,7 +162,7 @@ describe('src/vr/rendering/FFRSystem', () => {
   test('trackHeadPose() → updatePredictedGazeFoveation() adjusts intensity', () => {
     const ffr = new FFRSystem();
     ffr.enabled = true;
-    ffr.projectionLayer = { fixedFoveation: 0.5 };
+    ffr._xr = { setFoveation: jest.fn() };
     ffr.intensity = 0.5;
 
     const identity = { x: 0, y: 0, z: 0, w: 1 };

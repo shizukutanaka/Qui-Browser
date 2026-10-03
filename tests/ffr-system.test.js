@@ -176,7 +176,7 @@ describe('dynamic intensity adjustments', () => {
     ffr.updatePredictedGazeFoveation();
     // drift toward 0.2: 0.5 - 0.3*0.1 = 0.47
     expect(ffr.intensity).toBeCloseTo(0.47);
-    expect(renderer.xr.setFoveation).toHaveBeenLastCalledWith(0.47);
+    expect(renderer.xr.setFoveation).toHaveBeenLastCalledWith(expect.closeTo(0.47, 5));
   });
 });
 
@@ -200,8 +200,6 @@ describe('dispose', () => {
     const ffr = new FFRSystem();
     const renderer = makeRenderer(makeLayer(0));
     await ffr.initialize(makeSession(), renderer);
-    expect(ffr.getStatus()).toEqual(
-      expect.objectContaining({ enabled: true, supported: true })
-    );
+    expect(ffr.getStatus()).toEqual(expect.objectContaining({ enabled: true, supported: true }));
   });
 });
