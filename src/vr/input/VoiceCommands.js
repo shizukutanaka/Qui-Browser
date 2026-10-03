@@ -23461,6 +23461,27 @@ export class VoiceCommands {
         '理容所', '美容所',
         'クリーニング店', '自動車整備業',
         '指定整備工場',
+        // pass DCLXXXVI: digital government & cybersecurity administration
+        'security audit passed', 'digital portal launched',
+        'デジタル社会推進', 'デジタルトランスフォーメーション',
+        '政府情報システム', '電子政府',
+        'デジタル手続き法', 'オンライン手続き',
+        'デジタル庁設置', '電子計算機',
+        '情報処理振興',
+        'デジタル田園都市', 'デジタルディバイド',
+        'デジタルアンバサダー', 'デジタル化',
+        '情報処理推進機構', 'ipa',
+        '基本情報技術者', '応用情報技術者',
+        '情報処理安全確保支援士', 'it人材',
+        '情報通信技術', 'ict',
+        '情報システム', 'e-gov',
+        'サイバー基本法', 'サイバーセキュリティ協議会',
+        'サイバー攻撃', 'サイバー演習',
+        'セキュリティ監査', 'セキュリティパッチ',
+        'ゼロデイ', 'ランサムウェア',
+        '情報漏洩', '脆弱性届出',
+        '個人情報流出', '個人情報',
+        '情報公開',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -30219,6 +30240,9 @@ export class VoiceCommands {
         'still awaiting the incorporation',
         'まだ設立中', 'まだ創業前',
         'まだ開業中',
+        // pass DCLXXXVI: cybersecurity review / incident response reports
+        'still awaiting the cybersecurity review',
+        'まだ監査前', 'まだ対応中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
