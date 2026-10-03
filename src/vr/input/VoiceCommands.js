@@ -23246,6 +23246,26 @@ export class VoiceCommands {
         '盛土規制',
         '日影規制', '建蔽率',
         '斜線規制',
+        // pass DCLXXVI: residence permit granted & work permit issued
+        'residence permit granted', 'work permit issued',
+        '技能実習生', '技能実習制度',
+        '特定技能', '特定技能1号',
+        '特定技能2号', '技能実習責任者',
+        '監理団体', '登録支援機関',
+        '送り出し機関', '外国人技能実習機構',
+        '技能実習計画', '技能実習修了',
+        '外国人材', '外国人労働者',
+        '高度人材', '高度専門職',
+        '在留期間更新', '在留資格変更',
+        '資格外活動許可', '難民申請',
+        '日本語教育機関', '留学生',
+        '留学ビザ', '特定活動ビザ',
+        '技術・人文知識・国際業務',
+        '日本人配偶者', '永住者配偶者',
+        '定住者', '日系人',
+        '日本人デカセギ', '外国人住民',
+        '多文化共生', '共生社会',
+        '国際交流',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29966,6 +29986,9 @@ export class VoiceCommands {
         // pass DCLXXV: seismic rating / construction-start reports
         'still awaiting the seismic rating',
         'まだ診断前', 'まだ着工前',
+        // pass DCLXXVI: visa decision / entry reports
+        'still awaiting the visa decision',
+        'まだ入国前', 'これから入国',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
