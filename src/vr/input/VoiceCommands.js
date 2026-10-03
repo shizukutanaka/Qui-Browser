@@ -22371,6 +22371,20 @@ export class VoiceCommands {
         '再処理工場', '原子力損害賠償',
         'エネルギー基本計画', 'グリーン電力証書',
         'jepx',
+        // pass DCXXVII: gas retail permit granted & pipeline safety officer appointed
+        'gas retail permit granted', 'pipeline safety officer appointed',
+        'ガス事業法', 'ガス小売事業',
+        'ガス導管事業', 'ガス工作物',
+        'ガス主任技術者', 'ガス料金規則',
+        '都市ガス', '簡易ガス',
+        '高圧ガス保安法', 'lpガス販売',
+        '液化石油ガス法', 'ガス消費機器',
+        '保安業務', 'ガス供給条件',
+        'ガス工事業', 'ガス器具設置',
+        'ガス栓増設', 'ガス埋設管',
+        'ガス漏洩検査', '熱供給事業',
+        '地域熱供給', 'ガス導管維持管理',
+        'ガス事故報告',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28933,6 +28947,9 @@ export class VoiceCommands {
         // pass DCXXVI: still awaiting the reactor permit
         'still awaiting the reactor permit',
         'これから工事届',
+        // pass DCXXVII: still awaiting the gas permit
+        'still awaiting the gas permit',
+        'まだ供給申請前', 'これから導管届',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
