@@ -22711,6 +22711,25 @@ export class VoiceCommands {
         '広域連携', '一部事務組合',
         '地方公務員採用', '昇任試験',
         '人事委員会', '公平委員会',
+        // pass DCXLIX: university grant approved & accreditation renewal done
+        'university grant approved', 'accreditation renewal done',
+        '国立大学法人', '大学設置基準',
+        '大学入学共通テスト', '入試広報',
+        '大学改革支援', '学位授与機構',
+        '高等専門学校', '専修学校',
+        '各種学校', '大学院',
+        '学部設置', '学科設置',
+        '教員養成課程', '教育研究力',
+        '大学運営費交付金', '学生生活支援',
+        '学生募集', '大学認証評価機関',
+        '認証評価', '第三者評価',
+        '大学院生支援', '私学助成',
+        '私立学校助成', '学校法人',
+        '学校法人経営', '定員管理',
+        '入学定員', '大学設置認可',
+        '大学入試センター', '国立高等専門学校',
+        '公立大学', '大学情報公開',
+        '大学評価',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29339,6 +29358,10 @@ export class VoiceCommands {
         // pass DCXLVIII: still awaiting the local subsidy
         'still awaiting the local subsidy',
         'まだ条例制定前', 'これから請願',
+        // pass DCXLIX: still awaiting the university charter
+        'still awaiting the university charter',
+        'まだ認証前', 'これから設置認可',
+        'これから評価提出',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
