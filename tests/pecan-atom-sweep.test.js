@@ -33,7 +33,7 @@ const negate = [
 const nullPins = [
   'about to sign up', 'mid enrollment',
   'membership form', 'class schedule',
-  'これから入会', '入会手続き中',
+  'これから入会届', '入会手続き中',
   '入会申込書', 'レッスン表',
 ];
 const establishedPins = [

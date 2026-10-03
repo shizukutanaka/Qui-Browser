@@ -23334,6 +23334,23 @@ export class VoiceCommands {
         '第二種動物取扱業', '地域猫',
         'さくら猫', '殺処分ゼロ',
         'マイクロチップ装着',
+        // pass DCLXXX: bar exam & license sworn
+        'bar exam passed', 'license sworn in',
+        '弁護士', '弁護士会',
+        '日本弁護士連合会', '日弁連',
+        '弁護士法', '予備試験',
+        '修習生', '裁判官',
+        '法律事務所',
+        '弁理士', '弁理士会',
+        '税理士', '税理士会',
+        '公認会計士', '会計士協会',
+        '監査法人',
+        '技術士', '技術士会',
+        '危険物取扱者', '消防設備士',
+        '危険物取扱責任者', '労働安全コンサルタント',
+        '機械設計技術者', '建築設備士',
+        '造園技能士', '技能検定',
+        '技能五輪',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -30068,6 +30085,10 @@ export class VoiceCommands {
         'still awaiting the herd inspection',
         'まだ検疫前', 'まだ飼育前',
         'まだ輸入前',
+        // pass DCLXXX: bar exam / membership reports
+        'still awaiting the bar exam',
+        'まだ試験前', 'これから入会',
+        'まだ試験中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
