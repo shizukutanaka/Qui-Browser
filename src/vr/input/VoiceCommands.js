@@ -23121,6 +23121,24 @@ export class VoiceCommands {
         '国際戦略港湾', 'ハブ港湾',
         '海岸法', '海岸保全区域',
         '津波防災',
+        // pass DCLXIX: elevator installed & tactile paving laid
+        'elevator installed', 'tactile paving laid',
+        'バリアフリー法', '交通バリアフリー法',
+        '障害者差別解消法', '差別解消',
+        '点字ブロック', '音響信号機',
+        'エレベーター設置', 'バリアフリー整備',
+        '駅舎バリアフリー', '心のバリアフリー',
+        '情報バリアフリー', '手話言語',
+        '手話通訳', '要約筆記',
+        '移動支援', '歩行訓練',
+        '点字図書', '音声コード',
+        '読書支援', 'バリアフリー情報',
+        '観光バリアフリー', 'バリアフリーマップ',
+        '障害者雇用促進', '障害者支援法人',
+        '障害者芸術', '障害者スポーツ',
+        '障害者差別', 'サポートブック',
+        'ヘルプマーク', 'バリアフリー認証',
+        '駅員研修',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29819,6 +29837,9 @@ export class VoiceCommands {
         // pass DCLXVIII: harbor-plan / reclamation / mooring reports
         'still awaiting the harbor plan',
         'まだ埋立前', 'これから係留',
+        // pass DCLXIX: accessibility audit / support-application reports
+        'still awaiting the accessibility audit',
+        'まだ整備前', 'これから支援申請',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
