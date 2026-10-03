@@ -22415,6 +22415,20 @@ export class VoiceCommands {
         '処方箋医薬品', '医療用医薬品',
         '一般用医薬品', '承認審査',
         '医薬品製造業',
+        // pass DCXXX: mining permit granted & claim staked
+        'mining permit granted', 'claim staked',
+        '鉱業法', '鉱区設定',
+        '鉱業権', '採掘権',
+        '鉱業権申請', '鉱山閉山',
+        '鉱害防止', '鉱山保安',
+        '鉱業審議会', '鉱害賠償',
+        '鉱業税', '試掘権',
+        '採掘技術', '石炭鉱山',
+        '金属鉱山', '鉱業登録',
+        '鉱業監督', '鉱山労働',
+        '採掘計画', '鉱量',
+        '砂利採取', '鉱業等租税',
+        '鉱業適格', '採掘権者',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28986,6 +29000,9 @@ export class VoiceCommands {
         // pass DCXXIX: still awaiting the drug approval
         'still awaiting the drug approval',
         'まだ承認申請前', 'これから治験届',
+        // pass DCXXX: still awaiting the mining permit
+        'still awaiting the mining permit',
+        'まだ採掘前', 'これから鉱区申請',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
