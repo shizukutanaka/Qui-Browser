@@ -21833,6 +21833,18 @@ export class VoiceCommands {
         '保存活用', '指定文化財',
         '建造物保存', '伝統的建造物群',
         '重伝建', '活用促進',
+        // pass DLXXXVI: safety officer appointed & workplace inspection done
+        'safety officer appointed', 'workplace inspection done',
+        '労働安全衛生', '産業医',
+        '衛生管理者', '安全管理者',
+        '衛生推進者', '安全衛生推進者',
+        '作業主任者', '特別教育',
+        '技能講習', '危険作業',
+        '立会検査', '二度災害',
+        'ヒヤリハット', '安全パトロール',
+        'リスクアセスメント', '作業環境測定',
+        'ストレスチェック', '過重労働',
+        '労基監督',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28270,6 +28282,9 @@ export class VoiceCommands {
         // pass DLXXXV: still awaiting the excavation
         'still awaiting the excavation',
         'まだ発掘前', 'これから調査',
+        // pass DLXXXVI: still awaiting the safety review
+        'still awaiting the safety review',
+        'まだ講習前', 'これから報告',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
