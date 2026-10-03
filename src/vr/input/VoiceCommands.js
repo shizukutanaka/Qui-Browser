@@ -22355,6 +22355,22 @@ export class VoiceCommands {
         '電波監理審査会', '電波監査官',
         '電波標準審査会', '周波数割当',
         '無線局免許',
+        // pass DCXXVI: reactor permit granted & smart meter installed
+        'reactor permit granted', 'smart meter installed',
+        '電気事業法', '一般送配電事業',
+        '小売電気事業', '新電力',
+        '電力需給', '電力系統',
+        '電力取引監視委員会', '託送供給',
+        'スマートメーター', '規制料金',
+        '自由料金', '再生可能エネルギー',
+        '固定価格買取制度', '太陽光発電設備',
+        '風力発電認定', '電気主任技術者',
+        '電気工事士', '電気工事業',
+        '原子力規制委員会', '原子力発電所',
+        '核燃料サイクル', '放射性廃棄物',
+        '再処理工場', '原子力損害賠償',
+        'エネルギー基本計画', 'グリーン電力証書',
+        'jepx',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28914,6 +28930,9 @@ export class VoiceCommands {
         // pass DCXXV: still awaiting the broadcast license
         'still awaiting the broadcast license',
         'まだ免許申請前', 'これから放送届',
+        // pass DCXXVI: still awaiting the reactor permit
+        'still awaiting the reactor permit',
+        'これから工事届',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
