@@ -21945,6 +21945,17 @@ export class VoiceCommands {
         'エイジレス', '高年齢雇用継続給付',
         '高年齢者等就業促進', '高齢労働者',
         '定年後', '高齢者再就職',
+        // pass DXCVI: water service started & water meter inspected
+        'water service started', 'water meter inspected',
+        '水道事業', '給水装置',
+        '水道料金', '上水道',
+        '水道局', '給水工事',
+        'メーター検針', '漏水修理',
+        '水道使用開始', '水道使用中止',
+        '水質検査', '浄水場',
+        '配水管', '汚水処理',
+        '受益者負担金', '下水道工事',
+        '下水排除', '排水設備工事',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28412,6 +28423,9 @@ export class VoiceCommands {
         // pass DXCV: still before rehiring
         'still before rehiring',
         'まだ再雇用前', 'これから延長申請',
+        // pass DXCVI: still before the hookup
+        'still before the hookup',
+        'まだ開栓前', 'これから給水申請',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
