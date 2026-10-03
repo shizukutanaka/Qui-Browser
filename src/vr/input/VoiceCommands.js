@@ -21923,6 +21923,17 @@ export class VoiceCommands {
         '雇用安定措置', '派遣均等待遇',
         '紹介予定派遣', '登録型派遣',
         '常用型派遣', '労働者供給',
+        // pass DXCIV: builder license granted & site supervisor certified
+        'builder license granted', 'site supervisor certified',
+        '建設業許可', '建設業者',
+        '特定建設業', '一般建設業',
+        '大臣許可', '知事許可',
+        '建設業法', '下請負',
+        '元請負', '主任技術者',
+        '監理技術者', '建設業経理',
+        '建設業登録', '施工体制台帳',
+        '工事請負契約', '建設工事',
+        '建設リサイクル法', '解体工事',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28384,6 +28395,9 @@ export class VoiceCommands {
         // pass DXCIII: still on dispatch duty
         'still on dispatch duty',
         'まだ派遣登録前', 'これから派遣契約',
+        // pass DXCIV: still awaiting the builder license
+        'still awaiting the builder license',
+        'まだ許可申請前', 'これから着工届',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
