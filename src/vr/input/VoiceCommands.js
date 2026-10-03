@@ -21810,6 +21810,18 @@ export class VoiceCommands {
         '森林所有者', '境界',
         '共用林', '入会林',
         '森林認証', '植樹',
+        // pass DLXXXIV: hunting license renewed & pest-control detail done
+        'hunting license renewed', 'pest-control detail done',
+        '狩猟免許', '猟銃',
+        '狩猟登録', '猟友会',
+        '鳥獣保護区', '狩猟期間',
+        '有害鳥獣', '駆除',
+        '捕獲', '罠免許',
+        'わな猟', '空気銃',
+        '猟銃等講習', '銃所持許可',
+        '狩猟税', '猟区',
+        'ジビエ', '銃砲所持許可',
+        '狩猟免状',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28241,6 +28253,9 @@ export class VoiceCommands {
         // pass DLXXXIII: still awaiting the felling permit
         'still awaiting the felling permit',
         'まだ伐採前', 'これから伐採届',
+        // pass DLXXXIV: still unregistered for hunting
+        'still unregistered for hunting',
+        'まだ狩猟登録前', 'これから狩猟登録',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
