@@ -3779,33 +3779,7 @@ export class VRApp {
 
     // Initialize hand tracking
     if (this.handTracking && session) {
-      await this.handTracking.initialize(session);
-
-      // Register gesture callbacks
-      this.handTracking.onGesture('pinch', (hand, _gesture) => {
-        console.debug(`${hand} hand pinch detected`);
-        // Play spatial sound at pinch position
-        if (this.spatialAudio) {
-          const pos = this.handTracking.getPinchPosition(hand);
-          if (pos) {
-            this.spatialAudio.play('click', 'click', pos);
-          }
-        }
-        // Haptic confirmation on pinch (lightweight click feel).
-        if (this.hapticFeedback) {
-          this.hapticFeedback.playPattern(hand, 'click');
-        }
-      });
-
-      this.handTracking.onGesture('grab', (hand) => {
-        if (this.hapticFeedback) {
-          this.hapticFeedback.playPattern(hand, 'impact');
-        }
-      });
-
-      this.handTracking.onGesture('point', (hand, _gesture) => {
-        console.debug(`${hand} hand pointing`);
-      });
+      await this._initHandTracking(session);
     }
 
     // Adjust render settings for VR
@@ -3816,6 +3790,54 @@ export class VRApp {
     if (this.captionSystem && this.captionSystem.enabled) {
       this.captionSystem.show(t('vr.msg.vrReady'));
     }
+  }
+
+  /**
+   * Initialize hand tracking for the XR session and wire gesture callbacks.
+   * initialize() reports unsupported input as `false` (leaving enabled=false,
+   * so update() early-returns and gestures would never fire), and a throw
+   * must not abort the rest of onVRSessionStart — so both paths surface via
+   * the same warn toast every other optional subsystem already uses
+   * (FFR, Layers, haptics, spatial audio; WCAG 4.1.3 Status Messages).
+   */
+  async _initHandTracking(session) {
+    let ready = false;
+    try {
+      ready = await this.handTracking.initialize(session);
+    } catch (e) {
+      console.error('VRApp: Hand tracking init failed', e);
+    }
+
+    if (!ready) {
+      this.showVRToast(t('vr.error.handTrackingUnavailable'), { type: 'warn' });
+      return;
+    }
+
+    // Register gesture callbacks
+    this.handTracking.onGesture('pinch', (hand, _gesture) => {
+      console.debug(`${hand} hand pinch detected`);
+      // Play spatial sound at pinch position
+      if (this.spatialAudio) {
+        const pos = this.handTracking.getPinchPosition(hand);
+        if (pos) {
+          this.spatialAudio.play('click', 'click', pos);
+        }
+      }
+      // Haptic confirmation on pinch (lightweight click feel).
+      if (this.hapticFeedback) {
+        this.hapticFeedback.playPattern(hand, 'click');
+      }
+    });
+
+    this.handTracking.onGesture('grab', (hand) => {
+      if (this.hapticFeedback) {
+        this.hapticFeedback.playPattern(hand, 'impact');
+      }
+    });
+
+    this.handTracking.onGesture('point', (hand, _gesture) => {
+      console.debug(`${hand} hand pointing`);
+    });
   }
 
   /**

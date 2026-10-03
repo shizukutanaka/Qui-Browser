@@ -167,6 +167,7 @@ const CATALOG = {
     'vr.error.foveationUnavailable': 'Foveation unavailable',
     'vr.error.hapticUnavailable': 'Haptic feedback unavailable',
     'vr.error.layersUnavailable': 'Sharp text rendering unavailable',
+    'vr.error.handTrackingUnavailable': 'Hand tracking unavailable',
     'vr.error.blockedUrl': 'Cannot open that address'
   },
   ja: {
@@ -325,6 +326,7 @@ const CATALOG = {
     'vr.error.foveationUnavailable': 'フォベーション利用不可',
     'vr.error.hapticUnavailable': 'ハプティックフィードバック利用不可',
     'vr.error.layersUnavailable': 'シャープテキストレンダリング利用不可',
+    'vr.error.handTrackingUnavailable': 'ハンドトラッキング利用不可',
     'vr.error.blockedUrl': 'このアドレスは開けません'
   }
 };
