@@ -23101,6 +23101,26 @@ export class VoiceCommands {
         '施設整備計画', '施設保全',
         '防災拠点', '防災公園',
         '避難広場', '緑地ネットワーク',
+        // pass DCLXVIII: seawall finished & marina permit granted
+        'seawall finished', 'marina permit granted',
+        '海岸侵食', '防潮堤',
+        '護岸工事', '砂浜保全',
+        '人工養浜', '離岸堤',
+        'テトラポット', '港湾管理',
+        '港湾整備', '臨港地区',
+        '臨港道路', '埠頭用地',
+        'みなとオアシス', 'フェリーターミナル',
+        'プレジャーボート', '海上交通',
+        '航路測量', '海難調査',
+        '小型船舶', '海上運送法',
+        '水上バス', '海上公園',
+        '埋立地', '海面埋立',
+        '公有水面埋立', '港湾環境',
+        '港湾再利用', '港湾税',
+        '港湾施設', '特定重要港湾',
+        '国際戦略港湾', 'ハブ港湾',
+        '海岸法', '海岸保全区域',
+        '津波防災',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29796,6 +29816,9 @@ export class VoiceCommands {
         'まだ裁定前', 'まだ請求前',
         // pass DCLXVII: public-facility registration/reorg reports
         'これから利用登録', 'まだ再編前',
+        // pass DCLXVIII: harbor-plan / reclamation / mooring reports
+        'still awaiting the harbor plan',
+        'まだ埋立前', 'これから係留',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
