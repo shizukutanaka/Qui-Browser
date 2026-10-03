@@ -22429,6 +22429,21 @@ export class VoiceCommands {
         '採掘計画', '鉱量',
         '砂利採取', '鉱業等租税',
         '鉱業適格', '採掘権者',
+        // pass DCXXXI: typhoon warning issued & quake monitor installed
+        'typhoon warning issued', 'quake monitor installed',
+        '気象庁', '気象業務法',
+        '気象予報士', '気象衛星',
+        '観測所', '気象レーダー',
+        '震度計', '地震速報',
+        '警報発表', '異常気象',
+        '火山監視', '気象台',
+        '測候所', '気象情報',
+        '防災気象', '落雷監視',
+        '津波警報', '地震観測',
+        '気象観測', '地方気象台',
+        '管区気象台', '海洋気象台',
+        '航空気象', '気象データ',
+        'アメダス',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29003,6 +29018,9 @@ export class VoiceCommands {
         // pass DCXXX: still awaiting the mining permit
         'still awaiting the mining permit',
         'まだ採掘前', 'これから鉱区申請',
+        // pass DCXXXI: still awaiting the weather report
+        'still awaiting the weather report',
+        'まだ警報前', 'これから観測開始',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
