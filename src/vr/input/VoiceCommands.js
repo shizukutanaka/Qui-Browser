@@ -22011,6 +22011,17 @@ export class VoiceCommands {
         '緑地保全地区', '生産緑地',
         '市街化区域', '市街化調整区域',
         '都市計画道路', '都市施設',
+        // pass DCII: community bus launched & demand transit approved
+        'community bus launched', 'demand transit approved',
+        'コミュニティバス', 'デマンド交通',
+        '乗合タクシー', '生活交通',
+        '公共交通空白地', '運行協議会',
+        '地域公共交通計画', 'バス路線廃止',
+        '代替交通', '乗継割引',
+        'バス停設置', '路線バス',
+        '鉄道代替バス', 'フィーダーバス',
+        '公共交通活性化', '地域公共交通確保',
+        '生活バス', '循環バス',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28496,6 +28507,9 @@ export class VoiceCommands {
         // pass DCI: still awaiting the development permit
         'still awaiting the development permit',
         'まだ開発許可前', 'これから開発申請',
+        // pass DCII: still awaiting the bus route
+        'still awaiting the bus route',
+        'まだ運行前', 'これから運行申請',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
