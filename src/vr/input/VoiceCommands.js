@@ -22629,6 +22629,21 @@ export class VoiceCommands {
         'マイバッグ持参', 'レジ袋有料',
         'ごみ減量化', '廃棄物発生抑制',
         'リユース促進', 'エコ活動',
+        // pass DCXLIV: fishing quota allocated & harbor works approved
+        'fishing quota allocated', 'harbor works approved',
+        '水産庁', '水産基本法',
+        '漁港計画', '養殖業',
+        '沿岸漁業', '沖合漁業',
+        '遠洋漁業', '漁船保険',
+        '魚価安定', '水産物検査',
+        '輸出水産物', '鮮魚市場',
+        '水産加工業', '魚市場運営',
+        '海の駅', '沿岸漁場',
+        '栽培漁業', '種苗生産',
+        '稚魚放流', '資源管理評価',
+        '漁獲割当', '総漁獲可能量',
+        '密漁取締り', '遊漁船業',
+        '鯨類資源', '海洋調査',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29242,6 +29257,9 @@ export class VoiceCommands {
         // pass DCXLIII: still awaiting the collection permit
         'still awaiting the collection permit',
         'まだ回収前', 'これから分別',
+        // pass DCXLIV: still awaiting the fishing permit
+        'still awaiting the fishing permit',
+        'まだ操業前', 'これから出漁',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
