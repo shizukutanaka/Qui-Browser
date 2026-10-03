@@ -22221,6 +22221,20 @@ export class VoiceCommands {
         '自主防犯ボランティア', 'かけつけ隊',
         'ママパトロール', '防犯ポスター',
         '侵入盗',
+        // pass DCXVII: property-tax assessment done & valuation notice issued
+        'property-tax assessment done', 'valuation notice issued',
+        '固定資産税', '都市計画税',
+        '固定資産評価', '評価替え',
+        '縦覧帳簿', '固定資産評価審査委員会',
+        '課税標準', '課税明細書',
+        '納税通知書', '種別割',
+        '保有割', '非課税',
+        '住宅用地特例', '新築住宅減額',
+        '耐震改修減額', 'バリアフリー改修減額',
+        '省エネ改修減額', '未登記家屋',
+        '家屋滅失届出', '償却資産',
+        '償却資産申告', '土地課税台帳',
+        '家屋課税台帳', '地目変換',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28753,6 +28767,9 @@ export class VoiceCommands {
         'still awaiting the patrol sign-up',
         'まだ巡視前', 'これからパトロール',
         'まだ見守り前',
+        // pass DCXVII: still awaiting the assessment
+        'still awaiting the assessment',
+        'これから縦覧', 'まだ申告前',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
