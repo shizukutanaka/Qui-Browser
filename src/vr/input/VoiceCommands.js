@@ -22519,6 +22519,21 @@ export class VoiceCommands {
         '仮想通貨交換業', '資金決済法',
         '破綻処理', '金融持株会社',
         '金融機関監督', '金融審査官',
+        // pass DCXXXVII: traffic violation ticketed & arrest warrant issued
+        'traffic violation ticketed', 'arrest warrant issued',
+        '警察庁', '警察法',
+        '警視庁', '道府県警察',
+        '警察署', '派出所',
+        '移動交番', '警察官',
+        '巡査', '警部',
+        '公安委員会', '警察本部',
+        '刑事', '捜査本部',
+        '職務質問', '交通課',
+        '生活安全課', '地域課',
+        '機動隊', '警察署長',
+        '巡査部長', '警察官採用',
+        '警察学校', '警察官試験',
+        '警備部', '捜査一課',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29111,6 +29126,9 @@ export class VoiceCommands {
         // pass DCXXXVI: still awaiting the banking license
         'still awaiting the banking license',
         'まだ認可申請前', 'これから免許申請',
+        // pass DCXXXVII: still awaiting the police report
+        'still awaiting the police report',
+        'まだ通報前', 'これから被害届',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
