@@ -22808,6 +22808,26 @@ export class VoiceCommands {
         '年度計画', '運営費交付金',
         '施設費交付金', '機能別会計',
         '法人化', '司法支援センター',
+        // pass DCLIV: rate hike announced & reserve requirement set
+        'rate hike announced', 'reserve requirement set',
+        '日本銀行', '日銀',
+        '金融政策', '量的緩和',
+        '政策金利', '公定歩合',
+        '利上げ', '利下げ',
+        'マイナス金利', 'イールドカーブ',
+        '信用金庫', '信用組合',
+        '労働金庫', '地方銀行',
+        '都市銀行', 'ネット銀行',
+        '信用保証協会', '日本政策金融公庫',
+        '商工中金', '住宅金融支援機構',
+        '日本銀行券', '資金供給',
+        '国債買入', '当座預金',
+        '買付オペ', '手形交換所',
+        '資金決済', '決済代行',
+        '振込', '送金',
+        '為替', '外国為替',
+        '外貨預金', '普通預金',
+        '定期預金', '口座名義',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29455,6 +29475,10 @@ export class VoiceCommands {
         'still awaiting the agency evaluation',
         'まだ認可前', 'これから中期計画',
         'これから設立届',
+        // pass DCLIV: still awaiting the rate decision
+        'still awaiting the rate decision',
+        'まだ決定前', 'これから利上げ',
+        'まだ開設前',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
