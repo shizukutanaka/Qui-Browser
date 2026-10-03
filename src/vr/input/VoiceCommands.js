@@ -23020,6 +23020,28 @@ export class VoiceCommands {
         '登記理由証明', '登記識別情報',
         '登記費用', '所有権登記',
         '抵当権設定',
+        // pass DCLXIV: shipping route opened & vessel registered
+        'shipping route opened', 'vessel registered',
+        '船員法', '船舶法',
+        '船籍', '船舶登記',
+        '船舶国籍', '船舶職員',
+        '船舶職員証', '海員名簿',
+        '船舶運航', '内航',
+        '外航', '遠洋航海',
+        '沿岸航海', '船主',
+        '船舶所有者', '海運会社',
+        '海運業', '船舶管理',
+        '船舶代理店', '海運仲立',
+        '海運組合', '海運振興',
+        '商船隊', '日本郵船',
+        '船舶公団', '海運国家',
+        '海運政策', '海事思想',
+        '海運秩序', '港湾労働',
+        '埠頭作業', 'コンテナ船',
+        '貨物船', '自動車運搬船',
+        'ばら積み船', 'タンカー',
+        '客船', 'フェリー',
+        '定期船', '不定期船',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29704,6 +29726,9 @@ export class VoiceCommands {
         // pass DCLXIII: still awaiting the registry review
         'still awaiting the registry review',
         'これから移転登記',
+        // pass DCLXIV: still awaiting the shipping permit
+        'still awaiting the shipping permit',
+        'これから出航',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
