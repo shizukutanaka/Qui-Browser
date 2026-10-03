@@ -1,0 +1,210 @@
+// pass DCCXLII: bamboo craft & weaving domain -> close-tab
+const { VoiceCommands } = require('../src/vr/input/VoiceCommands.js');
+
+function makeVC() {
+  const t1 = { id: 1, url: 'https://a.example', title: 'Tab A', loading: false };
+  const t2 = { id: 2, url: 'https://b.example', title: 'Tab B', loading: false };
+  const vc = new VoiceCommands({
+    speak: () => {},
+    onCommand: () => {}
+  });
+  vc.connectBrowser({
+    getActiveTab: () => t1,
+    closeTab: () => {},
+    tabs: () => [t1, t2]
+  });
+  return vc;
+}
+
+const key = (vc, p) => vc._matchCommand(p)?.key ?? null;
+
+describe('pass DCCXLII: bamboo craft & weaving domain (madake)', () => {
+  const closeTab = ['bamboo artisan licensed', 'bamboo weaver certified', 'bamboo craft registered'];
+  const closeTabJa = [
+    '竹細工',
+    '竹工芸',
+    '竹編み',
+    '竹籠',
+    '竹ざる',
+    'ざる',
+    '花籠',
+    '花入',
+    '虫籠',
+    '虫かご',
+    '茶筅',
+    '茶せん',
+    '茶杓',
+    '竹耳かき',
+    '竹刀',
+    '尺八',
+    '竹弓',
+    '竹馬',
+    '竹とんぼ',
+    '竹ひご',
+    '竹骨',
+    '竹皮',
+    '竹筒',
+    '竹箸',
+    '竹べら',
+    '竹しゃもじ',
+    '竹すだれ',
+    'すだれ',
+    '竹筵',
+    '竹簀',
+    '竹垣',
+    '竹柵',
+    '建仁寺垣',
+    '四目垣',
+    '蓑虫垣',
+    '竹灯籠',
+    '竹笠',
+    '菅笠',
+    '陣笠',
+    '三度笠',
+    '竹炭',
+    '竹酢液',
+    '竹パルプ',
+    '竹製品',
+    '竹雑貨',
+    '竹家具',
+    '竹建材',
+    '竹フローリング',
+    '竹マット',
+    '竹かご',
+    '竹バッグ',
+    '竹枕',
+    '網代',
+    '網代編み',
+    '四つ目編み',
+    '六つ目編み',
+    '八つ目編み',
+    '麻の葉編み',
+    '亀甲編み',
+    '籠編み',
+    '編み込み',
+    '編み目',
+    '千筋',
+    '千筋細工',
+    '竹千筋',
+    '駿河竹千筋細工',
+    '別府竹細工',
+    '別府竹工芸',
+    '大阪竹籠',
+    '江戸竹籠',
+    '竹網代',
+    '竹組み',
+    '竹曲げ',
+    '竹熱加工',
+    '竹割り',
+    '竹節',
+    '竹継ぎ',
+    '竹染め',
+    '竹焼き',
+    '油抜き',
+    '竹乾燥',
+    '青竹',
+    '白竹',
+    '黒竹',
+    '真竹',
+    '孟宗竹',
+    '淡竹',
+    '根竹',
+    '煤竹',
+    '図面竹',
+    '虎斑竹',
+    '亀竹',
+    '竹材',
+    '竹籐',
+    '竹籐工芸',
+    '籐',
+    '籐工芸',
+    '籐編み',
+    '籐製品',
+    '蔓',
+    '蔓細工',
+    'あけび蔓',
+    '山葡萄蔓',
+    '山葡萄',
+    '籐かご',
+    '竹職人',
+    '竹細工師',
+    '竹工房',
+    '竹芸家',
+    '竹美術',
+    '竹編み師',
+    '花籠師',
+    '竹刀職人',
+    '尺八師',
+    '竹弓師',
+    '竹検定',
+    '竹細工検定',
+    '竹細工教室',
+    '竹細工体験',
+    '竹工芸展',
+    '竹市',
+    '竹祭り',
+    '竹取',
+    '竹伐り',
+    '竹山',
+    '竹林整備',
+    '竹活用',
+    '竹害',
+    '竹紙',
+    '竹繊維',
+    '竹節取り',
+    '竹磨き',
+    '竹研磨',
+    '竹挽き',
+    '竹削り',
+    '竹刀削り',
+    '籐削り',
+    '青森竹細工',
+    '別府竹',
+    '京都竹工芸',
+    '竹原竹細工',
+    '大分竹工芸',
+    '台灣竹編',
+    '竹胎',
+    '竹胎漆器',
+    '編竹',
+    '組竹',
+    '割竹',
+    '丸竹',
+    '平竹',
+    '角竹',
+    '竹集成材',
+    '竹繊維板',
+    '竹炭焼き',
+    '土窯',
+    '竹箸作り',
+    '竹洗い',
+    '竹虫干し'
+  ];
+  const negate = [
+    'still awaiting the bamboo license',
+    'still awaiting the weaver cert',
+    'まだ竹割り前',
+    'まだ編み前',
+    'これから編み',
+    'まだ油抜き前'
+  ];
+  const nullPins = ['about to visit the bamboo studio', 'about to file the bamboo report'];
+  const establishedPins = [
+    ['質流れ', 'close-tab'],
+    ['骨董品', 'close-tab'],
+    ['close this tab', 'close-tab'],
+    ['keep it', 'negate'],
+    ['leave it alone', 'negate']
+  ];
+
+  let vc;
+  beforeEach(() => {
+    vc = makeVC();
+  });
+
+  closeTab.forEach((p) => test(`close-tab: "${p}"`, () => expect(key(vc, p)).toBe('close-tab')));
+  closeTabJa.forEach((p) => test(`close-tab JA: ${p}`, () => expect(key(vc, p)).toBe('close-tab')));
+  negate.forEach((p) => test(`negate: "${p}"`, () => expect(key(vc, p)).toBe('negate')));
+  nullPins.forEach((p) => test(`still null: "${p}"`, () => expect(key(vc, p)).toBeNull()));
+  establishedPins.forEach(([p, k]) => test(`pin: "${p}" still -> ${k}`, () => expect(key(vc, p)).toBe(k)));
+});
