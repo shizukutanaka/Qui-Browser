@@ -22062,6 +22062,19 @@ export class VoiceCommands {
         '性能評価', '建築士試験',
         '建築士登録', '建築士免許',
         '設計者', '監理業務',
+        // pass DCVI: survey business registered & benchmark survey done
+        'survey business registered', 'benchmark survey done',
+        '測量士', '測量士補',
+        '測量業', '基本測量',
+        '公共測量', '水準測量',
+        '基準点測量', '地形測量',
+        '写真測量', 'uav測量',
+        '測量法', '測量登録',
+        '測量基準点', '三角点',
+        '水準点', '基準面',
+        '座標系', '測地系',
+        '建設コンサルタント', '測量成果',
+        '測量技師', '測量計画機関',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28559,6 +28572,9 @@ export class VoiceCommands {
         // pass DCV: still awaiting the architect registration
         'still awaiting the architect registration',
         'まだ登録申請前', 'これから設計申請',
+        // pass DCVI: still awaiting the survey registration
+        'still awaiting the survey registration',
+        'まだ測量前', 'これから測量届',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
