@@ -23080,6 +23080,27 @@ export class VoiceCommands {
         '随時改定', '定時決定',
         '育児休業等終了時改定', '埋葬料',
         '確定給付企業年金', '企業型確定拠出年金',
+        // pass DCLXVII: park plan approved & facility merger announced
+        'park plan approved', 'facility merger announced',
+        '都市公園', '公園緑地',
+        '運動公園', '児童公園',
+        '近隣公園', '地区公園',
+        '街区公園', '総合公園',
+        '都市緑地', '緑地保全',
+        '都市緑化', '緑化運動',
+        '屋上緑化', '街路樹',
+        '公共施設マネジメント', '公共施設再編',
+        '施設統合', '施設廃止',
+        '指定管理者', '指定管理者制度',
+        '公共施設白書', '施設利用料',
+        '使用料', '利用料金',
+        '公の施設', '公物管理',
+        '公共施設有効活用', '遊休施設',
+        '未利用施設', '施設カルテ',
+        '公共施設カルテ', '包括的公共施設',
+        '施設整備計画', '施設保全',
+        '防災拠点', '防災公園',
+        '避難広場', '緑地ネットワーク',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29773,6 +29794,8 @@ export class VoiceCommands {
         // pass DCLXVI: still awaiting the pension ruling
         'still awaiting the pension ruling',
         'まだ裁定前', 'まだ請求前',
+        // pass DCLXVII: public-facility registration/reorg reports
+        'これから利用登録', 'まだ再編前',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
