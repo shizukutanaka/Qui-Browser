@@ -21879,6 +21879,17 @@ export class VoiceCommands {
         '共同浴場', '掘削許可',
         '利用計画', '温泉条例',
         '塩泉', '温泉士',
+        // pass DXC: census form submitted & survey enumerator assigned
+        'census form submitted', 'survey enumerator assigned',
+        '国勢調査', '統計調査',
+        '経済センサス', '事業所統計',
+        '家計調査', '労働力調査',
+        '消費者物価', '統計員',
+        '調査票', 'オンライン回答',
+        '回答義務', '統計法',
+        '個票', '標本調査',
+        '統計集計', '統計審議会',
+        '基幹統計', '地域メッシュ',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28328,6 +28339,9 @@ export class VoiceCommands {
         // pass DLXXXIX: still awaiting the onsen permit
         'still awaiting the onsen permit',
         'まだ掘削前', 'これから掘削',
+        // pass DXC: still awaiting the census form
+        'still awaiting the census form',
+        'まだ回答前', 'これから回答',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
