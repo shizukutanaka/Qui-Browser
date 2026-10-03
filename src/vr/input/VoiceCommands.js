@@ -22309,6 +22309,20 @@ export class VoiceCommands {
         '関税審査会', '関税率表',
         '関税暫定措置法', '関税定率法',
         '通関情報処理',
+        // pass DCXXIII: fire inspection done & ambulance dispatched
+        'fire inspection done', 'ambulance dispatched',
+        '消防法', '消防署',
+        '救急隊', '救助隊',
+        '高度救助隊', '救急医療情報',
+        '救急安心センター', '応急手当',
+        '防災対策本部', '災害対策本部',
+        '災害対策基本法', '避難指示',
+        '高齢者等避難', '避難所指定',
+        '緊急消防援助隊', '消防救急無線',
+        '救急搬送', '救急受入体制',
+        '災害拠点病院', '救急救命士',
+        '熱中症警戒アラート', '消防審議会',
+        '消防署長', '救助事務所',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28859,6 +28873,9 @@ export class VoiceCommands {
         // pass DCXXII: still awaiting the customs clearance
         'still awaiting the customs clearance',
         'まだ通関前',
+        // pass DCXXIII: still awaiting the fire inspection
+        'still awaiting the fire inspection',
+        'まだ防火前', 'これから防火届',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
