@@ -30,7 +30,7 @@ const negate = [
 ];
 const nullPins = [
   'mid setup', 'stock purchase',
-  '投資信託',
+  '投資信託約款',
 ];
 const establishedPins = [
   // existing pins that already cover this domain — kept, not duplicated

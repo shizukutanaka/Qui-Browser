@@ -35,7 +35,7 @@ const nullPins = [
   'about to apply', 'mid application',
   'insurance policy', 'loan documents',
   'これから申し込み', '申請の途中',
-  '保険証券', 'ローン書類',
+  '保険証券発行', 'ローン書類',
 ];
 const establishedPins = [
   ['loan approved', 'close-tab'],
