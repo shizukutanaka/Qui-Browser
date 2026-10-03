@@ -23376,6 +23376,27 @@ export class VoiceCommands {
         'ダイオキシン類対策', '光化学オキシダント',
         '黄砂観測', 'マイクロプラスチック',
         'プラスチック資源循環促進法', '使い捨てプラスチック',
+        // pass DCLXXXII: launch & satellite deployment
+        'launch window opened', 'satellite deployed',
+        '宇宙基本法', '宇宙政策委員会',
+        '宇宙開発利用', '宇宙活用法',
+        '宇宙法', '宇宙損害賠償',
+        '宇宙資源', '宇宙外交',
+        '準天頂衛星', 'みちびき',
+        '人工衛星', '衛星画像',
+        'リモートセンシング', '測位衛星',
+        'ロケット打ち上げ', '種子島宇宙センター',
+        '内之浦宇宙空間観測所', 'h3ロケット',
+        'イプシロンロケット',
+        '国際宇宙ステーション', '宇宙飛行士',
+        'きぼう', 'こうのとり',
+        '探査機', 'はやぶさ',
+        '月面探査', '火星探査',
+        '小惑星探査',
+        '宇宙ゴミ', 'スペースデブリ',
+        '宇宙状況監視', '宇宙天気',
+        '民間宇宙', '宇宙ビジネス',
+        '宇宙旅行', '宇宙航空研究開発機構',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -30118,6 +30139,10 @@ export class VoiceCommands {
         'still awaiting the climate review',
         'まだ適応前', 'これから脱炭素化',
         'まだ削減中',
+        // pass DCLXXXII: launch window / deployment reports
+        'still awaiting the launch window',
+        'まだ打上げ前', 'これから打ち上げ',
+        'まだ投入前',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
