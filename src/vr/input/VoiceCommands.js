@@ -22117,6 +22117,20 @@ export class VoiceCommands {
         '児童憲章', '要保護児童対策地域協議会',
         '要保護児童', '児童家庭課',
         '子ども家庭課', '児童センター',
+        // pass DCX: school-lunch menu posted & health checkup roster done
+        'school-lunch menu posted', 'health checkup roster done',
+        '給食センター', '学校給食法',
+        '栄養教諭', 'アレルギー対応食',
+        '学校衛生管理', '歯科検診',
+        '内科検診', '視力測定',
+        '寄生虫検査', '心臓検診',
+        '尿検査', '検尿',
+        '保健委員会', '校医',
+        '養護教諭', '保健室',
+        '保健指導', '食物アレルギー',
+        '生活管理指導表', '牛乳中止',
+        '学校衛生委員会', '体育祭',
+        '体力テスト', '学校保健委員会',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28626,6 +28640,9 @@ export class VoiceCommands {
         // pass DCIX: still awaiting the facility placement
         'still awaiting the facility placement',
         'まだ措置前', 'これから措置申請',
+        // pass DCX: still awaiting the lunch menu
+        'still awaiting the lunch menu',
+        'まだ給食前', 'これから健診',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
