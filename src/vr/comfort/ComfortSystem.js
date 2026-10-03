@@ -58,12 +58,27 @@ export class ComfortSystem {
     this.currentVignette = 0;
     this.currentFOV = this.settings.fov.baseFOV;
 
-    // Initialize vignette post-processing
+    // Initialize the camera-attached vignette overlay
     this.setupVignette();
   }
 
   /**
-   * Setup vignette shader material
+   * Setup the vignette overlay mesh.
+   *
+   * The vignette is a quad parented to the camera — the same pattern the toast
+   * system uses (VRApp.camera.add(mesh)). Two reasons a post-process pass is
+   * the wrong tool here:
+   *   1. VRApp renders the scene directly (renderer.render) and never calls
+   *      comfortSystem.render(), so the old post-process shader never reached
+   *      the display — currentVignette was computed every frame and drawn to
+   *      nothing.
+   *   2. A single fullscreen render target cannot serve WebXR's per-eye stereo
+   *      draw. As scene geometry the overlay renders correctly for each eye in
+   *      the headset AND in the flat mirror view, with no render target at all.
+   *
+   * The shader reproduces the same radial curve as the old post-process:
+   * alpha = intensity * (1 - pow(1 - dist², powerFactor)), so the periphery
+   * darkens to black while the centre stays clear.
    */
   setupVignette() {
     // Vertex shader
@@ -76,52 +91,52 @@ export class ComfortSystem {
       }
     `;
 
-    // Fragment shader for vignette effect
+    // Fragment shader: transparent overlay that darkens toward the edges.
     const fragmentShader = `
-      uniform sampler2D tDiffuse;
       uniform float intensity;
       uniform float powerFactor;
       varying vec2 vUv;
 
       void main() {
-        vec4 color = texture2D(tDiffuse, vUv);
-
-        // Calculate distance from center
         vec2 center = vec2(0.5, 0.5);
         float dist = distance(vUv, center);
 
-        // Apply vignette with power curve
-        float vignette = pow(1.0 - dist * dist, powerFactor);
-        vignette = mix(1.0, vignette, intensity);
+        // Same curve the old post-process applied as a multiplier: the dark
+        // amount at each pixel is intensity * (1 - pow(1 - dist², p)).
+        float dark = 1.0 - pow(1.0 - dist * dist, powerFactor);
 
-        // Darken edges
-        color.rgb *= vignette;
-
-        gl_FragColor = color;
+        gl_FragColor = vec4(0.0, 0.0, 0.0, dark * intensity);
       }
     `;
 
-    // Create post-processing material
     this.vignetteMaterial = new THREE.ShaderMaterial({
       uniforms: {
-        tDiffuse: { value: null },
         intensity: { value: 0.0 },
         powerFactor: { value: this.settings.vignette.powerFactor }
       },
       vertexShader,
-      fragmentShader
+      fragmentShader,
+      transparent: true,
+      depthTest: false,
+      depthWrite: false
     });
 
-    // Create screen quad for post-processing
-    const geometry = new THREE.PlaneGeometry(2, 2);
-    this.vignetteQuad = new THREE.Mesh(geometry, this.vignetteMaterial);
+    // 2.5 m² quad 0.5 m ahead: covers ≈±68° from centre — comfortably past the
+    // ~90° total FOV of a Quest-class HMD, so the ring always reaches the
+    // periphery. renderOrder above the toast's 999 so the tunnel applies over
+    // everything else in view; frustumCulled off since the quad is meant to
+    // overfill the frustum edge-to-edge.
+    this.vignetteMesh = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 2.5), this.vignetteMaterial);
+    this.vignetteMesh.position.set(0, 0, -0.5);
+    this.vignetteMesh.renderOrder = 1000;
+    this.vignetteMesh.frustumCulled = false;
+    this.vignetteMesh.visible = false;
 
-    // Full-screen ortho camera for the post-process pass, created once and
-    // reused (previously allocated every frame in render()).
-    this.postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-
-    // Create render target for post-processing
-    this.renderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight);
+    // The camera in VRApp is already in the scene graph (playerRig → scene),
+    // so attached children render like ordinary geometry — in XR per-eye too.
+    if (this.camera && typeof this.camera.add === 'function') {
+      this.camera.add(this.vignetteMesh);
+    }
   }
 
   /**
@@ -135,9 +150,12 @@ export class ComfortSystem {
     // Detect movement
     this.detectMotion();
 
-    // Update vignette effect
+    // Update vignette effect; keep the overlay hidden while the effect is off
+    // so a 'disabled' preset never leaves a stale ring on screen.
     if (this.settings.vignette.enabled) {
       this.updateVignette(deltaTime);
+    } else if (this.vignetteMesh) {
+      this.vignetteMesh.visible = false;
     }
 
     // Update FOV
@@ -190,9 +208,12 @@ export class ComfortSystem {
     // Smooth transition
     this.currentVignette += (targetVignette - this.currentVignette) * this.settings.vignette.smoothing;
 
-    // Update shader uniform
+    // Drive the overlay: fade in only once the effect is meaningfully on.
     if (this.vignetteMaterial) {
       this.vignetteMaterial.uniforms.intensity.value = this.currentVignette;
+    }
+    if (this.vignetteMesh) {
+      this.vignetteMesh.visible = this.currentVignette > 0.001;
     }
   }
 
@@ -335,28 +356,6 @@ export class ComfortSystem {
   }
 
   /**
-   * Render with vignette post-processing
-   */
-  render(scene, camera) {
-    if (!this.settings.vignette.enabled || this.currentVignette < 0.01) {
-      // Render directly without post-processing
-      this.renderer.render(scene, camera);
-      return;
-    }
-
-    // Render scene to texture
-    this.renderer.setRenderTarget(this.renderTarget);
-    this.renderer.render(scene, camera);
-
-    // Apply vignette post-processing
-    this.vignetteMaterial.uniforms.tDiffuse.value = this.renderTarget.texture;
-
-    // Render to screen
-    this.renderer.setRenderTarget(null);
-    this.renderer.render(this.vignetteQuad, this.postCamera);
-  }
-
-  /**
    * Get current comfort status
    */
   getStatus() {
@@ -380,26 +379,17 @@ export class ComfortSystem {
   }
 
   /**
-   * Resize handler
-   */
-  resize(width, height) {
-    if (this.renderTarget) {
-      this.renderTarget.setSize(width, height);
-    }
-  }
-
-  /**
    * Cleanup resources
    */
   dispose() {
-    if (this.renderTarget) {
-      this.renderTarget.dispose();
+    if (this.vignetteMesh) {
+      if (this.camera && typeof this.camera.remove === 'function') {
+        this.camera.remove(this.vignetteMesh);
+      }
+      this.vignetteMesh.geometry.dispose();
     }
     if (this.vignetteMaterial) {
       this.vignetteMaterial.dispose();
-    }
-    if (this.vignetteQuad) {
-      this.vignetteQuad.geometry.dispose();
     }
   }
 }

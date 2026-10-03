@@ -4,26 +4,43 @@
  */
 
 class MockVector3 {
-  constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z; }
-  copy(v) { this.x = v.x; this.y = v.y; this.z = v.z; return this; }
+  constructor(x = 0, y = 0, z = 0) {
+    this.x = x;
+    this.y = y;
+    this.z = z;
+  }
+  copy(v) {
+    this.x = v.x;
+    this.y = v.y;
+    this.z = v.z;
+    return this;
+  }
   distanceTo(v) {
-    return Math.sqrt(
-      (this.x - v.x) ** 2 + (this.y - v.y) ** 2 + (this.z - v.z) ** 2
-    );
+    return Math.sqrt((this.x - v.x) ** 2 + (this.y - v.y) ** 2 + (this.z - v.z) ** 2);
   }
 }
 
 class MockWebGLRenderTarget {
-  constructor() { this.dispose = jest.fn(); }
+  constructor() {
+    this.dispose = jest.fn();
+  }
 }
-class MockPlaneGeometry { dispose() {} }
+class MockPlaneGeometry {
+  dispose() {}
+}
 class MockShaderMaterial {
-  constructor(opts) { this.uniforms = opts ? opts.uniforms || {} : {}; this.dispose = jest.fn(); }
+  constructor(opts) {
+    Object.assign(this, opts || {});
+    this.uniforms = opts ? opts.uniforms || {} : {};
+    this.dispose = jest.fn();
+  }
 }
 class MockMesh {
   constructor() {
     this.renderOrder = 0;
     this.frustumCulled = false;
+    this.visible = true;
+    this.position = { set: jest.fn() };
     this.geometry = { dispose: jest.fn() };
     this.material = { dispose: jest.fn() };
   }
@@ -48,22 +65,35 @@ global.requestAnimationFrame = jest.fn();
 
 // Stub window.innerWidth / innerHeight used by WebGLRenderTarget.
 global.window = global.window || {};
-global.window.innerWidth  = 1280;
+global.window.innerWidth = 1280;
 global.window.innerHeight = 720;
 
-const { ComfortSystem, resolveComfortPreset, COMFORT_PRESET_KEYS, snapTurnLabel, fireTeleportFeedback, smoothMoveWarning } = require('../src/vr/comfort/ComfortSystem.js');
+const {
+  ComfortSystem,
+  resolveComfortPreset,
+  COMFORT_PRESET_KEYS,
+  snapTurnLabel,
+  fireTeleportFeedback,
+  smoothMoveWarning
+} = require('../src/vr/comfort/ComfortSystem.js');
 
 function makeCamera(fov = 90) {
   return {
     fov,
     position: new MockVector3(0, 1.6, 0),
     rotation: { y: 0 },
+    add: jest.fn(),
+    remove: jest.fn(),
     updateProjectionMatrix: jest.fn()
   };
 }
 
-function makeScene() { return { add: jest.fn(), remove: jest.fn() }; }
-function makeRenderer() { return {}; }
+function makeScene() {
+  return { add: jest.fn(), remove: jest.fn() };
+}
+function makeRenderer() {
+  return {};
+}
 
 describe('ComfortSystem', () => {
   let system, camera;
@@ -251,8 +281,8 @@ describe('ComfortSystem', () => {
 
   test('every non-disabled preset explicitly enables all three effects', () => {
     for (const preset of ['sensitive', 'moderate', 'tolerant']) {
-      system.setPreset('disabled');     // force all effects off first
-      system.setPreset(preset);         // then switch in
+      system.setPreset('disabled'); // force all effects off first
+      system.setPreset(preset); // then switch in
       expect(system.settings.vignette.enabled).toBe(true);
       expect(system.settings.fov.enabled).toBe(true);
       expect(system.settings.snapTurn.enabled).toBe(true);
@@ -463,5 +493,74 @@ describe('smoothMoveWarning — caution when enabling under prefers-reduced-moti
 
   test('disabling without reduceMotion → no warning', () => {
     expect(smoothMoveWarning(false, false)).toBeNull();
+  });
+});
+
+describe('ComfortSystem — camera-attached vignette (the actually-visible path)', () => {
+  // The vignette used to be a post-process pass: render() drew the scene to a
+  // render target and blitted a fullscreen quad. But VRApp renders the scene
+  // directly (renderer.render) and never calls comfortSystem.render(), so the
+  // shader never reached the display — and a single fullscreen render target
+  // cannot serve the two-eye stereo draw WebXR needs anyway. The vignette is
+  // now an overlay quad parented to the camera: it follows the head in 6DoF,
+  // draws per-eye in XR, and needs no render target.
+  let camera, system;
+
+  beforeEach(() => {
+    camera = makeCamera();
+    system = new ComfortSystem(makeScene(), camera, makeRenderer());
+  });
+  afterEach(() => {
+    system.dispose?.();
+  });
+
+  test('vignette overlay is parented to the camera so it follows the head', () => {
+    expect(system.vignetteMesh).toBeDefined();
+    expect(camera.add).toHaveBeenCalledWith(system.vignetteMesh);
+  });
+
+  test('overlay sits in front of the face, always on top, depth ignored', () => {
+    const mesh = system.vignetteMesh;
+    expect(mesh.position.set).toHaveBeenCalled();
+    const [x, y, z] = mesh.position.set.mock.calls[0];
+    expect(x).toBe(0);
+    expect(y).toBe(0);
+    expect(z).toBeLessThan(0); // -Z is forward in three.js
+    expect(Math.abs(z)).toBeGreaterThan(0.1); // beyond the near plane
+    expect(mesh.renderOrder).toBeGreaterThanOrEqual(999);
+    expect(mesh.frustumCulled).toBe(false); // always drawn
+    expect(system.vignetteMaterial.depthTest).toBe(false);
+    expect(system.vignetteMaterial.depthWrite).toBe(false);
+    expect(system.vignetteMaterial.transparent).toBe(true);
+  });
+
+  test('overlay hidden while still, shown once currentVignette is active', () => {
+    system.updateVignette(0.016);
+    expect(system.vignetteMesh.visible).toBe(false);
+    system.detectMotion();
+    camera.position.x = 1.0; // definitely moving
+    system.update(0.016);
+    for (let i = 0; i < 10; i++) system.updateVignette(0.016);
+    expect(system.currentVignette).toBeGreaterThan(0);
+    expect(system.vignetteMesh.visible).toBe(true);
+    expect(system.vignetteMaterial.uniforms.intensity.value).toBeCloseTo(system.currentVignette, 10);
+  });
+
+  test('update() hides the overlay when the vignette effect is disabled', () => {
+    system.vignetteMesh.visible = true;
+    system.setPreset('disabled');
+    system.update(0.016);
+    expect(system.vignetteMesh.visible).toBe(false);
+  });
+
+  test('no post-process pass is needed: no render target, no render()', () => {
+    expect(system.renderTarget).toBeUndefined();
+    expect(system.postCamera).toBeUndefined();
+    expect(typeof system.render).not.toBe('function');
+  });
+
+  test('dispose detaches the overlay from the camera', () => {
+    system.dispose();
+    expect(camera.remove).toHaveBeenCalledWith(system.vignetteMesh);
   });
 });
