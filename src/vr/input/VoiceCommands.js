@@ -22176,6 +22176,21 @@ export class VoiceCommands {
         '整理解雇', '退職勧奨',
         '配転', '出向',
         '就業規則変更',
+        // pass DCXIV: textbook adopted & teacher hiring done
+        'textbook adopted', 'teacher hiring done',
+        '教科書採択', '教科用図書',
+        '検定教科書', '教科書会社',
+        '教科書給与', '無償措置',
+        '就学奨励費', '新入学用品費',
+        '給食費補助', '通学費補助',
+        '修学旅行補助', 'pta総会',
+        '学校運営協議会', 'コミュニティスクール',
+        '学校評価', '教育委員会議',
+        '教育長', '校長会',
+        '教員採用試験', '教員採用',
+        '教員免許', '管理職選考',
+        '教員研修', '教育研修センター',
+        '教育実習', '学校説明会',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28697,6 +28712,10 @@ export class VoiceCommands {
         // pass DCXIII: still awaiting the grievance
         'still awaiting the grievance',
         'まだ交渉前', 'これから団交',
+        // pass DCXIV: still awaiting the adoption
+        'still awaiting the adoption',
+        'まだ採択前', 'まだ審議前',
+        'これから採択',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
