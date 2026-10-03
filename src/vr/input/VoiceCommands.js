@@ -22000,6 +22000,17 @@ export class VoiceCommands {
         '公図', '地番',
         '土地家屋調査士', '不動産登記法',
         '筆界調査', '地籍調査',
+        // pass DCI: zoning designation made & development permit granted
+        'zoning designation made', 'development permit granted',
+        '都市計画法', '都市計画区域',
+        '用途地域', '開発許可',
+        '開発行為', '区画形質',
+        '都市計画審議会', '地区計画',
+        '高度地区', '防火地域',
+        '景観地区', '風致地区',
+        '緑地保全地区', '生産緑地',
+        '市街化区域', '市街化調整区域',
+        '都市計画道路', '都市施設',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28482,6 +28493,9 @@ export class VoiceCommands {
         // pass DC: still awaiting the registration
         'still awaiting the registration',
         'まだ登記前', 'これから登記申請',
+        // pass DCI: still awaiting the development permit
+        'still awaiting the development permit',
+        'まだ開発許可前', 'これから開発申請',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
