@@ -23209,6 +23209,22 @@ export class VoiceCommands {
         '消費者金融', '闇金',
         '行検', '登録金融機関',
         '認可金融機関',
+        // pass DCLXXIV: manifest signed & disposal permit granted
+        'manifest signed', 'disposal permit granted',
+        '産廃', 'マニフェスト',
+        '産業廃棄物管理票', '廃棄物行政',
+        '産廃処理', '産業廃棄物税',
+        '特別管理産業廃棄物', '有害産業廃棄物',
+        '特定産業廃棄物', '解体廃棄物',
+        '医療廃棄物', '感染性廃棄物',
+        '廃プラスチック', '廃油処理',
+        '収集運搬', '廃棄物処理業者',
+        '中間処理', '埋立処分',
+        '処理委託', '委託契約',
+        '廃棄物届出', '処理場整備',
+        '処分業許可', '運搬業許可',
+        '排出事業者', '不法投棄',
+        'アスベスト処理', '循環資源',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29923,6 +29939,9 @@ export class VoiceCommands {
         'still awaiting the examination',
         'still awaiting the registration number',
         'これから認可申請',
+        // pass DCLXXIV: disposal permit / carry-out reports
+        'still awaiting the disposal permit',
+        'まだ処分前', 'これから搬出',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
