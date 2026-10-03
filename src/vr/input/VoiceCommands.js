@@ -22769,6 +22769,25 @@ export class VoiceCommands {
         '検事長', '閣議決定',
         '大臣官房', '内閣総理大臣',
         '中央省庁', '特命担当大臣',
+        // pass DCLII: imperial succession proclaimed & palace ceremony held
+        'imperial succession proclaimed', 'palace ceremony held',
+        '宮内庁', '宮内庁長官',
+        '皇室', '皇室費用',
+        '内廷費', '宮廷費',
+        '皇族', '皇室活動',
+        '国事行為', '皇室典範',
+        '皇位継承', '即位',
+        '退位', '大喪',
+        '立皇嗣', '上皇',
+        '皇太子', '元号',
+        '改元', '年号',
+        '国喪', '式部官',
+        '親王', '内親王',
+        '皇宮', '宮殿',
+        '皇室会議', '皇族会議',
+        '皇統', '皇位継承順位',
+        '宮内庁式部', '宮内官',
+        '皇室医務', '宮内庁侍従',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29408,6 +29427,10 @@ export class VoiceCommands {
         // pass DCLI: still awaiting the agency review
         'still awaiting the agency review',
         'まだ閣議前', 'これから審査請求',
+        // pass DCLII: still awaiting the palace ceremony
+        'still awaiting the palace ceremony',
+        'まだ即位前', 'これから行幸',
+        'まだ叙位前',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
