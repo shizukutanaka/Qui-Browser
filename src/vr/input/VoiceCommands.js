@@ -23042,6 +23042,26 @@ export class VoiceCommands {
         'ばら積み船', 'タンカー',
         '客船', 'フェリー',
         '定期船', '不定期船',
+        // pass DCLXV: research grant awarded & paper peer-reviewed
+        'research grant awarded', 'paper peer-reviewed',
+        '科学技術庁', '科学技術政策',
+        '日本学術会議', '科研費',
+        '科学研究費補助金', '研究助成',
+        '学術振興', '学術賞',
+        '研究倫理', '論文査読',
+        '学会発表', '学術誌',
+        '博士課程', '修士課程',
+        '研究室', '実験施設',
+        '国研', '理研',
+        '物質材料研究機構', '宇宙研究機構',
+        '極地研究所', '国立天文台',
+        '大学共同利用機関', '産学連携',
+        '産学官', '技術移転機構',
+        '大学発ベンチャー', '研究成果',
+        '知財管理', '発明届出',
+        '特許許諾', '技術移転',
+        '日本産業規格', '計量標準',
+        '国家標準', '計量法',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29729,6 +29749,9 @@ export class VoiceCommands {
         // pass DCLXIV: still awaiting the shipping permit
         'still awaiting the shipping permit',
         'これから出航',
+        // pass DCLXV: still awaiting the grant review
+        'still awaiting the grant review',
+        'まだ論文提出前',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
