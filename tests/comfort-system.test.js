@@ -76,6 +76,7 @@ const {
   fireTeleportFeedback,
   smoothMoveWarning
 } = require('../src/vr/comfort/ComfortSystem.js');
+const { setLanguage } = require('../src/i18n/i18n.js');
 
 function makeCamera(fov = 90) {
   return {
@@ -562,5 +563,21 @@ describe('ComfortSystem — camera-attached vignette (the actually-visible path)
   test('dispose detaches the overlay from the camera', () => {
     system.dispose();
     expect(camera.remove).toHaveBeenCalledWith(system.vignetteMesh);
+  });
+});
+
+describe('i18n — smoothMoveWarning routes through t() (WCAG 3.1.2)', () => {
+  afterEach(() => setLanguage('en'));
+
+  test('JA: warning is localized (not the English literal)', () => {
+    setLanguage('ja');
+    const msg = smoothMoveWarning(true, true);
+    expect(msg).not.toBeNull();
+    expect(msg).not.toMatch(/motion sickness/i);
+    expect(msg).toMatch(/酔い|スムーズ/);
+  });
+
+  test('EN: warning text unchanged', () => {
+    expect(smoothMoveWarning(true, true)).toBe('Smooth move may cause motion sickness');
   });
 });

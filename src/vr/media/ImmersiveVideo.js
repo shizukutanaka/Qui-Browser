@@ -20,6 +20,7 @@
 import * as THREE from 'three';
 import { configureUITexture } from '../ui/canvasTexture.js';
 import { buildVideoSphereGeometry, eyeUVTransform, detectVideoFormat } from './videoProjection.js';
+import { t } from '../../i18n/i18n.js';
 
 export class ImmersiveVideo {
   /**
@@ -33,7 +34,12 @@ export class ImmersiveVideo {
    * @param {(label:string) => void} [deps.onHoverCaption] — called when a HUD button is
    *   hovered so the host can show a gaze-dwell preview caption (WCAG 1.3.3).
    */
-  constructor(scene, camera, renderer, { registerInteractable, unregisterInteractable, onError, onPlaybackChange, onHoverCaption } = {}) {
+  constructor(
+    scene,
+    camera,
+    renderer,
+    { registerInteractable, unregisterInteractable, onError, onPlaybackChange, onHoverCaption } = {}
+  ) {
     this.scene = scene;
     this.camera = camera;
     this.renderer = renderer;
@@ -99,7 +105,7 @@ export class ImmersiveVideo {
     // instead of leaving the viewer staring at a black sphere. The 'error'
     // event fires once for these; gesture-gated autoplay rejection (handled by
     // the play() promise catch below) is normal and deliberately not reported.
-    this._onVideoError = () => this._reportError('Could not load video (check URL / CORS)');
+    this._onVideoError = () => this._reportError(t('vr.error.videoLoadFailed'));
     video.addEventListener('error', this._onVideoError);
 
     // Only mark as playing once the browser actually starts playback. If the
@@ -109,7 +115,7 @@ export class ImmersiveVideo {
     this._onVideoPlaying = () => {
       this.playing = true;
       if (this._playPauseBtn) {
-        this._playPauseBtn.userData.setLabel('Pause');
+        this._playPauseBtn.userData.setLabel(t('vr.video.pause'));
       }
       this.onPlaybackChange('playing');
     };
@@ -136,7 +142,7 @@ export class ImmersiveVideo {
     const p = video.play();
     if (p && p.catch) {
       p.catch(() => {
-      /* gesture-gated autoplay; HUD Play can retry. this.playing stays false
+        /* gesture-gated autoplay; HUD Play can retry. this.playing stays false
          and the 'playing' listener flips state once playback truly starts. */
       });
     }
@@ -158,7 +164,7 @@ export class ImmersiveVideo {
     if (this.playing) {
       this.playing = false;
       if (this._playPauseBtn) {
-        this._playPauseBtn.userData.setLabel('Play');
+        this._playPauseBtn.userData.setLabel(t('vr.video.play'));
       }
       this.onPlaybackChange('stopped');
     }
@@ -203,9 +209,9 @@ export class ImmersiveVideo {
     const group = new THREE.Group();
     group.name = 'immersiveVideoControls';
 
-    this._playPauseBtn = this._makeButton('Play', () => this.togglePause());
+    this._playPauseBtn = this._makeButton(t('vr.video.play'), () => this.togglePause());
     this._playPauseBtn.position.set(-0.3, 0, 0);
-    const exitBtn = this._makeButton('Exit', () => this.stop());
+    const exitBtn = this._makeButton(t('vr.video.exit'), () => this.stop());
     exitBtn.position.set(0.3, 0, 0);
     group.add(this._playPauseBtn, exitBtn);
 
@@ -280,14 +286,14 @@ export class ImmersiveVideo {
       }
       this.playing = true;
       if (this._playPauseBtn) {
-        this._playPauseBtn.userData.setLabel('Pause');
+        this._playPauseBtn.userData.setLabel(t('vr.video.pause'));
       }
       this.onPlaybackChange('playing');
     } else {
       this.video.pause();
       this.playing = false;
       if (this._playPauseBtn) {
-        this._playPauseBtn.userData.setLabel('Play');
+        this._playPauseBtn.userData.setLabel(t('vr.video.play'));
       }
       this.onPlaybackChange('paused');
     }

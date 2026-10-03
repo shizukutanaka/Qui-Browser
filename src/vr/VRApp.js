@@ -884,7 +884,7 @@ export class VRApp {
       topSitesProvider: () =>
         this.settings.privateMode ? [] : this.bookmarks.getTopSites(8, Date.now(), searchEngineHosts()),
       readerProxyUrl: this.settings.readerProxyUrl,
-      onLoadError: (url) => this.showVRToast(`Failed to load: ${url}`, { type: 'error' }),
+      onLoadError: (url) => this.showVRToast(`${t('vr.error.panelLoadFailed')}: ${url}`, { type: 'error' }),
       onBlockedNavigation: () => this.showVRToast(t('vr.error.blockedUrl'), { type: 'warn' }),
       position: { x: 0, y: 1.5, z: -2 },
       // Replace window.prompt() with the VR keyboard.  vrKeyboard is
@@ -2078,7 +2078,7 @@ export class VRApp {
     ctx.fillText('Qui Browser VR', canvas.width / 2, 120);
     ctx.fillStyle = '#a0b4d0';
     ctx.font = '40px sans-serif';
-    ctx.fillText('Welcome — look around to begin', canvas.width / 2, 190);
+    ctx.fillText(t('vr.msg.welcome'), canvas.width / 2, 190);
 
     const panelTex = configureUITexture(new THREE.CanvasTexture(canvas));
     panelTex.colorSpace = THREE.SRGBColorSpace;
