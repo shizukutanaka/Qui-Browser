@@ -22385,6 +22385,21 @@ export class VoiceCommands {
         'ガス漏洩検査', '熱供給事業',
         '地域熱供給', 'ガス導管維持管理',
         'ガス事故報告',
+        // pass DCXXVIII: airport slot allocated & drone permit granted
+        'airport slot allocated', 'drone permit granted',
+        '航空法', '空港法',
+        '定期航空', '航空運送事業',
+        '航空従事者', '航空交通管制',
+        '空港管理者', '騒音防止措置',
+        '航空機登録', '耐空証明',
+        'ドローン許可', '無人航空機登録',
+        '航空安全', '空港整備',
+        '航空灯火', '滑走路整備',
+        '航空保安施設', '管制業務',
+        '運航管理者', '航空機検査',
+        '特定操縦技能審査', '操縦者証明',
+        '航空保安情報', '航空事故調査',
+        '空港騒音対策',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28950,6 +28965,9 @@ export class VoiceCommands {
         // pass DCXXVII: still awaiting the gas permit
         'still awaiting the gas permit',
         'まだ供給申請前', 'これから導管届',
+        // pass DCXXVIII: still awaiting the airworthiness review
+        'still awaiting the airworthiness review',
+        'まだ飛行計画前', 'これから飛行計画',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
