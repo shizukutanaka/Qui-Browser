@@ -22248,6 +22248,21 @@ export class VoiceCommands {
         '子ども読書', 'ブックスタート',
         '読書バリアフリー', '除籍図書',
         '寄贈本', '閉架書庫',
+        // pass DCXIX: factory site approved & downtown grant issued
+        'factory site approved', 'downtown grant issued',
+        '工業団地', '企業誘致',
+        '立地補助金', '工場立地法',
+        '緑地面積', '地域経済牽引',
+        '産業振興', '商店街振興',
+        'まちづくり会社', '中心市街地活性化',
+        '認定商店街', '空き店舗',
+        '商店街連合会', 'アーケード商店街',
+        '商店会', '個店支援',
+        '大型店出店', '大店立地法',
+        '中小企業振興', '地域資源活用',
+        '特産品開発', '道の駅認定',
+        '産業祭', '創業支援',
+        '事業継続補助',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28786,6 +28801,9 @@ export class VoiceCommands {
         // pass DCXVIII: still awaiting the library card
         'still awaiting the library card',
         'まだ貸出前', 'まだ予約待ち',
+        // pass DCXIX: still awaiting the site decision
+        'still awaiting the site decision',
+        'まだ出店前', 'これから出店',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
