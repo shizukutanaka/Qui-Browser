@@ -463,9 +463,8 @@ export function resolveComfortPreset({ reducedMotion = false, persisted = null }
  * @returns {string}           e.g. "↺ Left 30°" or "↻ Right 30°"
  */
 export function snapTurnLabel(direction, angleDeg) {
-  return direction > 0
-    ? `↻ Right ${angleDeg}°`
-    : `↺ Left ${angleDeg}°`;
+  const dir = direction > 0 ? t('vr.value.right') : t('vr.value.left');
+  return `${direction > 0 ? '↻' : '↺'} ${dir} ${angleDeg}°`;
 }
 
 /**

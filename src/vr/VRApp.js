@@ -12,7 +12,13 @@ import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerM
 // Tier 1 Optimizations
 import { FFRSystem } from './rendering/FFRSystem.js';
 import { LayersSystem } from './rendering/LayersSystem.js';
-import { ComfortSystem, resolveComfortPreset, snapTurnLabel, fireTeleportFeedback, smoothMoveWarning } from './comfort/ComfortSystem.js';
+import {
+  ComfortSystem,
+  resolveComfortPreset,
+  snapTurnLabel,
+  fireTeleportFeedback,
+  smoothMoveWarning
+} from './comfort/ComfortSystem.js';
 import { TextureManager } from '../utils/TextureManager.js';
 import { debounce } from '../utils/debounce.js';
 
@@ -25,7 +31,19 @@ import { GazeInteraction } from './interaction/GazeInteraction.js';
 import { CaptionSystem } from './accessibility/CaptionSystem.js';
 import { AccessibilityCoordinator } from './accessibility/AccessibilityCoordinator.js';
 import { SemanticDOM } from './accessibility/SemanticDOM.js';
-import { notifyCrossModal, withSeverity, toastColors, toastFontPx, voiceCommandFeedback, voiceCommandFailedFeedback, voiceErrorNotification, controllerDisconnectMessage, controllerReconnectMessage, webglContextLostMessage, webglContextRestoredMessage } from './accessibility/crossModal.js';
+import {
+  notifyCrossModal,
+  withSeverity,
+  toastColors,
+  toastFontPx,
+  voiceCommandFeedback,
+  voiceCommandFailedFeedback,
+  voiceErrorNotification,
+  controllerDisconnectMessage,
+  controllerReconnectMessage,
+  webglContextLostMessage,
+  webglContextRestoredMessage
+} from './accessibility/crossModal.js';
 import { osReducedMotion, getPrefs, setPref, largeTextScale, prefersHighContrast } from '../a11y/accessibility.js';
 import { t } from '../i18n/i18n.js';
 import { searchEngineHosts } from './browser/urlResolver.js';
@@ -39,7 +57,12 @@ import { ProgressiveLoader } from '../utils/ProgressiveLoader.js';
 // Tier 3 / optional features (opt-in via settings, default off)
 import { VoiceCommands } from './input/VoiceCommands.js';
 import { TabManager } from './browser/TabManager.js';
-import { WindowManager, resolveWindowDistance, firePanelGrabFeedback, firePanelReleaseFeedback } from './browser/WindowManager.js';
+import {
+  WindowManager,
+  resolveWindowDistance,
+  firePanelGrabFeedback,
+  firePanelReleaseFeedback
+} from './browser/WindowManager.js';
 import { BookmarkPanel } from './browser/BookmarkPanel.js';
 import { ImmersiveVideo } from './media/ImmersiveVideo.js';
 import { detectVideoFormat } from './media/videoProjection.js';
@@ -48,7 +71,13 @@ import { PerformanceMonitor } from '../utils/PerformanceMonitor.js';
 import { BookmarkStore, MAX_HISTORY } from '../utils/BookmarkStore.js';
 import { DeviceCompatibility } from '../utils/DeviceCompatibility.js';
 import { disposeMonitoring } from '../monitoring.js';
-import { stepValue, stepperRegion, formatValue, settingsButtonCaption, shouldAnnounceSettingsButton } from './settingsStepper.js';
+import {
+  stepValue,
+  stepperRegion,
+  formatValue,
+  settingsButtonCaption,
+  shouldAnnounceSettingsButton
+} from './settingsStepper.js';
 import { layoutSettingsPanel, PANEL_W as SETTINGS_PANEL_W } from './ui/settingsLayout.js';
 
 // localStorage key for persisted user settings overrides.
@@ -187,7 +216,7 @@ export class VRApp {
 
     // Settings
     this.settings = {
-      targetFPS: 90,        // Quest 2 target
+      targetFPS: 90, // Quest 2 target
       motionSensitivity: 'moderate',
       enableFFR: true,
       enableComfort: true,
@@ -208,17 +237,17 @@ export class VRApp {
       smoothMoveSpeed: 1.8, // metres/second
       // Controller input options.
       controllerDeadZone: 0.15, // axis dead zone (fraction of full travel)
-      southpaw: false,          // swap left/right controller roles for left-handed users
+      southpaw: false, // swap left/right controller roles for left-handed users
       // In-VR settings panel (toggle buttons).
       enableSettingsPanel: true,
       // FR-13.1: gaze-dwell selection (hands-free accessibility). Look at an
       // interactable for gazeDwellTime ms to activate it. OFF by default.
       enableGazeDwell: false,
-      gazeDwellTime: 1500,  // ms — time eyes must rest on target to activate
+      gazeDwellTime: 1500, // ms — time eyes must rest on target to activate
       // WCAG 2.2.1 Timing Adjustable: users with tremor / nystagmus need a longer
       // forgiveness window; precision users may want a shorter one.  Exposed as a
       // live stepper so the gaze-dwell path is tunable from inside VR.
-      gazeGraceTime: 300,   // ms — off-target slip tolerated before dwell resets
+      gazeGraceTime: 300, // ms — off-target slip tolerated before dwell resets
       // FR-2.6: controller haptics on interactions (select, teleport, grab,
       // voice, etc.). ON by default, but users with sensory/tactile sensitivity
       // can turn all haptics off from the settings panel (accessibility).
@@ -441,10 +470,10 @@ export class VRApp {
    */
   setupRenderer() {
     this.renderer = new THREE.WebGLRenderer({
-      antialias: false,  // Disabled for performance (use FXAA/TAA instead)
+      antialias: false, // Disabled for performance (use FXAA/TAA instead)
       powerPreference: 'high-performance',
       preserveDrawingBuffer: false,
-      stencil: false  // Disabled if not needed
+      stencil: false // Disabled if not needed
     });
 
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -485,7 +514,7 @@ export class VRApp {
       }
       notifyCrossModal(this.hapticFeedback, this.captionSystem, webglContextRestoredMessage(), 'info');
     };
-    this.renderer.domElement.addEventListener('webglcontextlost',     this._onWebGLContextLost, false);
+    this.renderer.domElement.addEventListener('webglcontextlost', this._onWebGLContextLost, false);
     this.renderer.domElement.addEventListener('webglcontextrestored', this._onWebGLContextRestored, false);
 
     // Window resize / DPI change.
@@ -759,9 +788,11 @@ export class VRApp {
       return;
     }
 
-    const W = 512, H = 80;
+    const W = 512,
+      H = 80;
     const canvas = document.createElement('canvas');
-    canvas.width = W; canvas.height = H;
+    canvas.width = W;
+    canvas.height = H;
     const ctx = canvas.getContext('2d');
 
     // Honour the high-contrast / large-text accessibility preferences (same
@@ -783,9 +814,7 @@ export class VRApp {
     // Truncate by code point (not UTF-16 unit) so a long translated/Japanese
     // toast can't be cut mid-surrogate-pair, leaving a broken � (see truncate()).
     const labeledChars = Array.from(labeled);
-    const shown = labeledChars.length > 60
-      ? labeledChars.slice(0, 57).join('') + '…'
-      : labeled;
+    const shown = labeledChars.length > 60 ? labeledChars.slice(0, 57).join('') + '…' : labeled;
     ctx.fillText(shown, W / 2, H / 2);
 
     const tex = configureUITexture(new THREE.CanvasTexture(canvas));
@@ -852,9 +881,8 @@ export class VRApp {
         this.navigate(url, title, panel);
         this._persistTabSession();
       },
-      topSitesProvider: () => this.settings.privateMode
-        ? []
-        : this.bookmarks.getTopSites(8, Date.now(), searchEngineHosts()),
+      topSitesProvider: () =>
+        this.settings.privateMode ? [] : this.bookmarks.getTopSites(8, Date.now(), searchEngineHosts()),
       readerProxyUrl: this.settings.readerProxyUrl,
       onLoadError: (url) => this.showVRToast(`Failed to load: ${url}`, { type: 'error' }),
       onBlockedNavigation: () => this.showVRToast(t('vr.error.blockedUrl'), { type: 'warn' }),
@@ -867,7 +895,7 @@ export class VRApp {
           // Immediate "Loading" caption so caption-reliant users know what URL
           // was submitted before the page loads (WCAG 4.1.3).
           if (url && this.captionSystem && this.captionSystem.enabled) {
-            this.captionSystem.show(`Loading: ${hostnameCaption(url)}`);
+            this.captionSystem.show(`${t('vr.content.loading')} ${hostnameCaption(url)}`);
           }
         }),
       searchEngine: this.settings.searchEngine,
@@ -877,7 +905,7 @@ export class VRApp {
       onTabActivate: (url) => {
         if (this.captionSystem && this.captionSystem.enabled) {
           const label = url ? hostnameCaption(url) : t('vr.msg.newTab');
-          this.captionSystem.show(`Tab: ${label}`);
+          this.captionSystem.show(`${t('vr.msg.tabLabel')}: ${label}`);
         }
         this._persistTabSession();
       },
@@ -902,9 +930,7 @@ export class VRApp {
           // caption-reliant users know which site they are about to interact
           // with — the visual URL bar is the primary channel but only helps
           // users whose gaze is already on the panel (WCAG 1.3.3).
-          const label = (title && title !== url)
-            ? title
-            : (url ? hostnameCaption(url) : t('vr.msg.browserControls'));
+          const label = title && title !== url ? title : url ? hostnameCaption(url) : t('vr.msg.browserControls');
           this.captionSystem.show(label);
         }
       },
@@ -947,7 +973,7 @@ export class VRApp {
           active.navigate(url);
         }
         if (this.captionSystem && this.captionSystem.enabled && url) {
-          this.captionSystem.show(`Loading: ${hostnameCaption(url)}`);
+          this.captionSystem.show(`${t('vr.content.loading')} ${hostnameCaption(url)}`);
         }
       },
       onDeleteBookmark: () => {
@@ -1028,10 +1054,7 @@ export class VRApp {
     } else {
       this._teardownBrowsingSystems();
     }
-    this.showVRToast(
-      t(on ? 'vr.msg.webPanelOn' : 'vr.msg.webPanelOff'),
-      { type: 'info' }
-    );
+    this.showVRToast(t(on ? 'vr.msg.webPanelOn' : 'vr.msg.webPanelOff'), { type: 'info' });
   }
 
   /**
@@ -1289,7 +1312,7 @@ export class VRApp {
         let u = 0.5;
         if (rawPoint && mesh.worldToLocal) {
           const local = mesh.worldToLocal(rawPoint.clone());
-          u = (local.x / 0.9) + 0.5; // PlaneGeometry width is 0.9
+          u = local.x / 0.9 + 0.5; // PlaneGeometry width is 0.9
         }
         const region = stepperRegion(u);
         if (region === 'decrement') {
@@ -1384,7 +1407,7 @@ export class VRApp {
    */
   _redrawSettingsPanel() {
     if (this._settingsPanelDrawers) {
-      this._settingsPanelDrawers.forEach(fn => fn && fn());
+      this._settingsPanelDrawers.forEach((fn) => fn && fn());
     }
   }
 
@@ -1408,9 +1431,13 @@ export class VRApp {
    */
   _announceSettingsButton(type, label, value, opts = {}, force = false) {
     const captionsEnabled = !!(this.captionSystem && this.captionSystem.enabled);
-    if (!shouldAnnounceSettingsButton({
-      captionsEnabled, gazeDwell: this.settings.enableGazeDwell, force
-    })) {
+    if (
+      !shouldAnnounceSettingsButton({
+        captionsEnabled,
+        gazeDwell: this.settings.enableGazeDwell,
+        force
+      })
+    ) {
       return;
     }
     this.captionSystem.show(settingsButtonCaption(type, label, value, opts));
@@ -1437,23 +1464,24 @@ export class VRApp {
    */
   _requestReaderProxyInput() {
     const prefill = this.settings.readerProxyUrl || 'http://';
-    this._requestVRKeyboardInput(prefill, (typed) => {
-      const out = normalizeProxyUrl(typed);
-      if (!out.ok) {
-        this.showVRToast(t('vr.error.proxyInvalid'), { type: 'warn' });
-        return;
-      }
-      this.updateSetting('readerProxyUrl', out.value);
-      if (this.tabManager) {
-        this.tabManager.setReaderProxyUrl(out.value);
-      } else if (this.webPanel && this.webPanel.setReaderProxyUrl) {
-        this.webPanel.setReaderProxyUrl(out.value);
-      }
-      this.showVRToast(
-        t(out.value ? 'vr.msg.proxySet' : 'vr.msg.proxyCleared'),
-        { type: 'info' }
-      );
-    }, t('vr.prompt.proxyUrl'));
+    this._requestVRKeyboardInput(
+      prefill,
+      (typed) => {
+        const out = normalizeProxyUrl(typed);
+        if (!out.ok) {
+          this.showVRToast(t('vr.error.proxyInvalid'), { type: 'warn' });
+          return;
+        }
+        this.updateSetting('readerProxyUrl', out.value);
+        if (this.tabManager) {
+          this.tabManager.setReaderProxyUrl(out.value);
+        } else if (this.webPanel && this.webPanel.setReaderProxyUrl) {
+          this.webPanel.setReaderProxyUrl(out.value);
+        }
+        this.showVRToast(t(out.value ? 'vr.msg.proxySet' : 'vr.msg.proxyCleared'), { type: 'info' });
+      },
+      t('vr.prompt.proxyUrl')
+    );
   }
 
   /**
@@ -1504,61 +1532,61 @@ export class VRApp {
    */
   _applyToggle(key, v) {
     switch (key) {
-    case 'enableCaptions':
-      if (this.captionSystem) {
-        this.captionSystem.setEnabled(v);
-        if (v) {
-          this.captionSystem.show(t('vr.msg.captionsEnabled'));
+      case 'enableCaptions':
+        if (this.captionSystem) {
+          this.captionSystem.setEnabled(v);
+          if (v) {
+            this.captionSystem.show(t('vr.msg.captionsEnabled'));
+          }
         }
-      }
-      break;
-    case 'enableGazeDwell':
-      if (this.gazeInteraction) {
-        this.gazeInteraction.setEnabled(v);
-      }
-      break;
-    case 'enableHaptics':
-      if (this.hapticFeedback) {
-        this.hapticFeedback.setEnabled(v);
-      }
-      break;
-    case 'enableCurvedPanel':
-      if (this.tabManager) {
-        this.tabManager.setCurved(v);
-      } else if (this.webPanel && this.webPanel.setCurved) {
-        this.webPanel.setCurved(v);
-      }
-      break;
-    case 'enableWindowFollow':
-      if (this.windowManager) {
-        this.windowManager.setFollow(v);
-      }
-      break;
-    case 'enableFFR':
-      if (this.ffrSystem) {
-        if (v) {
-          this.ffrSystem.enable(0.5);
-        } else {
-          this.ffrSystem.disable();
+        break;
+      case 'enableGazeDwell':
+        if (this.gazeInteraction) {
+          this.gazeInteraction.setEnabled(v);
         }
+        break;
+      case 'enableHaptics':
+        if (this.hapticFeedback) {
+          this.hapticFeedback.setEnabled(v);
+        }
+        break;
+      case 'enableCurvedPanel':
+        if (this.tabManager) {
+          this.tabManager.setCurved(v);
+        } else if (this.webPanel && this.webPanel.setCurved) {
+          this.webPanel.setCurved(v);
+        }
+        break;
+      case 'enableWindowFollow':
+        if (this.windowManager) {
+          this.windowManager.setFollow(v);
+        }
+        break;
+      case 'enableFFR':
+        if (this.ffrSystem) {
+          if (v) {
+            this.ffrSystem.enable(0.5);
+          } else {
+            this.ffrSystem.disable();
+          }
+        }
+        break;
+      case 'enableSmoothMove': {
+        const msg = smoothMoveWarning(v, osReducedMotion());
+        if (msg) {
+          this.showVRToast(msg, { type: 'warn' });
+        }
+        break;
       }
-      break;
-    case 'enableSmoothMove': {
-      const msg = smoothMoveWarning(v, osReducedMotion());
-      if (msg) {
-        this.showVRToast(msg, { type: 'warn' });
-      }
-      break;
-    }
-    case 'motionSensitivity':
-      if (this.comfortSystem) {
-        this.comfortSystem.setPreset(v);
-      }
-      break;
-    default:
-      // Locomotion-read settings (snap turn, teleport, comfort vignette)
-      // have no live apply — the setting is consulted at move time.
-      break;
+      case 'motionSensitivity':
+        if (this.comfortSystem) {
+          this.comfortSystem.setPreset(v);
+        }
+        break;
+      default:
+        // Locomotion-read settings (snap turn, teleport, comfort vignette)
+        // have no live apply — the setting is consulted at move time.
+        break;
     }
   }
 
@@ -1599,35 +1627,63 @@ export class VRApp {
     this._settingsPanelDrawers = [];
 
     const items = [
-      [t('vr.settings.highContrast'), 'highContrast', (v) => {
-        this._applyHighContrast(v);
-      }],
+      [
+        t('vr.settings.highContrast'),
+        'highContrast',
+        (v) => {
+          this._applyHighContrast(v);
+        }
+      ],
       [t('vr.settings.teleport'), 'enableTeleport', null],
       [t('vr.settings.snapTurn'), 'enableSnapTurn', null],
-      [t('vr.settings.smoothMove'), 'enableSmoothMove', (v) => {
-        const msg = smoothMoveWarning(v, osReducedMotion());
-        if (msg) {
-          this.showVRToast(msg, { type: 'warn' });
+      [
+        t('vr.settings.smoothMove'),
+        'enableSmoothMove',
+        (v) => {
+          const msg = smoothMoveWarning(v, osReducedMotion());
+          if (msg) {
+            this.showVRToast(msg, { type: 'warn' });
+          }
         }
-      }],
-      [t('vr.settings.southpaw'), 'southpaw', (v) => {
-        if (this.captionSystem && this.captionSystem.enabled) {
-          this.captionSystem.show(t(v ? 'vr.msg.primaryHandLeft' : 'vr.msg.primaryHandRight'));
+      ],
+      [
+        t('vr.settings.southpaw'),
+        'southpaw',
+        (v) => {
+          if (this.captionSystem && this.captionSystem.enabled) {
+            this.captionSystem.show(t(v ? 'vr.msg.primaryHandLeft' : 'vr.msg.primaryHandRight'));
+          }
         }
-      }],
+      ],
       [t('vr.settings.comfort'), 'enableComfort', null],
-      [t('vr.settings.foveation'), 'enableFFR', (v) => {
-        this._applyToggle('enableFFR', v);
-      }],
-      [t('vr.settings.gazeSelect'), 'enableGazeDwell', (v) => {
-        this._applyToggle('enableGazeDwell', v);
-      }],
-      [t('vr.settings.haptics'), 'enableHaptics', (v) => {
-        this._applyToggle('enableHaptics', v);
-      }],
-      [t('vr.settings.captions'), 'enableCaptions', (v) => {
-        this._applyToggle('enableCaptions', v);
-      }],
+      [
+        t('vr.settings.foveation'),
+        'enableFFR',
+        (v) => {
+          this._applyToggle('enableFFR', v);
+        }
+      ],
+      [
+        t('vr.settings.gazeSelect'),
+        'enableGazeDwell',
+        (v) => {
+          this._applyToggle('enableGazeDwell', v);
+        }
+      ],
+      [
+        t('vr.settings.haptics'),
+        'enableHaptics',
+        (v) => {
+          this._applyToggle('enableHaptics', v);
+        }
+      ],
+      [
+        t('vr.settings.captions'),
+        'enableCaptions',
+        (v) => {
+          this._applyToggle('enableCaptions', v);
+        }
+      ],
       // FR-1.1: in-VR web browsing (WebPanel/TabManager/BookmarkPanel/
       // WindowManager) is constructed once, in initializeSystems(), gated on
       // this same setting — there was previously no way for a real user to
@@ -1636,12 +1692,20 @@ export class VRApp {
       // (FR-9.1) but can only take effect on the next page load, since
       // construction is one-shot; the apply callback is honest about that.
       [t('vr.settings.webPanel'), 'enableWebPanel', (v) => this._onWebPanelToggleChanged(v)],
-      [t('vr.settings.followView'), 'enableWindowFollow', (v) => {
-        this._applyToggle('enableWindowFollow', v);
-      }],
-      [t('vr.settings.curved'), 'enableCurvedPanel', (v) => {
-        this._applyToggle('enableCurvedPanel', v);
-      }],
+      [
+        t('vr.settings.followView'),
+        'enableWindowFollow',
+        (v) => {
+          this._applyToggle('enableWindowFollow', v);
+        }
+      ],
+      [
+        t('vr.settings.curved'),
+        'enableCurvedPanel',
+        (v) => {
+          this._applyToggle('enableCurvedPanel', v);
+        }
+      ],
       // Private browsing (Quest Browser-style): tabs opened while ON write no
       // history and are never persisted. Applies live — the strip gains the
       // PRIVATE chip immediately — and announces cross-modally (WCAG 4.1.3).
@@ -1655,93 +1719,159 @@ export class VRApp {
     const steppers = [
       [t('vr.settings.snapAngle'), 'snapTurnAngle', { min: 15, max: 90, step: 15, unit: '°' }],
       [t('vr.settings.moveSpeed'), 'smoothMoveSpeed', { min: 0.5, max: 4.0, step: 0.5, unit: ' m/s' }],
-      [t('vr.settings.gazeTime'), 'gazeDwellTime', {
-        min: 500, max: 3000, step: 250, unit: 'ms',
-        apply: (v) => {
-          if (this.gazeInteraction) {
-            this.gazeInteraction.dwellTime = v;
+      [
+        t('vr.settings.gazeTime'),
+        'gazeDwellTime',
+        {
+          min: 500,
+          max: 3000,
+          step: 250,
+          unit: 'ms',
+          apply: (v) => {
+            if (this.gazeInteraction) {
+              this.gazeInteraction.dwellTime = v;
+            }
           }
         }
-      }],
+      ],
       // WCAG 2.2.1 Timing Adjustable: users with tremor / nystagmus can widen
       // this window so a brief involuntary slip off-target doesn't restart the
       // dwell; precision-focused users can narrow it to 0 to disable forgiveness.
-      [t('vr.settings.graceTime'), 'gazeGraceTime', {
-        min: 0, max: 600, step: 50, unit: 'ms',
-        apply: (v) => {
-          if (this.gazeInteraction) {
-            this.gazeInteraction.graceTime = v;
+      [
+        t('vr.settings.graceTime'),
+        'gazeGraceTime',
+        {
+          min: 0,
+          max: 600,
+          step: 50,
+          unit: 'ms',
+          apply: (v) => {
+            if (this.gazeInteraction) {
+              this.gazeInteraction.graceTime = v;
+            }
           }
         }
-      }],
-      [t('vr.settings.panelDist'), 'windowDistance', {
-        min: 0.6, max: 6.0, step: 0.2, unit: ' m',
-        apply: (v) => {
-          if (this.windowManager) {
-            this.windowManager.setDistance(v);
+      ],
+      [
+        t('vr.settings.panelDist'),
+        'windowDistance',
+        {
+          min: 0.6,
+          max: 6.0,
+          step: 0.2,
+          unit: ' m',
+          apply: (v) => {
+            if (this.windowManager) {
+              this.windowManager.setDistance(v);
+            }
           }
         }
-      }],
+      ],
       // WCAG 2.2.1 Timing Adjustable (Adjust option): range must reach ≥ 10× the
       // default (5 s default → min ceiling 50 s). Using 60 s (12×) as the max.
-      [t('vr.settings.captionHold'), 'captionDuration', {
-        min: 2, max: 60, step: 2, unit: 's',
-        apply: (v) => {
-          if (this.captionSystem) {
-            this.captionSystem.setLineDuration(v * 1000);
+      [
+        t('vr.settings.captionHold'),
+        'captionDuration',
+        {
+          min: 2,
+          max: 60,
+          step: 2,
+          unit: 's',
+          apply: (v) => {
+            if (this.captionSystem) {
+              this.captionSystem.setLineDuration(v * 1000);
+            }
           }
         }
-      }],
-      [t('vr.settings.captionSize'), 'captionScale', {
-        min: 0.5, max: 3.0, step: 0.25, unit: 'x',
-        apply: (v) => {
-          if (this.captionSystem) {
-            this.captionSystem.setScale(v);
+      ],
+      [
+        t('vr.settings.captionSize'),
+        'captionScale',
+        {
+          min: 0.5,
+          max: 3.0,
+          step: 0.25,
+          unit: 'x',
+          apply: (v) => {
+            if (this.captionSystem) {
+              this.captionSystem.setScale(v);
+            }
           }
         }
-      }],
+      ],
       // XAUR: caption position customization. Height in metres below eye level
       // (more-negative = lower in the field of view).
-      [t('vr.settings.captionHeight'), 'captionHeight', {
-        min: -0.85, max: -0.25, step: 0.1, unit: 'm',
-        apply: (v) => {
-          if (this.captionSystem) {
-            this.captionSystem.setVerticalOffset(v);
+      [
+        t('vr.settings.captionHeight'),
+        'captionHeight',
+        {
+          min: -0.85,
+          max: -0.25,
+          step: 0.1,
+          unit: 'm',
+          apply: (v) => {
+            if (this.captionSystem) {
+              this.captionSystem.setVerticalOffset(v);
+            }
           }
         }
-      }],
+      ],
       // Master spatial-audio volume (0 = muted). Stored as a percentage for a
       // readable stepper; SpatialAudio.setMasterVolume expects a 0–1 gain.
-      [t('vr.settings.soundVolume'), 'masterVolume', {
-        min: 0, max: 100, step: 10, unit: '%',
-        apply: (v) => {
-          if (this.spatialAudio) {
-            this.spatialAudio.setMasterVolume(v / 100);
+      [
+        t('vr.settings.soundVolume'),
+        'masterVolume',
+        {
+          min: 0,
+          max: 100,
+          step: 10,
+          unit: '%',
+          apply: (v) => {
+            if (this.spatialAudio) {
+              this.spatialAudio.setMasterVolume(v / 100);
+            }
           }
         }
-      }],
+      ],
       // WCAG 1.4.4 Resize Text: the reader's article text must reach 2.0x.
       // Applies live — open articles re-lay-out, later loads inherit.
-      [t('vr.settings.readerTextSize'), 'readerTextScale', {
-        min: 0.5, max: 2.0, step: 0.25, unit: 'x',
-        apply: (v) => {
-          if (this.tabManager) {
-            this.tabManager.setReaderScale(v);
+      [
+        t('vr.settings.readerTextSize'),
+        'readerTextScale',
+        {
+          min: 0.5,
+          max: 2.0,
+          step: 0.25,
+          unit: 'x',
+          apply: (v) => {
+            if (this.tabManager) {
+              this.tabManager.setReaderScale(v);
+            }
           }
         }
-      }]
+      ]
     ];
 
     // Cycle buttons for enumerated settings (currently code-only or keyboard-shortcut-only).
     const cycles = [
-      ['Comfort', 'motionSensitivity', COMFORT_PRESETS, (v) => {
-        this._applyToggle('motionSensitivity', v);
-      }],
-      [t('vr.settings.search'), 'searchEngine', SEARCH_ENGINES, (v) => {
-        if (this.tabManager) {
-          this.tabManager.setSearchEngine(v);
+      [
+        'Comfort',
+        'motionSensitivity',
+        COMFORT_PRESETS,
+        (v) => {
+          this._applyToggle('motionSensitivity', v);
         }
-      }]
+      ],
+      [
+        t('vr.settings.search'),
+        'searchEngine',
+        SEARCH_ENGINES,
+        (v) => {
+          if (this.tabManager) {
+            this.tabManager.setSearchEngine(v);
+          }
+        }
+      ]
     ];
 
     // Action buttons (non-toggle). Only shown when their target exists.
@@ -1758,17 +1888,22 @@ export class VRApp {
     // unreachable-by-any-real-user shape that justified Session 74's deletions.
     actions.push([t('vr.settings.readerProxy'), () => this._requestReaderProxyInput()]);
     if (this.settings.enableWebPanel) {
-      actions.push([t('vr.settings.bookmarks'), () => {
-        if (this.bookmarkPanel) {
-          this.bookmarkPanel.toggle();
-          // Announce the resulting open/closed state as a status message
-          // (WCAG 4.1.3) so caption-reliant users know whether the panel
-          // appeared or disappeared.
-          if (this.captionSystem && this.captionSystem.enabled) {
-            this.captionSystem.show(this.bookmarkPanel.visible ? t('vr.msg.bookmarksOpen') : t('vr.msg.bookmarksClosed'));
+      actions.push([
+        t('vr.settings.bookmarks'),
+        () => {
+          if (this.bookmarkPanel) {
+            this.bookmarkPanel.toggle();
+            // Announce the resulting open/closed state as a status message
+            // (WCAG 4.1.3) so caption-reliant users know whether the panel
+            // appeared or disappeared.
+            if (this.captionSystem && this.captionSystem.enabled) {
+              this.captionSystem.show(
+                this.bookmarkPanel.visible ? t('vr.msg.bookmarksOpen') : t('vr.msg.bookmarksClosed')
+              );
+            }
           }
         }
-      }]);
+      ]);
     }
 
     // Grouped, collapsible layout. The flat stack reached 19 rows / 3.56 m,
@@ -1777,39 +1912,47 @@ export class VRApp {
     // half was effectively out of view and every new setting made it worse.
     // Sections are keyed by what the user is trying to do, and only the open
     // one occupies rows (see src/vr/ui/settingsLayout.js).
-    const byKey = (list, keys) => keys
-      .map((k) => list.find((e) => e[1] === k))
-      .filter(Boolean);
+    const byKey = (list, keys) => keys.map((k) => list.find((e) => e[1] === k)).filter(Boolean);
     const actionByLabel = (label) => actions.filter((a) => a[0] === label);
 
     const SECTIONS = [
-      ['settings.section.a11y',
+      [
+        'settings.section.a11y',
         byKey(items, ['enableCaptions', 'enableGazeDwell', 'highContrast', 'enableHaptics']),
         byKey(steppers, ['captionDuration', 'captionScale', 'captionHeight', 'gazeDwellTime', 'gazeGraceTime']),
-        [], []],
-      ['settings.section.locomotion',
+        [],
+        []
+      ],
+      [
+        'settings.section.locomotion',
         byKey(items, ['enableTeleport', 'enableSnapTurn', 'enableSmoothMove', 'southpaw', 'enableComfort']),
         byKey(steppers, ['snapTurnAngle', 'smoothMoveSpeed']),
-        cycles.filter((c) => c[1] === 'motionSensitivity'), []],
-      ['settings.section.display',
+        cycles.filter((c) => c[1] === 'motionSensitivity'),
+        []
+      ],
+      [
+        'settings.section.display',
         byKey(items, ['enableFFR', 'enableCurvedPanel', 'enableWindowFollow']),
-        byKey(steppers, ['windowDistance']), [], []],
-      ['settings.section.browsing',
+        byKey(steppers, ['windowDistance']),
+        [],
+        []
+      ],
+      [
+        'settings.section.browsing',
         byKey(items, ['enableWebPanel', 'privateMode', 'restoreTabs']),
         byKey(steppers, ['readerTextScale']),
         cycles.filter((c) => c[1] === 'searchEngine'),
         actionByLabel(t('vr.settings.clearHistory'))
           .concat(actionByLabel(t('vr.settings.readerProxy')))
-          .concat(actionByLabel(t('vr.settings.bookmarks')))],
-      ['settings.section.audio', [], byKey(steppers, ['masterVolume']), [],
-        actionByLabel(t('vr.settings.video360'))]
+          .concat(actionByLabel(t('vr.settings.bookmarks')))
+      ],
+      ['settings.section.audio', [], byKey(steppers, ['masterVolume']), [], actionByLabel(t('vr.settings.video360'))]
     ];
 
     // Anything not explicitly placed still has to appear — a control that
     // silently vanished because a key was mistyped would be worse than a long
     // panel. Collected into a trailing section rather than dropped.
-    const placed = new Set(SECTIONS.flatMap(([, tg, st, cy]) =>
-      [...tg, ...st, ...cy].map((e) => e[1])));
+    const placed = new Set(SECTIONS.flatMap(([, tg, st, cy]) => [...tg, ...st, ...cy].map((e) => e[1])));
     const placedActions = new Set(SECTIONS.flatMap(([, , , , ac]) => ac.map((a) => a[0])));
     const leftover = [
       items.filter((e) => !placed.has(e[1])),
@@ -1968,7 +2111,7 @@ export class VRApp {
    */
   setupCamera() {
     this.camera = new THREE.PerspectiveCamera(
-      90,  // FOV - will be adjusted by comfort system
+      90, // FOV - will be adjusted by comfort system
       window.innerWidth / window.innerHeight,
       0.1,
       1000
@@ -2014,10 +2157,7 @@ export class VRApp {
 
     for (let i = 0; i < 2; i++) {
       const controller = this.renderer.xr.getController(i);
-      const ray = new THREE.Line(
-        rayGeometry,
-        new THREE.LineBasicMaterial({ color: 0x44aaff })
-      );
+      const ray = new THREE.Line(rayGeometry, new THREE.LineBasicMaterial({ color: 0x44aaff }));
       ray.name = 'pointerRay';
       ray.scale.z = 5;
       controller.add(ray);
@@ -2163,11 +2303,11 @@ export class VRApp {
     }
 
     // Southpaw swaps which hand drives snap-turn (typically right) vs move (left).
-    const turnHand  = this.settings.southpaw ? 'left'  : 'right';
-    const moveHand  = this.settings.southpaw ? 'right' : 'left';
+    const turnHand = this.settings.southpaw ? 'left' : 'right';
+    const moveHand = this.settings.southpaw ? 'right' : 'left';
     // Snap activation and hysteresis thresholds.
     const snapThreshold = 0.7;
-    const snapRelease   = 0.3;
+    const snapRelease = 0.3;
 
     let smoothMoving = false;
     let smoothMoveLevel = 0; // strongest normalized stick deflection this frame
@@ -2211,7 +2351,8 @@ export class VRApp {
         const right = this._locoRight.set(1, 0, 0).applyQuaternion(this._locoQ);
         right.y = 0;
         right.normalize();
-        const move = this._locoMove.set(0, 0, 0)
+        const move = this._locoMove
+          .set(0, 0, 0)
           .addScaledVector(forward, -y) // stick up → forward
           .addScaledVector(right, x);
         if (move.lengthSq() > 0) {
@@ -2258,7 +2399,7 @@ export class VRApp {
     }
 
     // Which hand is which depends on southpaw setting.
-    const pointerHand = this.settings.southpaw ? 'left'  : 'right';
+    const pointerHand = this.settings.southpaw ? 'left' : 'right';
     const utilityHand = this.settings.southpaw ? 'right' : 'left';
 
     for (const controller of this.controllers) {
@@ -2269,10 +2410,10 @@ export class VRApp {
 
       const snap = this.controllerInput.read(src);
       const hand = snap.hand;
-      const btn  = snap.buttons;
+      const btn = snap.buttons;
 
       // Play a brief haptic click for any face/thumb button press.
-      const anyJustPressed = Object.values(btn).some(b => b.justPressed);
+      const anyJustPressed = Object.values(btn).some((b) => b.justPressed);
       if (anyJustPressed && this.hapticFeedback) {
         this.hapticFeedback.playPattern(hand, 'click');
       }
@@ -2301,13 +2442,14 @@ export class VRApp {
             this.hapticFeedback.playPattern(hand, 'click');
           }
         }
-
       } else if (hand === utilityHand) {
         // Toggle bookmarks/history panel.
         if (btn.faceA?.justPressed && this.bookmarkPanel) {
           this.bookmarkPanel.toggle();
           if (this.captionSystem && this.captionSystem.enabled) {
-            this.captionSystem.show(this.bookmarkPanel.visible ? t('vr.msg.bookmarksOpen') : t('vr.msg.bookmarksClosed'));
+            this.captionSystem.show(
+              this.bookmarkPanel.visible ? t('vr.msg.bookmarksOpen') : t('vr.msg.bookmarksClosed')
+            );
           }
         }
         // Toggle settings panel.
@@ -2318,7 +2460,7 @@ export class VRApp {
         if (btn.thumbstickClick?.justPressed && this.vrKeyboard) {
           this.vrKeyboard.visible ? this.vrKeyboard.hide() : this.vrKeyboard.show();
           if (this.captionSystem && this.captionSystem.enabled) {
-            this.captionSystem.show(`Keyboard: ${this.vrKeyboard.visible ? 'open' : 'closed'}`);
+            this.captionSystem.show(t(this.vrKeyboard.visible ? 'vr.msg.keyboardOpen' : 'vr.msg.keyboardClosed'));
           }
         }
       }
@@ -2400,7 +2542,7 @@ export class VRApp {
     }
     const hit = this.raycasterFromController(controller)
       .intersectObjects(this.interactables, false)
-      .find(h => isWorldVisible(h.object));
+      .find((h) => isWorldVisible(h.object));
     if (!hit) {
       return;
     }
@@ -2440,9 +2582,7 @@ export class VRApp {
     if (!this.windowManager) {
       return false;
     }
-    const target = this.tabManager
-      ? this.tabManager.rootGroup
-      : (this.webPanel && this.webPanel.group);
+    const target = this.tabManager ? this.tabManager.rootGroup : this.webPanel && this.webPanel.group;
     if (!target) {
       return false;
     }
@@ -2497,7 +2637,7 @@ export class VRApp {
     for (const controller of this.controllers) {
       const hit = this.raycasterFromController(controller)
         .intersectObjects(this.interactables, false)
-        .find(h => isWorldVisible(h.object));
+        .find((h) => isWorldVisible(h.object));
       const obj = hit ? hit.object : null;
       const prev = controller.userData.hovered || null;
       if (prev === obj) {
@@ -2562,12 +2702,9 @@ export class VRApp {
 
     // 2. Comfort System
     if (this.settings.enableComfort) {
-      this.comfortSystem = new ComfortSystem(
-        this.scene,
-        this.camera,
-        this.renderer,
-        { reduceMotion: osReducedMotion() }
-      );
+      this.comfortSystem = new ComfortSystem(this.scene, this.camera, this.renderer, {
+        reduceMotion: osReducedMotion()
+      });
       this.comfortSystem.setPreset(this.settings.motionSensitivity);
       console.debug('VRApp: Comfort system initialized');
     }
@@ -2624,11 +2761,17 @@ export class VRApp {
           // Four explicit keys rather than composing "<hand> hand <state>":
           // word order and particles differ by language, so composition would
           // produce broken Japanese.
-          this.captionSystem.show(t(
-            hand === 'left'
-              ? (tracked ? 'vr.msg.leftHandTracked' : 'vr.msg.leftHandLost')
-              : (tracked ? 'vr.msg.rightHandTracked' : 'vr.msg.rightHandLost')
-          ));
+          this.captionSystem.show(
+            t(
+              hand === 'left'
+                ? tracked
+                  ? 'vr.msg.leftHandTracked'
+                  : 'vr.msg.leftHandLost'
+                : tracked
+                  ? 'vr.msg.rightHandTracked'
+                  : 'vr.msg.rightHandLost'
+            )
+          );
         }
       }, 600);
     });
@@ -2752,9 +2895,9 @@ export class VRApp {
         // Replace window.* default commands with VR-aware implementations that
         // route navigation and search through the live TabManager.
         this.voiceCommands.connectBrowser({
-          tabManager:    this.tabManager,
+          tabManager: this.tabManager,
           bookmarkPanel: this.bookmarkPanel,
-          vrKeyboard:    this.vrKeyboard,
+          vrKeyboard: this.vrKeyboard,
           onSearch: (query) => {
             const active = this.tabManager?.getActiveTab?.();
             if (active) {
@@ -2763,7 +2906,7 @@ export class VRApp {
               // caption-reliant users know their voice command was accepted
               // before the page finishes loading.
               if (query && this.captionSystem && this.captionSystem.enabled) {
-                this.captionSystem.show(`Loading: ${hostnameCaption(query)}`);
+                this.captionSystem.show(`${t('vr.content.loading')} ${hostnameCaption(query)}`);
               }
               active.navigate(query);
             }
@@ -2778,7 +2921,7 @@ export class VRApp {
             const active = this.tabManager?.getActiveTab?.();
             if (top && active) {
               if (this.captionSystem && this.captionSystem.enabled) {
-                this.captionSystem.show(`Top site: ${hostnameCaption(top.url)}`);
+                this.captionSystem.show(`${t('vr.msg.topSite')}: ${hostnameCaption(top.url)}`);
               }
               active.navigate(top.url);
             } else if (this.captionSystem && this.captionSystem.enabled) {
@@ -2799,13 +2942,13 @@ export class VRApp {
             if (hits.length > 0) {
               const hit = hits[0];
               if (this.captionSystem && this.captionSystem.enabled) {
-                this.captionSystem.show(`Opening: ${hostnameCaption(hit.url)}`);
+                this.captionSystem.show(`${t('vr.msg.openingLabel')}: ${hostnameCaption(hit.url)}`);
               }
               active.navigate(hit.url);
             } else {
               // No frecency match — treat as URL or web search
               if (query && this.captionSystem && this.captionSystem.enabled) {
-                this.captionSystem.show(`Loading: ${hostnameCaption(query)}`);
+                this.captionSystem.show(`${t('vr.content.loading')} ${hostnameCaption(query)}`);
               }
               active.navigate(query);
             }
@@ -2827,8 +2970,7 @@ export class VRApp {
           // volume-up/down commands drive the same masterVolume setting the
           // audio stepper owns — persist + apply + announce, clamped 0-100.
           onVolume: (delta) => {
-            const next = Math.min(100, Math.max(0, Math.round(
-              this.settings.masterVolume + delta * 100)));
+            const next = Math.min(100, Math.max(0, Math.round(this.settings.masterVolume + delta * 100)));
             if (next === this.settings.masterVolume) {
               return;
             }
@@ -2839,7 +2981,7 @@ export class VRApp {
               this.spatialAudio.setMasterVolume(next / 100);
             }
             if (this.captionSystem && this.captionSystem.enabled) {
-              this.captionSystem.show(`音量: ${next}%`);
+              this.captionSystem.show(`${t('vr.msg.volumeLabel')}: ${next}%`);
             }
           },
           // Settings-by-voice: the caption-size and gaze-dwell steppers are
@@ -2949,16 +3091,23 @@ export class VRApp {
           // motionSensitivity cycles through COMFORT_PRESETS or takes a
           // named preset. Unknown keys/values return null honestly.
           onSettingToggle: (key, value) => {
-            const TOGGLE_KEYS = ['enableCaptions', 'enableHaptics', 'enableGazeDwell',
-              'enableCurvedPanel', 'enableWindowFollow', 'enableSnapTurn',
-              'enableTeleport', 'enableComfort', 'enableFFR',
-              'southpaw', 'enableSmoothMove'];
+            const TOGGLE_KEYS = [
+              'enableCaptions',
+              'enableHaptics',
+              'enableGazeDwell',
+              'enableCurvedPanel',
+              'enableWindowFollow',
+              'enableSnapTurn',
+              'enableTeleport',
+              'enableComfort',
+              'enableFFR',
+              'southpaw',
+              'enableSmoothMove'
+            ];
             let next;
             if (key === 'motionSensitivity') {
               const idx = COMFORT_PRESETS.indexOf(this.settings.motionSensitivity);
-              next = value === undefined
-                ? COMFORT_PRESETS[(idx + 1) % COMFORT_PRESETS.length]
-                : value;
+              next = value === undefined ? COMFORT_PRESETS[(idx + 1) % COMFORT_PRESETS.length] : value;
               if (!COMFORT_PRESETS.includes(next)) {
                 return null;
               }
@@ -2992,31 +3141,30 @@ export class VRApp {
             if (delta === 0) {
               return this.settings[key];
             }
-            const next = Math.min(def.max, Math.max(def.min,
-              this.settings[key] + delta * def.step));
+            const next = Math.min(def.max, Math.max(def.min, this.settings[key] + delta * def.step));
             if (next === this.settings[key]) {
               return null;
             }
             this.updateSetting(key, next);
             switch (key) {
-            case 'gazeGraceTime':
-              if (this.gazeInteraction) {
-                this.gazeInteraction.graceTime = next;
-              }
-              break;
-            case 'captionDuration':
-              if (this.captionSystem) {
-                this.captionSystem.setLineDuration(next * 1000);
-              }
-              break;
-            case 'captionHeight':
-              if (this.captionSystem) {
-                this.captionSystem.setVerticalOffset(next);
-              }
-              break;
-            default:
-              // snapTurnAngle / smoothMoveSpeed are read at use time.
-              break;
+              case 'gazeGraceTime':
+                if (this.gazeInteraction) {
+                  this.gazeInteraction.graceTime = next;
+                }
+                break;
+              case 'captionDuration':
+                if (this.captionSystem) {
+                  this.captionSystem.setLineDuration(next * 1000);
+                }
+                break;
+              case 'captionHeight':
+                if (this.captionSystem) {
+                  this.captionSystem.setVerticalOffset(next);
+                }
+                break;
+              default:
+                // snapTurnAngle / smoothMoveSpeed are read at use time.
+                break;
             }
             return next;
           },
@@ -3105,7 +3253,8 @@ export class VRApp {
           onBookmarkOpenNamed: (term) => {
             const t = (term || '').toLowerCase();
             const entry = (this.bookmarks.getBookmarks() || []).find((b) =>
-              `${b.title || ''} ${b.url}`.toLowerCase().includes(t));
+              `${b.title || ''} ${b.url}`.toLowerCase().includes(t)
+            );
             const tab = this.tabManager?.getActiveTab?.();
             if (!entry || !tab) {
               return null;
@@ -3116,7 +3265,8 @@ export class VRApp {
           onHistoryOpenNamed: (term) => {
             const t = (term || '').toLowerCase();
             const entry = (this.bookmarks.getHistory(MAX_HISTORY) || []).find((h) =>
-              `${h.title || ''} ${h.url}`.toLowerCase().includes(t));
+              `${h.title || ''} ${h.url}`.toLowerCase().includes(t)
+            );
             const tab = this.tabManager?.getActiveTab?.();
             if (!entry || !tab) {
               return null;
@@ -3145,7 +3295,7 @@ export class VRApp {
             if (!total) {
               return null;
             }
-            const line = Math.round((total - 1) * Math.min(100, Math.max(0, pct)) / 100);
+            const line = Math.round(((total - 1) * Math.min(100, Math.max(0, pct))) / 100);
             tab.scrollContentTo(line);
             return { percent: pct };
           },
@@ -3167,9 +3317,7 @@ export class VRApp {
             if (!blocks || !blocks.length) {
               return null;
             }
-            const text = blocks
-              .map((b) => (Array.isArray(b.text) ? b.text.join(' ') : b.text))
-              .join('\n');
+            const text = blocks.map((b) => (Array.isArray(b.text) ? b.text.join(' ') : b.text)).join('\n');
             const p = navigator.clipboard?.writeText?.(text);
             if (p && p.catch) {
               p.catch(() => {});
@@ -3178,10 +3326,8 @@ export class VRApp {
           },
           // Saved-list readouts (tabs-list parity): the voice layer owns the
           // counting + truncation; the hooks just hand over title arrays.
-          onBookmarkList: () => (this.bookmarks.getBookmarks() || [])
-            .map(b => b.title || b.url),
-          onHistoryList: () => (this.bookmarks.getHistory(MAX_HISTORY) || [])
-            .map(h => h.title || h.url),
+          onBookmarkList: () => (this.bookmarks.getBookmarks() || []).map((b) => b.title || b.url),
+          onHistoryList: () => (this.bookmarks.getHistory(MAX_HISTORY) || []).map((h) => h.title || h.url),
           // Share/copy atom: clipboard may be absent or reject (permissions,
           // non-secure context) — the write is best-effort, the announce
           // still honest because the URL itself is what was handed over.
@@ -3221,8 +3367,7 @@ export class VRApp {
             if (!active || this.settings.privateMode) {
               return null;
             }
-            const site = this.bookmarks?.getTopSites?.(
-              Math.max(1, n), Date.now(), searchEngineHosts())?.[n - 1];
+            const site = this.bookmarks?.getTopSites?.(Math.max(1, n), Date.now(), searchEngineHosts())?.[n - 1];
             if (!site) {
               return null;
             }
@@ -3235,8 +3380,9 @@ export class VRApp {
             if (!needle) {
               return null;
             }
-            const hits = (this.bookmarks?.getHistory?.(MAX_HISTORY) || [])
-              .filter((e) => `${e.title || ''} ${e.url || ''}`.toLowerCase().includes(needle));
+            const hits = (this.bookmarks?.getHistory?.(MAX_HISTORY) || []).filter((e) =>
+              `${e.title || ''} ${e.url || ''}`.toLowerCase().includes(needle)
+            );
             if (!hits.length) {
               return null;
             }
@@ -3244,66 +3390,49 @@ export class VRApp {
           },
           // Scroll the reader by N lines — scrollContent already clamps and
           // reports no-move as false for the honest "can't go further".
-          onReaderScroll: (delta) =>
-            this.tabManager?.getActiveTab?.()?.scrollContent?.(delta) || false,
+          onReaderScroll: (delta) => this.tabManager?.getActiveTab?.()?.scrollContent?.(delta) || false,
           // Percent of the article read (readerProgress parity).
-          onReaderProgress: () =>
-            this.tabManager?.getActiveTab?.()?.readerProgress?.() ?? null,
+          onReaderProgress: () => this.tabManager?.getActiveTab?.()?.readerProgress?.() ?? null,
           // Bookmark search — history-search's pair over the saved list.
           onBookmarkSearch: (term) => {
             const needle = String(term || '').toLowerCase();
             if (!needle) {
               return null;
             }
-            const hits = (this.bookmarks?.getBookmarks?.() || [])
-              .filter((e) => `${e.title || ''} ${e.url || ''}`.toLowerCase().includes(needle));
+            const hits = (this.bookmarks?.getBookmarks?.() || []).filter((e) =>
+              `${e.title || ''} ${e.url || ''}`.toLowerCase().includes(needle)
+            );
             if (!hits.length) {
               return null;
             }
             return { count: hits.length, title: hits[0].title || hits[0].url };
           },
           // Jump to the Nth find hit — findNextMatch's indexed sibling.
-          onFindMatch: (n) =>
-            this.tabManager?.getActiveTab?.()?.findMatchAt?.(n) ?? null,
+          onFindMatch: (n) => this.tabManager?.getActiveTab?.()?.findMatchAt?.(n) ?? null,
           // Estimated minutes left in the article.
-          onRemainingTime: () =>
-            this.tabManager?.getActiveTab?.()?.getRemainingMinutes?.() ?? null,
+          onRemainingTime: () => this.tabManager?.getActiveTab?.()?.getRemainingMinutes?.() ?? null,
           // Jump to the Nth heading — nextHeading's indexed sibling.
-          onHeadingSelect: (n) =>
-            this.tabManager?.getActiveTab?.()?.headingAt?.(n) ?? null,
+          onHeadingSelect: (n) => this.tabManager?.getActiveTab?.()?.headingAt?.(n) ?? null,
           // Find position / last hit — findNextMatch's status & tail siblings.
-          onFindStatus: () =>
-            this.tabManager?.getActiveTab?.()?.findStatus?.() ?? null,
-          onFindLast: () =>
-            this.tabManager?.getActiveTab?.()?.findLastMatch?.() ?? null,
+          onFindStatus: () => this.tabManager?.getActiveTab?.()?.findStatus?.() ?? null,
+          onFindLast: () => this.tabManager?.getActiveTab?.()?.findLastMatch?.() ?? null,
           // Read the line under the reader scroll (VoiceOver parity).
-          onReadLine: () =>
-            this.tabManager?.getActiveTab?.()?.currentLine?.() ?? null,
+          onReadLine: () => this.tabManager?.getActiveTab?.()?.currentLine?.() ?? null,
           // Paragraph layer — NVDA Ctrl+Down/Up nav, indexed select, status.
-          onParagraphStep: (dir) =>
-            this.tabManager?.getActiveTab?.()?.nextParagraph?.(dir) ?? null,
-          onParagraphSelect: (n) =>
-            this.tabManager?.getActiveTab?.()?.paragraphAt?.(n) ?? null,
-          onParagraphStatus: () =>
-            this.tabManager?.getActiveTab?.()?.paragraphStatus?.() ?? null,
+          onParagraphStep: (dir) => this.tabManager?.getActiveTab?.()?.nextParagraph?.(dir) ?? null,
+          onParagraphSelect: (n) => this.tabManager?.getActiveTab?.()?.paragraphAt?.(n) ?? null,
+          onParagraphStatus: () => this.tabManager?.getActiveTab?.()?.paragraphStatus?.() ?? null,
           // Article character count — the reading-time numerator as status.
-          onCharCount: () =>
-            this.tabManager?.getActiveTab?.()?.getCharCount?.() ?? null,
+          onCharCount: () => this.tabManager?.getActiveTab?.()?.getCharCount?.() ?? null,
           // NVDA "read current paragraph" — read-aloud's block-scoped sibling.
-          onReadParagraph: () =>
-            this.tabManager?.getActiveTab?.()?.getParagraphNarration?.() ?? [],
+          onReadParagraph: () => this.tabManager?.getActiveTab?.()?.getParagraphNarration?.() ?? [],
           // Sentence layer — NVDA Alt+Down/Up caret, read + status siblings.
-          onSentenceStep: (dir) =>
-            this.tabManager?.getActiveTab?.()?.nextSentence?.(dir) ?? null,
-          onSentence: () =>
-            this.tabManager?.getActiveTab?.()?.currentSentence?.() ?? null,
-          onSentenceStatus: () =>
-            this.tabManager?.getActiveTab?.()?.currentSentence?.() ?? null,
+          onSentenceStep: (dir) => this.tabManager?.getActiveTab?.()?.nextSentence?.(dir) ?? null,
+          onSentence: () => this.tabManager?.getActiveTab?.()?.currentSentence?.() ?? null,
+          onSentenceStatus: () => this.tabManager?.getActiveTab?.()?.currentSentence?.() ?? null,
           // Paragraph ends + indexed read — heading-end/read-from-line parity.
-          onLastParagraph: () =>
-            this.tabManager?.getActiveTab?.()?.lastParagraph?.() ?? null,
-          onReadParagraphAt: (n) =>
-            this.tabManager?.getActiveTab?.()?.getParagraphNarrationAt?.(n) ?? [],
+          onLastParagraph: () => this.tabManager?.getActiveTab?.()?.lastParagraph?.() ?? null,
+          onReadParagraphAt: (n) => this.tabManager?.getActiveTab?.()?.getParagraphNarrationAt?.(n) ?? [],
           // Search-engine name — the status twin of onSearchEngine.
           onSearchEngineStatus: () => this.settings.searchEngine ?? null,
           // Panel-toggle/stepper query twins — voice-only users cannot read
@@ -3327,21 +3456,15 @@ export class VRApp {
             return saveTabSession(null);
           },
           // Char caret + word read/spell — NVDA Left/Right + numpad-5 parity.
-          onCharStep: (dir) =>
-            this.tabManager?.getActiveTab?.()?.nextChar?.(dir) ?? null,
-          onWord: () =>
-            this.tabManager?.getActiveTab?.()?.currentWord?.() ?? null,
-          onSpellWord: () =>
-            this.tabManager?.getActiveTab?.()?.spellWord?.() ?? null,
+          onCharStep: (dir) => this.tabManager?.getActiveTab?.()?.nextChar?.(dir) ?? null,
+          onWord: () => this.tabManager?.getActiveTab?.()?.currentWord?.() ?? null,
+          onSpellWord: () => this.tabManager?.getActiveTab?.()?.spellWord?.() ?? null,
           // Heading under the scroll + article structure — status-query
           // siblings that report without moving.
-          onHeadingHere: () =>
-            this.tabManager?.getActiveTab?.()?.headingHere?.() ?? null,
-          onArticleSummary: () =>
-            this.tabManager?.getActiveTab?.()?.getArticleSummary?.() ?? null,
+          onHeadingHere: () => this.tabManager?.getActiveTab?.()?.headingHere?.() ?? null,
+          onArticleSummary: () => this.tabManager?.getActiveTab?.()?.getArticleSummary?.() ?? null,
           // Line position without moving — lineStatus parity.
-          onLineStatus: () =>
-            this.tabManager?.getActiveTab?.()?.lineStatus?.() ?? null,
+          onLineStatus: () => this.tabManager?.getActiveTab?.()?.lineStatus?.() ?? null,
           // Strip-level status: {index,total} of the strip, privacy/pin flags
           // of the active tab — status-query atoms.
           onTabStatus: () => {
@@ -3361,11 +3484,9 @@ export class VRApp {
             return active ? !!active.pinned : null;
           },
           // Vim `` mark — return to the pre-jump scroll position.
-          onJumpBack: () =>
-            this.tabManager?.getActiveTab?.()?.jumpBack?.() ?? false,
+          onJumpBack: () => this.tabManager?.getActiveTab?.()?.jumpBack?.() ?? false,
           // Chrome's Esc — dismiss the find bar's highlights.
-          onClearFind: () =>
-            this.tabManager?.getActiveTab?.()?.clearFind?.() ?? false,
+          onClearFind: () => this.tabManager?.getActiveTab?.()?.clearFind?.() ?? false,
           // Chrome "Paste and go" — navigate the active tab to a URL in the
           // clipboard. Async: resolves to the announce string.
           onPasteGo: async () => {
@@ -3439,10 +3560,8 @@ export class VRApp {
           },
           onMuteStatus: () => this._mutedVolume !== undefined,
           onFindQuery: () => this.tabManager.getActiveTab()?.findQuery() ?? null,
-          onReadFromLine: (n) =>
-            this.tabManager.getActiveTab()?.getReaderNarrationFrom?.(n) ?? [],
-          onHalfPage: (dir) =>
-            this.tabManager.getActiveTab()?.scrollHalfPage?.(dir) ?? false
+          onReadFromLine: (n) => this.tabManager.getActiveTab()?.getReaderNarrationFrom?.(n) ?? [],
+          onHalfPage: (dir) => this.tabManager.getActiveTab()?.scrollHalfPage?.(dir) ?? false
         });
         // Begin listening immediately (user granted mic permission during initialize).
         this.voiceCommands.start();
@@ -3546,10 +3665,10 @@ export class VRApp {
     // win (registerProceduralBuffer no-ops if a buffer for that name loaded).
     if (this.spatialAudio) {
       const PROCEDURAL = {
-        click:   { freq: 880, duration: 0.06, decay: 45 },
-        hover:   { freq: 620, duration: 0.045, decay: 60, gain: 0.5 },
+        click: { freq: 880, duration: 0.06, decay: 45 },
+        hover: { freq: 620, duration: 0.045, decay: 60, gain: 0.5 },
         success: { freq: 520, endFreq: 784, duration: 0.14, decay: 12 },
-        error:   { freq: 200, duration: 0.16, decay: 10 }
+        error: { freq: 200, duration: 0.16, decay: 10 }
       };
       for (const file of audioFiles) {
         this.spatialAudio.registerProceduralBuffer(file.name, PROCEDURAL[file.name]);
@@ -3615,8 +3734,7 @@ export class VRApp {
     // immersive video so audio doesn't keep playing to an empty headset.
     if (session) {
       this.onXRVisibilityChange = () => {
-        if (session.visibilityState !== 'visible'
-            && this.immersiveVideo && this.immersiveVideo.playing) {
+        if (session.visibilityState !== 'visible' && this.immersiveVideo && this.immersiveVideo.playing) {
           this.immersiveVideo.togglePause();
         }
       };
@@ -3719,9 +3837,7 @@ export class VRApp {
 
     // FR-1.5: detach layers from panels and dispose binding.
     if (this.layersSystem) {
-      const panels = this.tabManager
-        ? this.tabManager.tabs
-        : (this.webPanel ? [this.webPanel] : []);
+      const panels = this.tabManager ? this.tabManager.tabs : this.webPanel ? [this.webPanel] : [];
       for (const panel of panels) {
         // false: don't re-commit render state per panel — dispose() below
         // clears the whole stack, and updateRenderState() on an ending
@@ -3765,35 +3881,30 @@ export class VRApp {
       return;
     }
 
-    const panels = this.tabManager
-      ? this.tabManager.tabs
-      : (this.webPanel ? [this.webPanel] : []);
+    const panels = this.tabManager ? this.tabManager.tabs : this.webPanel ? [this.webPanel] : [];
 
     for (let i = 0; i < panels.length; i++) {
       const panel = panels[i];
       const layerId = `panel_chrome_${i}`;
       const quadLayer = this.layersSystem.createQuadLayer({
-        id    : layerId,
-        space : refSpace,
+        id: layerId,
+        space: refSpace,
         // Chrome bar: same physical dimensions as the Three.js chromeMesh
         // (PANEL_W=1.6m, CHROME_H fraction=0.08 of PANEL_H=1.0m → 0.08m).
-        width  : 1.6,
-        height : 0.08,
-        pixelWidth  : 2048,
-        pixelHeight : 164 // 1024*0.08*2 — native-res equivalent
+        width: 1.6,
+        height: 0.08,
+        pixelWidth: 2048,
+        pixelHeight: 164 // 1024*0.08*2 — native-res equivalent
       });
       if (quadLayer) {
         // Pass the id + a detach callback so closing this tab mid-session
         // releases exactly its layer (see _detachPanelLayer).
-        panel.enableLayerMode(quadLayer, this.layersSystem, layerId,
-          (id) => this._detachPanelLayer(id));
+        panel.enableLayerMode(quadLayer, this.layersSystem, layerId, (id) => this._detachPanelLayer(id));
       }
     }
 
     // Commit the layer stack: Three.js base layer + our panel quad layers.
-    const baseLayer = this.renderer.xr.getBaseLayer
-      ? this.renderer.xr.getBaseLayer()
-      : null;
+    const baseLayer = this.renderer.xr.getBaseLayer ? this.renderer.xr.getBaseLayer() : null;
     this.layersSystem.updateRenderState(session, baseLayer);
     console.debug(`VRApp: LayersSystem attached ${this.layersSystem.count} quad layer(s)`);
   }
@@ -3813,12 +3924,8 @@ export class VRApp {
     if (!this.layersSystem) {
       return;
     }
-    const session = this.renderer.xr.getSession
-      ? this.renderer.xr.getSession()
-      : null;
-    const baseLayer = this.renderer.xr.getBaseLayer
-      ? this.renderer.xr.getBaseLayer()
-      : null;
+    const session = this.renderer.xr.getSession ? this.renderer.xr.getSession() : null;
+    const baseLayer = this.renderer.xr.getBaseLayer ? this.renderer.xr.getBaseLayer() : null;
     this.layersSystem.removeLayer(layerId, session, baseLayer);
   }
 
@@ -3836,9 +3943,7 @@ export class VRApp {
     // Single frame clock: all systems share one dt (capped at 50 ms so a tab
     // resuming from background doesn't produce an enormous delta).
     const frameStart = performance.now();
-    const dt = this._lastRenderTime
-      ? Math.min((frameStart - this._lastRenderTime) / 1000, 0.05)
-      : 0.016;
+    const dt = this._lastRenderTime ? Math.min((frameStart - this._lastRenderTime) / 1000, 0.05) : 0.016;
     this._lastRenderTime = frameStart;
 
     // Update systems
@@ -3908,9 +4013,7 @@ export class VRApp {
       const pose = refSpace ? xrFrame.getViewerPose(refSpace) : null;
       const views = pose ? pose.views : [];
       if (views.length > 0) {
-        const panels = this.tabManager
-          ? this.tabManager.tabs
-          : (this.webPanel ? [this.webPanel] : []);
+        const panels = this.tabManager ? this.tabManager.tabs : this.webPanel ? [this.webPanel] : [];
         for (const panel of panels) {
           panel.updateLayer(xrFrame, views);
         }
@@ -3966,15 +4069,13 @@ export class VRApp {
   updatePerformanceMonitor(frameTime) {
     // Exponential moving average for smooth values
     const alpha = 0.1;
-    this.performanceMonitor.frameTime =
-      this.performanceMonitor.frameTime * (1 - alpha) + frameTime * alpha;
+    this.performanceMonitor.frameTime = this.performanceMonitor.frameTime * (1 - alpha) + frameTime * alpha;
 
     this.performanceMonitor.fps = 1000 / this.performanceMonitor.frameTime;
 
     // Track memory usage
     if (performance.memory) {
-      this.performanceMonitor.memoryUsed =
-        performance.memory.usedJSHeapSize / 1024 / 1024; // MB
+      this.performanceMonitor.memoryUsed = performance.memory.usedJSHeapSize / 1024 / 1024; // MB
     }
 
     // Real GPU metrics from the renderer.
@@ -4053,7 +4154,7 @@ export class VRApp {
    * @param {string}   prefill   — initial text in the input buffer
    * @param {Function} onConfirm — called with the confirmed string
    */
-  _requestVRKeyboardInput(prefill, onConfirm, prompt = 'Enter URL') {
+  _requestVRKeyboardInput(prefill, onConfirm, prompt = t('vr.prompt.url')) {
     if (this.vrKeyboard) {
       this.vrKeyboard.setOnConfirm(onConfirm);
       this.japaneseIME.activate();
@@ -4089,12 +4190,16 @@ export class VRApp {
    * stereo layout are auto-detected from the URL.
    */
   _launchImmersiveVideo() {
-    this._requestVRKeyboardInput('https://', (url) => {
-      if (!url || !this.immersiveVideo) {
-        return;
-      }
-      this.immersiveVideo.play(url, detectVideoFormat(url));
-    }, 'Enter video URL');
+    this._requestVRKeyboardInput(
+      'https://',
+      (url) => {
+        if (!url || !this.immersiveVideo) {
+          return;
+        }
+        this.immersiveVideo.play(url, detectVideoFormat(url));
+      },
+      t('vr.prompt.videoUrl')
+    );
   }
 
   /**
@@ -4152,7 +4257,7 @@ export class VRApp {
     // URL bar know which page loaded — the visual chrome update is the primary
     // channel but only helps users whose gaze is already on the panel.
     if (this.captionSystem && this.captionSystem.enabled) {
-      const label = (title !== url) ? title : hostnameCaption(url);
+      const label = title !== url ? title : hostnameCaption(url);
       this.captionSystem.show(label);
     }
   }
@@ -4276,15 +4381,18 @@ export class VRApp {
       this.textureManager.dispose();
     }
     if (this.vrKeyboard) {
-      this.vrKeyboard.dispose(); this.vrKeyboard = null;
+      this.vrKeyboard.dispose();
+      this.vrKeyboard = null;
     } else if (this.japaneseIME) {
-      this.japaneseIME.dispose(); this.japaneseIME = null;
+      this.japaneseIME.dispose();
+      this.japaneseIME = null;
     }
     if (this.handTracking) {
       this.handTracking.dispose();
     }
     if (this.hapticFeedback) {
-      this.hapticFeedback.enabled = false; this.hapticFeedback = null;
+      this.hapticFeedback.enabled = false;
+      this.hapticFeedback = null;
     }
     if (this.gazeInteraction) {
       this.gazeInteraction.dispose();
@@ -4308,13 +4416,16 @@ export class VRApp {
       this.windowManager.dispose();
     }
     if (this.layersSystem) {
-      this.layersSystem.dispose(); this.layersSystem = null;
+      this.layersSystem.dispose();
+      this.layersSystem = null;
     }
     if (this.bookmarkPanel) {
-      this.bookmarkPanel.dispose(); this.bookmarkPanel = null;
+      this.bookmarkPanel.dispose();
+      this.bookmarkPanel = null;
     }
     if (this.immersiveVideo) {
-      this.immersiveVideo.dispose(); this.immersiveVideo = null;
+      this.immersiveVideo.dispose();
+      this.immersiveVideo = null;
     }
     if (this.tabManager) {
       this.tabManager.dispose();
@@ -4343,13 +4454,13 @@ export class VRApp {
 
     // Dispose Three.js
     this.renderer.dispose();
-    this.scene.traverse(object => {
+    this.scene.traverse((object) => {
       if (object.geometry) {
         object.geometry.dispose();
       }
       if (object.material) {
         if (Array.isArray(object.material)) {
-          object.material.forEach(m => m.dispose());
+          object.material.forEach((m) => m.dispose());
         } else {
           object.material.dispose();
         }
@@ -4360,7 +4471,9 @@ export class VRApp {
     // Called last so any final metrics can still be reported above.
     try {
       disposeMonitoring();
-    } catch (_) { /* best-effort teardown; ignore */ }
+    } catch (_) {
+      /* best-effort teardown; ignore */
+    }
 
     console.debug('VRApp: Disposed');
   }
