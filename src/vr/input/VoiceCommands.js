@@ -22160,6 +22160,22 @@ export class VoiceCommands {
         '特定機能病院', '地域医療支援病院',
         '入院基本料', '診療報酬',
         'レセプト',
+        // pass DCXIII: union grievance filed & strike vote passed
+        'union grievance filed', 'strike vote passed',
+        '労働協約', 'ストライキ',
+        '争議行為', '不当労働行為',
+        '労働委員会', '組合費',
+        'チェックオフ', '団結権',
+        '団体行動権', '服務規程',
+        '懲戒処分', '内部通報',
+        'パワハラ相談', '過労死ライン',
+        '時間外労働', '固定残業',
+        '裁量労働', 'フレックスタイム',
+        '同一労働同一賃金', '非正規待遇',
+        '期間雇用', '雇い止め',
+        '整理解雇', '退職勧奨',
+        '配転', '出向',
+        '就業規則変更',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28678,6 +28694,9 @@ export class VoiceCommands {
         // pass DCXII: still awaiting the accreditation
         'still awaiting the accreditation',
         'まだ審査前', 'まだ評価前',
+        // pass DCXIII: still awaiting the grievance
+        'still awaiting the grievance',
+        'まだ交渉前', 'これから団交',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
