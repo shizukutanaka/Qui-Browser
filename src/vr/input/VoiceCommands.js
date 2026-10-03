@@ -22459,6 +22459,21 @@ export class VoiceCommands {
         '控訴審', '判決宣告',
         '刑事裁判', '訴訟費用',
         '訴訟記録', '判示事項',
+        // pass DCXXXIII: embassy notice posted & consulate appointment booked
+        'embassy notice posted', 'consulate appointment booked',
+        '外務省', '大使館',
+        '領事館', '総領事館',
+        '領事サービス', '国際機関',
+        '条約締結', '経済協力',
+        '政府開発援助', '文化交流',
+        '在外邦人', '領事館員',
+        '外交特権', '国際会議',
+        '平和条約', '外交青書',
+        '国際協力機構', '海外安全情報',
+        'たびレジ', '外務報道官',
+        '領事保護', 'ビザ免除',
+        '外交使節', '領事館業務',
+        '外務審議官', '領事面会',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29039,6 +29054,9 @@ export class VoiceCommands {
         // pass DCXXXII: still awaiting the verdict
         'still awaiting the verdict',
         'まだ判決前', 'これから控訴',
+        // pass DCXXXIII: still awaiting the consular service
+        'still awaiting the consular service',
+        'まだ査証申請前', 'これから査証申請',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
