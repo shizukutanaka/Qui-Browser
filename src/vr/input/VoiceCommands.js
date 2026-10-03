@@ -22659,6 +22659,22 @@ export class VoiceCommands {
         'ナラ枯れ', '森林監視',
         '森林評価', '木材価格',
         '林業経営体', '林業従事者',
+        // pass DCXLVI: livestock grant approved & dairy quota allocated
+        'livestock grant approved', 'dairy quota allocated',
+        '畜産経営', '畜産振興',
+        '家畜市場', '肉牛振興',
+        '酪農家', '酪農振興',
+        '養豚', '養鶏',
+        '家畜改良', '家畜人工授精',
+        '家畜保健衛生所', '家畜伝染病',
+        '家畜防疫', '口蹄疫',
+        '鳥インフルエンザ', '豚熱',
+        '動物検疫', '輸入検疫',
+        '家畜市場開設', '飼料米',
+        '配合飼料', '粗飼料',
+        '畜産農家', '畜産物価格',
+        '酪農経営', '肉牛生産',
+        '乳価', '生乳生産',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29278,6 +29294,9 @@ export class VoiceCommands {
         // pass DCXLV: still awaiting the forestry permit
         'still awaiting the forestry permit',
         'これから間伐', 'まだ開業届前',
+        // pass DCXLVI: still awaiting the livestock permit
+        'still awaiting the livestock permit',
+        'まだ飼養前', 'これから飼育届',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
