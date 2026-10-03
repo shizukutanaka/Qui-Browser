@@ -21845,6 +21845,18 @@ export class VoiceCommands {
         'リスクアセスメント', '作業環境測定',
         'ストレスチェック', '過重労働',
         '労基監督',
+        // pass DLXXXVII: river permit granted & levee inspection passed
+        'river permit granted', 'levee inspection passed',
+        '河川管理', '一級河川',
+        '堤防', '水防',
+        '水防団', '流水占用',
+        '河川占用', '砂防',
+        'ダム管理', '治水',
+        '流域', '地下水規制',
+        '揚水機場', '排水機場',
+        '水路', '渇水',
+        '取水制限', '樋門',
+        '遊水池',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28285,6 +28297,9 @@ export class VoiceCommands {
         // pass DLXXXVI: still awaiting the safety review
         'still awaiting the safety review',
         'まだ講習前', 'これから報告',
+        // pass DLXXXVII: still awaiting the water permit
+        'still awaiting the water permit',
+        'まだ占用前', 'これから占用申請',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
