@@ -38,13 +38,13 @@ export const SEVERITY_PREFIX = { error: '✕ ', warn: '⚠ ', info: 'ℹ ' };
 // no information.
 export const TOAST_COLORS = {
   error: { bg: '#5a0a0a', fg: '#ffaaaa', bdr: '#ff4444' },
-  warn:  { bg: '#4a3a00', fg: '#ffdd88', bdr: '#ffbb33' },
-  info:  { bg: '#0a2a4a', fg: '#88ccff', bdr: '#44aaff' }
+  warn: { bg: '#4a3a00', fg: '#ffdd88', bdr: '#ffbb33' },
+  info: { bg: '#0a2a4a', fg: '#88ccff', bdr: '#44aaff' }
 };
 export const TOAST_COLORS_HC = {
   error: { bg: '#000000', fg: '#ffffff', bdr: '#ff5555' },
-  warn:  { bg: '#000000', fg: '#ffffff', bdr: '#ffcc44' },
-  info:  { bg: '#000000', fg: '#ffffff', bdr: '#55ccff' }
+  warn: { bg: '#000000', fg: '#ffffff', bdr: '#ffcc44' },
+  info: { bg: '#000000', fg: '#ffffff', bdr: '#55ccff' }
 };
 
 /**
@@ -183,12 +183,12 @@ export function voiceErrorNotification(errorCode) {
  */
 export function controllerDisconnectMessage(handedness) {
   if (handedness === 'left') {
-    return 'Left controller disconnected';
+    return t('vr.msg.leftControllerDisconnected');
   }
   if (handedness === 'right') {
-    return 'Right controller disconnected';
+    return t('vr.msg.rightControllerDisconnected');
   }
-  return 'Controller disconnected';
+  return t('vr.msg.controllerDisconnected');
 }
 
 /**
@@ -210,12 +210,12 @@ export function controllerDisconnectMessage(handedness) {
  */
 export function controllerReconnectMessage(handedness) {
   if (handedness === 'left') {
-    return 'Left controller reconnected';
+    return t('vr.msg.leftControllerReconnected');
   }
   if (handedness === 'right') {
-    return 'Right controller reconnected';
+    return t('vr.msg.rightControllerReconnected');
   }
-  return 'Controller reconnected';
+  return t('vr.msg.controllerReconnected');
 }
 
 /**
@@ -235,7 +235,7 @@ export function controllerReconnectMessage(handedness) {
  * @returns {string}
  */
 export function webglContextLostMessage() {
-  return 'Graphics paused — restoring';
+  return t('vr.msg.contextLost');
 }
 
 /**
@@ -250,5 +250,5 @@ export function webglContextLostMessage() {
  * @returns {string}
  */
 export function webglContextRestoredMessage() {
-  return 'Graphics restored';
+  return t('vr.msg.contextRestored');
 }

@@ -25,6 +25,7 @@ const {
   webglContextLostMessage,
   webglContextRestoredMessage
 } = require('../src/vr/accessibility/crossModal.js');
+const { setLanguage } = require('../src/i18n/i18n.js');
 
 function makeHaptic() {
   return { playPatternBothHands: jest.fn() };
@@ -109,7 +110,7 @@ describe('toast theming — honours high-contrast and large-text', () => {
   test('toastFontPx scales the base size and defaults to 26', () => {
     expect(toastFontPx()).toBe(26);
     expect(toastFontPx(1.3)).toBe(34); // round(33.8)
-    expect(toastFontPx(0)).toBe(26);   // invalid coerced to 1
+    expect(toastFontPx(0)).toBe(26); // invalid coerced to 1
   });
 });
 
@@ -267,5 +268,45 @@ describe('webglContextLost / Restored messages — WCAG 4.1.3 graphics-state sta
 
   test('restored message signals recovery (not paused)', () => {
     expect(webglContextRestoredMessage().toLowerCase()).toMatch(/restor/);
+  });
+});
+
+describe('system-status messages — WCAG 3.1.1 language of parts', () => {
+  // The four builders sit on the toast+caption+haptic path, so a hard-coded
+  // English literal reaches every channel. They must honour the active i18n
+  // language like the vr.msg.* keys VRApp already routes through t().
+  afterEach(() => setLanguage('en'));
+
+  test('controller disconnect/reconnect render in the active language', () => {
+    setLanguage('ja');
+    const dl = controllerDisconnectMessage('left');
+    const dr = controllerDisconnectMessage('right');
+    const rl = controllerReconnectMessage('left');
+    expect(dl).not.toMatch(/left|right|disconnect|reconnect/i);
+    expect(dr).not.toMatch(/left|right|disconnect|reconnect/i);
+    expect(rl).not.toMatch(/left|right|disconnect|reconnect/i);
+    expect(dl).not.toBe(dr);
+    expect(rl).not.toBe(dl);
+    expect(controllerDisconnectMessage()).toBeTruthy();
+    expect(controllerReconnectMessage()).toBeTruthy();
+  });
+
+  test('graphics context messages render in the active language', () => {
+    setLanguage('ja');
+    expect(webglContextLostMessage()).not.toMatch(/graphics|restor/i);
+    expect(webglContextRestoredMessage()).not.toMatch(/graphics|restor/i);
+    expect(webglContextRestoredMessage()).not.toBe(webglContextLostMessage());
+  });
+
+  test('English output is unchanged under en', () => {
+    setLanguage('en');
+    expect(controllerDisconnectMessage('left')).toBe('Left controller disconnected');
+    expect(controllerDisconnectMessage('right')).toBe('Right controller disconnected');
+    expect(controllerDisconnectMessage()).toBe('Controller disconnected');
+    expect(controllerReconnectMessage('left')).toBe('Left controller reconnected');
+    expect(controllerReconnectMessage('right')).toBe('Right controller reconnected');
+    expect(controllerReconnectMessage()).toBe('Controller reconnected');
+    expect(webglContextLostMessage()).toBe('Graphics paused — restoring');
+    expect(webglContextRestoredMessage()).toBe('Graphics restored');
   });
 });
