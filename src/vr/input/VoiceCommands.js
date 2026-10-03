@@ -22235,6 +22235,19 @@ export class VoiceCommands {
         '家屋滅失届出', '償却資産',
         '償却資産申告', '土地課税台帳',
         '家屋課税台帳', '地目変換',
+        // pass DCXVIII: library card issued & branch reopened
+        'library card issued', 'branch reopened',
+        '図書館法', '学校図書館',
+        '司書', '司書教諭',
+        '蔵書目録', '貸出履歴',
+        'レファレンス', '相互貸借',
+        '移動図書館', '国立国会図書館',
+        '納本制度', '地方出版物',
+        '地域資料', '絵本講座',
+        '読書会', '読書推進',
+        '子ども読書', 'ブックスタート',
+        '読書バリアフリー', '除籍図書',
+        '寄贈本', '閉架書庫',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28770,6 +28783,9 @@ export class VoiceCommands {
         // pass DCXVII: still awaiting the assessment
         'still awaiting the assessment',
         'これから縦覧', 'まだ申告前',
+        // pass DCXVIII: still awaiting the library card
+        'still awaiting the library card',
+        'まだ貸出前', 'まだ予約待ち',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
