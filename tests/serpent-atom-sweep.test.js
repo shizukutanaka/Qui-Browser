@@ -12,37 +12,45 @@ function makeVC() {
 const key = (vc, p) => vc._matchCommand(p)?.key ?? null;
 
 const closeTab = [
-  // broker license granted & agency disclosure signed
-  'broker license granted', 'agency disclosure signed',
+  // listing approved & prospectus filed
+  'listing approved', 'prospectus filed',
 ];
 const closeTabJa = [
-  '宅地建物取引業', '宅建業免許',
-  '宅地建物取引士', '宅建士',
-  '宅建業免許更新', '契約書交付',
-  '媒介契約', '専任媒介',
-  '一般媒介', '専属専任',
-  '媒介報酬', '国土交通大臣免許',
-  '都道府県知事免許', '宅建業法',
-  '宅地建物取引業者', '業務停止処分',
-  '取引実績報告', '保証協会',
-  '宅建業協会', '供託金',
-  '営業保証金', '宅建試験',
-  '宅建登録',
+  '株式市場', '証券取引所',
+  '金融先物', 'デリバティブ',
+  '投資ファンド', '公社債投信',
+  '債券市場',
+  '株式公開', 'ipo',
+  '上場', '店頭市場',
+  '東証', '日経平均',
+  '株価', '新規公開',
+  '公募増資', '第三者割当',
+  '株式分割', '株式併合',
+  '株主', '配当',
+  '自己株式', '株主優待',
+  '株主総会', '単元株',
+  '議決権', '大量保有報告',
+  '空売り', '信用取引',
+  '先物取引', 'オプション取引',
+  '決算発表', '有価証券報告書',
+  '内部統制報告', '適時開示',
+  '証券会社', '投資助言',
+  '投資顧問', '資産運用会社',
+  '機関投資家', '受託責任',
+  'スチュワードシップ',
 ];
 const negate = [
-  'still awaiting the broker license',
-  'まだ媒介前', 'これから媒介契約',
+  'still awaiting the listing review',
+  'まだ上場前', 'これから公募',
+  'まだ決算前', 'これから決算発表',
 ];
 const nullPins = [
-  'about to sign the agency agreement', 'about to file the brokerage',
-];
-const establishedPins = [
-  ['まだ免許前', 'negate'],
-  ['まだ登録前', 'negate'],
-  ['まだ契約前', 'negate'],
+  'about to file the securities report',
+  'about to attend the shareholders meeting',
+  '投資信託', // crumhorn (CDLXXVII) の null ピン維持 — 登録しない
 ];
 
-describe('pass DCIV: real-estate brokerage license idioms (serpent)', () => {
+describe('pass DCLV: securities-market & listing administration idioms (serpent)', () => {
   let vc;
   beforeEach(() => { vc = makeVC(); });
 
@@ -57,8 +65,5 @@ describe('pass DCIV: real-estate brokerage license idioms (serpent)', () => {
   });
   test.each(nullPins)('"%s" -> null', (p) => {
     expect(key(vc, p)).toBeNull();
-  });
-  test.each(establishedPins)('pinned "%s" stays "%s"', (p, k) => {
-    expect(key(vc, p)).toBe(k);
   });
 });
