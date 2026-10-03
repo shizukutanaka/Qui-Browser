@@ -23418,6 +23418,27 @@ export class VoiceCommands {
         '博物館法', '公立博物館',
         '歴史民俗資料館', '国立文楽劇場',
         'メディア芸術', '日本芸術文化振興会',
+        // pass DCLXXXIV: disaster management & crisis response
+        'evacuation order lifted', 'shelter opened',
+        '災害救助法', '激甚災害法',
+        '消防救助機動部隊', '災害ボランティアセンター',
+        '東日本大震災', '阪神淡路大震災',
+        '避難所', '避難勧告',
+        '緊急避難', '警戒レベル',
+        '避難情報', '避難判断',
+        '土砂災害警戒情報', '洪水警報',
+        '大雨警報', '暴風警報',
+        '大雪警報', '高潮警報',
+        '津波注意報', '大津波警報',
+        '緊急速報', 'エリアメール',
+        '災害危険区域', '危険区域',
+        '集団移転', '災害公営住宅',
+        '借り上げ仮設',
+        '応急復旧', '恒久復旧',
+        '被災地', '罹災',
+        '防災', '避難',
+        '防災訓練', '点呼',
+        '消防', '救急',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -30168,6 +30189,10 @@ export class VoiceCommands {
         'still awaiting the heritage designation',
         'まだ保護前', 'まだ保存前',
         'まだ保護中',
+        // pass DCLXXXIV: evacuation / restoration reports
+        'still awaiting the disaster declaration',
+        'まだ避難前', 'これから避難',
+        'まだ復旧中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
