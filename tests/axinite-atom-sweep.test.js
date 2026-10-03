@@ -86,7 +86,7 @@ const negate = [
 const nullPins = [
   // check-in / arrival = setup, not ending
   'check in', 'checking in', 'arrived at the hotel', 'room key',
-  'front desk', 'reservation', 'チェックイン', 'チェックインする',
+  'front desk', 'reservation', 'チェックイン手続き', 'チェックインする',
   '予約確認', '部屋に着いた', '荷物を部屋に運んで', '連泊',
 ];
 
