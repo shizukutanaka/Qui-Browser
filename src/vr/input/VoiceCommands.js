@@ -22209,6 +22209,18 @@ export class VoiceCommands {
         '設立登記', '解散清算',
         '残余財産', '清算結了',
         '法人番号',
+        // pass DCXVI: safety map posted & scam watchlist updated
+        'safety map posted', 'scam watchlist updated',
+        '青色防犯パトロール', '防犯診断',
+        '防犯設備士', '防犯ガラス',
+        '補助錠', '安全まちづくり',
+        '地域安全マップ', '犯罪発生状況',
+        '防犯情報メール', '安否確認',
+        'スクールガード', '安全パス',
+        '防犯ベル', '防犯ブザー',
+        '自主防犯ボランティア', 'かけつけ隊',
+        'ママパトロール', '防犯ポスター',
+        '侵入盗',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28737,6 +28749,10 @@ export class VoiceCommands {
         // pass DCXV: still before incorporation
         'まだ設立前', 'これから設立登記',
         'まだ総会前',
+        // pass DCXVI: still awaiting the patrol sign-up
+        'still awaiting the patrol sign-up',
+        'まだ巡視前', 'これからパトロール',
+        'まだ見守り前',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
