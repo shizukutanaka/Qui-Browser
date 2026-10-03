@@ -21857,6 +21857,17 @@ export class VoiceCommands {
         '水路', '渇水',
         '取水制限', '樋門',
         '遊水池',
+        // pass DLXXXVIII: harbor notice filed & pilot boarded
+        'harbor notice filed', 'pilot boarded',
+        '海上保安庁', '海難',
+        '港務所', '入港届',
+        '出港届', '船舶交通',
+        '灯台', '航路標識',
+        '水路測量', '港湾計画',
+        '防波堤', '岸壁',
+        '港湾管理者', '港湾区域',
+        '港湾利用料', '海上交通安全法',
+        '海難審判', '水先人',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28300,6 +28311,9 @@ export class VoiceCommands {
         // pass DLXXXVII: still awaiting the water permit
         'still awaiting the water permit',
         'まだ占用前', 'これから占用申請',
+        // pass DLXXXVIII: still awaiting the port clearance
+        'still awaiting the port clearance',
+        'まだ入港前', 'これから入港届',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
