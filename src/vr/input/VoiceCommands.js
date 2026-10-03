@@ -22191,6 +22191,24 @@ export class VoiceCommands {
         '教員免許', '管理職選考',
         '教員研修', '教育研修センター',
         '教育実習', '学校説明会',
+        // pass DCXV: npo registered & nonprofit charter filed
+        'npo registered', 'nonprofit charter filed',
+        'npo法人', '一般社団法人',
+        '公益法人', '認定npo',
+        '寄附金控除', '代表理事',
+        '理事会', '社員総会',
+        '評議員会', '監事',
+        '監査役', '定款寄附',
+        '活動計算書', '会費収入',
+        '助成金申請', '公益目的事業',
+        '収益事業', '事業報告書',
+        '貸借対照表', '正味財産増減計算書',
+        '管理費割合', 'コミュニティ財団',
+        '助成団体', '非営利団体',
+        '任意団体', '法人格取得',
+        '設立登記', '解散清算',
+        '残余財産', '清算結了',
+        '法人番号',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28716,6 +28734,9 @@ export class VoiceCommands {
         'still awaiting the adoption',
         'まだ採択前', 'まだ審議前',
         'これから採択',
+        // pass DCXV: still before incorporation
+        'まだ設立前', 'これから設立登記',
+        'まだ総会前',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
