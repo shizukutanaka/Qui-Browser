@@ -23003,6 +23003,23 @@ export class VoiceCommands {
         '衛生学', '帰国者診断',
         '検疫隔離', '新型コロナ対応',
         'コロナワクチン',
+        // pass DCLXIII: registration filed & deed recorded
+        'registration filed',
+        '司法書士', '筆界確定',
+        '登記官', '登記嘱託',
+        '登記済証', '人権擁護',
+        '刑事施設', '矯正',
+        '保護観察所', '公安調査庁',
+        '治安', '出入国在留管理庁',
+        '入管', '難民認定',
+        '上陸拒否',
+        '強制送還', '仮放免',
+        '国際刑事裁判', '検察審査会',
+        '収容', '収容所',
+        '登記簿', '登記済',
+        '登記理由証明', '登記識別情報',
+        '登記費用', '所有権登記',
+        '抵当権設定',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29684,6 +29701,9 @@ export class VoiceCommands {
         'still awaiting the health inspection',
         'まだ接種前', 'これから検診予約',
         'まだ消毒前',
+        // pass DCLXIII: still awaiting the registry review
+        'still awaiting the registry review',
+        'これから移転登記',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
