@@ -23482,6 +23482,28 @@ export class VoiceCommands {
         '情報漏洩', '脆弱性届出',
         '個人情報流出', '個人情報',
         '情報公開',
+        // pass DCLXXXVII: industry & manufacturing administration
+        'factory permit granted', 'industrial subsidy approved',
+        '産業政策', '産業競争力',
+        '産業競争力強化法', '経済産業局',
+        '産業構造審議会', '産業労働局',
+        '製造業', 'ものづくり振興',
+        '基礎技術研究支援', '産業技術',
+        'ものづくり白書', '試作開発',
+        '試作支援',
+        '経済安全保障', '経済安保',
+        'サプライチェーン', '重要物資',
+        '安定供給', '原材料調達',
+        'レアメタル', '原材料費',
+        '半導体', '半導体産業',
+        '化学産業', '鉄鋼業',
+        '工作機械', '情報製造サービス',
+        '中核産業', '伝統的工芸品産業',
+        'プラント輸出', '輸出振興',
+        '国内投資促進', '海外展開',
+        '投資促進', '展示会出展',
+        '下請法', '下請代金法',
+        '下請取引', '経済団体',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -30243,6 +30265,10 @@ export class VoiceCommands {
         // pass DCLXXXVI: cybersecurity review / incident response reports
         'still awaiting the cybersecurity review',
         'まだ監査前', 'まだ対応中',
+        // pass DCLXXXVII: subsidy / intake / event reports
+        'still awaiting the industry review',
+        'まだ交付前', 'これから補助申請',
+        'まだ受付中', 'まだ開催前',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
