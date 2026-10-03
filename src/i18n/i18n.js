@@ -85,6 +85,8 @@ const CATALOG = {
     'vr.msg.proxyCleared': 'Reader proxy cleared — direct fetch only',
     'vr.error.proxyInvalid': 'Invalid proxy URL — use http(s), no credentials',
     'vr.prompt.proxyUrl': 'Reader proxy URL (empty to clear)',
+    'vr.prompt.url': 'Enter URL',
+    'vr.prompt.videoUrl': 'Enter video URL',
     'vr.settings.highContrast': 'High Contrast',
     'vr.settings.captions': 'Captions',
     'vr.settings.gazeSelect': 'Gaze Select',
@@ -125,6 +127,8 @@ const CATALOG = {
     // VR Status Messages
     'vr.msg.captionsEnabled': 'Captions enabled',
     'vr.msg.keyboardCancelled': 'Keyboard cancelled',
+    'vr.msg.keyboardOpen': 'Keyboard: open',
+    'vr.msg.keyboardClosed': 'Keyboard: closed',
     'vr.msg.recentered': 'Recentered',
     'vr.msg.bookmarked': 'Bookmarked',
     'vr.msg.bookmarkRemoved': 'Bookmark removed',
@@ -135,7 +139,11 @@ const CATALOG = {
     'vr.msg.historyCleared': 'History cleared',
     'vr.msg.browserControls': 'Browser controls',
     'vr.msg.tabStripLabel': 'Tab strip',
+    'vr.msg.tabLabel': 'Tab',
     'vr.msg.tabClosed': 'Tab closed',
+    'vr.msg.volumeLabel': 'Volume',
+    'vr.msg.topSite': 'Top site',
+    'vr.msg.openingLabel': 'Opening',
     'vr.msg.videoPlaying': 'Video: playing',
     'vr.msg.videoPaused': 'Video: paused',
     'vr.msg.videoStopped': 'Video: stopped',
@@ -235,6 +243,8 @@ const CATALOG = {
     'vr.msg.proxyCleared': 'リーダープロキシを解除しました — 直接取得のみ',
     'vr.error.proxyInvalid': 'プロキシ URL が不正です — http(s)・認証情報なしで指定してください',
     'vr.prompt.proxyUrl': 'リーダープロキシの URL（空で解除）',
+    'vr.prompt.url': 'URL を入力',
+    'vr.prompt.videoUrl': '動画の URL を入力',
     'vr.settings.highContrast': 'ハイコントラスト',
     'vr.settings.captions': 'キャプション',
     'vr.settings.gazeSelect': 'ゲーズ選択',
@@ -275,6 +285,8 @@ const CATALOG = {
     // VR Status Messages
     'vr.msg.captionsEnabled': 'キャプション有効',
     'vr.msg.keyboardCancelled': 'キーボードキャンセル',
+    'vr.msg.keyboardOpen': 'キーボード: 開く',
+    'vr.msg.keyboardClosed': 'キーボード: 閉じる',
     'vr.msg.recentered': 'リセンター完了',
     'vr.msg.bookmarked': 'ブックマーク追加',
     'vr.msg.bookmarkRemoved': 'ブックマーク削除',
@@ -285,7 +297,11 @@ const CATALOG = {
     'vr.msg.bookmarksPanel': 'ブックマークパネル',
     'vr.msg.browserControls': 'ブラウザコントロール',
     'vr.msg.tabStripLabel': 'タブストリップ',
+    'vr.msg.tabLabel': 'タブ',
     'vr.msg.tabClosed': 'タブ閉じる',
+    'vr.msg.volumeLabel': '音量',
+    'vr.msg.topSite': 'トップサイト',
+    'vr.msg.openingLabel': '開いています',
     'vr.msg.videoPlaying': 'ビデオ: 再生中',
     'vr.msg.videoPaused': 'ビデオ: 一時停止',
     'vr.msg.videoStopped': 'ビデオ: 停止',
@@ -321,13 +337,13 @@ function detectLanguage() {
         return saved;
       }
     }
-  } catch (e) { /* ignore */ }
+  } catch (e) {
+    /* ignore */
+  }
   // NOTE: the `&&` chain yields `false` (a boolean) when navigator is absent —
   // calling .toLowerCase() on it throws at module-evaluation time. Normalize
   // to a string first so SSR / worker imports stay safe.
-  const nav = String(
-    (typeof navigator !== 'undefined' && navigator && navigator.language) || ''
-  ).toLowerCase();
+  const nav = String((typeof navigator !== 'undefined' && navigator && navigator.language) || '').toLowerCase();
   return nav.startsWith('ja') ? 'ja' : 'en';
 }
 
@@ -363,7 +379,9 @@ export function setLanguage(lang, root) {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, lang);
     }
-  } catch (e) { /* ignore */ }
+  } catch (e) {
+    /* ignore */
+  }
   if (typeof document !== 'undefined') {
     document.documentElement.lang = lang;
   }
@@ -385,12 +403,14 @@ export function applyTranslations(root) {
     el.textContent = t(el.getAttribute('data-i18n'));
   });
   scope.querySelectorAll('[data-i18n-attr]').forEach((el) => {
-    el.getAttribute('data-i18n-attr').split(';').forEach((pair) => {
-      const [attr, key] = pair.split(':').map((s) => (s ? s.trim() : s));
-      if (attr && key) {
-        el.setAttribute(attr, t(key));
-      }
-    });
+    el.getAttribute('data-i18n-attr')
+      .split(';')
+      .forEach((pair) => {
+        const [attr, key] = pair.split(':').map((s) => (s ? s.trim() : s));
+        if (attr && key) {
+          el.setAttribute(attr, t(key));
+        }
+      });
   });
   if (typeof document !== 'undefined') {
     document.documentElement.lang = currentLang;
