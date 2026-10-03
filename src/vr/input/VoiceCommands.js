@@ -22644,6 +22644,21 @@ export class VoiceCommands {
         '漁獲割当', '総漁獲可能量',
         '密漁取締り', '遊漁船業',
         '鯨類資源', '海洋調査',
+        // pass DCXLV: forestry grant approved & timber quota allocated
+        'forestry grant approved', 'timber quota allocated',
+        '森林法', '森林計画',
+        '森林計画区', '森林管理署',
+        '特定保安林', '保安施設地区',
+        '林道開設', '治山事業',
+        '水源林', '間伐促進',
+        '森林整備事業', '森林環境譲与税',
+        '木材利用ポイント', '木材加工業',
+        '木材産地', '製材所',
+        '木材需給', '木材自給率',
+        '森林病害虫', '松くい虫',
+        'ナラ枯れ', '森林監視',
+        '森林評価', '木材価格',
+        '林業経営体', '林業従事者',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29260,6 +29275,9 @@ export class VoiceCommands {
         // pass DCXLIV: still awaiting the fishing permit
         'still awaiting the fishing permit',
         'まだ操業前', 'これから出漁',
+        // pass DCXLV: still awaiting the forestry permit
+        'still awaiting the forestry permit',
+        'これから間伐', 'まだ開業届前',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
