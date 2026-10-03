@@ -22400,6 +22400,21 @@ export class VoiceCommands {
         '特定操縦技能審査', '操縦者証明',
         '航空保安情報', '航空事故調査',
         '空港騒音対策',
+        // pass DCXXIX: pharmacy license granted & generic drug approved
+        'pharmacy license granted', 'generic drug approved',
+        '薬機法', '医薬品医療機器等法',
+        '医薬品承認', '治験届',
+        '臨床試験', '医薬品副作用',
+        'pmda', '医薬品卸業',
+        '薬局開設許可', '調剤薬局',
+        '薬剤師会', '麻薬取締官',
+        '向精神薬', '毒物劇物',
+        '覚醒剤取締法', 'ジェネリック医薬品',
+        '後発医薬品', '副作用被害救済',
+        '拡大生産治験', 'オンライン服薬指導',
+        '処方箋医薬品', '医療用医薬品',
+        '一般用医薬品', '承認審査',
+        '医薬品製造業',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28968,6 +28983,9 @@ export class VoiceCommands {
         // pass DCXXVIII: still awaiting the airworthiness review
         'still awaiting the airworthiness review',
         'まだ飛行計画前', 'これから飛行計画',
+        // pass DCXXIX: still awaiting the drug approval
+        'still awaiting the drug approval',
+        'まだ承認申請前', 'これから治験届',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
