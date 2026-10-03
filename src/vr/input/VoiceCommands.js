@@ -23287,6 +23287,28 @@ export class VoiceCommands {
         '加工食品', '食品営業届出',
         '食品産業', '食品事業者',
         'みどりの食料システム戦略',
+        // pass DCLXXVIII: license exam passed & board certification renewed
+        'license exam passed', 'board certification renewed',
+        '歯科医師', '歯科衛生士',
+        '歯科技工士',
+        '看護師', '准看護師',
+        '認定看護師', '専門看護師',
+        '特定看護師', '看護師国家試験',
+        '理学療法士', '作業療法士',
+        '言語聴覚士', '視能訓練士',
+        '義肢装具士', '臨床工学技士',
+        '臨床検査技師', '診療放射線技師',
+        'あん摩マッサージ指圧師', 'はり師',
+        'きゅう師', '柔道整復師',
+        '精神保健福祉士', 'ケアマネージャー',
+        '社会福祉士', '就労移行支援員',
+        '生活支援員', '職業指導員',
+        '移動支援従業者',
+        '栄養士', '管理栄養士',
+        '登録販売者',
+        '海事代理士', '行政書士',
+        '公認心理師', '臨床心理士',
+        '喀痰吸引等研修',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -30013,6 +30035,10 @@ export class VoiceCommands {
         // pass DCLXXVII: recall notice / business-start reports
         'still awaiting the recall notice',
         'まだ営業前', 'まだ回収中',
+        // pass DCLXXVIII: license exam / test reports
+        'still awaiting the license exam',
+        'まだ合格前', 'これから受験',
+        'まだ受験前',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
