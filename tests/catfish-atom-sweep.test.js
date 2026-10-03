@@ -32,7 +32,7 @@ const negate = [
 ];
 const nullPins = [
   'mid hoa meeting', 'hoa fees', 'condo board',
-  '修繕計画中', '管理組合', 'マンション管理',
+  '修繕計画中', '管理組合', 'マンション管理会社',
 ];
 const establishedPins = [
   ['hoa meeting done', 'close-tab'],
