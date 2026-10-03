@@ -22339,6 +22339,22 @@ export class VoiceCommands {
         '観光地経営', '観光連盟',
         'dmo', '観光地域づくり法人',
         '地域観光資源',
+        // pass DCXXV: broadcast license granted & spectrum fee paid
+        'broadcast license granted', 'spectrum fee paid',
+        '電気通信事業法', '総務省',
+        '電波法', '電波利用料',
+        '基地局', '鉄塔事業',
+        'ユニバーサルサービス', '番号ポータビリティ',
+        '携帯番号転出', '光回線',
+        '通信秘密', '放送法',
+        '放送局免許', '放送大学',
+        '緊急告知fm', '地上波デジタル',
+        '中継局', '衛星放送',
+        'ケーブルテレビ', 'コミュニティ放送',
+        'サイマル放送', '報道機関',
+        '電波監理審査会', '電波監査官',
+        '電波標準審査会', '周波数割当',
+        '無線局免許',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28895,6 +28911,9 @@ export class VoiceCommands {
         // pass DCXXIV: still awaiting the tourism designation
         'still awaiting the tourism designation',
         'これから旅行業登録',
+        // pass DCXXV: still awaiting the broadcast license
+        'still awaiting the broadcast license',
+        'まだ免許申請前', 'これから放送届',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
