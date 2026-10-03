@@ -22692,6 +22692,25 @@ export class VoiceCommands {
         '荷役作業', '運送業免許',
         '旅客運送業免許', '貨物運送業免許',
         '運輸調査',
+        // pass DCXLVIII: municipal grant approved & local assembly convened
+        'municipal grant approved', 'local assembly convened',
+        '地方自治法', '地方議会',
+        '地方公務員', '地方交付税',
+        '地方財政', '地方公営企業',
+        '地域自治区', '道府県知事',
+        '市町村長', '副知事',
+        '助役', '収入役',
+        '都道府県会', '市町村議会',
+        '議会議員', '議会事務局',
+        '条例制定', '規則制定',
+        '行政処分', '行政不服審査',
+        '行政手続', '住民訴訟提起',
+        '住民監査', '住民請願',
+        '陳情受理', '直接請求',
+        '住民投票条例', '自治体連携',
+        '広域連携', '一部事務組合',
+        '地方公務員採用', '昇任試験',
+        '人事委員会', '公平委員会',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29317,6 +29336,9 @@ export class VoiceCommands {
         // pass DCXLVII: still awaiting the freight license
         'still awaiting the freight license',
         'これから開業', 'これから輸送届',
+        // pass DCXLVIII: still awaiting the local subsidy
+        'still awaiting the local subsidy',
+        'まだ条例制定前', 'これから請願',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
