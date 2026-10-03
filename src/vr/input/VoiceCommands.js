@@ -22598,6 +22598,22 @@ export class VoiceCommands {
         '軽便鉄道', '鉄道技術基準',
         '車両検査', '運転士',
         '車掌',
+        // pass DCXLII: national park designated & alien species regulated
+        'national park designated', 'alien species regulated',
+        '環境省', '自然公園法',
+        '国立公園', '国定公園',
+        '自然保護区', '特別鳥獣保護区',
+        '特別保護地区', '絶滅危惧種',
+        '外来生物法', '特定外来生物',
+        '野生生物保護', '生物多様性基本法',
+        '生物多様性戦略', '里地里山',
+        '天然記念物', '保護林',
+        '原生林', '希少野生動植物種',
+        'ラムサール条約', '世界自然遺産',
+        'エコツーリズム', 'ネイチャーガイド',
+        '公園管理', 'ビジターセンター',
+        '利用調整地区', '国立環境研究所',
+        '環境再生', '環境保全団体',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29205,6 +29221,9 @@ export class VoiceCommands {
         // pass DCXLI: still awaiting the railway license
         'still awaiting the railway license',
         'まだ開業前', 'これから運行開始',
+        // pass DCXLII: still awaiting the park designation
+        'still awaiting the park designation',
+        'まだ公園指定前', 'これから区域指定',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
