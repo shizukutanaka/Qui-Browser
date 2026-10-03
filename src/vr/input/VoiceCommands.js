@@ -21934,6 +21934,17 @@ export class VoiceCommands {
         '建設業登録', '施工体制台帳',
         '工事請負契約', '建設工事',
         '建設リサイクル法', '解体工事',
+        // pass DXCV: rehired after retirement & silver center joined
+        'rehired after retirement', 'silver center joined',
+        '定年延長', '継続雇用',
+        '再雇用', '高年齢者雇用安定法',
+        '高齢者雇用', 'シルバー人材センター',
+        'シルバー人材', '高齢者就業',
+        '就業促進', '雇用延長',
+        '退職後再雇用', '生涯現役',
+        'エイジレス', '高年齢雇用継続給付',
+        '高年齢者等就業促進', '高齢労働者',
+        '定年後', '高齢者再就職',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28398,6 +28409,9 @@ export class VoiceCommands {
         // pass DXCIV: still awaiting the builder license
         'still awaiting the builder license',
         'まだ許可申請前', 'これから着工届',
+        // pass DXCV: still before rehiring
+        'still before rehiring',
+        'まだ再雇用前', 'これから延長申請',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
