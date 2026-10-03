@@ -22049,6 +22049,19 @@ export class VoiceCommands {
         '宅建業協会', '供託金',
         '営業保証金', '宅建試験',
         '宅建登録',
+        // pass DCV: architect registered & design office licensed
+        'architect registered', 'design office licensed',
+        '建築士', '一級建築士',
+        '二級建築士', '木造建築士',
+        '建築士事務所', '設計事務所登録',
+        '管理建築士', '構造設計一級建築士',
+        '設備設計一級建築士', '建築士会',
+        '建築士事務所協会', '設計審査',
+        '意匠設計', '構造計算適合性判定',
+        '構造設計', '設備設計',
+        '性能評価', '建築士試験',
+        '建築士登録', '建築士免許',
+        '設計者', '監理業務',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28543,6 +28556,9 @@ export class VoiceCommands {
         // pass DCIV: still awaiting the broker license
         'still awaiting the broker license',
         'まだ媒介前', 'これから媒介契約',
+        // pass DCV: still awaiting the architect registration
+        'still awaiting the architect registration',
+        'まだ登録申請前', 'これから設計申請',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
