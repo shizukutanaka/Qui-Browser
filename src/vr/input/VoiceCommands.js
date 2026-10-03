@@ -22323,6 +22323,22 @@ export class VoiceCommands {
         '災害拠点病院', '救急救命士',
         '熱中症警戒アラート', '消防審議会',
         '消防署長', '救助事務所',
+        // pass DCXXIV: tourism zone designated & dmo registered
+        'tourism zone designated', 'dmo registered',
+        '観光立国', '観光基本法',
+        '観光圏', '観光地域づくり',
+        '観光客誘致', '観光需要創出',
+        '観光庁', '旅行業法',
+        '旅行業者', '登録旅行業者',
+        '旅行業登録', 'ランドオペレーター',
+        '観光大使', 'おもてなし',
+        '訪日客', 'インバウンド観光',
+        'オーバーツーリズム', '観光公害',
+        '観光マナー', '宿泊税',
+        '観光案内所', '観光スポット',
+        '観光地経営', '観光連盟',
+        'dmo', '観光地域づくり法人',
+        '地域観光資源',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28876,6 +28892,9 @@ export class VoiceCommands {
         // pass DCXXIII: still awaiting the fire inspection
         'still awaiting the fire inspection',
         'まだ防火前', 'これから防火届',
+        // pass DCXXIV: still awaiting the tourism designation
+        'still awaiting the tourism designation',
+        'これから旅行業登録',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
