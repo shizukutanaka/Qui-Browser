@@ -21,24 +21,36 @@ import { buildCurvedPlaneGeometry } from './curvedGeometry.js';
 import { resolveInput, DEFAULT_SEARCH_ENGINE } from './urlResolver.js';
 import { truncate } from './bookmarkLayout.js';
 import {
-  elideUrlForDisplay, securityLevel, securityIndicator, contentStateLines, readerFetchUrl
+  elideUrlForDisplay,
+  securityLevel,
+  securityIndicator,
+  contentStateLines,
+  readerFetchUrl
 } from './urlDisplay.js';
 import { extractReadableText } from './readableText.js';
 import {
-  layoutReaderLines, clampReaderScroll, readerWindow, readerProgressLabel,
-  visibleLinesFor, fontPxFor, LINE_H, CONTENT_PAD,
-  readerHitTest, pageJumpLines, ARROW_W, ARROW_H, ARROW_Y0, ARROW_UP_X0, ARROW_DN_X0
+  layoutReaderLines,
+  clampReaderScroll,
+  readerWindow,
+  readerProgressLabel,
+  visibleLinesFor,
+  fontPxFor,
+  LINE_H,
+  CONTENT_PAD,
+  readerHitTest,
+  pageJumpLines,
+  ARROW_W,
+  ARROW_H,
+  ARROW_Y0,
+  ARROW_UP_X0,
+  ARROW_DN_X0
 } from './readerLayout.js';
 import { topSiteTiles, hitTestTopSites, TILE_TOP } from './topSitesLayout.js';
 import { narrationChunks, narrationFromLine, splitSentences } from './readerNarration.js';
 import { t } from '../../i18n/i18n.js';
 import { prefersHighContrast } from '../../a11y/accessibility.js';
 import { webChromeColors, webContentColors } from './chromeColors.js';
-import {
-  PANEL_W, PANEL_H, CHROME_H,
-  MOVE_BAR_W, MOVE_BAR_H, MOVE_BAR_GAP, MOVE_BAR_HIT_H
-} from './panelGeometry.js';
-
+import { PANEL_W, PANEL_H, CHROME_H, MOVE_BAR_W, MOVE_BAR_H, MOVE_BAR_GAP, MOVE_BAR_HIT_H } from './panelGeometry.js';
 
 /**
  * Character budget for the URL bar, derived from its pixel width and font.
@@ -94,10 +106,25 @@ export class WebPanel {
    * @param {Function} [opts.topSitesProvider] — () => [{url,title,host}];
    *   supplies the new-tab tile grid (getTopSites frecency). Null = no tiles.
    */
-  constructor({ scene, registerInteractable, unregisterInteractable, onNavigate,
-    onUrlInputRequested, searchEngine, isBookmarked, onToggleBookmark, onLoadError,
-    onHoverCaption, onGrabRequested, onMoveBarHoverCaption, onBlockedNavigation,
-    readerScale = 1, readerProxyUrl = '', privateMode = false, topSitesProvider = null }) {
+  constructor({
+    scene,
+    registerInteractable,
+    unregisterInteractable,
+    onNavigate,
+    onUrlInputRequested,
+    searchEngine,
+    isBookmarked,
+    onToggleBookmark,
+    onLoadError,
+    onHoverCaption,
+    onGrabRequested,
+    onMoveBarHoverCaption,
+    onBlockedNavigation,
+    readerScale = 1,
+    readerProxyUrl = '',
+    privateMode = false,
+    topSitesProvider = null
+  }) {
     this.scene = scene;
     this.registerInteractable = registerInteractable;
     this.unregisterInteractable = unregisterInteractable;
@@ -121,11 +148,11 @@ export class WebPanel {
     this.currentTitle = '';
 
     // Panel state
-    this.currentUrl  = '';
-    this.history     = [];
-    this.historyIdx  = -1;
-    this.loading     = false;
-    this._loadError  = false; // set true on iframe onerror, cleared on next navigate
+    this.currentUrl = '';
+    this.history = [];
+    this.historyIdx = -1;
+    this.loading = false;
+    this._loadError = false; // set true on iframe onerror, cleared on next navigate
     this.domOverlaySupported = false;
     // What the content area shows. 'empty' | 'loading' | 'reader' |
     // 'unavailable' | 'error'. There is deliberately no state claiming the
@@ -161,26 +188,26 @@ export class WebPanel {
     this.readerProxyUrl = typeof readerProxyUrl === 'string' ? readerProxyUrl : '';
 
     // FR-1.5: optional native quad-layer mode (set via enableLayerMode()).
-    this.quadLayer    = null;
+    this.quadLayer = null;
     this.layersSystem = null;
-    this._layerId     = null;  // LayersSystem key for this panel's quad layer
+    this._layerId = null; // LayersSystem key for this panel's quad layer
     this._onLayerDetach = null; // callback to release the native layer on close
-    this._layerDirty  = false; // set true whenever chromeCanvas changes
+    this._layerDirty = false; // set true whenever chromeCanvas changes
 
     // Curved-screen state (Quest-style). Off = flat plane content area.
-    this.curved       = false;
-    this.curveRadius  = 2.2; // metres
+    this.curved = false;
+    this.curveRadius = 2.2; // metres
 
     // Three.js objects
-    this.group       = new THREE.Group();
-    this.chromeMesh  = null;   // URL bar + controls
-    this.contentMesh = null;   // web content area
-    this.moveBarMesh = null;   // grab-to-move handle (WindowManager.beginGrab)
+    this.group = new THREE.Group();
+    this.chromeMesh = null; // URL bar + controls
+    this.contentMesh = null; // web content area
+    this.moveBarMesh = null; // grab-to-move handle (WindowManager.beginGrab)
 
     // 2D resources
-    this.chromeCanvas  = null;
-    this.chromeTex     = null;
-    this.iframe        = null;
+    this.chromeCanvas = null;
+    this.chromeTex = null;
+    this.iframe = null;
 
     this._build();
   }
@@ -190,7 +217,7 @@ export class WebPanel {
   _build() {
     // ── Chrome bar (URL bar + back/forward/reload) ──────────────────────────
     this.chromeCanvas = document.createElement('canvas');
-    this.chromeCanvas.width  = 1024;
+    this.chromeCanvas.width = 1024;
     this.chromeCanvas.height = Math.round(1024 * CHROME_H);
 
     this.chromeTex = configureUITexture(new THREE.CanvasTexture(this.chromeCanvas));
@@ -212,7 +239,7 @@ export class WebPanel {
     // successful navigation the viewport still read "Enter a URL to navigate"
     // forever — the panel silently misrepresented what it was showing.
     this.contentCanvas = document.createElement('canvas');
-    this.contentCanvas.width  = 1024;
+    this.contentCanvas.width = 1024;
     this.contentCanvas.height = Math.round(1024 * (1 - CHROME_H));
     this.contentTex = configureUITexture(new THREE.CanvasTexture(this.contentCanvas));
     this._drawContent();
@@ -221,7 +248,7 @@ export class WebPanel {
     const contentGeo = new THREE.PlaneGeometry(PANEL_W, PANEL_H * (1 - CHROME_H));
     const contentMat = new THREE.MeshBasicMaterial({ map: contentTex, side: THREE.FrontSide });
     this.contentMesh = new THREE.Mesh(contentGeo, contentMat);
-    this.contentMesh.position.y = -PANEL_H * CHROME_H / 2;
+    this.contentMesh.position.y = (-PANEL_H * CHROME_H) / 2;
     this.contentMesh.name = 'webPanelContent';
     this.group.add(this.contentMesh);
 
@@ -265,7 +292,10 @@ export class WebPanel {
     this.moveBarTex = configureUITexture(new THREE.CanvasTexture(this.moveBarCanvas));
     const moveBarGeo = new THREE.PlaneGeometry(MOVE_BAR_W, MOVE_BAR_HIT_H);
     const moveBarMat = new THREE.MeshBasicMaterial({
-      color: 0x55556f, map: this.moveBarTex, transparent: true, side: THREE.FrontSide
+      color: 0x55556f,
+      map: this.moveBarTex,
+      transparent: true,
+      side: THREE.FrontSide
     });
     this.moveBarMesh = new THREE.Mesh(moveBarGeo, moveBarMat);
     // Centre the mesh where the VISIBLE bar used to sit, so the handle does not
@@ -370,8 +400,14 @@ export class WebPanel {
       ctx.fillStyle = col.tileText;
       ctx.font = 'bold 26px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText((site.host || '').replace(/^www\./, '').slice(0, 1).toUpperCase(),
-        r.x + r.w / 2, r.y + 44);
+      ctx.fillText(
+        (site.host || '')
+          .replace(/^www\./, '')
+          .slice(0, 1)
+          .toUpperCase(),
+        r.x + r.w / 2,
+        r.y + 44
+      );
       ctx.font = '17px sans-serif';
       ctx.fillText(truncate(site.host || site.url, 22), r.x + r.w / 2, r.y + 86);
     });
@@ -553,8 +589,8 @@ export class WebPanel {
     }
     const local = this.contentMesh.worldToLocal(rawPoint.clone());
     const contentH = PANEL_H * (1 - CHROME_H);
-    const u = (local.x / PANEL_W) + 0.5;
-    const v = (local.y / contentH) + 0.5;
+    const u = local.x / PANEL_W + 0.5;
+    const v = local.y / contentH + 0.5;
     const px = u * this.contentCanvas.width;
     const py = (1 - v) * this.contentCanvas.height; // canvas y grows downward
 
@@ -617,11 +653,7 @@ export class WebPanel {
       return false;
     }
     const visible = visibleLinesFor(this._readerLines.length, this._readerScale);
-    const next = clampReaderScroll(
-      Number.isFinite(line) ? line : 0,
-      this._readerLines.length,
-      visible
-    );
+    const next = clampReaderScroll(Number.isFinite(line) ? line : 0, this._readerLines.length, visible);
     if (next === this._readerScroll) {
       return false;
     }
@@ -656,7 +688,7 @@ export class WebPanel {
     if (!Number.isFinite(n) || n < 0 || n > 100) {
       return 'out';
     }
-    return this.scrollContentTo(Math.floor(this._readerLines.length * n / 100));
+    return this.scrollContentTo(Math.floor((this._readerLines.length * n) / 100));
   }
 
   /**
@@ -722,9 +754,7 @@ export class WebPanel {
     const text = this._readerLines[line]?.text || '';
     if (typeof Intl !== 'undefined' && Intl.Segmenter) {
       const seg = new Intl.Segmenter('ja', { granularity: 'word' });
-      return [...seg.segment(text)]
-        .filter((s) => s.isWordLike)
-        .map((s) => s.segment);
+      return [...seg.segment(text)].filter((s) => s.isWordLike).map((s) => s.segment);
     }
     return text.split(/\s+/).filter(Boolean);
   }
@@ -816,10 +846,10 @@ export class WebPanel {
     if (!w) {
       return null;
     }
-    const chars = typeof Intl !== 'undefined' && Intl.Segmenter
-      ? [...new Intl.Segmenter('ja', { granularity: 'grapheme' }).segment(w.word)]
-        .map((s) => s.segment)
-      : [...w.word];
+    const chars =
+      typeof Intl !== 'undefined' && Intl.Segmenter
+        ? [...new Intl.Segmenter('ja', { granularity: 'grapheme' }).segment(w.word)].map((s) => s.segment)
+        : [...w.word];
     return { spelled: chars.join('、'), word: w.word };
   }
 
@@ -872,11 +902,9 @@ export class WebPanel {
     }
     this._readerScale = next;
     if (this._contentState === 'reader' && this._readerBlocks) {
-      this._readerLines = layoutReaderLines(
-        this._readerBlocks, { title: this._readerTitle, scale: next });
+      this._readerLines = layoutReaderLines(this._readerBlocks, { title: this._readerTitle, scale: next });
       const visible = visibleLinesFor(this._readerLines.length, next);
-      this._readerScroll = clampReaderScroll(
-        this._readerScroll, this._readerLines.length, visible);
+      this._readerScroll = clampReaderScroll(this._readerScroll, this._readerLines.length, visible);
       this._drawContent();
     }
     return true;
@@ -899,8 +927,11 @@ export class WebPanel {
    * Empty outside the reader state, same as getReaderNarration().
    */
   getReaderNarrationFrom(line) {
-    if (line !== undefined && line !== null
-      && (!Number.isFinite(line) || line < 0 || line >= this._readerLines.length)) {
+    if (
+      line !== undefined &&
+      line !== null &&
+      (!Number.isFinite(line) || line < 0 || line >= this._readerLines.length)
+    ) {
       return null; // OOR — callers distinguish from 'no article' (empty list)
     }
     if (this._contentState !== 'reader' || !this._readerBlocks) {
@@ -909,7 +940,9 @@ export class WebPanel {
     return narrationFromLine(
       this._readerLines,
       line === undefined || line === null ? this._readerScroll : line,
-      this._readerTitle, this._readerBlocks);
+      this._readerTitle,
+      this._readerBlocks
+    );
   }
 
   /**
@@ -922,8 +955,7 @@ export class WebPanel {
       return null;
     }
     const visible = visibleLinesFor(this._readerLines.length, this._readerScale);
-    return Math.min(100, Math.round(
-      ((this._readerScroll + visible) / this._readerLines.length) * 100));
+    return Math.min(100, Math.round(((this._readerScroll + visible) / this._readerLines.length) * 100));
   }
 
   /**
@@ -975,8 +1007,7 @@ export class WebPanel {
       delete l._findHit;
     });
     this._findMatches.forEach((lineIdx, matchIdx) => {
-      this._readerLines[lineIdx]._findHit =
-        matchIdx === this._findIndex ? 'current' : 'other';
+      this._readerLines[lineIdx]._findHit = matchIdx === this._findIndex ? 'current' : 'other';
     });
     this._drawContent();
   }
@@ -991,7 +1022,7 @@ export class WebPanel {
       return null;
     }
     const n = this._findMatches.length;
-    this._findIndex = ((this._findIndex + direction) % n + n) % n;
+    this._findIndex = (((this._findIndex + direction) % n) + n) % n;
     this._markFindHits();
     this.scrollContentTo(this._findMatches[this._findIndex]);
     return { index: this._findIndex + 1, total: n };
@@ -1024,12 +1055,12 @@ export class WebPanel {
     }
     let target;
     if (direction > 0) {
-      target = heads.find(i => i > this._readerScroll);
+      target = heads.find((i) => i > this._readerScroll);
       if (target === undefined) {
         target = heads[0];
       }
     } else {
-      const before = heads.filter(i => i < this._readerScroll);
+      const before = heads.filter((i) => i < this._readerScroll);
       target = before.length ? before[before.length - 1] : heads[heads.length - 1];
     }
     this.scrollContentTo(target);
@@ -1048,9 +1079,7 @@ export class WebPanel {
     if (this._contentState !== 'reader') {
       return [];
     }
-    return this._readerLines
-      .filter((l) => l.style === 'h' || l.style === 'title')
-      .map((l) => l.text);
+    return this._readerLines.filter((l) => l.style === 'h' || l.style === 'title').map((l) => l.text);
   }
 
   /**
@@ -1062,8 +1091,7 @@ export class WebPanel {
     if (this._contentState !== 'reader') {
       return null;
     }
-    const chars = this._readerLines.reduce(
-      (n, l) => n + (l.text ? l.text.length : 0), 0);
+    const chars = this._readerLines.reduce((n, l) => n + (l.text ? l.text.length : 0), 0);
     return Math.max(1, Math.round(chars / 500));
   }
 
@@ -1077,7 +1105,7 @@ export class WebPanel {
       return null;
     }
     const pct = this.readerProgress() || 0;
-    return Math.max(0, Math.round(total * (100 - pct) / 100));
+    return Math.max(0, Math.round((total * (100 - pct)) / 100));
   }
 
   /**
@@ -1209,12 +1237,12 @@ export class WebPanel {
     }
     let target;
     if (direction > 0) {
-      target = paras.find(i => i > this._readerScroll);
+      target = paras.find((i) => i > this._readerScroll);
       if (target === undefined) {
         target = paras[0];
       }
     } else {
-      const before = paras.filter(i => i < this._readerScroll);
+      const before = paras.filter((i) => i < this._readerScroll);
       target = before.length ? before[before.length - 1] : paras[paras.length - 1];
     }
     this.scrollContentTo(target);
@@ -1275,8 +1303,7 @@ export class WebPanel {
     if (this._contentState !== 'reader') {
       return null;
     }
-    return this._readerLines.reduce(
-      (n, l) => n + (l.text ? l.text.length : 0), 0);
+    return this._readerLines.reduce((n, l) => n + (l.text ? l.text.length : 0), 0);
   }
 
   /**
@@ -1319,8 +1346,7 @@ export class WebPanel {
     if (this._contentState !== 'reader' || !this._readerLines.length) {
       return [];
     }
-    const line =
-      this._readerLines[Math.min(this._readerScroll, this._readerLines.length - 1)];
+    const line = this._readerLines[Math.min(this._readerScroll, this._readerLines.length - 1)];
     if (!Number.isFinite(line.block)) {
       return [];
     }
@@ -1371,7 +1397,10 @@ export class WebPanel {
         entries.push({ line: i, text: line.text });
       }
     });
-    const offs = this._offsetsInBlock(block, entries.map((e) => e.text));
+    const offs = this._offsetsInBlock(
+      block,
+      entries.map((e) => e.text)
+    );
     return entries.map((e, i) => ({ line: e.line, off: offs[i] }));
   }
 
@@ -1390,8 +1419,7 @@ export class WebPanel {
     if (sentOff < 0) {
       return -1;
     }
-    const rows = this._rowOffsets(block).filter(
-      (r) => r.off >= 0 && r.off <= sentOff);
+    const rows = this._rowOffsets(block).filter((r) => r.off >= 0 && r.off <= sentOff);
     return rows.length ? rows[rows.length - 1].line : -1;
   }
 
@@ -1428,9 +1456,7 @@ export class WebPanel {
       } else {
         // Title region — no block: start from the article's near edge.
         const last = this._readerBlocks.length - 1;
-        this._sentenceCaret = dir > 0
-          ? { block: 0, idx: -1 }
-          : { block: last, idx: this._sentencesOf(last).length };
+        this._sentenceCaret = dir > 0 ? { block: 0, idx: -1 } : { block: last, idx: this._sentencesOf(last).length };
       }
     }
     let { block, idx } = this._sentenceCaret;
@@ -1721,7 +1747,7 @@ export class WebPanel {
     const hasBookmark = !!this.onToggleBookmark;
     // URL bar: leave room for [bookmark][close] on the right when bookmarking.
     const urlRight = hasBookmark ? 136 : 72; // px from right edge to URL-bar end
-    const barW = w - 212 - urlRight;          // URL bar inner width (px)
+    const barW = w - 212 - urlRight; // URL bar inner width (px)
     ctx.fillStyle = this._loadError ? col.urlErrorBg : col.urlBg;
     ctx.fillRect(212, 6, barW, h - 12);
     // The bar's fill is only 1.16:1 against the chrome background, and an empty
@@ -1755,12 +1781,8 @@ export class WebPanel {
       ctx.fillStyle = this.currentUrl ? col.urlText : col.urlPlaceholder;
       ctx.font = '18px monospace';
       // The glyph consumed ~26px of the bar; shrink the character budget to match.
-      const urlChars = this.currentUrl
-        ? urlBarMaxChars(barW - (x - 220), 18)
-        : maxChars;
-      const urlText = this.currentUrl
-        ? elideUrlForDisplay(this.currentUrl, urlChars)
-        : 'https://';
+      const urlChars = this.currentUrl ? urlBarMaxChars(barW - (x - 220), 18) : maxChars;
+      const urlText = this.currentUrl ? elideUrlForDisplay(this.currentUrl, urlChars) : 'https://';
       ctx.fillText(urlText, x, h / 2 + 6);
     }
 
@@ -1799,30 +1821,36 @@ export class WebPanel {
     // Map intersection point on the mesh to canvas UV.
     // chromeMesh is PANEL_W × (PANEL_H * CHROME_H) centred at chromeMesh.position.
     const local = this.chromeMesh.worldToLocal(rawPoint.clone());
-    const u = (local.x / PANEL_W) + 0.5;       // 0–1
+    const u = local.x / PANEL_W + 0.5; // 0–1
     const px = Math.round(u * this.chromeCanvas.width);
 
     const w = this.chromeCanvas.width;
     const hasBookmark = !!this.onToggleBookmark;
 
-    if (px < 68) {           // back button
+    if (px < 68) {
+      // back button
       this.back();
-    } else if (px < 136) {   // forward
+    } else if (px < 136) {
+      // forward
       this.forward();
-    } else if (px < 204) {   // reload — or stop while loading
+    } else if (px < 204) {
+      // reload — or stop while loading
       if (this.loading) {
         this.stop();
       } else {
         this.reload();
       }
-    } else if (px > w - 60) { // close
+    } else if (px > w - 60) {
+      // close
       this.hide();
-    } else if (hasBookmark && px >= w - 128 && px <= w - 72) { // bookmark star
+    } else if (hasBookmark && px >= w - 128 && px <= w - 72) {
+      // bookmark star
       if (this.currentUrl) {
         this.onToggleBookmark(this.currentUrl, this.currentTitle || this.currentUrl);
         this._drawChrome(); // reflect the new ★/☆ state
       }
-    } else {                  // URL bar — request text input
+    } else {
+      // URL bar — request text input
       const prefill = this.currentUrl || 'https://';
       if (this.onUrlInputRequested) {
         this.onUrlInputRequested(prefill, (url) => {
@@ -1833,7 +1861,7 @@ export class WebPanel {
       } else {
         // Fallback: synchronous prompt (only available outside immersive VR).
         // eslint-disable-next-line no-alert -- intentional desktop/2D fallback
-        const url = window.prompt('Enter URL', prefill);
+        const url = window.prompt(t('vr.prompt.url'), prefill);
         if (url) {
           this.navigate(url);
         }
@@ -1908,7 +1936,9 @@ export class WebPanel {
       let title = url;
       try {
         title = this.iframe.contentDocument.title || url;
-      } catch { /* cross-origin frame: keep the URL as the title */ }
+      } catch {
+        /* cross-origin frame: keep the URL as the title */
+      }
       this.currentTitle = title;
       // NOTE: a frame refused by X-Frame-Options / CSP frame-ancestors fires
       // `load`, not `error`, in Chromium — so reaching here does NOT mean the
@@ -2015,9 +2045,9 @@ export class WebPanel {
     if (!quadLayer || !layersSystem) {
       return;
     }
-    this.quadLayer    = quadLayer;
+    this.quadLayer = quadLayer;
     this.layersSystem = layersSystem;
-    this._layerId     = layerId;
+    this._layerId = layerId;
     this._onLayerDetach = typeof onDetach === 'function' ? onDetach : null;
     // Hide the Three.js chrome mesh — the runtime composites the layer instead.
     if (this.chromeMesh) {
@@ -2045,9 +2075,9 @@ export class WebPanel {
     if (releaseLayer && this._onLayerDetach && this._layerId) {
       this._onLayerDetach(this._layerId);
     }
-    this.quadLayer    = null;
+    this.quadLayer = null;
     this.layersSystem = null;
-    this._layerId     = null;
+    this._layerId = null;
     this._onLayerDetach = null;
   }
 
@@ -2062,9 +2092,7 @@ export class WebPanel {
     if (!this.quadLayer || !this.layersSystem || !this._layerDirty) {
       return;
     }
-    this.layersSystem.renderCanvasToLayer(
-      this.quadLayer, this.chromeCanvas, frame, views
-    );
+    this.layersSystem.renderCanvasToLayer(this.quadLayer, this.chromeCanvas, frame, views);
     this._layerDirty = false;
   }
 
@@ -2165,7 +2193,7 @@ export class WebPanel {
     this.unregisterInteractable(this.moveBarMesh);
     this.unregisterInteractable(this.contentMesh);
 
-    this.group.traverse(obj => {
+    this.group.traverse((obj) => {
       if (obj.geometry) {
         obj.geometry.dispose();
       }
