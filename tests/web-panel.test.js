@@ -5,9 +5,16 @@
  */
 
 // ── THREE stub ────────────────────────────────────────────────────────────────
-class MockGeometry { constructor() {} dispose() {} scale() {} }
+class MockGeometry {
+  constructor() {}
+  dispose() {}
+  scale() {}
+}
 class MockMaterial {
-  constructor() { this.color = { set: jest.fn() }; this.map = null; }
+  constructor() {
+    this.color = { set: jest.fn() };
+    this.map = null;
+  }
   dispose() {}
 }
 class MockMesh {
@@ -19,15 +26,32 @@ class MockMesh {
     this.renderOrder = 0;
     this._nextLocal = { x: 0, y: 0, z: 0 };
   }
-  worldToLocal(v) { return this._nextLocal || v; }
+  worldToLocal(v) {
+    return this._nextLocal || v;
+  }
 }
 class MockGroup {
-  constructor() { this.position = { set: jest.fn() }; this._objects = []; }
-  add(o) { this._objects.push(o); }
-  remove(o) { this._objects = this._objects.filter(x => x !== o); }
-  traverse(fn) { this._objects.forEach(fn); fn(this); }
+  constructor() {
+    this.position = { set: jest.fn() };
+    this._objects = [];
+  }
+  add(o) {
+    this._objects.push(o);
+  }
+  remove(o) {
+    this._objects = this._objects.filter((x) => x !== o);
+  }
+  traverse(fn) {
+    this._objects.forEach(fn);
+    fn(this);
+  }
 }
-class MockTexture { constructor() { this.needsUpdate = false; } dispose() {} }
+class MockTexture {
+  constructor() {
+    this.needsUpdate = false;
+  }
+  dispose() {}
+}
 
 jest.mock('three', () => ({
   Group: MockGroup,
@@ -56,15 +80,23 @@ jest.mock('../src/vr/browser/bookmarkLayout.js', () => ({
 
 // ── document/canvas stub ─────────────────────────────────────────────────────
 global.document = {
+  documentElement: { lang: 'en' },
   createElement: (tag) => {
     if (tag === 'canvas') {
       return {
-        width: 0, height: 0,
+        width: 0,
+        height: 0,
         getContext: () => ({
-          clearRect: jest.fn(), fillRect: jest.fn(), fillText: jest.fn(),
+          clearRect: jest.fn(),
+          fillRect: jest.fn(),
+          fillText: jest.fn(),
           strokeRect: jest.fn(),
-          fillStyle: '', font: '', textAlign: '', textBaseline: '',
-          strokeStyle: '', lineWidth: 0
+          fillStyle: '',
+          font: '',
+          textAlign: '',
+          textBaseline: '',
+          strokeStyle: '',
+          lineWidth: 0
         })
       };
     }
@@ -80,6 +112,9 @@ global.document = {
 };
 global.URL = URL;
 
+const { readFileSync } = require('fs');
+const { join } = require('path');
+const { setLanguage, t } = require('../src/i18n/i18n.js');
 const { WebPanel, urlBarMaxChars } = require('../src/vr/browser/WebPanel.js');
 
 function makePanel(extraOpts = {}) {
@@ -96,7 +131,9 @@ function makePanel(extraOpts = {}) {
   // Expose the registered handlers for direct testing.
   panel._handlers = registerInteractable.mock.calls[0]?.[1];
   // Give the chromeMesh a controllable worldToLocal return value.
-  panel._setLocal = (x) => { panel.chromeMesh._nextLocal = { x, y: 0, z: 0 }; };
+  panel._setLocal = (x) => {
+    panel.chromeMesh._nextLocal = { x, y: 0, z: 0 };
+  };
   panel._setLocal(0);
   return panel;
 }
@@ -136,17 +173,27 @@ describe('WebPanel (FR-1.1 / FR-1.2)', () => {
     test('accepts direct Vector3 (legacy / test path)', () => {
       const p = makePanel();
       p._setLocal(-0.7); // left zone → back button
-      const fakePoint = { x: -0.7, y: 0, clone() { return this; } };
+      const fakePoint = {
+        x: -0.7,
+        y: 0,
+        clone() {
+          return this;
+        }
+      };
       expect(() => p._handlers.onSelect(fakePoint)).not.toThrow();
     });
 
     test('accepts the controller/gaze event format { intersection: { point } }', () => {
       const p = makePanel();
       p._setLocal(-0.7);
-      const fakePoint = { x: -0.7, y: 0, clone() { return this; } };
-      expect(() =>
-        p._handlers.onSelect({ intersection: { point: fakePoint }, controller: {} })
-      ).not.toThrow();
+      const fakePoint = {
+        x: -0.7,
+        y: 0,
+        clone() {
+          return this;
+        }
+      };
+      expect(() => p._handlers.onSelect({ intersection: { point: fakePoint }, controller: {} })).not.toThrow();
     });
 
     test('does not throw when called with null / undefined', () => {
@@ -200,8 +247,11 @@ describe('WebPanel (FR-1.1 / FR-1.2)', () => {
       const registerInteractable = jest.fn();
       const unregisterInteractable = jest.fn();
       const panel = new WebPanel({
-        scene, registerInteractable, unregisterInteractable,
-        onNavigate: jest.fn(), ...extraOpts
+        scene,
+        registerInteractable,
+        unregisterInteractable,
+        onNavigate: jest.fn(),
+        ...extraOpts
       });
       const moveBarCall = registerInteractable.mock.calls.find(([obj]) => obj === panel.moveBarMesh);
       return { panel, registerInteractable, unregisterInteractable, moveBarHandlers: moveBarCall?.[1] };
@@ -260,6 +310,53 @@ describe('WebPanel (FR-1.1 / FR-1.2)', () => {
       const { panel, unregisterInteractable } = makePanelWithMoveBar();
       panel.dispose();
       expect(unregisterInteractable).toHaveBeenCalledWith(panel.moveBarMesh);
+    });
+  });
+
+  describe('URL-bar window.prompt fallback (WCAG 3.1.2)', () => {
+    const pointAt = (x) => ({
+      x,
+      y: 0,
+      clone() {
+        return this;
+      }
+    });
+
+    beforeEach(() => {
+      global.window = { prompt: jest.fn(() => 'https://example.com') };
+    });
+    afterEach(() => {
+      delete global.window;
+      setLanguage('en');
+    });
+
+    test('labels the dialog via t(vr.prompt.url), localized for the session', () => {
+      setLanguage('ja');
+      const p = makePanel(); // no onUrlInputRequested → desktop fallback
+      p._handlers.onSelect(pointAt(0));
+      expect(global.window.prompt).toHaveBeenCalledWith(t('vr.prompt.url'), 'https://');
+    });
+
+    test('prefills the current URL and navigates to the entered value', () => {
+      const p = makePanel();
+      p.currentUrl = 'https://qui.example/page';
+      const nav = jest.spyOn(p, 'navigate');
+      p._handlers.onSelect(pointAt(0));
+      expect(global.window.prompt).toHaveBeenCalledWith(expect.any(String), 'https://qui.example/page');
+      expect(nav).toHaveBeenCalledWith('https://example.com');
+    });
+
+    test('cancelling (falsy return) does not navigate', () => {
+      global.window.prompt.mockReturnValue(null);
+      const p = makePanel();
+      const nav = jest.spyOn(p, 'navigate');
+      p._handlers.onSelect(pointAt(0));
+      expect(nav).not.toHaveBeenCalled();
+    });
+
+    test('no raw English prompt literal remains', () => {
+      const src = readFileSync(join(__dirname, '../src/vr/browser/WebPanel.js'), 'utf8');
+      expect(src).not.toContain("window.prompt('Enter URL'");
     });
   });
 });
