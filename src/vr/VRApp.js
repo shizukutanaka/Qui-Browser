@@ -1063,6 +1063,18 @@ export class VRApp {
   }
 
   /**
+   * Live-apply a controller dead-zone change from the settings stepper. The
+   * input layer reads `controllerInput.deadZone` every frame through
+   * applyRadialDeadZone, so writing the field is the whole apply — no rebuild.
+   * @param {number} v fraction of stick travel ignored near centre, [0, 1)
+   */
+  _onDeadZoneChanged(v) {
+    if (this.controllerInput) {
+      this.controllerInput.deadZone = v;
+    }
+  }
+
+  /**
    * One tab in the settings panel's section selector.
    *
    * Tabs replaced a stack of collapsible headers: five stacked headers plus the
@@ -1724,6 +1736,15 @@ export class VRApp {
     const steppers = [
       [t('vr.settings.snapAngle'), 'snapTurnAngle', { min: 15, max: 90, step: 15, unit: '°' }],
       [t('vr.settings.moveSpeed'), 'smoothMoveSpeed', { min: 0.5, max: 4.0, step: 0.5, unit: ' m/s' }],
+      // Thumbstick dead zone — persisted since the settings blob existed but
+      // with no write path (same unreachable-key defect class as the toggles
+      // above). Tremor users widen it to absorb jitter; precision users narrow
+      // it. Applies live: the input layer reads the field every frame.
+      [
+        t('vr.settings.deadZone'),
+        'controllerDeadZone',
+        { min: 0, max: 0.5, step: 0.05, apply: (v) => this._onDeadZoneChanged(v) }
+      ],
       [
         t('vr.settings.gazeTime'),
         'gazeDwellTime',
@@ -1931,7 +1952,7 @@ export class VRApp {
       [
         'settings.section.locomotion',
         byKey(items, ['enableTeleport', 'enableSnapTurn', 'enableSmoothMove', 'southpaw', 'enableComfort']),
-        byKey(steppers, ['snapTurnAngle', 'smoothMoveSpeed']),
+        byKey(steppers, ['snapTurnAngle', 'smoothMoveSpeed', 'controllerDeadZone']),
         cycles.filter((c) => c[1] === 'motionSensitivity'),
         []
       ],
