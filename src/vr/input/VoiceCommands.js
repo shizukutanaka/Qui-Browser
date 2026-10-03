@@ -22474,6 +22474,21 @@ export class VoiceCommands {
         '領事保護', 'ビザ免除',
         '外交使節', '領事館業務',
         '外務審議官', '領事面会',
+        // pass DCXXXIV: postage rate revised & delivery route adjusted
+        'postage rate revised', 'delivery route adjusted',
+        '日本郵政', '中央郵便局',
+        '郵便業務', '郵便番号',
+        '郵便料金', '郵便貯金',
+        '簡易郵便局', '集配局',
+        '郵便事業', 'ゆうパック',
+        '書留郵便', '特定記録郵便',
+        '速達郵便', '航空郵便',
+        '船便', '年賀状発売',
+        '切手販売', '郵便為替',
+        '転居届', '郵便物検査',
+        'ユニバーサル郵便', '郵便投票',
+        '国際郵便', 'レターパック',
+        '定形外郵便', '郵便配達',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29057,6 +29072,9 @@ export class VoiceCommands {
         // pass DCXXXIII: still awaiting the consular service
         'still awaiting the consular service',
         'まだ査証申請前', 'これから査証申請',
+        // pass DCXXXIV: still awaiting the mail service
+        'still awaiting the mail service',
+        'まだ配達前', 'これから転居届',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
