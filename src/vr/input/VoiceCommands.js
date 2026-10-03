@@ -21868,6 +21868,17 @@ export class VoiceCommands {
         '港湾管理者', '港湾区域',
         '港湾利用料', '海上交通安全法',
         '海難審判', '水先人',
+        // pass DLXXXIX: hot-spring permit granted & bathhouse licensed
+        'hot-spring permit granted', 'bathhouse licensed',
+        '温泉法', '採掘許可',
+        '温泉事業', '公衆浴場',
+        '銭湯', '入浴施設',
+        '温泉場', '掘削',
+        '温泉利用権', '源泉',
+        '入湯税', '温泉旅館',
+        '共同浴場', '掘削許可',
+        '利用計画', '温泉条例',
+        '塩泉', '温泉士',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28314,6 +28325,9 @@ export class VoiceCommands {
         // pass DLXXXVIII: still awaiting the port clearance
         'still awaiting the port clearance',
         'まだ入港前', 'これから入港届',
+        // pass DLXXXIX: still awaiting the onsen permit
+        'still awaiting the onsen permit',
+        'まだ掘削前', 'これから掘削',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
