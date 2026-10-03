@@ -12,23 +12,41 @@ class MockGroup {
     this.position = { set: jest.fn() };
     this._objects = [];
   }
-  add(o) { this._objects.push(o); }
-  remove(o) { this._objects = this._objects.filter(x => x !== o); }
-  traverse(fn) { this._objects.forEach(fn); fn(this); }
+  add(o) {
+    this._objects.push(o);
+  }
+  remove(o) {
+    this._objects = this._objects.filter((x) => x !== o);
+  }
+  traverse(fn) {
+    this._objects.forEach(fn);
+    fn(this);
+  }
 }
 class MockMesh {
   constructor() {
     this.name = '';
     this.position = { set: jest.fn() };
   }
-  worldToLocal(v) { return v; }
+  worldToLocal(v) {
+    return v;
+  }
 }
 jest.mock('three', () => ({
   Group: MockGroup,
   Mesh: MockMesh,
-  PlaneGeometry: class { dispose() {} },
-  MeshBasicMaterial: class { dispose() {} },
-  CanvasTexture: class { constructor() { this.needsUpdate = false; } dispose() {} }
+  PlaneGeometry: class {
+    dispose() {}
+  },
+  MeshBasicMaterial: class {
+    dispose() {}
+  },
+  CanvasTexture: class {
+    constructor() {
+      this.needsUpdate = false;
+    }
+    dispose() {}
+  }
 }));
 
 // ── WebPanel stub for TabManager/voice tests ──────────────────────────────────
@@ -46,30 +64,50 @@ jest.mock('../src/vr/browser/WebPanel.js', () => ({
       this.describeLocation = jest.fn(() => '');
       panelInstances.push(this);
     }
-    addToScene(parent) { this.parent = parent; }
-    navigate(url) { this.currentUrl = url; }
-    setVisible(v) { this.visible = !!v; }
+    addToScene(parent) {
+      this.parent = parent;
+    }
+    navigate(url) {
+      this.currentUrl = url;
+    }
+    setVisible(v) {
+      this.visible = !!v;
+    }
     setCurved() {}
-    dispose() { this.disposed = true; }
+    dispose() {
+      this.disposed = true;
+    }
   }
 }));
 const { WebPanel: RealWebPanel } = jest.requireActual('../src/vr/browser/WebPanel.js');
 
 global.document = {
+  documentElement: { lang: 'en' },
   createElement: () => ({
-    width: 0, height: 0,
+    width: 0,
+    height: 0,
     getContext: () => ({
-      clearRect: jest.fn(), fillRect: jest.fn(), fillText: jest.fn(),
-      beginPath: jest.fn(), arc: jest.fn(), fill: jest.fn(),
-      fillStyle: '', font: '', textAlign: '', textBaseline: ''
+      clearRect: jest.fn(),
+      fillRect: jest.fn(),
+      fillText: jest.fn(),
+      beginPath: jest.fn(),
+      arc: jest.fn(),
+      fill: jest.fn(),
+      fillStyle: '',
+      font: '',
+      textAlign: '',
+      textBaseline: ''
     })
   })
 };
 global.URL = URL;
-global.SpeechSynthesisUtterance = function (text) { this.text = text; };
+global.SpeechSynthesisUtterance = function (text) {
+  this.text = text;
+};
 
 const { TabManager } = require('../src/vr/browser/TabManager.js');
 const { VoiceCommands } = require('../src/vr/input/VoiceCommands.js');
+const { setLanguage } = require('../src/i18n/i18n.js');
 
 function makeManager(opts = {}) {
   return new TabManager({
@@ -105,6 +143,9 @@ function makeReaderPanel(lines, scroll = 0) {
 
 // ── WebPanel.describeLocation ─────────────────────────────────────────────────
 describe('describeLocation', () => {
+  beforeAll(() => setLanguage('ja'));
+  afterAll(() => setLanguage('en'));
+
   test('announces "nothing open" for an empty panel', () => {
     const p = Object.create(RealWebPanel.prototype);
     p.currentTitle = '';
@@ -156,13 +197,15 @@ describe('say-again voice command', () => {
     vc.processCommand('トップサイト');
     vc.processCommand('もう一度');
     vc.processCommand('もう一度');
-    expect(vc._spoken.filter(t => t === 'よく使うサイトを開きます').length).toBe(3);
+    expect(vc._spoken.filter((t) => t === 'よく使うサイトを開きます').length).toBe(3);
   });
 });
 
 // ── VoiceCommands: where-am-i ─────────────────────────────────────────────────
 describe('where-am-i voice command', () => {
-  beforeEach(() => { panelInstances.length = 0; });
+  beforeEach(() => {
+    panelInstances.length = 0;
+  });
 
   test('"どこ" speaks the tab describeLocation', () => {
     const tm = makeManager();
@@ -194,7 +237,9 @@ describe('where-am-i voice command', () => {
 
 // ── VoiceCommands: tabs-list ─────────────────────────────────────────────────
 describe('tabs-list voice command', () => {
-  beforeEach(() => { panelInstances.length = 0; });
+  beforeEach(() => {
+    panelInstances.length = 0;
+  });
 
   test('reads the count and titles with the active one marked', () => {
     const tm = makeManager();

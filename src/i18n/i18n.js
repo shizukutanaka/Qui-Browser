@@ -187,7 +187,21 @@ const CATALOG = {
     'vr.error.blockedUrl': 'Cannot open that address',
     'vr.error.videoLoadFailed': 'Could not load video (check URL / CORS)',
     'vr.error.panelLoadFailed': 'Failed to load',
-    'vr.error.smoothMoveWarning': 'Smooth move may cause motion sickness'
+    'vr.error.smoothMoveWarning': 'Smooth move may cause motion sickness',
+    'vr.voice.pasteGoOpened': 'Opened the pasted URL',
+    'vr.voice.noUrlCopied': 'No URL is copied',
+    'vr.voice.clipboardDenied': 'Could not access the clipboard',
+    'vr.voice.clipboardEmpty': 'Nothing is copied',
+    'vr.voice.shareNoUrl': 'No URL to share',
+    'vr.voice.shareDone': 'Shared',
+    'vr.voice.shareCancelled': 'Share cancelled',
+    'vr.voice.shareCopied': 'Sharing unsupported; copied the URL',
+    'vr.voice.shareFailed': 'Could not share',
+    'vr.voice.nothingOpen': 'Nothing is open',
+    'vr.voice.titleSep': ' — ',
+    'vr.voice.atLine': 'at line {0}',
+    'vr.voice.fullArticle': 'showing the full article',
+    'vr.voice.spellSep': ', '
   },
   ja: {
     'hero.title': 'VRブラウジングの未来を体験',
@@ -365,7 +379,21 @@ const CATALOG = {
     'vr.error.blockedUrl': 'このアドレスは開けません',
     'vr.error.videoLoadFailed': '動画を読み込めませんでした（URL / CORS を確認してください）',
     'vr.error.panelLoadFailed': '読み込みに失敗しました',
-    'vr.error.smoothMoveWarning': 'スムーズ移動は乗り物酔いを引き起こす可能性があります'
+    'vr.error.smoothMoveWarning': 'スムーズ移動は乗り物酔いを引き起こす可能性があります',
+    'vr.voice.pasteGoOpened': '貼り付けて開きました',
+    'vr.voice.noUrlCopied': 'URLがコピーされていません',
+    'vr.voice.clipboardDenied': 'クリップボードにアクセスできません',
+    'vr.voice.clipboardEmpty': 'コピーされていません',
+    'vr.voice.shareNoUrl': '共有するURLがありません',
+    'vr.voice.shareDone': '共有しました',
+    'vr.voice.shareCancelled': '共有がキャンセルされました',
+    'vr.voice.shareCopied': '共有は未対応のためURLをコピーしました',
+    'vr.voice.shareFailed': '共有できません',
+    'vr.voice.nothingOpen': '何も開いていません',
+    'vr.voice.titleSep': '。',
+    'vr.voice.atLine': '現在 {0} 行目',
+    'vr.voice.fullArticle': '全文表示中',
+    'vr.voice.spellSep': '、'
   }
 };
 

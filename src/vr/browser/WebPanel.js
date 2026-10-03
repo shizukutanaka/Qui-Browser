@@ -850,7 +850,7 @@ export class WebPanel {
       typeof Intl !== 'undefined' && Intl.Segmenter
         ? [...new Intl.Segmenter('ja', { granularity: 'grapheme' }).segment(w.word)].map((s) => s.segment)
         : [...w.word];
-    return { spelled: chars.join('、'), word: w.word };
+    return { spelled: chars.join(t('vr.voice.spellSep')), word: w.word };
   }
 
   /**
@@ -1665,13 +1665,13 @@ export class WebPanel {
   describeLocation() {
     const title = this.currentTitle || this.currentUrl;
     if (!title) {
-      return '何も開いていません';
+      return t('vr.voice.nothingOpen');
     }
     if (this._contentState === 'reader' && this._readerLines.length) {
       const total = this._readerLines.length;
       const visible = visibleLinesFor(total, this._readerScale);
       const label = readerProgressLabel(this._readerScroll, total, visible);
-      return `${title}。${label ? `現在 ${label} 行目` : '全文表示中'}`;
+      return `${title}${t('vr.voice.titleSep')}${label ? t('vr.voice.atLine').replace('{0}', label) : t('vr.voice.fullArticle')}`;
     }
     return title;
   }

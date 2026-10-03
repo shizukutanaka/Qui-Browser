@@ -7,6 +7,7 @@
  */
 import { VoiceCommands } from '../src/vr/input/VoiceCommands.js';
 import { WebPanel } from '../src/vr/browser/WebPanel.js';
+import { setLanguage } from '../src/i18n/i18n.js';
 
 beforeEach(() => {
   global.SpeechSynthesisUtterance = function SpeechSynthesisUtterance(text) {
@@ -81,6 +82,8 @@ describe('WebPanel nextChar / prevChar', () => {
 
 // ── currentWord / spellWord (NVDA numpad-5) ────────────────────────────────
 describe('WebPanel currentWord / spellWord', () => {
+  beforeAll(() => setLanguage('ja'));
+  afterAll(() => setLanguage('en'));
   test('reads the scroll line first word when no caret walked', () => {
     const p = readerPanel();
     expect(p.currentWord().word).toBe('ab');

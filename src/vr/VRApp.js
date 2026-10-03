@@ -28,6 +28,7 @@ import { VRControllerInput } from './input/VRControllerInput.js';
 import { HandTracking } from './interaction/HandTracking.js';
 import { HapticFeedback } from './interaction/HapticFeedback.js';
 import { GazeInteraction } from './interaction/GazeInteraction.js';
+import { pasteAndGo, readClipboard, sharePage } from './input/voiceAnnounce.js';
 import { CaptionSystem } from './accessibility/CaptionSystem.js';
 import { AccessibilityCoordinator } from './accessibility/AccessibilityCoordinator.js';
 import { SemanticDOM } from './accessibility/SemanticDOM.js';
@@ -3494,50 +3495,12 @@ export class VRApp {
           onClearFind: () => this.tabManager?.getActiveTab?.()?.clearFind?.() ?? false,
           // Chrome "Paste and go" — navigate the active tab to a URL in the
           // clipboard. Async: resolves to the announce string.
-          onPasteGo: async () => {
-            try {
-              const text = (await navigator.clipboard.readText()).trim();
-              if (/^https?:\/\//i.test(text)) {
-                this.tabManager?.getActiveTab?.()?.navigate?.(text);
-                return '貼り付けて開きました';
-              }
-              return 'URLがコピーされていません';
-            } catch {
-              return 'クリップボードにアクセスできません';
-            }
-          },
+          onPasteGo: () => pasteAndGo(this.tabManager),
           // NVDA read-clipboard — speak the clipboard text aloud.
-          onReadClipboard: async () => {
-            try {
-              const text = (await navigator.clipboard.readText()).trim();
-              return text || 'コピーされていません';
-            } catch {
-              return 'クリップボードにアクセスできません';
-            }
-          },
+          onReadClipboard: () => readClipboard(),
           // Web Share API — the OS share sheet; clipboard is the fallback
           // where the API is missing (and it still announces that honestly).
-          onShare: async () => {
-            const t = this.tabManager?.getActiveTab?.();
-            const url = t?.currentUrl;
-            if (!url) {
-              return '共有するURLがありません';
-            }
-            if (typeof navigator !== 'undefined' && navigator.share) {
-              try {
-                await navigator.share({ title: t.currentTitle || url, url });
-                return '共有しました';
-              } catch {
-                return '共有がキャンセルされました';
-              }
-            }
-            try {
-              await navigator.clipboard?.writeText?.(url);
-              return '共有は未対応のためURLをコピーしました';
-            } catch {
-              return '共有できません';
-            }
-          },
+          onShare: () => sharePage(this.tabManager),
           // '通知を消して' — toasts auto-dismiss, so the manual twin clears
           // the caption queue (the part a voice user actually hears linger).
           onDismissNotify: () => {
