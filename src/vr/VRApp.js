@@ -4177,7 +4177,7 @@ export class VRApp {
       // Desktop / non-VR fallback (only reached when no VR keyboard exists, e.g.
       // desktop/2D, where window.prompt is the correct input).
       // eslint-disable-next-line no-alert
-      const url = window.prompt('Enter URL', prefill);
+      const url = window.prompt(prompt, prefill);
       if (url) {
         onConfirm(url);
       }
