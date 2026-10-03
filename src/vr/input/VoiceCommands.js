@@ -23174,6 +23174,25 @@ export class VoiceCommands {
         '原子力防災', '原子力安全',
         '重大事故対策', '放射線監視',
         '原子力防災組織', '放射線',
+        // pass DCLXXII: contract awarded & bid opening done
+        'contract awarded', 'bid opening done',
+        '公共調達', '入札',
+        '競争入札', '指名競争入札',
+        '随意契約', '一般競争入札',
+        '入札公告', '電子入札',
+        '最低制限価格', '調達基準価格',
+        '予定価格', '価格競争',
+        '技術提案', '総合評価方式',
+        '経営事項審査', '入札参加資格',
+        '競争参加資格', '入札保証金',
+        '契約保証金', '履行保証',
+        '請負代金', '契約変更',
+        '仕様書', '発注者',
+        '受注者', '官製談合',
+        '歩切り', '工事請負',
+        '物品購入', '役務調達',
+        '政府調達協定', '中央調達',
+        '障害者優先調達',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29881,6 +29900,9 @@ export class VoiceCommands {
         // pass DCLXXI: license decision / inspection / operation reports
         'still awaiting the license decision',
         'これから検査', 'まだ運転前',
+        // pass DCLXXII: award notice / bidding reports
+        'still awaiting the award notice',
+        'これから入札', 'まだ入札前',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
