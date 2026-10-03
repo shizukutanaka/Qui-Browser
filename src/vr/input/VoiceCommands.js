@@ -22788,6 +22788,26 @@ export class VoiceCommands {
         '皇統', '皇位継承順位',
         '宮内庁式部', '宮内官',
         '皇室医務', '宮内庁侍従',
+        // pass DCLIII: agency evaluation published & corporation charter approved
+        'agency evaluation published', 'corporation charter approved',
+        '独立行政法人', '国立病院機構',
+        '労働者健康安全機構', '日本年金機構',
+        '産業技術総合研究所', 'jaxa',
+        '日本学術振興会', '国立研究開発法人',
+        '特殊法人', '認可法人',
+        '外郭団体', '国家公務員',
+        '国家公務員採用', '総合職試験',
+        '一般職試験', '幹部候補',
+        '定年退官', '官民人材',
+        '人事交流', '天下り',
+        '再就職等監視', '行政改革',
+        '行革', '省庁再編',
+        '庁舎移転', '政策評価',
+        '行政評価局', '独立行政法人評価',
+        '中期目標', '中期計画',
+        '年度計画', '運営費交付金',
+        '施設費交付金', '機能別会計',
+        '法人化', '司法支援センター',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29431,6 +29451,10 @@ export class VoiceCommands {
         'still awaiting the palace ceremony',
         'まだ即位前', 'これから行幸',
         'まだ叙位前',
+        // pass DCLIII: still awaiting the agency evaluation
+        'still awaiting the agency evaluation',
+        'まだ認可前', 'これから中期計画',
+        'これから設立届',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
