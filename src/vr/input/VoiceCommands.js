@@ -22565,6 +22565,22 @@ export class VoiceCommands {
         '議員立法', '内閣提出法案',
         '起立採決', '記名投票',
         '国会解散',
+        // pass DCXL: expressway toll collected & detour route opened
+        'expressway toll collected', 'detour route opened',
+        '国土交通省', '道路交通法',
+        '道路管理', '高速道路',
+        '自動車専用道路', '有料道路',
+        '国道', '県道',
+        '市町村道', '道路台帳',
+        '道路附属物', '路面標示',
+        '道路照明', '制限速度',
+        '通行規制', '道路修繕工事',
+        '維持修繕', '橋梁点検',
+        'トンネル点検', '防雪対策',
+        '道路標識', 'ガードレール',
+        '中央分離帯', '路側帯',
+        '歩道設置', '自転車道',
+        '交通規制',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29166,6 +29182,9 @@ export class VoiceCommands {
         // pass DCXXXIX: still awaiting the diet session
         'still awaiting the diet session',
         'まだ委員会前', 'これから採決',
+        // pass DCXL: still awaiting the route permit
+        'still awaiting the route permit',
+        'まだ道路使用前', 'まだ通行許可前',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
