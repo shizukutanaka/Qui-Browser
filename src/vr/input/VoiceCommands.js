@@ -22614,6 +22614,21 @@ export class VoiceCommands {
         '公園管理', 'ビジターセンター',
         '利用調整地区', '国立環境研究所',
         '環境再生', '環境保全団体',
+        // pass DCXLIII: recycling depot opened & compost pickup scheduled
+        'recycling depot opened', 'compost pickup scheduled',
+        '容器包装リサイクル法', '家電リサイクル法',
+        '小型家電回収', '食品リサイクル法',
+        '建設廃棄物再資源化', '自動車リサイクル法',
+        '資源有効利用促進法', '循環型社会形成推進基本法',
+        '再生資源', '新聞紙回収',
+        '空き缶回収', 'ペットボトル回収',
+        'びん回収', '廃油回収',
+        '蛍光灯回収', '乾電池回収',
+        'リサイクル拠点', '分別収集',
+        '集団回収', '回収協力店',
+        'マイバッグ持参', 'レジ袋有料',
+        'ごみ減量化', '廃棄物発生抑制',
+        'リユース促進', 'エコ活動',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29224,6 +29239,9 @@ export class VoiceCommands {
         // pass DCXLII: still awaiting the park designation
         'still awaiting the park designation',
         'まだ公園指定前', 'これから区域指定',
+        // pass DCXLIII: still awaiting the collection permit
+        'still awaiting the collection permit',
+        'まだ回収前', 'これから分別',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
