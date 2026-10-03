@@ -22489,6 +22489,21 @@ export class VoiceCommands {
         'ユニバーサル郵便', '郵便投票',
         '国際郵便', 'レターパック',
         '定形外郵便', '郵便配達',
+        // pass DCXXXV: vehicle registration renewed & safety inspection done
+        'vehicle registration renewed', 'safety inspection done',
+        '道路運送車両法', '運輸支局',
+        '自動車検査証', '自動車重量税',
+        '運輸局', '運輸安全委員会',
+        '自動車検査', '運転代行',
+        '旅客運送', '貨物運送',
+        '運送事業者', 'バス運行',
+        'タクシー業務', '軽自動車検査',
+        '自動車リサイクル', '道路運送法',
+        '道路運送車両', '特殊自動車',
+        '臨時運行許可', '自動車登録番号',
+        '自動車新規登録', '自動車ナンバー',
+        '自動車検査員', '運行管理士',
+        '運行管理者', '運送約款',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29075,6 +29090,9 @@ export class VoiceCommands {
         // pass DCXXXIV: still awaiting the mail service
         'still awaiting the mail service',
         'まだ配達前', 'これから転居届',
+        // pass DCXXXV: still awaiting the vehicle registration
+        'still awaiting the vehicle registration',
+        'まだ車検前', 'これから車検予約',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
