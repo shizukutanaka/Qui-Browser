@@ -21989,6 +21989,17 @@ export class VoiceCommands {
         'haccp認定', '食中毒届',
         '営業停止処分', '食品表示法',
         'アレルギー表示', '厨房衛生',
+        // pass DC: deed recorded & cadastral survey done
+        'deed recorded', 'cadastral survey done',
+        '不動産登記', '登記所',
+        '登記情報', '表示登記',
+        '権利登記', '建物表題登記',
+        '分筆', '合筆',
+        '地積測量', '筆界特定',
+        '境界標', '境界立会い',
+        '公図', '地番',
+        '土地家屋調査士', '不動産登記法',
+        '筆界調査', '地籍調査',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28468,6 +28479,9 @@ export class VoiceCommands {
         // pass DXCIX: still awaiting the food license
         'still awaiting the food license',
         'まだ営業許可前', 'これから営業届',
+        // pass DC: still awaiting the registration
+        'still awaiting the registration',
+        'まだ登記前', 'これから登記申請',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
