@@ -32,7 +32,7 @@ const nullPins = [
   'about to check in', 'mid sleep',
   'netcafe booth', 'capsule hotel',
   'これから入る', '仮眠中',
-  'ネカフェ席', 'カプセルホテル',
+  'ネカフェ席', 'カプセルホテル泊',
 ];
 const establishedPins = [
   ['シャワーを浴びて', 'close-tab'],

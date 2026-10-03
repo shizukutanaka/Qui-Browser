@@ -56,7 +56,7 @@ const nullPins = [
   'about to watch', 'mid movie',
   'halfway through the movie', 'tickets', 'popcorn',
   'まだ映画を見てる', '映画の途中', 'これから映画',
-  'チケット', 'ポップコーン',
+  'チケット未着', 'ポップコーン',
 ];
 const establishedPins = [
   ['movie ended', 'close-tab'],
