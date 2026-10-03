@@ -21978,6 +21978,17 @@ export class VoiceCommands {
         '歩道占用', '車両通行止め',
         '特殊車両通行許可', '制限外積載',
         '道路占用許可', '道路使用届',
+        // pass DXCIX: food business licensed & food manager certified
+        'food business licensed', 'food manager certified',
+        '食品営業許可', '営業許可',
+        '飲食店営業', '食品衛生法',
+        '食品衛生管理者', '食品衛生責任者',
+        '保健所営業許可', '食品届出',
+        '容器包装届出', '給食施設',
+        '給食管理', '衛生検査',
+        'haccp認定', '食中毒届',
+        '営業停止処分', '食品表示法',
+        'アレルギー表示', '厨房衛生',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28454,6 +28465,9 @@ export class VoiceCommands {
         // pass DXCVIII: still awaiting the road permit
         'still awaiting the road permit',
         'まだ占用許可前', 'これから使用届',
+        // pass DXCIX: still awaiting the food license
+        'still awaiting the food license',
+        'まだ営業許可前', 'これから営業届',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
