@@ -22872,6 +22872,24 @@ export class VoiceCommands {
         '実用新案権', '半導体集積回路',
         '育成者権', '地理的表示',
         '商標法', '特許協力条約',
+        // pass DCLVII: hospital accredited & clinic permit granted
+        'hospital accredited', 'clinic permit granted',
+        '医師法', '医師免許',
+        '医療法', '病院開設',
+        '診療所', '病床数',
+        '救急告示', '臨床研修病院',
+        '専門医', '総合診療医',
+        '医療安全管理者', '医療事故調査',
+        '医療介護連携', '在宅医療',
+        '訪問診療', '訪問看護ステーション',
+        'オンライン診療', '電子カルテ',
+        '医療費適正化', '協会けんぽ',
+        '組合健保', '健保組合',
+        '標準報酬', '一部負担金',
+        '混合診療', '自由診療',
+        '保険外併用療養費', '先進医療',
+        '高度医療', '緩和ケア',
+        '終末期医療', '延命治療',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29530,6 +29548,10 @@ export class VoiceCommands {
         // pass DCLVI: still awaiting the patent grant
         'still awaiting the patent grant',
         'まだ出願前',
+        // pass DCLVII: still awaiting the hospital accreditation
+        'still awaiting the hospital accreditation',
+        'まだ開院前', 'これから開院',
+        'まだ指定前',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
