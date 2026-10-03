@@ -22964,6 +22964,26 @@ export class VoiceCommands {
         '主計局', '主計官',
         '予算執行', '繰越明許',
         '不用額', '剰余金',
+        // pass DCLXI: export license issued & trade pact signed
+        'export license issued', 'trade pact signed',
+        '外為法', '外国為替及び外国貿易法',
+        '輸出許可', '輸入承認',
+        '輸出入管理', '安全保障貿易管理',
+        '輸出管理リスト', '経済制裁',
+        '貿易保険', '輸出保険',
+        '輸出企業', '輸入企業',
+        '知的財産権侵害物品', '国境措置',
+        '輸入割当', '特恵原産地証明',
+        '認定経済事業者', 'aeo事業者',
+        '自由貿易地域', '総合保税地域',
+        '日本貿易振興機構', 'jetro',
+        '通商白書', '貿易赤字',
+        '貿易黒字', '国際収支',
+        '経常収支', 'サービス貿易',
+        '貨物貿易', '自由貿易協定',
+        '世界貿易機関', 'wto協定',
+        '投資協定', '関税同盟',
+        'スパゲッティボウル',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29638,6 +29658,9 @@ export class VoiceCommands {
         'still awaiting the budget approval',
         'まだ予算成立前', 'これから概算要求',
         'まだ編成前',
+        // pass DCLXI: still awaiting the export license
+        'still awaiting the export license',
+        'まだ輸出許可前', 'これから輸出届',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
