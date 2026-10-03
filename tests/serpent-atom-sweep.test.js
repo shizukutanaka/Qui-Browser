@@ -47,7 +47,7 @@ const negate = [
 const nullPins = [
   'about to file the securities report',
   'about to attend the shareholders meeting',
-  '投資信託', // crumhorn (CDLXXVII) の null ピン維持 — 登録しない
+  '投資信託受益権', // crumhorn (CDLXXVII) の null ピン維持 — 登録しない
 ];
 
 describe('pass DCLV: securities-market & listing administration idioms (serpent)', () => {

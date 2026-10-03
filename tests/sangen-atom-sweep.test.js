@@ -32,7 +32,7 @@ const nullPins = [
   '審査中',
 ];
 const establishedPins = [
-  ['保険証券', null],
+  ['保険契約番号', null],
   ['契約更新', null],
   ['documents submitted', 'close-tab'],
   ['policy renewed', 'close-tab'],

@@ -121,7 +121,7 @@ const nullPins = [
   'at the salon', 'in the chair', 'mid haircut', 'under the dryer',
   'salon appointment', 'growing it out', 'roots showing',
   'need a haircut', 'overdue for a trim',
-  '美容室にいる', '予約してある', '来週ネイル', '理容院', '美容院',
+  '美容室にいる', '予約してある', '来週ネイル', '理容院', '美容院待ち',
   'ペットサロン', 'いつもの床屋', 'かかりつけの美容室', '清潔感',
   '盛装', '施術中', 'シャンプー台', 'ドライヤーの下',
 ];
