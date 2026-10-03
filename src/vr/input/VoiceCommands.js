@@ -21967,6 +21967,17 @@ export class VoiceCommands {
         '補装具費支給', '日常生活用具',
         '障害者用具', '給付券',
         '福祉用具専門相談員', 'スロープ設置',
+        // pass DXCVIII: road use permit granted & detour approved
+        'road use permit granted', 'detour approved',
+        '道路使用許可', '道路占用',
+        '道路工事', '道路上の作業',
+        '道路管理者', '国道事務所',
+        '道路占用料', '道路法',
+        '道路掘削', '電柱占用',
+        '地下埋設', '側溝',
+        '歩道占用', '車両通行止め',
+        '特殊車両通行許可', '制限外積載',
+        '道路占用許可', '道路使用届',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28440,6 +28451,9 @@ export class VoiceCommands {
         // pass DXCVII: still awaiting the equipment loan
         'still awaiting the equipment loan',
         'まだ貸与前', 'これから改修申請',
+        // pass DXCVIII: still awaiting the road permit
+        'still awaiting the road permit',
+        'まだ占用許可前', 'これから使用届',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
