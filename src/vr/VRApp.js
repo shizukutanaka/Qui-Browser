@@ -885,6 +885,10 @@ export class VRApp {
       topSitesProvider: () =>
         this.settings.privateMode ? [] : this.bookmarks.getTopSites(8, Date.now(), searchEngineHosts()),
       readerProxyUrl: this.settings.readerProxyUrl,
+      // Honour the persisted readerTextScale preference so a user who enlarged
+      // reader text keeps that size from startup, not just after re-stepping it
+      // live (same class as the persisted haptics fix in initializeSystems()).
+      readerScale: this.settings.readerTextScale,
       onLoadError: (url) => this.showVRToast(`${t('vr.error.panelLoadFailed')}: ${url}`, { type: 'error' }),
       onBlockedNavigation: () => this.showVRToast(t('vr.error.blockedUrl'), { type: 'warn' }),
       position: { x: 0, y: 1.5, z: -2 },
