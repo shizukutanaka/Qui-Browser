@@ -23266,6 +23266,27 @@ export class VoiceCommands {
         '日本人デカセギ', '外国人住民',
         '多文化共生', '共生社会',
         '国際交流',
+        // pass DCLXXVII: recall completed & inspection cleared
+        'recall completed', 'inspection cleared',
+        '食品表示', '食育',
+        '食育基本法', '健康食品',
+        '機能性表示食品', '特定保健用食品',
+        'トクホ', '栄養成分表示',
+        '食品添加物', '残留農薬',
+        '食品検査', '輸入食品検査',
+        '食中毒', '食品衛生監視員',
+        'haccp', 'HACCP',
+        '一般衛生管理',
+        '食品偽装', 'bse', 'BSE',
+        '品種登録', '賞味期限',
+        '消費期限', '保存方法',
+        '食品リコール', '食品等自主回収',
+        '自主回収', 'フードロス',
+        '食品ロス削減',
+        '冷凍食品', '生鮮食品',
+        '加工食品', '食品営業届出',
+        '食品産業', '食品事業者',
+        'みどりの食料システム戦略',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29989,6 +30010,9 @@ export class VoiceCommands {
         // pass DCLXXVI: visa decision / entry reports
         'still awaiting the visa decision',
         'まだ入国前', 'これから入国',
+        // pass DCLXXVII: recall notice / business-start reports
+        'still awaiting the recall notice',
+        'まだ営業前', 'まだ回収中',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
