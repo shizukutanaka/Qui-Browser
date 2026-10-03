@@ -22504,6 +22504,21 @@ export class VoiceCommands {
         '自動車新規登録', '自動車ナンバー',
         '自動車検査員', '運行管理士',
         '運行管理者', '運送約款',
+        // pass DCXXXVI: bank inspection completed & market misconduct fined
+        'bank inspection completed', 'market misconduct fined',
+        '金融庁', '金融庁検査',
+        '証券取引等監視委員会', '金融商品取引法',
+        '銀行検査', '金融監督',
+        'インサイダー取引', '粉飾決算',
+        '課徴金', '業務改善命令',
+        '預金保険機構', '銀行免許',
+        '証券会社登録', '投資運用業',
+        '金融審議会', '銀行法',
+        '保険業法', '信託業法',
+        '貸金業法', '暗号資産',
+        '仮想通貨交換業', '資金決済法',
+        '破綻処理', '金融持株会社',
+        '金融機関監督', '金融審査官',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29093,6 +29108,9 @@ export class VoiceCommands {
         // pass DCXXXV: still awaiting the vehicle registration
         'still awaiting the vehicle registration',
         'まだ車検前', 'これから車検予約',
+        // pass DCXXXVI: still awaiting the banking license
+        'still awaiting the banking license',
+        'まだ認可申請前', 'これから免許申請',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
