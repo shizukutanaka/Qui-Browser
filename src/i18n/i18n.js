@@ -155,6 +155,10 @@ const CATALOG = {
     'vr.msg.videoPlaying': 'Video: playing',
     'vr.msg.videoPaused': 'Video: paused',
     'vr.msg.videoStopped': 'Video: stopped',
+    'vr.msg.welcome': 'Welcome — look around to begin',
+    'vr.video.play': 'Play',
+    'vr.video.pause': 'Pause',
+    'vr.video.exit': 'Exit',
     'vr.msg.noNextPage': 'No next page',
     'vr.msg.noPreviousPage': 'No previous page',
     'vr.msg.goingBack': 'Going back',
@@ -175,7 +179,10 @@ const CATALOG = {
     'vr.error.foveationUnavailable': 'Foveation unavailable',
     'vr.error.hapticUnavailable': 'Haptic feedback unavailable',
     'vr.error.layersUnavailable': 'Sharp text rendering unavailable',
-    'vr.error.blockedUrl': 'Cannot open that address'
+    'vr.error.blockedUrl': 'Cannot open that address',
+    'vr.error.videoLoadFailed': 'Could not load video (check URL / CORS)',
+    'vr.error.panelLoadFailed': 'Failed to load',
+    'vr.error.smoothMoveWarning': 'Smooth move may cause motion sickness'
   },
   ja: {
     'hero.title': 'VRブラウジングの未来を体験',
@@ -321,6 +328,10 @@ const CATALOG = {
     'vr.msg.videoPlaying': 'ビデオ: 再生中',
     'vr.msg.videoPaused': 'ビデオ: 一時停止',
     'vr.msg.videoStopped': 'ビデオ: 停止',
+    'vr.msg.welcome': 'ようこそ — 見回して開始',
+    'vr.video.play': '再生',
+    'vr.video.pause': '一時停止',
+    'vr.video.exit': '終了',
     'vr.msg.noNextPage': '次ページなし',
     'vr.msg.noPreviousPage': '前ページなし',
     'vr.msg.goingBack': '戻る',
@@ -341,7 +352,10 @@ const CATALOG = {
     'vr.error.foveationUnavailable': 'フォベーション利用不可',
     'vr.error.hapticUnavailable': 'ハプティックフィードバック利用不可',
     'vr.error.layersUnavailable': 'シャープテキストレンダリング利用不可',
-    'vr.error.blockedUrl': 'このアドレスは開けません'
+    'vr.error.blockedUrl': 'このアドレスは開けません',
+    'vr.error.videoLoadFailed': '動画を読み込めませんでした（URL / CORS を確認してください）',
+    'vr.error.panelLoadFailed': '読み込みに失敗しました',
+    'vr.error.smoothMoveWarning': 'スムーズ移動は乗り物酔いを引き起こす可能性があります'
   }
 };
 

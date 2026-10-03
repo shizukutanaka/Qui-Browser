@@ -490,7 +490,7 @@ export function fireTeleportFeedback(controller, haptic, captions) {
  */
 export function smoothMoveWarning(enabledNow, reduceMotion) {
   if (enabledNow && reduceMotion) {
-    return 'Smooth move may cause motion sickness';
+    return t('vr.error.smoothMoveWarning');
   }
   return null;
 }
