@@ -22022,6 +22022,19 @@ export class VoiceCommands {
         '鉄道代替バス', 'フィーダーバス',
         '公共交通活性化', '地域公共交通確保',
         '生活バス', '循環バス',
+        // pass DCIII: waste facility approved & incinerator commissioned
+        'waste facility approved', 'incinerator commissioned',
+        'ごみ処理場', '焼却場',
+        '最終処分場', 'クリーンセンター',
+        'リサイクルプラザ', '粗大ごみ処理',
+        'ごみ減量', '資源化物回収',
+        '容器リサイクル', '小型家電リサイクル',
+        '一般廃棄物処理', '産業廃棄物',
+        'ごみ持ち込み', '処分場建設',
+        'リサイクルセンター', '不燃ごみ',
+        '粗大ごみ収集', 'ごみ袋指定',
+        'ごみ有料化', '不法投棄取締',
+        '廃棄物処理法',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28510,6 +28523,9 @@ export class VoiceCommands {
         // pass DCII: still awaiting the bus route
         'still awaiting the bus route',
         'まだ運行前', 'これから運行申請',
+        // pass DCIII: still awaiting the waste permit
+        'still awaiting the waste permit',
+        'まだ稼働前', 'これから建設申請',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
