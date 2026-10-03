@@ -21822,6 +21822,17 @@ export class VoiceCommands {
         '狩猟税', '猟区',
         'ジビエ', '銃砲所持許可',
         '狩猟免状',
+        // pass DLXXXV: heritage survey done & dig permit granted
+        'heritage survey done', 'dig permit granted',
+        '文化財', '史跡',
+        '重要文化財', '登録有形文化財',
+        '保護計画', '博物館',
+        '郷土資料館', '埋蔵文化財',
+        '発掘調査', '史跡整備',
+        '文化財審議会', '現状変更',
+        '保存活用', '指定文化財',
+        '建造物保存', '伝統的建造物群',
+        '重伝建', '活用促進',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28256,6 +28267,9 @@ export class VoiceCommands {
         // pass DLXXXIV: still unregistered for hunting
         'still unregistered for hunting',
         'まだ狩猟登録前', 'これから狩猟登録',
+        // pass DLXXXV: still awaiting the excavation
+        'still awaiting the excavation',
+        'まだ発掘前', 'これから調査',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
