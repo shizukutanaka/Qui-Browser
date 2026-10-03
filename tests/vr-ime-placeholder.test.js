@@ -97,7 +97,7 @@ function makeRecordingCanvas() {
   return { ctx, paints };
 }
 
-let canvases = [];
+const canvases = [];
 global.document = {
   documentElement: { lang: 'en' },
   createElement: () => {
