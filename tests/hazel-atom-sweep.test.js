@@ -53,7 +53,7 @@ const nullPins = [
   'museum ticket', 'exhibit hall', 'audio guide',
   'gift shop',
   '美術館の途中', 'これから美術館',
-  '入場券', '館内マップ',
+  '入場券なし', '館内マップ',
 ];
 const establishedPins = [
   ['museum done', 'close-tab'],
