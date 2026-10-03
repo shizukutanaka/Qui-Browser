@@ -23062,6 +23062,24 @@ export class VoiceCommands {
         '特許許諾', '技術移転',
         '日本産業規格', '計量標準',
         '国家標準', '計量法',
+        // pass DCLXVI: pension claim approved & enrollment record issued
+        'pension claim approved', 'enrollment record issued',
+        '厚生年金', '被保険者',
+        '第一号被保険者', '第三号被保険者',
+        '報酬月額', '経過的加算',
+        '在職定時改定', '年金額改定',
+        'マクロ経済スライド', '物価スライド',
+        '賃金スライド', '国民年金基金',
+        '付加保険料', '老齢基礎年金',
+        '老齢厚生年金', '障害基礎年金',
+        '障害厚生年金', '障害手当金',
+        '初診日', '認定基準',
+        '年金証書', '裁定請求',
+        '年金事務所', '社会保険労務士',
+        '適用調査', '算定基礎届',
+        '随時改定', '定時決定',
+        '育児休業等終了時改定', '埋葬料',
+        '確定給付企業年金', '企業型確定拠出年金',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29752,6 +29770,9 @@ export class VoiceCommands {
         // pass DCLXV: still awaiting the grant review
         'still awaiting the grant review',
         'まだ論文提出前',
+        // pass DCLXVI: still awaiting the pension ruling
+        'still awaiting the pension ruling',
+        'まだ裁定前', 'まだ請求前',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');

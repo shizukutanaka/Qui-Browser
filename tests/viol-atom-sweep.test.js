@@ -30,7 +30,7 @@ const negate = [
 const nullPins = [
   'mid coverage', 'pension office',
   'social insurance', '社会保険料',
-  '厚生年金',
+  '第二号被保険者',
 ];
 const establishedPins = [
   // existing pins that already cover this domain — kept, not duplicated

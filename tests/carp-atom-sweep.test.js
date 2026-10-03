@@ -31,7 +31,7 @@ const negate = [
 ];
 const nullPins = [
   'mid filing', 'pension benefits', 'retirement paperwork',
-  '年金事務所', '年金受給',
+  '個人型確定拠出年金', '年金受給',
 ];
 const establishedPins = [
   ['claim approved', 'close-tab'],
