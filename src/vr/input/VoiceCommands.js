@@ -22088,6 +22088,21 @@ export class VoiceCommands {
         '市街地再開発事業', '優良建築物等整備事業',
         '再開発緊急整備', 'まちづくり団体',
         'まちづくり協定', 'まちづくり推進委員会',
+        // pass DCVIII: absentee ballot cast & candidate filing accepted
+        'absentee ballot cast', 'candidate filing accepted',
+        '選挙管理委員会', '期日前投票所',
+        '当日投票', '不在者投票所',
+        '在外投票', '比例代表',
+        '小選挙区', '開票所',
+        '投票所', '選挙公報',
+        '選挙運動', '立候補届',
+        '選挙費用', '政治資金',
+        '収支報告書', '公費負担',
+        '選挙啓発', '選挙人名簿',
+        '投票入場券', '投票管理者',
+        '開票管理者', '選挙監視員',
+        '立会人', '政見放送',
+        'ポスター掲示',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28591,6 +28606,9 @@ export class VoiceCommands {
         // pass DCVII: still awaiting the redevelopment plan
         'still awaiting the redevelopment plan',
         'まだ再開発前', 'これから組合設立',
+        // pass DCVIII: still awaiting the filing
+        'still awaiting the filing',
+        'まだ立候補前', 'これから立候補届',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
