@@ -22534,6 +22534,21 @@ export class VoiceCommands {
         '巡査部長', '警察官採用',
         '警察学校', '警察官試験',
         '警備部', '捜査一課',
+        // pass DCXXXVIII: defense budget approved & base realignment done
+        'defense budget approved', 'base realignment done',
+        '防衛省', '自衛隊',
+        '防衛装備庁', '統合幕僚監部',
+        '陸上幕僚監部', '海上幕僚監部',
+        '航空幕僚監部', '防衛施設庁',
+        '防衛医科大学校', '駐屯地',
+        '自衛隊法', '防衛計画',
+        '防衛費', '防衛装備品',
+        '防衛白書', '防衛整備計画',
+        '基地対策', '防空識別圏',
+        '防衛出動', '災害派遣',
+        '治安出動', '警戒監視',
+        '自衛官', '任期制隊員',
+        '防衛記念章', '演習場',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29129,6 +29144,9 @@ export class VoiceCommands {
         // pass DCXXXVII: still awaiting the police report
         'still awaiting the police report',
         'まだ通報前', 'これから被害届',
+        // pass DCXXXVIII: still awaiting the defense review
+        'still awaiting the defense review',
+        'まだ入隊前', 'これから入隊',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
