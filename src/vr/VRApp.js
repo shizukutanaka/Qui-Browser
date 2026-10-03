@@ -675,7 +675,7 @@ export class VRApp {
       ctx.fillText(label, 24, 62);
       ctx.textAlign = 'right';
       ctx.fillStyle = ind.label;
-      ctx.fillText(on ? 'ON' : 'OFF', w - 24, 62);
+      ctx.fillText(on ? t('vr.msg.toggleOn') : t('vr.msg.toggleOff'), w - 24, 62);
       tex.needsUpdate = true;
     };
     draw(false);
@@ -735,7 +735,7 @@ export class VRApp {
       ctx.fillText(label, 14, 58);
       ctx.textAlign = 'right';
       ctx.fillStyle = ind.label;
-      ctx.fillText(on ? 'ON' : 'OFF', w - 14, 58);
+      ctx.fillText(on ? t('vr.msg.toggleOn') : t('vr.msg.toggleOff'), w - 14, 58);
       tex.needsUpdate = true;
     };
     draw(false);
@@ -1855,7 +1855,7 @@ export class VRApp {
     // Cycle buttons for enumerated settings (currently code-only or keyboard-shortcut-only).
     const cycles = [
       [
-        'Comfort',
+        t('vr.settings.comfort'),
         'motionSensitivity',
         COMFORT_PRESETS,
         (v) => {
