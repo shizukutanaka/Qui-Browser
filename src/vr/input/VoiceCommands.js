@@ -22581,6 +22581,23 @@ export class VoiceCommands {
         '中央分離帯', '路側帯',
         '歩道設置', '自転車道',
         '交通規制',
+        // pass DCXLI: railway franchise granted & level crossing closed
+        'railway franchise granted', 'level crossing closed',
+        '鉄道事業法', '鉄道事業者',
+        '鉄道運輸機構', '鉄道建設',
+        '鉄道軌道', '線路設備',
+        '駅施設', '鉄道信号',
+        '列車運行', '運転保安',
+        '鉄道事故', '鉄道監査',
+        '踏切', '踏切事故',
+        '鉄道免許', '鉄道営業',
+        '旅客鉄道', '貨物鉄道',
+        '新幹線', '在来線',
+        '私鉄', '地下鉄',
+        'モノレール', '路面電車',
+        '軽便鉄道', '鉄道技術基準',
+        '車両検査', '運転士',
+        '車掌',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -29185,6 +29202,9 @@ export class VoiceCommands {
         // pass DCXL: still awaiting the route permit
         'still awaiting the route permit',
         'まだ道路使用前', 'まだ通行許可前',
+        // pass DCXLI: still awaiting the railway license
+        'still awaiting the railway license',
+        'まだ開業前', 'これから運行開始',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
