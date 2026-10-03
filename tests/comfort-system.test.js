@@ -242,6 +242,58 @@ describe('ComfortSystem', () => {
     expect(camera.updateProjectionMatrix).toHaveBeenCalled();
   });
 
+  // ── updateFOV under WebXR presentation ────────────────────────────────────────
+  // When renderer.xr.isPresenting, WebGLRenderer.render() calls
+  // xr.updateCamera(camera) → updateUserCamera(), which copies
+  // cameraXR.projectionMatrix into camera.projectionMatrix AND recomputes
+  // camera.fov from the XR view's own projection — every frame, inside render.
+  // So camera.fov writes made here are overwritten before they reach the
+  // headset: dead writes that only ever took effect on the flat mirror view.
+  // The runtime owns the projection; peripheral restriction in XR is delivered
+  // by the vignette overlay instead.
+  test('updateFOV does not write camera.fov while presenting (XR owns projection)', () => {
+    const cam = makeCamera(90);
+    const cs = new ComfortSystem(makeScene(), cam, { xr: { isPresenting: true } });
+    cs.isMoving = true;
+    cs.currentFOV = 90;
+    cs.updateFOV(0.016);
+    expect(cam.fov).toBe(90);
+    expect(cam.updateProjectionMatrix).not.toHaveBeenCalled();
+  });
+
+  test('updateFOV keeps currentFOV at device baseline while presenting (honest status)', () => {
+    const cs = new ComfortSystem(makeScene(), makeCamera(90), { xr: { isPresenting: true } });
+    cs.isMoving = true;
+    cs.currentFOV = 90;
+    cs.updateFOV(0.016);
+    // The displayed FOV never actually narrows in XR, so the status value must
+    // not claim a reduction that isn't on screen.
+    expect(cs.currentFOV).toBe(90);
+  });
+
+  test('updateFOV still narrows on the desktop/mirror path (not presenting)', () => {
+    const cam = makeCamera(90);
+    const cs = new ComfortSystem(makeScene(), cam, { xr: { isPresenting: false } });
+    cs.isMoving = true;
+    cs.currentFOV = 90;
+    cs.updateFOV(0.016);
+    expect(cam.fov).toBeLessThan(90);
+    expect(cam.updateProjectionMatrix).toHaveBeenCalled();
+  });
+
+  test('vignette tunnel still drives while presenting (update() reaches the display)', () => {
+    const cam = makeCamera(90);
+    const cs = new ComfortSystem(makeScene(), cam, { xr: { isPresenting: true } });
+    cs.settings.vignette.smoothing = 1;
+    cs.isMoving = true;
+    cs.isRotating = true;
+    cs._headMoving = true;
+    cs.update(0.016);
+    // The overlay is the channel that actually restricts the periphery in XR.
+    expect(cs.vignetteMesh.visible).toBe(true);
+    expect(cs.vignetteMaterial.uniforms.intensity.value).toBeCloseTo(0.4, 5);
+  });
+
   // ── presets ───────────────────────────────────────────────────────────────────
   test('setPreset("sensitive") increases vignette intensity', () => {
     const before = system.settings.vignette.intensity;

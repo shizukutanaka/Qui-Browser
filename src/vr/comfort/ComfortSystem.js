@@ -230,6 +230,17 @@ export class ComfortSystem {
    * therefore suppressed.)
    */
   updateFOV(_deltaTime) {
+    // In WebXR presentation the runtime owns the projection: WebGLRenderer
+    // calls renderer.xr.updateCamera(camera) inside every render(), which
+    // copies cameraXR.projectionMatrix into camera.projectionMatrix and
+    // recomputes camera.fov from the XRView matrices. Any fov/projectionMatrix
+    // written here is overwritten before the draw, so the narrowing only ever
+    // showed on the flat mirror — never in the headset, where comfort matters.
+    // In XR the tunnel is delivered by the vignette overlay (updateVignette).
+    if (this.renderer?.xr?.isPresenting) {
+      return;
+    }
+
     // Target FOV based on motion
     let targetFOV = this.settings.fov.baseFOV;
 
