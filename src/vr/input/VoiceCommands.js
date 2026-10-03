@@ -22293,6 +22293,22 @@ export class VoiceCommands {
         '普及指導員', '営農指導',
         '農業経営', '販売契約',
         '産地形成',
+        // pass DCXXII: customs clearance done & duty deferral granted
+        'customs clearance done', 'duty deferral granted',
+        '税関', '通関業者',
+        '通関士', '輸入申告',
+        '輸出申告', '関税評価',
+        '関税分類', '税関検査',
+        '保税地域', '保税倉庫',
+        '特定保税承認', '特恵関税',
+        '原産地証明', '経済連携協定',
+        '輸入監視', '輸出入禁止品',
+        '携帯品免税', '別送品',
+        '旅客携帯品', '免税店',
+        '関税割当', '更正の請求',
+        '関税審査会', '関税率表',
+        '関税暫定措置法', '関税定率法',
+        '通関情報処理',
         /(?<!(?:mean|intend|want)(?:ed|t)? to )(?<!wanna )close\s+(?:this\s+|the\s+)?tab\b(?!\s*(?:\d|on\b|to\b|i\b))/i,
         /close\s+(?:this\s+|the\s+)?window/i],
       action: () => {
@@ -28840,6 +28856,9 @@ export class VoiceCommands {
         // pass DCXXI: still awaiting the grower certification
         'still awaiting the grower certification',
         'これから営農計画',
+        // pass DCXXII: still awaiting the customs clearance
+        'still awaiting the customs clearance',
+        'まだ通関前',
         /keep it/i, /leave it(?: be| alone)?/i, /(?<!ほかある|かある|ください|くれ|もらえ|くださる|おし|た|ち|んじ)まい[。！？!?]?$/],
       action: () => {
         this.speak('承知しました。実行しません');
