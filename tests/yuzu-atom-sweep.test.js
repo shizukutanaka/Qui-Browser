@@ -33,7 +33,7 @@ const nullPins = [
   'about to file', 'mid claim',
   'insurance claim', 'accident report',
   'これから請求する', '査定中',
-  '保険請求', '事故報告',
+  '保険請求', '事故報告書',
 ];
 const establishedPins = [
   ['claim filed', 'close-tab'],
