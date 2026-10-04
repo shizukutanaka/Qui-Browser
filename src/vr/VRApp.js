@@ -1181,14 +1181,26 @@ export class VRApp {
     panel.traverse((obj) => {
       if (obj.isMesh) {
         this.unregisterInteractable(obj);
+        // Per-button materials and canvas textures are owned by this panel
+        // generation — release them now or they accumulate with every rebuild
+        // (_panelTextures only tracks the live set for teardown). Geometries
+        // stay shared via _sharedPlaneGeometry, so they are never disposed.
+        const { material } = obj;
+        if (material) {
+          if (material.map) {
+            material.map.dispose();
+            const i = this._panelTextures.indexOf(material.map);
+            if (i !== -1) {
+              this._panelTextures.splice(i, 1);
+            }
+          }
+          material.dispose();
+        }
       }
     });
     if (panel.parent) {
       panel.parent.remove(panel);
     }
-    // Geometries are shared via _sharedPlaneGeometry, so only the per-button
-    // textures are owned here; they are tracked in _panelTextures and disposed
-    // with the app.
     this._settingsPanelDrawers = [];
   }
 
