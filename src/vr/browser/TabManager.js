@@ -16,10 +16,15 @@ import { tabStripColors } from './chromeColors.js';
 import { serializeTabSession } from './tabSession.js';
 import { prefersHighContrast } from '../../a11y/accessibility.js';
 import {
-  STRIP_W, STRIP_H, STRIP_CANVAS_W, STRIP_CANVAS_H,
-  STRIP_NEW_TAB_PX, STRIP_PRIVATE_PX, tabWidthPx, tabCloseZonePx
+  STRIP_W,
+  STRIP_H,
+  STRIP_CANVAS_W,
+  STRIP_CANVAS_H,
+  STRIP_NEW_TAB_PX,
+  STRIP_PRIVATE_PX,
+  tabWidthPx,
+  tabCloseZonePx
 } from './panelGeometry.js';
-
 
 const MAX_TABS = 8;
 // Ctrl+Shift+T-style reopen stack depth — Chrome/Firefox keep the last ~8-10
@@ -84,9 +89,9 @@ export class TabManager {
     this.rootGroup.position.set(this.position.x, this.position.y, this.position.z);
 
     // Tab strip sits just above the active panel.
-    this.stripGroup  = new THREE.Group();
+    this.stripGroup = new THREE.Group();
     this.stripCanvas = document.createElement('canvas');
-    this.stripCanvas.width  = STRIP_CANVAS_W;
+    this.stripCanvas.width = STRIP_CANVAS_W;
     this.stripCanvas.height = STRIP_CANVAS_H;
     this.stripTex = configureUITexture(new THREE.CanvasTexture(this.stripCanvas));
 
@@ -134,7 +139,7 @@ export class TabManager {
 
     const col = tabStripColors(prefersHighContrast());
     const n = this.tabs.length;
-    const newW = STRIP_NEW_TAB_PX;                       // "+" button width
+    const newW = STRIP_NEW_TAB_PX; // "+" button width
     const chipW = this._privateMode ? STRIP_PRIVATE_PX : 0;
     const tabW = tabWidthPx(n, c.width - chipW);
 
@@ -167,11 +172,13 @@ export class TabManager {
       ctx.font = '22px sans-serif';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
-      const title = this.tabs[i].currentUrl
-        ? this._shortTitle(this.tabs[i].currentUrl)
-        : t('vr.tabs.newTab');
-      ctx.fillText(title, x + 14 + privateDot + pinnedDot, c.height / 2,
-        Math.max(8, tabCloseZonePx(tabW).x0 - 20 - privateDot - pinnedDot));
+      const title = this.tabs[i].currentUrl ? this._shortTitle(this.tabs[i].currentUrl) : t('vr.tabs.newTab');
+      ctx.fillText(
+        title,
+        x + 14 + privateDot + pinnedDot,
+        c.height / 2,
+        Math.max(8, tabCloseZonePx(tabW).x0 - 20 - privateDot - pinnedDot)
+      );
 
       // Close ✕ — drawn inside a small red box for discoverability.
       // Anchored to STRIP_CLOSE_PX, the same constant _onStripSelect's hit zone
@@ -237,7 +244,7 @@ export class TabManager {
       return;
     }
     const local = this.stripMesh.worldToLocal(rawPoint.clone());
-    const u = (local.x / STRIP_W) + 0.5;        // 0–1
+    const u = local.x / STRIP_W + 0.5; // 0–1
     const px = Math.round(u * this.stripCanvas.width);
 
     const newW = STRIP_NEW_TAB_PX;
@@ -293,7 +300,7 @@ export class TabManager {
       registerInteractable: this.opts.registerInteractable,
       unregisterInteractable: this.opts.unregisterInteractable,
       onNavigate: (u, title, srcPanel) => {
-        this._drawStrip();           // refresh tab title
+        this._drawStrip(); // refresh tab title
         this.opts.onNavigate?.(u, title, srcPanel);
       },
       privateMode,
@@ -347,6 +354,7 @@ export class TabManager {
         this._closedStack.shift();
       }
     }
+    const prev = this.getActiveTab();
     panel.dispose();
     this.tabs.splice(index, 1);
 
@@ -354,7 +362,12 @@ export class TabManager {
       this.activeIndex = -1;
     } else if (index <= this.activeIndex) {
       this.activeIndex = Math.max(0, this.activeIndex - 1);
-      this.setActive(this.activeIndex);
+      // Closing a tab left of the active one only shifts indices — the same
+      // panel stays active, so setActive would re-fire onTabActivate and
+      // re-announce the tab the user never left.
+      if (this.getActiveTab() !== prev) {
+        this.setActive(this.activeIndex);
+      }
     }
     this._drawStrip();
     if (this.opts.onTabClose) {
@@ -545,7 +558,7 @@ export class TabManager {
     if (!panel) {
       return false;
     }
-    const pinned = this.tabs.filter(t => t.pinned).length;
+    const pinned = this.tabs.filter((t) => t.pinned).length;
     const target = panel.pinned ? 0 : pinned;
     return target !== index && this.moveTab(index, target - index);
   }
@@ -555,7 +568,7 @@ export class TabManager {
     if (!panel) {
       return false;
     }
-    const pinned = this.tabs.filter(t => t.pinned).length;
+    const pinned = this.tabs.filter((t) => t.pinned).length;
     const target = panel.pinned ? pinned - 1 : this.tabs.length - 1;
     return target !== index && this.moveTab(index, target - index);
   }
@@ -664,9 +677,7 @@ export class TabManager {
     if (!panel) {
       return null;
     }
-    return panel.pinned
-      ? (this.unpinTab(index), 'unpinned')
-      : (this.pinTab(index), 'pinned');
+    return panel.pinned ? (this.unpinTab(index), 'unpinned') : (this.pinTab(index), 'pinned');
   }
 
   /**
@@ -747,7 +758,7 @@ export class TabManager {
    */
   serializeSession() {
     return serializeTabSession(
-      this.tabs.map(p => ({ url: p.currentUrl || '', isPrivate: !!p.isPrivate })),
+      this.tabs.map((p) => ({ url: p.currentUrl || '', isPrivate: !!p.isPrivate })),
       this.activeIndex
     );
   }
@@ -784,7 +795,7 @@ export class TabManager {
    */
   setCurved(value) {
     this._curved = !!value;
-    this.tabs.forEach(panel => {
+    this.tabs.forEach((panel) => {
       if (panel.setCurved) {
         panel.setCurved(this._curved);
       }
@@ -799,7 +810,7 @@ export class TabManager {
    */
   setSearchEngine(engine) {
     this.opts.searchEngine = engine;
-    this.tabs.forEach(panel => {
+    this.tabs.forEach((panel) => {
       if (panel.setSearchEngine) {
         panel.setSearchEngine(engine);
       }
@@ -843,12 +854,12 @@ export class TabManager {
 
   dispose() {
     this.opts.unregisterInteractable(this.stripMesh);
-    this.tabs.forEach(panel => panel.dispose());
+    this.tabs.forEach((panel) => panel.dispose());
     this.tabs = [];
     this.activeIndex = -1;
     this._closedStack = [];
 
-    this.stripGroup.traverse(obj => {
+    this.stripGroup.traverse((obj) => {
       if (obj.geometry) {
         obj.geometry.dispose();
       }
