@@ -241,6 +241,11 @@ export class VRApp {
       southpaw: false, // swap left/right controller roles for left-handed users
       // In-VR settings panel (toggle buttons).
       enableSettingsPanel: true,
+      // Which settings-section tab is open (tab semantics: exactly one).
+      // Persisted via updateSetting — the loadPersistedSettings whitelist only
+      // copies keys declared here, so without this entry the selection was
+      // dropped on every boot.
+      openSettingsSections: ['settings.section.a11y'],
       // FR-13.1: gaze-dwell selection (hands-free accessibility). Look at an
       // interactable for gazeDwellTime ms to activate it. OFF by default.
       enableGazeDwell: false,
