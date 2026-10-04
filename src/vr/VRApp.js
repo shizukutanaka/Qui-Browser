@@ -2143,7 +2143,7 @@ export class VRApp {
     this.scene.add(this.playerRig);
 
     // Spatial window management for the in-VR browser panel (head-lock follow,
-    // billboard, distance). Attached to the active tab's group when present.
+    // distance). Attached to the active tab's group when present.
     if (this.settings.enableWebPanel) {
       this.windowManager = new WindowManager(this.camera, {
         distance: this.settings.windowDistance
@@ -4065,7 +4065,7 @@ export class VRApp {
       this.captionSystem.update(dt * 1000);
     }
 
-    // Spatial window management: keep the active panel followed/billboarded.
+    // Spatial window management: keep the active panel followed.
     if (this.windowManager && (this.windowManager.followMode || this.windowManager.isGrabbing)) {
       // The managed target is TabManager's rootGroup, which does not change
       // with the active tab — so this only has to cover the case where the
