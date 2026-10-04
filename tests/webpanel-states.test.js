@@ -14,31 +14,61 @@ class MockMesh {
     this.material = { map: null, dispose() {} };
     this.position = { set() {} };
   }
-  worldToLocal(v) { return v; }
+  worldToLocal(v) {
+    return v;
+  }
 }
 
 jest.mock('three', () => ({
   Group: class {
-    constructor() { this.position = { set() {} }; this.rotation = {}; this._objects = []; }
-    add(o) { this._objects.push(o); }
-    remove(o) { this._objects = this._objects.filter(x => x !== o); }
-    traverse(fn) { this._objects.forEach(fn); fn(this); }
+    constructor() {
+      this.position = { set() {} };
+      this.rotation = {};
+      this._objects = [];
+    }
+    add(o) {
+      this._objects.push(o);
+    }
+    remove(o) {
+      this._objects = this._objects.filter((x) => x !== o);
+    }
+    traverse(fn) {
+      this._objects.forEach(fn);
+      fn(this);
+    }
   },
   Mesh: MockMesh,
-  PlaneGeometry: class { dispose() {} },
-  MeshBasicMaterial: class { dispose() {} },
-  CanvasTexture: class { constructor() { this.needsUpdate = false; this.colorSpace = ''; } dispose() {} },
+  PlaneGeometry: class {
+    dispose() {}
+  },
+  MeshBasicMaterial: class {
+    dispose() {}
+  },
+  CanvasTexture: class {
+    constructor() {
+      this.needsUpdate = false;
+      this.colorSpace = '';
+    }
+    dispose() {}
+  },
   SRGBColorSpace: 'srgb',
-  MathUtils: { degToRad: (d) => d * Math.PI / 180 }
+  MathUtils: { degToRad: (d) => (d * Math.PI) / 180 }
 }));
 
 // ── canvas / document stub ────────────────────────────────────────────────────
 const ctx2d = {
-  clearRect() {}, fillRect() {}, strokeRect() {},
-  beginPath() {}, arc() {}, fill() {},
+  clearRect() {},
+  fillRect() {},
+  strokeRect() {},
+  beginPath() {},
+  arc() {},
+  fill() {},
   fillText: jest.fn(),
-  set fillStyle(v) {}, set strokeStyle(v) {},
-  set font(v) {}, set textAlign(v) {}, set lineWidth(v) {},
+  set fillStyle(v) {},
+  set strokeStyle(v) {},
+  set font(v) {},
+  set textAlign(v) {},
+  set lineWidth(v) {},
   set textBaseline(v) {}
 };
 global.document = {
@@ -46,7 +76,10 @@ global.document = {
     if (tag === 'canvas') return { width: 0, height: 0, getContext: () => ctx2d };
     if (tag === 'iframe') {
       return {
-        src: '', style: { cssText: '' }, onload: null, onerror: null,
+        src: '',
+        style: { cssText: '' },
+        onload: null,
+        onerror: null,
         setAttribute() {}
       };
     }
@@ -61,16 +94,24 @@ const { WebPanel, urlBarMaxChars } = require('../src/vr/browser/WebPanel.js');
 // which would wipe implementations before each test).
 const _registered = [];
 const _unregistered = [];
-function registeredMeshes() { return _registered; }
-function unregisteredMeshes() { return _unregistered; }
+function registeredMeshes() {
+  return _registered;
+}
+function unregisteredMeshes() {
+  return _unregistered;
+}
 
 function makePanel(opts = {}) {
   _registered.length = 0;
   _unregistered.length = 0;
   return new WebPanel({
     scene: { add() {}, remove() {} },
-    registerInteractable: (mesh) => { _registered.push(mesh); },
-    unregisterInteractable: (mesh) => { _unregistered.push(mesh); },
+    registerInteractable: (mesh) => {
+      _registered.push(mesh);
+    },
+    unregisterInteractable: (mesh) => {
+      _unregistered.push(mesh);
+    },
     onNavigate: jest.fn(),
     ...opts
   });
@@ -93,7 +134,7 @@ describe('WebPanel history navigation state', () => {
     // Simulate _loadUrl adding first history entry as navigate() would.
     p.history = ['https://a.com'];
     p.historyIdx = 0;
-    expect(p.historyIdx > 0).toBe(false);           // back disabled
+    expect(p.historyIdx > 0).toBe(false); // back disabled
     expect(p.historyIdx < p.history.length - 1).toBe(false); // forward disabled
   });
 
@@ -101,7 +142,7 @@ describe('WebPanel history navigation state', () => {
     const p = makePanel();
     p.history = ['https://a.com', 'https://b.com'];
     p.historyIdx = 1;
-    expect(p.historyIdx > 0).toBe(true);            // back enabled
+    expect(p.historyIdx > 0).toBe(true); // back enabled
     expect(p.historyIdx < p.history.length - 1).toBe(false); // forward still disabled
   });
 
@@ -227,13 +268,13 @@ describe('WebPanel load-error state', () => {
     const p = makePanel();
     p.iframe.onerror && p.iframe.onerror(); // prime an error
     p._loadUrl('https://good.example');
-    expect(p._loadError).toBe(false);   // cleared at the start of the new load
+    expect(p._loadError).toBe(false); // cleared at the start of the new load
   });
 
   test('_loadError is cleared when iframe fires onload', () => {
     const p = makePanel();
     p._loadUrl('https://site.example');
-    p.iframe.onerror();                 // set the error
+    p.iframe.onerror(); // set the error
     expect(p._loadError).toBe(true);
 
     // Navigate to the same URL again — onerror fired, then onload fires.
@@ -373,7 +414,9 @@ describe('WebPanel content-area state', () => {
 // permissive origins are reachable; everything else must fall back honestly.
 describe('WebPanel reader viewport', () => {
   const realFetch = global.fetch;
-  afterEach(() => { global.fetch = realFetch; });
+  afterEach(() => {
+    global.fetch = realFetch;
+  });
 
   const ARTICLE = `
     <html><head><title>Test Article</title></head><body>
@@ -392,14 +435,14 @@ describe('WebPanel reader viewport', () => {
     await p._loadReaderText('https://example.com/a');
     expect(p._contentState).toBe('reader');
     expect(p._readerLines.length).toBeGreaterThan(3);
-    expect(p._readerLines.some(l => l.text.includes('real prose'))).toBe(true);
+    expect(p._readerLines.some((l) => l.text.includes('real prose'))).toBe(true);
   });
 
   test('script and nav content never reach the reader lines', async () => {
     global.fetch = () => Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(ARTICLE) });
     const p = makePanel();
     await p._loadReaderText('https://example.com/a');
-    const all = p._readerLines.map(l => l.text).join(' ');
+    const all = p._readerLines.map((l) => l.text).join(' ');
     expect(all).not.toContain('var x');
     expect(all).not.toContain('Nav junk');
   });
@@ -419,10 +462,12 @@ describe('WebPanel reader viewport', () => {
   });
 
   test('a fetched page with no recoverable prose says so rather than showing blank', async () => {
-    global.fetch = () => Promise.resolve({
-      ok: true, status: 200,
-      text: () => Promise.resolve('<html><body><div id="root"></div></body></html>')
-    });
+    global.fetch = () =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        text: () => Promise.resolve('<html><body><div id="root"></div></body></html>')
+      });
     const p = makePanel();
     await p._loadReaderText('https://example.com/spa');
     expect(p._contentState).toBe('unavailable');
@@ -431,11 +476,13 @@ describe('WebPanel reader viewport', () => {
 
   test('a stale in-flight fetch cannot overwrite a newer navigation', async () => {
     let resolveSlow;
-    const slow = new Promise((r) => { resolveSlow = r; });
+    const slow = new Promise((r) => {
+      resolveSlow = r;
+    });
     global.fetch = () => Promise.resolve({ ok: true, status: 200, text: () => slow });
     const p = makePanel();
     const first = p._loadReaderText('https://example.com/old');
-    p._readerSeq++;             // simulate a newer navigation starting
+    p._readerSeq++; // simulate a newer navigation starting
     resolveSlow(ARTICLE);
     await first;
     expect(p._contentState).not.toBe('reader'); // stale result discarded
@@ -446,7 +493,7 @@ describe('WebPanel reader viewport', () => {
     const p = makePanel();
     await p._loadReaderText('https://example.com/a');
     expect(p._readerScroll).toBe(0);
-    expect(p.scrollContent(-5)).toBe(false);      // already at the top
+    expect(p.scrollContent(-5)).toBe(false); // already at the top
     const moved = p.scrollContent(3);
     if (moved) {
       expect(p._readerScroll).toBeGreaterThan(0);
@@ -474,7 +521,7 @@ describe('WebPanel reader viewport', () => {
     global.fetch = () => Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(ARTICLE) });
     const p = makePanel();
     p._loadUrl('https://example.com/a');
-    await new Promise(r => setTimeout(r, 0)); // let the fetch chain settle
+    await new Promise((r) => setTimeout(r, 0)); // let the fetch chain settle
     expect(p._contentState).toBe('reader');
     p.iframe.onload();
     expect(p._contentState).toBe('reader');
@@ -489,15 +536,18 @@ describe('WebPanel reader viewport', () => {
 // page), and land on an honest 'stopped' state — not a blank or a stale page.
 describe('WebPanel stop()', () => {
   const realFetch = global.fetch;
-  afterEach(() => { global.fetch = realFetch; });
+  afterEach(() => {
+    global.fetch = realFetch;
+  });
 
   // A fetch that never resolves on its own but honours abort — models a hung
   // origin while letting stop() actually tear the request down (and keeps the
   // panel's 5 s abort timer from lingering past the test).
   function mockHungFetch() {
-    global.fetch = (_url, opts) => new Promise((_res, rej) => {
-      opts && opts.signal && opts.signal.addEventListener('abort', () => rej(new Error('aborted')));
-    });
+    global.fetch = (_url, opts) =>
+      new Promise((_res, rej) => {
+        opts && opts.signal && opts.signal.addEventListener('abort', () => rej(new Error('aborted')));
+      });
   }
 
   test('is a safe no-op when nothing is loading', () => {
@@ -533,7 +583,9 @@ describe('WebPanel stop()', () => {
 
   test('aborts the in-flight reader fetch — its late result cannot overwrite stopped', async () => {
     let resolveSlow;
-    const slow = new Promise((r) => { resolveSlow = r; });
+    const slow = new Promise((r) => {
+      resolveSlow = r;
+    });
     global.fetch = () => Promise.resolve({ ok: true, status: 200, text: () => slow });
     const p = makePanel();
     p._loadUrl('https://example.com/slow');
@@ -542,18 +594,21 @@ describe('WebPanel stop()', () => {
     expect(ctrl.signal.aborted).toBe(true);
     expect(p._loadController).toBeNull();
     resolveSlow('ignored');
-    await new Promise(r => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, 0));
     expect(p._contentState).toBe('stopped');
   });
 
   test('a rendered reader stays put — stop only cancels what is still pending', async () => {
-    global.fetch = () => Promise.resolve({
-      ok: true, status: 200,
-      text: () => Promise.resolve('<html><body><article><p>' + 'Prose text. '.repeat(40) + '</p></article></body></html>')
-    });
+    global.fetch = () =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        text: () =>
+          Promise.resolve('<html><body><article><p>' + 'Prose text. '.repeat(40) + '</p></article></body></html>')
+      });
     const p = makePanel();
     p._loadUrl('https://example.com/a');
-    await new Promise(r => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, 0));
     expect(p._contentState).toBe('reader');
     p.stop();
     expect(p._contentState).toBe('reader');
@@ -562,14 +617,16 @@ describe('WebPanel stop()', () => {
 
   test('dispose aborts the in-flight reader fetch too', async () => {
     let resolveSlow;
-    const slow = new Promise((r) => { resolveSlow = r; });
+    const slow = new Promise((r) => {
+      resolveSlow = r;
+    });
     global.fetch = () => Promise.resolve({ ok: true, status: 200, text: () => slow });
     const p = makePanel();
     p._loadUrl('https://example.com/a');
     p.dispose();
     expect(p._loadController).toBeNull();
     resolveSlow('<html><body><article><p>' + 'Prose. '.repeat(40) + '</p></article></body></html>');
-    await new Promise(r => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, 0));
     expect(p._contentState).toBe('loading'); // nothing overwrote it post-dispose
   });
 });
@@ -577,19 +634,28 @@ describe('WebPanel stop()', () => {
 // ── reload↔stop chrome routing + glyph ───────────────────────────────────────
 describe('WebPanel reload↔stop chrome behaviour', () => {
   const realFetch = global.fetch;
-  afterEach(() => { global.fetch = realFetch; });
+  afterEach(() => {
+    global.fetch = realFetch;
+  });
 
   function selectReloadZone(p) {
     // px 174 is the reload button's centre (zone: px<204 after fwd).
     const u = 174 / 1024;
     const x = (u - 0.5) * 1.6; // PANEL_W
-    p._onChromeSelect({ x, y: 0, clone() { return this; } });
+    p._onChromeSelect({
+      x,
+      y: 0,
+      clone() {
+        return this;
+      }
+    });
   }
 
   test('the reload zone stops an in-flight load instead of reloading', () => {
-    global.fetch = (_url, opts) => new Promise((_res, rej) => {
-      opts && opts.signal && opts.signal.addEventListener('abort', () => rej(new Error('aborted')));
-    });
+    global.fetch = (_url, opts) =>
+      new Promise((_res, rej) => {
+        opts && opts.signal && opts.signal.addEventListener('abort', () => rej(new Error('aborted')));
+      });
     const p = makePanel();
     p._loadUrl('https://example.com/slow');
     expect(p.loading).toBe(true);
@@ -724,8 +790,15 @@ describe('WebPanel URL bar does not overflow', () => {
 // stuck on the first screen of any article.
 describe('WebPanel reader is scrollable by ray/gaze, not just voice', () => {
   const {
-    ARROW_UP_X0, ARROW_DN_X0, ARROW_W, ARROW_H, ARROW_Y0,
-    visibleLinesFor, pageJumpLines, CONTENT_PX_W, CONTENT_PX_H
+    ARROW_UP_X0,
+    ARROW_DN_X0,
+    ARROW_W,
+    ARROW_H,
+    ARROW_Y0,
+    visibleLinesFor,
+    pageJumpLines,
+    CONTENT_PX_W,
+    CONTENT_PX_H
   } = require('../src/vr/browser/readerLayout.js');
 
   const LONG = `<html><head><title>T</title></head><body><article>
@@ -742,10 +815,17 @@ describe('WebPanel reader is scrollable by ray/gaze, not just voice', () => {
   // contentMesh is PANEL_W x PANEL_H*(1-CHROME_H); worldToLocal is stubbed to
   // return whatever we inject, so build the local point for a canvas pixel.
   function localForContent(px, py) {
-    const PANEL_W = 1.6, contentH = 1.0 * (1 - 0.08);
+    const PANEL_W = 1.6,
+      contentH = 1.0 * (1 - 0.08);
     const u = px / CONTENT_PX_W;
     const v = 1 - py / CONTENT_PX_H;
-    return { x: (u - 0.5) * PANEL_W, y: (v - 0.5) * contentH, clone() { return this; } };
+    return {
+      x: (u - 0.5) * PANEL_W,
+      y: (v - 0.5) * contentH,
+      clone() {
+        return this;
+      }
+    };
   }
 
   test('contentMesh is registered as an interactable', async () => {
@@ -758,36 +838,59 @@ describe('WebPanel reader is scrollable by ray/gaze, not just voice', () => {
     expect(p._contentState).toBe('reader');
     const before = p._readerScroll;
     p.contentMesh.worldToLocal = () => localForContent(ARROW_DN_X0 + ARROW_W / 2, ARROW_Y0 + ARROW_H / 2);
-    p._onContentSelect({ x: 0, y: 0, clone() { return this; } });
+    p._onContentSelect({
+      x: 0,
+      y: 0,
+      clone() {
+        return this;
+      }
+    });
     // visibleLinesFor, not visibleLineCount: a scrollable article reserves the
     // bottom strip the arrows and progress label occupy, so fewer lines show.
-    expect(p._readerScroll)
-      .toBe(before + pageJumpLines(visibleLinesFor(p._readerLines.length, 1)));
+    expect(p._readerScroll).toBe(before + pageJumpLines(visibleLinesFor(p._readerLines.length, 1)));
   });
 
   test('selecting the up arrow goes back, clamped at the top', async () => {
     const p = await readerPanel();
     p.contentMesh.worldToLocal = () => localForContent(ARROW_DN_X0 + ARROW_W / 2, ARROW_Y0 + ARROW_H / 2);
-    p._onContentSelect({ clone() { return this; } });
+    p._onContentSelect({
+      clone() {
+        return this;
+      }
+    });
     const afterDown = p._readerScroll;
     expect(afterDown).toBeGreaterThan(0);
 
     p.contentMesh.worldToLocal = () => localForContent(ARROW_UP_X0 + ARROW_W / 2, ARROW_Y0 + ARROW_H / 2);
-    p._onContentSelect({ clone() { return this; } });
+    p._onContentSelect({
+      clone() {
+        return this;
+      }
+    });
     expect(p._readerScroll).toBeLessThan(afterDown);
   });
 
   test('selecting the body text area does not scroll', async () => {
     const p = await readerPanel();
     p.contentMesh.worldToLocal = () => localForContent(200, 200);
-    p._onContentSelect({ clone() { return this; } });
+    p._onContentSelect({
+      clone() {
+        return this;
+      }
+    });
     expect(p._readerScroll).toBe(0);
   });
 
   test('selecting content is inert when not in reader state', () => {
     const p = makePanel();
     p.contentMesh.worldToLocal = () => localForContent(ARROW_DN_X0 + ARROW_W / 2, ARROW_Y0 + ARROW_H / 2);
-    expect(() => p._onContentSelect({ clone() { return this; } })).not.toThrow();
+    expect(() =>
+      p._onContentSelect({
+        clone() {
+          return this;
+        }
+      })
+    ).not.toThrow();
     expect(p._readerScroll).toBe(0);
   });
 
@@ -832,11 +935,50 @@ describe('WebPanel.setReaderProxyUrl — live proxy switch', () => {
     const seen = [];
     global.fetch = (u) => {
       seen.push(u);
-      return Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve('<html><body><article><p>Hello world text.</p></article></body></html>') });
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        text: () => Promise.resolve('<html><body><article><p>Hello world text.</p></article></body></html>')
+      });
     };
     const p = makePanel();
     p.setReaderProxyUrl('http://p:8080');
     await p._loadReaderText('https://example.com/a');
     expect(seen[0]).toBe('http://p:8080/fetch?url=https%3A%2F%2Fexample.com%2Fa');
+  });
+});
+
+// The URL bar's load-error text was a hard-coded English literal drawn to the
+// chrome canvas — in a Japanese session the address bar still read "Failed to
+// load". The catalog already has vr.error.panelLoadFailed (EN+JA, added for
+// the toast path), so the drawn string routes through t() with identical EN
+// output.
+describe('load-error URL-bar text is localized through t() (WCAG 3.1.2)', () => {
+  const { setLanguage } = require('../src/i18n/i18n.js');
+
+  beforeAll(() => {
+    // setLanguage() writes document.documentElement.lang; the stub document
+    // lacks that node, so give it one.
+    global.document.documentElement = { lang: 'en' };
+  });
+  afterEach(() => setLanguage('en'));
+
+  function urlBarErrorText() {
+    const p = makePanel();
+    p.currentUrl = 'https://x.jp/';
+    p._loadError = true;
+    ctx2d.fillText.mockClear();
+    p._drawChrome();
+    const call = ctx2d.fillText.mock.calls.find((c) => c[1] === 220);
+    return call ? call[0] : null;
+  }
+
+  test('EN: the error text reads "Failed to load"', () => {
+    expect(urlBarErrorText()).toBe('⚠ Failed to load: https://x.jp/');
+  });
+
+  test('JA: the error text is localized', () => {
+    setLanguage('ja');
+    expect(urlBarErrorText()).toBe('⚠ 読み込みに失敗しました: https://x.jp/');
   });
 });
