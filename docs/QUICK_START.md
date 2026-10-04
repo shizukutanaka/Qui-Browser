@@ -65,7 +65,6 @@ npm run lint         # ESLint (0 errors expected)
   comfort, and the settings panel
 - **[Setup](SETUP.md)** — deeper environment/deployment notes
 - **[Specification](SPEC.md)** — the FR/NFR feature map and status
-- **[API Reference](API.md)** — module-level reference
 
 ---
 

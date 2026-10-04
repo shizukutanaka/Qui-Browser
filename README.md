@@ -16,7 +16,6 @@
   <p>
     <a href="#-features">Features</a> •
     <a href="#-quick-start">Quick Start</a> •
-    <a href="docs/API.md">API Docs</a> •
     <a href="docs/USAGE_GUIDE.md">Usage Guide</a> •
     <a href="CONTRIBUTING.md">Contributing</a>
   </p>
@@ -287,7 +286,6 @@ npm run release:major         # Major version (X.0.0)
 
 - **[Quick Start](docs/QUICK_START.md)** - Get started in 5 minutes
 - **[Usage Guide](docs/USAGE_GUIDE.md)** - Complete feature guide
-- **[API Reference](docs/API.md)** - Full API documentation
 - **[Architecture](docs/ARCHITECTURE.md)** - System design
 - **[Deployment](docs/DEPLOYMENT_GUIDE.md)** - Multi-platform deployment
 - **[Testing](docs/TESTING.md)** - Testing strategies

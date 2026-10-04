@@ -28,7 +28,6 @@ const DOCUMENTATION_FILES = [
   'PROJECT_STATUS.md',
   'RELEASE_CHECKLIST.md',
   'FINAL_RELEASE_SUMMARY_v2.0.0.md',
-  'docs/API.md',
   'docs/USAGE_GUIDE.md',
   'docs/DEPLOYMENT_GUIDE.md',
   'docs/BUILD_OPTIMIZATION_GUIDE.md',
