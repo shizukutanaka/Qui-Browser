@@ -11,8 +11,6 @@ import { t } from './i18n/i18n.js';
 
 // Global app instance
 let vrApp = null;
-// Interval id for the simple performance overlay, cleared on teardown.
-let perfIntervalId = null;
 
 /**
  * Initialize application
@@ -50,9 +48,6 @@ async function initializeApp() {
     // Initialize VR application with all Tier 1 optimizations
     vrApp = new VRApp(container);
 
-    // Setup performance monitoring UI
-    setupPerformanceMonitor();
-
     // Setup keyboard shortcuts
     setupKeyboardShortcuts();
 
@@ -64,107 +59,53 @@ async function initializeApp() {
 }
 
 /**
- * Setup performance monitoring display
- */
-function setupPerformanceMonitor() {
-  // Create performance display
-  const perfDisplay = document.createElement('div');
-  perfDisplay.id = 'performance-monitor';
-  perfDisplay.style.cssText = `
-    position: fixed;
-    top: 10px;
-    right: 10px;
-    background: rgba(0, 0, 0, 0.8);
-    color: #00ff00;
-    padding: 10px;
-    font-family: monospace;
-    font-size: 12px;
-    z-index: 1000;
-    display: none;
-  `;
-  document.body.appendChild(perfDisplay);
-
-  // Update performance stats every second. Stored so it can be cleared on
-  // dispose/unload instead of running for the page lifetime.
-  if (perfIntervalId) {
-    clearInterval(perfIntervalId);
-  }
-  perfIntervalId = setInterval(() => {
-    if (vrApp && perfDisplay.style.display === 'block') {
-      const stats = vrApp.getPerformanceStats();
-      perfDisplay.innerHTML = `
-        <div>FPS: ${stats.fps}</div>
-        <div>Frame Time: ${stats.frameTime}</div>
-        <div>Memory: ${stats.memory}</div>
-        <div>Draw Calls: ${stats.drawCalls}</div>
-        <div>Triangles: ${stats.triangles.toLocaleString()}</div>
-        <div>GPU: ${stats.programs} prog / ${stats.geometries} geo / ${stats.textures} tex</div>
-        ${stats.ffrIntensity ? `<div>FFR: ${stats.ffrIntensity}</div>` : ''}
-        ${stats.textureMemory ? `<div>Textures: ${stats.textureMemory}</div>` : ''}
-        ${stats.pooledObjects ? `<div>Pooled Objects: ${stats.pooledObjects}</div>` : ''}
-        ${stats.gcPrevented ? `<div>GC Prevented: ${stats.gcPrevented}</div>` : ''}
-      `;
-    }
-  }, 1000);
-}
-
-/**
  * Setup keyboard shortcuts
  */
 function setupKeyboardShortcuts() {
   document.addEventListener('keydown', (event) => {
     switch (event.key) {
-    case 'p':
-    case 'P': {
-      // Toggle rich PerformanceMonitor when available, otherwise fall back
-      // to the simple overlay.
-      if (vrApp && vrApp.perfMonitorUI) {
-        vrApp.perfMonitorUI.toggle();
-      } else {
-        const perfDisplay = document.getElementById('performance-monitor');
-        if (perfDisplay) {
-          perfDisplay.style.display =
-              perfDisplay.style.display === 'none' ? 'block' : 'none';
+      case 'p':
+      case 'P': {
+        // Lazily construct the rich PerformanceMonitor dashboard on first
+        // press, then toggle it.
+        if (vrApp) {
+          vrApp.togglePerfMonitor();
         }
+        break;
       }
-      break;
-    }
 
-    case 'f':
-    case 'F':
-      // Toggle FFR
-      if (vrApp && vrApp.ffrSystem) {
-        const enabling = !vrApp.ffrSystem.enabled;
-        enabling ? vrApp.ffrSystem.enable(0.5) : vrApp.ffrSystem.disable();
-        console.debug(`FFR ${enabling ? 'enabled' : 'disabled'}`);
-      }
-      break;
-
-    case 'c':
-    case 'C':
-      // Cycle comfort presets
-      if (vrApp && vrApp.comfortSystem) {
-        const presets = ['sensitive', 'moderate', 'tolerant', 'disabled'];
-        const current = vrApp.settings.motionSensitivity;
-        const nextIndex = (presets.indexOf(current) + 1) % presets.length;
-        const next = presets[nextIndex];
-        vrApp.comfortSystem.setPreset(next);
-        vrApp.updateSetting('motionSensitivity', next); // persist across reloads
-        console.debug(`Comfort preset: ${next}`);
-      }
-      break;
-
-    case 'Escape':
-      // Emergency cleanup
-      if (vrApp) {
-        vrApp.dispose();
-        vrApp = null;
-        if (perfIntervalId) {
-          clearInterval(perfIntervalId); perfIntervalId = null;
+      case 'f':
+      case 'F':
+        // Toggle FFR
+        if (vrApp && vrApp.ffrSystem) {
+          const enabling = !vrApp.ffrSystem.enabled;
+          enabling ? vrApp.ffrSystem.enable(0.5) : vrApp.ffrSystem.disable();
+          console.debug(`FFR ${enabling ? 'enabled' : 'disabled'}`);
         }
-        console.debug('Application disposed');
-      }
-      break;
+        break;
+
+      case 'c':
+      case 'C':
+        // Cycle comfort presets
+        if (vrApp && vrApp.comfortSystem) {
+          const presets = ['sensitive', 'moderate', 'tolerant', 'disabled'];
+          const current = vrApp.settings.motionSensitivity;
+          const nextIndex = (presets.indexOf(current) + 1) % presets.length;
+          const next = presets[nextIndex];
+          vrApp.comfortSystem.setPreset(next);
+          vrApp.updateSetting('motionSensitivity', next); // persist across reloads
+          console.debug(`Comfort preset: ${next}`);
+        }
+        break;
+
+      case 'Escape':
+        // Emergency cleanup
+        if (vrApp) {
+          vrApp.dispose();
+          vrApp = null;
+          console.debug('Application disposed');
+        }
+        break;
     }
   });
 
@@ -217,9 +158,6 @@ window.addEventListener('beforeunload', () => {
     vrApp.dispose();
     vrApp = null;
   }
-  if (perfIntervalId) {
-    clearInterval(perfIntervalId); perfIntervalId = null;
-  }
 });
 
 /**
@@ -234,6 +172,6 @@ if (document.readyState === 'loading') {
 // Export for debugging
 window.QuiBrowser = {
   getApp: () => vrApp,
-  getStats: () => vrApp ? vrApp.getPerformanceStats() : null,
+  getStats: () => (vrApp ? vrApp.getPerformanceStats() : null),
   version: '2.0.0'
 };

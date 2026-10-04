@@ -311,7 +311,6 @@ export class VRApp {
       // Tier 3 / optional features — opt-in, default off so the base
       // experience is unchanged. Heavy/experimental features stay off.
       enableVoice: false,
-      enablePerfMonitorUI: false,
       // Accessibility preferences mirrored here so the in-VR settings panel can
       // read/toggle them.  The a11y module is the authoritative store (it persists
       // separately); these keys are re-synced from it at startup so a change made
@@ -3598,13 +3597,6 @@ export class VRApp {
       console.debug('VRApp: DevTools ready (F12 to toggle)');
     }
 
-    // 13. Performance monitor overlay (opt-in)
-    if (this.settings.enablePerfMonitorUI) {
-      this.perfMonitorUI = new PerformanceMonitor();
-      this.perfMonitorUI.initialize();
-      console.debug('VRApp: Performance monitor UI ready');
-    }
-
     const loadTime = performance.now() - startTime;
     console.debug(`VRApp: All systems initialized in ${loadTime.toFixed(1)}ms`);
   }
@@ -4078,6 +4070,22 @@ export class VRApp {
     if (this.immersiveVideo) {
       this.immersiveVideo.update(dt);
     }
+  }
+
+  /**
+   * Lazily build the rich performance dashboard on first use, then toggle its
+   * visibility. The 'P' keyboard shortcut calls this — the overlay costs a DOM
+   * container plus a 1s metrics interval, so nothing is constructed until the
+   * user asks for it.
+   * @returns {boolean} whether the dashboard is now visible
+   */
+  togglePerfMonitor() {
+    if (!this.perfMonitorUI) {
+      this.perfMonitorUI = new PerformanceMonitor();
+      this.perfMonitorUI.initialize();
+    }
+    this.perfMonitorUI.toggle();
+    return this.perfMonitorUI.visible;
   }
 
   /**
