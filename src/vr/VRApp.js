@@ -218,6 +218,10 @@ export class VRApp {
     // Settings
     this.settings = {
       targetFPS: 90, // Quest 2 target
+      // Set when the user explicitly chooses a frame-rate target
+      // (updateSetting('targetFPS')). initializeSystems skips the device-tier
+      // detection override when true so the choice survives reboots.
+      _fpsOverridden: false,
       motionSensitivity: 'moderate',
       enableFFR: true,
       enableComfort: true,
@@ -437,6 +441,9 @@ export class VRApp {
    */
   updateSetting(key, value) {
     this.settings[key] = value;
+    if (key === 'targetFPS') {
+      this.settings._fpsOverridden = true;
+    }
     this.saveSettings();
     return value;
   }
@@ -2766,6 +2773,16 @@ export class VRApp {
   }
 
   /**
+   * Apply the device-tier frame-rate target unless the user explicitly chose
+   * one (settings._fpsOverridden is set by updateSetting('targetFPS')).
+   */
+  _applyDetectedTargetFPS() {
+    if (!this.settings._fpsOverridden) {
+      this.settings.targetFPS = this.deviceCompat.targetFPS();
+    }
+  }
+
+  /**
    * Initialize all optimization systems
    */
   async initializeSystems() {
@@ -2775,9 +2792,7 @@ export class VRApp {
     // respect what the runtime actually supports.
     const compat = await this.deviceCompat.check();
     // Override targetFPS from device detection if not already user-specified.
-    if (!this.settings._fpsOverridden) {
-      this.settings.targetFPS = this.deviceCompat.targetFPS();
-    }
+    this._applyDetectedTargetFPS();
     console.debug(`VRApp: Device tier=${compat.deviceTier}, targetFPS=${this.settings.targetFPS}`);
 
     // Use progressive loader for efficient initialization
