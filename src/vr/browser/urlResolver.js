@@ -85,8 +85,7 @@ export function resolveInput(input, opts = {}) {
   const isIPv4 = /^\d{1,3}(\.\d{1,3}){3}(:\d+)?$/.test(firstToken);
 
   // A single token with a dot and no spaces looks like a host.
-  const looksLikeUrl =
-    isLocalhost || isIPv4 || (!/\s/.test(text) && LOOKS_LIKE_HOST.test(text));
+  const looksLikeUrl = isLocalhost || isIPv4 || (!/\s/.test(text) && LOOKS_LIKE_HOST.test(text));
 
   if (looksLikeUrl) {
     return 'https://' + text;
@@ -107,19 +106,4 @@ export function buildSearchUrl(query, engine = DEFAULT_SEARCH_ENGINE) {
     SEARCH_ENGINES[engine] ||
     (typeof engine === 'string' && engine.includes('=') ? engine : SEARCH_ENGINES[DEFAULT_SEARCH_ENGINE]);
   return template + encodeURIComponent(query);
-}
-
-/**
- * True when the text would be treated as a search query rather than a URL.
- * Useful for UI hints (e.g. a magnifying-glass vs globe icon).
- */
-export function isSearchQuery(input, opts = {}) {
-  const resolved = resolveInput(input, opts);
-  if (!resolved) {
-    return false;
-  }
-  // It's a search if the resolved URL is one of the search-engine endpoints.
-  return Object.values(SEARCH_ENGINES).some((tpl) => resolved.startsWith(tpl)) ||
-    (typeof opts.searchEngine === 'string' && opts.searchEngine.includes('=') &&
-      resolved.startsWith(opts.searchEngine));
 }
