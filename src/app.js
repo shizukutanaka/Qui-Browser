@@ -197,19 +197,6 @@ function showError(message) {
 }
 
 /**
- * Handle page visibility changes
- */
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden && vrApp) {
-    // Pause or reduce activity when page is hidden
-    console.debug('Page hidden - reducing activity');
-  } else if (vrApp) {
-    // Resume when page is visible
-    console.debug('Page visible - resuming activity');
-  }
-});
-
-/**
  * Handle page unload
  */
 window.addEventListener('beforeunload', () => {
