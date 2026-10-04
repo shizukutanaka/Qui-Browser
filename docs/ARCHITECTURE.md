@@ -15,30 +15,30 @@ index.html
 ```
 
 `VRApp` owns the `THREE.WebGLRenderer`, the XR session, the animation loop, and a
-registry of *interactables*. Every subsystem below is constructed by `VRApp` and
+registry of _interactables_. Every subsystem below is constructed by `VRApp` and
 communicates back through callbacks (`onSelect`, `onHover`, `onHoverEnd`,
 `onHoverCaption`, `onError`), never by reaching into `VRApp` internals. That is why
 most subsystems are unit-testable in Node with no GPU context.
 
 ## Module map (`src/`)
 
-| Directory | Responsibility |
-|---|---|
-| `vr/rendering/` | `FFRSystem` (fixed foveated rendering), `LayersSystem` (WebXR quad layers for sharp text), `WebGPURenderer` (optional backend) |
-| `vr/browser/` | `WebPanel`, `WindowManager`, `TabManager`, `BookmarkPanel`, `urlDisplay`, `urlResolver`, plus pure layout helpers (`curvedGeometry`, `readableText`, `readerLayout`, `bookmarkLayout`) |
-| `vr/input/` | `VRControllerInput`, `JapaneseIME` (in-VR kana/kanji keyboard), `VoiceCommands`, `keyboardLayout` |
-| `vr/interaction/` | `GazeInteraction` (dwell selection with grace time), `HandTracking`, `HapticFeedback` |
-| `vr/accessibility/` | `CaptionSystem`, `SemanticDOM` (ARIA mirror of VR state), `crossModal` (`notifyCrossModal`), `AccessibilityCoordinator` |
-| `vr/audio/` | `SpatialAudio` — procedurally synthesized UI cues, positional audio |
-| `vr/comfort/` | `ComfortSystem` — vignette, snap turn, teleport for vestibular comfort |
-| `vr/media/` | `ImmersiveVideo`, `videoProjection` (equirect / 180 / 360 mapping) |
-| `vr/multiplayer/` | `MultiplayerSystem` (WebRTC + signaling with backoff reconnect), `AvatarSystem` |
-| `vr/ar/` | `MixedReality` — passthrough and depth |
-| `vr/ai/` | `AIRecommendation` |
-| `vr/ui/` | `canvasTexture`, `buttonStyle`, `textWrap`, `settingsStepper` — pure canvas/text primitives |
-| `utils/` | `ObjectPool`, `TextureManager`, `ProgressiveLoader`, `PerformanceMonitor`, `DeviceCompatibility`, `BookmarkStore`, `debounce` |
-| `i18n/` | `i18n.js` — `CATALOG` (en/ja), `t()`, `setLanguage()`, `detectLanguage()` |
-| `a11y/`, `monitoring.js` | DOM-side accessibility helpers and production telemetry |
+| Directory                | Responsibility                                                                                                                                                                         |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vr/rendering/`          | `FFRSystem` (fixed foveated rendering), `LayersSystem` (WebXR quad layers for sharp text), `WebGPURenderer` (optional backend)                                                         |
+| `vr/browser/`            | `WebPanel`, `WindowManager`, `TabManager`, `BookmarkPanel`, `urlDisplay`, `urlResolver`, plus pure layout helpers (`curvedGeometry`, `readableText`, `readerLayout`, `bookmarkLayout`) |
+| `vr/input/`              | `VRControllerInput`, `JapaneseIME` (in-VR kana/kanji keyboard), `VoiceCommands`, `keyboardLayout`                                                                                      |
+| `vr/interaction/`        | `GazeInteraction` (dwell selection with grace time), `HandTracking`, `HapticFeedback`                                                                                                  |
+| `vr/accessibility/`      | `CaptionSystem`, `SemanticDOM` (ARIA mirror of VR state), `crossModal` (`notifyCrossModal`), `AccessibilityCoordinator`                                                                |
+| `vr/audio/`              | `SpatialAudio` — procedurally synthesized UI cues, positional audio                                                                                                                    |
+| `vr/comfort/`            | `ComfortSystem` — vignette, snap turn, teleport for vestibular comfort                                                                                                                 |
+| `vr/media/`              | `ImmersiveVideo`, `videoProjection` (equirect / 180 / 360 mapping)                                                                                                                     |
+| `vr/multiplayer/`        | `MultiplayerSystem` (WebRTC + signaling with backoff reconnect), `AvatarSystem`                                                                                                        |
+| `vr/ar/`                 | `MixedReality` — passthrough and depth                                                                                                                                                 |
+| `vr/ai/`                 | `AIRecommendation`                                                                                                                                                                     |
+| `vr/ui/`                 | `canvasTexture`, `buttonStyle`, `textWrap`, `settingsStepper` — pure canvas/text primitives                                                                                            |
+| `utils/`                 | `ObjectPool`, `TextureManager`, `ProgressiveLoader`, `PerformanceMonitor`, `DeviceCompatibility`, `BookmarkStore`, `debounce`                                                          |
+| `i18n/`                  | `i18n.js` — `CATALOG` (en/ja), `t()`, `setLanguage()`, `detectLanguage()`                                                                                                              |
+| `a11y/`, `monitoring.js` | DOM-side accessibility helpers and production telemetry                                                                                                                                |
 
 ## Design rules
 
@@ -73,16 +73,9 @@ tier needs: `vendor-three`, `app`, `tier1`, and lazy `tier2-*` chunks (input, au
 loading, interaction, ar) plus `WebGPURenderer`. See
 [BUILD_OPTIMIZATION_GUIDE.md](BUILD_OPTIMIZATION_GUIDE.md).
 
-## Server side
-
-`server/index.js` is a small Express app: `/health`, Stripe billing routes, and a
-webhook endpoint that keeps a raw body for signature verification. Stripe is optional —
-`isStripeConfigured()` gates the billing routes and returns `503` rather than throwing
-when no real key is present.
-
 ## Related documents
 
-- [SPEC.md](SPEC.md) — functional requirements (FR-*)
+- [SPEC.md](SPEC.md) — functional requirements (FR-\*)
 - [IMPLEMENTATION.md](IMPLEMENTATION.md) — implementation notes per subsystem
 - [TESTING.md](TESTING.md) — test strategy
 - [OUTSTANDING_ISSUES.md](OUTSTANDING_ISSUES.md) — known gaps
