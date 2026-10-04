@@ -124,6 +124,7 @@ const CATALOG = {
     'vr.settings.foveation': 'Foveation',
     'vr.settings.southpaw': 'Southpaw',
     'vr.settings.search': 'Search',
+    'vr.settings.voice': 'Voice Commands',
     // VR Settings Panel Labels (Optional)
     'vr.settings.video360': '360° Video',
     'vr.settings.clearHistory': 'Clear History',
@@ -182,6 +183,9 @@ const CATALOG = {
     'vr.msg.homeEnvOff': 'Home environment hidden',
     'vr.msg.privateModeOn': 'Private browsing on — history is not recorded',
     'vr.msg.privateModeOff': 'Private browsing off',
+    'vr.msg.voiceOn': 'Voice commands on',
+    'vr.msg.voiceOff': 'Voice commands off',
+    'vr.msg.voiceNextSession': 'Voice commands apply next session',
     // VR Error Messages
     'vr.error.spatialAudioUnavailable': 'Spatial audio unavailable',
     'vr.error.foveationUnavailable': 'Foveation unavailable',
@@ -305,6 +309,7 @@ const CATALOG = {
     'vr.settings.foveation': 'フォベーション',
     'vr.settings.southpaw': 'サウスポー',
     'vr.settings.search': '検索',
+    'vr.settings.voice': '音声コマンド',
     // VR Settings Panel Labels (Optional)
     'vr.settings.video360': '360°ビデオ',
     'vr.settings.clearHistory': '履歴を消去',
@@ -363,6 +368,9 @@ const CATALOG = {
     'vr.msg.homeEnvOff': 'ホーム環境を非表示にしました',
     'vr.msg.privateModeOn': 'プライベートモード: オン — 履歴は記録されません',
     'vr.msg.privateModeOff': 'プライベートモード: オフ',
+    'vr.msg.voiceOn': '音声コマンド: オン',
+    'vr.msg.voiceOff': '音声コマンド: オフ',
+    'vr.msg.voiceNextSession': '音声コマンドは次回起動時に有効になります',
     // VR Error Messages
     'vr.error.spatialAudioUnavailable': '空間オーディオ利用不可',
     'vr.error.foveationUnavailable': 'フォベーション利用不可',
