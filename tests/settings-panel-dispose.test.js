@@ -8,7 +8,9 @@
  * session (~15+ CanvasTextures per toggle). The toast path (:846-848) already
  * disposes mesh.geometry/map/material; the settings-panel path must do the
  * same for its per-mesh resources — while leaving the shared plane geometry
- * untouched (it is owned by _sharedGeometries, not the panel).
+ * untouched (it is owned by _sharedGeometries, not the panel). Per-generation
+ * geometries — the panel background quad is the one today — are disposed;
+ * only geometries registered in _sharedGeometries survive a rebuild.
  */
 import * as THREE from 'three';
 
@@ -30,6 +32,7 @@ function makeApp() {
   app.interactables = [];
   app._panelTextures = [];
   app._settingsPanelDrawers = [];
+  app._sharedGeometries = new Map();
   app.settingsPanel = null;
   app.scene = new THREE.Group();
   app.unregisterInteractable = jest.fn((m) => {
@@ -45,6 +48,7 @@ function makePanelMesh(app) {
   const tex = { dispose: jest.fn() };
   const material = { map: tex, dispose: jest.fn() };
   const geometry = { dispose: jest.fn() }; // shared geometry stand-in
+  app._sharedGeometries.set(`g${app._sharedGeometries.size}`, geometry);
   const mesh = new THREE.Object3D();
   mesh.isMesh = true;
   mesh.material = material;
@@ -113,6 +117,30 @@ describe('_disposeSettingsPanel', () => {
     expect(material.dispose).toHaveBeenCalledTimes(1);
     // Unrelated tracked textures survive — only this generation is freed.
     expect(app._panelTextures).toEqual([other]);
+  });
+
+  test('per-generation geometries are disposed while shared ones survive', () => {
+    const app = makeApp();
+    const group = new THREE.Group();
+    // The panel background quad creates a unique PlaneGeometry every build
+    // (its size depends on the layout height) — the only non-shared geometry
+    // in the panel. Its material has no map.
+    const bgGeometry = { dispose: jest.fn() };
+    const bgMaterial = { map: null, dispose: jest.fn() };
+    const bg = new THREE.Object3D();
+    bg.isMesh = true;
+    bg.material = bgMaterial;
+    bg.geometry = bgGeometry;
+    group.add(bg);
+    const { mesh: btn, geometry: sharedGeo } = makePanelMesh(app);
+    group.add(btn);
+    app.settingsPanel = group;
+
+    app._disposeSettingsPanel();
+
+    expect(bgGeometry.dispose).toHaveBeenCalledTimes(1);
+    expect(bgMaterial.dispose).toHaveBeenCalledTimes(1);
+    expect(sharedGeo.dispose).not.toHaveBeenCalled();
   });
 });
 
