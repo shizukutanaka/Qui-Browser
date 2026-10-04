@@ -2,15 +2,16 @@
  * FR-1.1 / FR-1.2: In-VR web panel with URL bar, back/forward, and reload.
  *
  * Architecture:
- *   Three.js plane mesh (the "panel chrome") + a hidden <iframe> composited
- *   on top via WebXR dom-overlay or positioned absolutely over the canvas.
+ *   Three.js plane mesh (the "panel chrome") + a hidden <iframe> that loads
+ *   the page so its onload can supply the title (never composited — WebXR
+ *   cannot composite DOM into the scene).
  *   The URL bar and navigation controls are drawn on a CanvasTexture and
  *   registered as interactables so controller rays can interact with them.
  *
  * Limitations (documented honestly):
  *   - Cross-origin iframes are sandboxed: no cookies/autofill, no JS access.
- *   - On platforms without dom-overlay the iframe is not visible in VR;
- *     the panel shows a "Cannot render external content" placeholder.
+ *   - The hidden <iframe> is never visible in VR; the reader-text view is
+ *     what the panel shows instead.
  *   - This class provides the shell; FR-1.5 quad/cylinder Layers are a
  *     separate enhancement for text clarity.
  */
@@ -153,7 +154,6 @@ export class WebPanel {
     this.historyIdx = -1;
     this.loading = false;
     this._loadError = false; // set true on iframe onerror, cleared on next navigate
-    this.domOverlaySupported = false;
     // What the content area shows. 'empty' | 'loading' | 'reader' |
     // 'unavailable' | 'error'. There is deliberately no state claiming the
     // *page* is rendered: a WebXR web app cannot composite cross-origin page
@@ -254,7 +254,7 @@ export class WebPanel {
 
     this._drawChrome();
 
-    // ── iframe for actual content (when dom-overlay is available) ───────────
+    // ── Hidden iframe: loads the page so its onload supplies the title ──────
     this.iframe = document.createElement('iframe');
     this.iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms');
     this.iframe.style.cssText = `
@@ -1893,8 +1893,8 @@ export class WebPanel {
   // ── Navigation API ────────────────────────────────────────────────────────
 
   /**
-   * Navigate to a URL.  Records history and loads the iframe if dom-overlay
-   * is available; otherwise just updates the chrome bar.
+   * Navigate to a URL.  Records history and loads the hidden iframe for
+   * title extraction; otherwise just updates the chrome bar.
    */
   navigate(url) {
     // Resolve the raw input into a navigable URL. Text that looks like a host
@@ -1928,7 +1928,7 @@ export class WebPanel {
     // This is the only way a WebXR web app can show page content at all.
     this._loadReaderText(url);
 
-    // Load in iframe (visible only when dom-overlay is active).
+    // Load in the hidden iframe (its onload supplies the page title).
     this.iframe.src = url;
     this.iframe.onload = () => {
       this.loading = false;
@@ -2006,24 +2006,6 @@ export class WebPanel {
     if (this.currentUrl) {
       this._loadUrl(this.currentUrl);
     }
-  }
-
-  // ── DOM-overlay integration ───────────────────────────────────────────────
-
-  /**
-   * Call this when a WebXR session with dom-overlay starts.
-   * Shows the iframe positioned over the panel's projected screen area.
-   */
-  onDomOverlayStart() {
-    this.domOverlaySupported = true;
-    this.iframe.style.display = 'block';
-  }
-
-  /**
-   * Call this when the WebXR session ends.
-   */
-  onDomOverlayEnd() {
-    this.iframe.style.display = 'none';
   }
 
   // ── FR-1.5: native quad-layer mode ────────────────────────────────────────
