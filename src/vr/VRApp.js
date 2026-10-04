@@ -1083,6 +1083,36 @@ export class VRApp {
   }
 
   /**
+   * Apply the `enableVoice` toggle.
+   *
+   * A constructed VoiceCommands instance stops (isEnabled=false disarms the
+   * continuous onend restart) and can resume in place. If no instance exists
+   * the SpeechRecognition + mic-permission init is one-shot in
+   * initializeSystems(), which runs once at boot — the persisted setting
+   * (FR-9.1) takes effect next launch, and the toast says so honestly.
+   *
+   * @param {boolean} enabled
+   */
+  _onVoiceToggleChanged(enabled) {
+    const on = enabled === undefined ? !!this.settings.enableVoice : !!enabled;
+    if (!on) {
+      if (this.voiceCommands) {
+        this.voiceCommands.isEnabled = false;
+        this.voiceCommands.stop();
+      }
+      this.showVRToast(t('vr.msg.voiceOff'), { type: 'info' });
+      return;
+    }
+    if (this.voiceCommands) {
+      this.voiceCommands.isEnabled = true;
+      const started = this.voiceCommands.start();
+      this.showVRToast(t(started ? 'vr.msg.voiceOn' : 'vr.msg.voiceNextSession'), { type: 'info' });
+      return;
+    }
+    this.showVRToast(t('vr.msg.voiceNextSession'), { type: 'info' });
+  }
+
+  /**
    * Apply the `enableHomeEnvironment` toggle immediately.
    *
    * The key is persisted but previously had no write path — a user could only
@@ -1757,6 +1787,12 @@ export class VRApp {
       // from every settings-panel/voice/persisted-setting path. Toggling it
       // here persists the preference (FR-9.1) and applies it live.
       [t('vr.settings.webPanel'), 'enableWebPanel', (v) => this._onWebPanelToggleChanged(v)],
+      // FR-2.4: voice commands — same defect shape as enableWebPanel above:
+      // VoiceCommands is constructed once in initializeSystems(), gated on this
+      // same persisted setting, which had no write path at all. The row makes
+      // the subsystem reachable; _onVoiceToggleChanged resumes an existing
+      // instance live and is honest about the boot-only init otherwise.
+      [t('vr.settings.voice'), 'enableVoice', (v) => this._onVoiceToggleChanged(v)],
       // The home environment (sky/floor/grid rest frame) had the same
       // unreachable persisted-key defect. The toggle applies live by
       // adding/removing the Group; the teleport floor stays functional.
@@ -1996,7 +2032,7 @@ export class VRApp {
     const SECTIONS = [
       [
         'settings.section.a11y',
-        byKey(items, ['enableCaptions', 'enableGazeDwell', 'highContrast', 'enableHaptics']),
+        byKey(items, ['enableCaptions', 'enableGazeDwell', 'enableVoice', 'highContrast', 'enableHaptics']),
         byKey(steppers, ['captionDuration', 'captionScale', 'captionHeight', 'gazeDwellTime', 'gazeGraceTime']),
         [],
         []
