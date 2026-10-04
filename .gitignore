@@ -21,9 +21,7 @@ desktop.ini
 # IDE specific
 .vscode/
 .idea/
-*.swp
-*.swo
-*.swn
+*.sw?
 
 # Environment files
 .env
@@ -40,12 +38,10 @@ out/
 # Logs
 logs/
 *.log
-npm-debug.log*
 
 # Cache files
 .cache/
 *.cache
-.parcel-cache/
 
 # User data (VR browser specific)
 data/
@@ -61,8 +57,3 @@ backups/
 
 # Test coverage
 coverage/
-.nyc_output/
-
-# Misc
-.DS_Store
-*.sw?
