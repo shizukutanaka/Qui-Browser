@@ -1,12 +1,13 @@
 /**
- * Generate PWA icons, favicons and social images from assets/icon.svg.
+ * Generate PWA icons, favicons and social images from public/assets/icon.svg.
  *
  * Usage: node tools/generate-icons.mjs
  * Requires: sharp (devDependency)
  *
- * The single source of truth is assets/icon.svg (512x512). All raster assets
- * referenced by manifest.json and index.html are derived from it so they stay
- * in sync and never 404.
+ * The single source of truth is public/assets/icon.svg (512x512). All raster
+ * assets referenced by manifest.json and index.html are derived from it so
+ * they stay in sync and never 404. Output goes under public/ so Vite serves
+ * it at /assets/*.
  */
 import sharp from 'sharp';
 import { mkdir } from 'node:fs/promises';
@@ -14,19 +15,19 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const svgPath = join(root, 'assets', 'icon.svg');
-const iconsDir = join(root, 'assets', 'icons');
-const imagesDir = join(root, 'assets', 'images');
+const svgPath = join(root, 'public', 'assets', 'icon.svg');
+const iconsDir = join(root, 'public', 'assets', 'icons');
+const imagesDir = join(root, 'public', 'assets', 'images');
 
-// Square app/PWA icons -> assets/icons/icon-<n>.png
-const ICON_SIZES = [72, 96, 128, 144, 152, 192, 384, 512];
-// Favicons + apple touch icon -> assets/icons/
+// Square app/PWA icons -> public/assets/icons/icon-<n>.png
+const ICON_SIZES = [72, 96, 128, 144, 192, 384, 512];
+// Favicons + apple touch icon -> public/assets/icons/
 const NAMED = [
   { name: 'favicon-16x16.png', size: 16 },
   { name: 'favicon-32x32.png', size: 32 },
   { name: 'apple-touch-icon.png', size: 180 }
 ];
-// Social share images (summary_large_image) -> assets/images/
+// Social share images (summary_large_image) -> public/assets/images/
 const SOCIAL = ['og-image.png', 'twitter-card.png'];
 
 const brandBg = Buffer.from(
@@ -43,7 +44,10 @@ async function main() {
   await mkdir(imagesDir, { recursive: true });
 
   for (const size of ICON_SIZES) {
-    await sharp(svgPath).resize(size, size).png().toFile(join(iconsDir, `icon-${size}.png`));
+    await sharp(svgPath)
+      .resize(size, size)
+      .png()
+      .toFile(join(iconsDir, `icon-${size}.png`));
   }
   for (const { name, size } of NAMED) {
     await sharp(svgPath).resize(size, size).png().toFile(join(iconsDir, name));

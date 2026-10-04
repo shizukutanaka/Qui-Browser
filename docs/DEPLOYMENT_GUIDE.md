@@ -12,13 +12,13 @@ This guide provides complete deployment instructions for Qui Browser VR across m
 
 ### Deployment Options
 
-| Platform | Difficulty | Cost | Best For |
-|----------|------------|------|----------|
-| **GitHub Pages** | ⭐ Easy | Free | Open source projects |
-| **Netlify** | ⭐ Easy | Free tier | Quick deployments |
-| **Vercel** | ⭐ Easy | Free tier | Serverless functions |
-| **Docker** | ⭐⭐ Medium | Variable | Custom infrastructure |
-| **Custom Server** | ⭐⭐⭐ Hard | Variable | Full control |
+| Platform          | Difficulty  | Cost      | Best For              |
+| ----------------- | ----------- | --------- | --------------------- |
+| **GitHub Pages**  | ⭐ Easy     | Free      | Open source projects  |
+| **Netlify**       | ⭐ Easy     | Free tier | Quick deployments     |
+| **Vercel**        | ⭐ Easy     | Free tier | Serverless functions  |
+| **Docker**        | ⭐⭐ Medium | Variable  | Custom infrastructure |
+| **Custom Server** | ⭐⭐⭐ Hard | Variable  | Full control          |
 
 ---
 
@@ -87,7 +87,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -96,7 +96,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
+  group: 'pages'
   cancel-in-progress: true
 
 jobs:
@@ -149,7 +149,7 @@ Update `vite.config.js`:
 
 ```javascript
 export default defineConfig({
-  base: '/qui-browser-vr/', // Replace with your repo name
+  base: '/qui-browser-vr/' // Replace with your repo name
   // ... rest of config
 });
 ```
@@ -317,81 +317,16 @@ vercel --prod
    - **Output Directory:** `dist`
    - **Install Command:** `npm install`
 
-#### Step 2: Configure vercel.json
+#### Step 2: Build settings
 
-Create `vercel.json`:
-
-```json
-{
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "devCommand": "npm run dev",
-  "installCommand": "npm install",
-
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "SAMEORIGIN"
-        },
-        {
-          "key": "X-XSS-Protection",
-          "value": "1; mode=block"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "strict-origin-when-cross-origin"
-        },
-        {
-          "key": "Permissions-Policy",
-          "value": "accelerometer=(self), gyroscope=(self), xr-spatial-tracking=(self)"
-        }
-      ]
-    },
-    {
-      "source": "/service-worker.js",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate"
-        },
-        {
-          "key": "Service-Worker-Allowed",
-          "value": "/"
-        }
-      ]
-    },
-    {
-      "source": "/(.*\\.(?:js|css|woff2|ktx2))",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    }
-  ],
-
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ]
-}
-```
+No `vercel.json` is needed — Vercel's Vite preset auto-detects the build
+command (`npm run build`) and output directory (`dist`). Set custom
+headers in the dashboard (Project Settings → Headers) if required; the
+service worker must always be served with no-cache.
 
 #### Step 3: Deploy
 
 ```bash
-git add vercel.json
-git commit -m "Add Vercel configuration"
 git push
 ```
 
@@ -584,12 +519,12 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8080:80"
+      - '8080:80'
     environment:
       - NODE_ENV=production
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "/usr/local/bin/healthcheck.sh"]
+      test: ['CMD', '/usr/local/bin/healthcheck.sh']
       interval: 30s
       timeout: 3s
       retries: 3
@@ -601,8 +536,8 @@ services:
   nginx-proxy:
     image: nginx:alpine
     ports:
-      - "443:443"
-      - "80:80"
+      - '443:443'
+      - '80:80'
     volumes:
       - ./proxy/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./certs:/etc/nginx/certs:ro
@@ -867,7 +802,7 @@ VITE_DEBUG=false
 
 ```javascript
 // src/monitoring.js
-import * as Sentry from "@sentry/browser";
+import * as Sentry from '@sentry/browser';
 
 if (import.meta.env.PROD) {
   Sentry.init({
@@ -886,6 +821,7 @@ if (import.meta.env.PROD) {
 ### Issue: WebXR not working
 
 **Solution:** HTTPS required. Check:
+
 - Certificate valid
 - No mixed content warnings
 - Service Worker scope correct
@@ -893,6 +829,7 @@ if (import.meta.env.PROD) {
 ### Issue: Assets not loading
 
 **Solution:** Check CORS headers:
+
 ```nginx
 add_header Access-Control-Allow-Origin "*";
 add_header Access-Control-Allow-Methods "GET, OPTIONS";
@@ -901,6 +838,7 @@ add_header Access-Control-Allow-Methods "GET, OPTIONS";
 ### Issue: Service Worker not updating
 
 **Solution:** Check cache headers:
+
 ```nginx
 location = /service-worker.js {
     add_header Cache-Control "no-cache, no-store, must-revalidate";
@@ -911,6 +849,7 @@ location = /service-worker.js {
 ### Issue: Build fails on CI
 
 **Solution:** Check Node version:
+
 ```yaml
 - uses: actions/setup-node@v3
   with:
