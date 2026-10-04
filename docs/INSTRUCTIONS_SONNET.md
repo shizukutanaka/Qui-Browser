@@ -21,7 +21,7 @@ git config user.email noreply@anthropic.com && git config user.name Claude
 ```
 
 - **pre-fix fail 確認**: 新テストは `git stash push -- <src files>` → テスト → `git stash pop` で「修正前に fail する」ことを必ず確認。
-- **フルゲート**: `npm test`（全 green・1480件）、`npm run lint`（**0 errors 維持**・warning を増やさない）、`npm run build`（green）。
+- **フルゲート**: `npm test`（全 green）、`npm run lint`（**新規 error を出さない** — 既存 baseline との差分で評価。CI は continue-on-error。warning も増やさない）、`npm run build`（green）。
 - **ターゲットの寸法・距離を変える変更をしたら** `tests/target-size.test.js` が全ターゲットの**角サイズ**(度)を実ジオメトリから測る。寸法は `panelGeometry.js` のような**純モジュール**に置くこと(メートルのままでは押せるか判定できない — Session 70)。
 - **色を変える変更をしたら** `tests/contrast.test.js` が実パレットを掃引する。新しい描画面の色は `chromeColors.js` / `bookmarkLayout.js` / `keyboardLayout.js` のような**純パレット関数**に置き、掃引表に足すこと(canvas の色は目視検証不能 — Session 69)。
 - **`src/main.js`・`index.html`・`VRApp` の配線を触ったら** `npm run build && npm run verify:app` を走らせる。実 Chromium で**ビルド済みアプリを実際に起動**し、ランタイム例外・console error・主要 DOM の欠落を検出する（landing shell）。**`npm run verify:vr-boot` が本体**: WebXR を stub して CDP 実時間駆動で `new VRApp()` まで到達し、renderer/settings/browsing の構築とランタイム例外ゼロを検査する。`new VRApp()` は Jest で構築できない（実 GPU が要る）ので、**モジュールの実行時エラーは unit test では原理的に捕捉できない** — Session 74。
@@ -44,20 +44,24 @@ git config user.email noreply@anthropic.com && git config user.name Claude
 ## 4. Sonnet 担当タスク（仕様が明確・小〜中規模）
 
 ### S-1. 効果音のプロシージャル生成フォールバック（E-3、優先度: 中）
+
 - **問題**: `assets/sounds/*.mp3`（click/hover/success/error）はリポジトリに存在せず、`src/vr/VRApp.js` `loadAudioAssets()` が graceful 404 で音声を無効化している。
 - **方針**: mp3 が読めない場合、`SpatialAudio` に WebAudio `OscillatorNode`/`GainNode` による短いプロシージャル効果音（click=短い高音、error=低い二重音 等）を生成させるフォールバックを追加。**既存の graceful 404 挙動を壊さない**こと（mp3 があればそちらを優先）。
 - **受け入れ基準**: モックした AudioContext で「バッファ未取得時にプロシージャル生成に切り替わる」ことをテスト。`tests/spatial-audio.test.js` の既存モック（`createGain`/`createPanner`）を再利用。
 
 ### S-2. Clear History の音声コマンド化（E-4、優先度: 低）
+
 - **背景**: Session 56 で「Clear History」設定アクションを追加（`VRApp._clearBrowsingHistory()`）。音声からも到達できると a11y 一貫性が上がる。
 - **方針**: `src/vr/input/VoiceCommands.js` `connectBrowser()` に `onClearHistory` コールバックを既存の分離パターン（`onGoTo`/`onTopSites` と同型）で追加し、`履歴を消去`/`clear history` 等のフレーズを登録。VRApp 側で `_clearBrowsingHistory()` に配線。`confirmationText` を付けてクロスモーダル確認（Session 18 の go-to 事例参照）。
 - **受け入れ基準**: コマンド登録順の衝突がないこと（`processCommand` は登録順で最初のヒットで止まる — go-to のような貪欲なパターンより**前**に登録）。regression テスト付き。
 
 ### S-3. README/CHANGELOG の現状同期（E-5、優先度: 低）
+
 - **方針**: `README.md` / `CHANGELOG.md` の陳腐化した主張（機能数・テスト数・バージョン・存在しない docs へのリンク）を**実測に基づいて**修正。数値は `ls tests/*.test.js | wc -l`・`npm test` の実出力・`package.json` の version を根拠にする。誇張表現（"Enterprise-grade" 等）は事実ベースに置換。
 - **受け入れ基準**: 相対リンクが全て解決すること（`docs/` 内の実在ファイルを指す）。docs 変更のみなのでフルゲートは「無変更で green」の確認。
 
 ### S-4. B章バグの機会的修正（該当する別タスクがある場合のみ）
+
 - 例: `ProgressiveLoader` を実際に使う機能を足すなら B-3（`getAdaptiveUrl()` の非冪等サフィックス）も同時に直す。**単独では着手しない。**
 
 ## 5. 進め方のコツ
