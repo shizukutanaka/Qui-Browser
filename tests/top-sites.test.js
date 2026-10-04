@@ -15,29 +15,58 @@ class MockMesh {
     this.material = { map: null, dispose() {}, color: { set() {} } };
     this.position = { set() {} };
   }
-  worldToLocal(v) { return v; }
+  worldToLocal(v) {
+    return v;
+  }
 }
 jest.mock('three', () => ({
   Group: class {
-    constructor() { this.position = { set() {} }; this._objects = []; }
-    add(o) { this._objects.push(o); }
-    remove(o) { this._objects = this._objects.filter(x => x !== o); }
-    traverse(fn) { this._objects.forEach(fn); fn(this); }
+    constructor() {
+      this.position = { set() {} };
+      this._objects = [];
+    }
+    add(o) {
+      this._objects.push(o);
+    }
+    remove(o) {
+      this._objects = this._objects.filter((x) => x !== o);
+    }
+    traverse(fn) {
+      this._objects.forEach(fn);
+      fn(this);
+    }
   },
   Mesh: MockMesh,
-  PlaneGeometry: class { dispose() {} },
-  MeshBasicMaterial: class { dispose() {} },
-  CanvasTexture: class { constructor() { this.needsUpdate = false; } dispose() {} },
+  PlaneGeometry: class {
+    dispose() {}
+  },
+  MeshBasicMaterial: class {
+    dispose() {}
+  },
+  CanvasTexture: class {
+    constructor() {
+      this.needsUpdate = false;
+    }
+    dispose() {}
+  },
   SRGBColorSpace: 'srgb',
-  MathUtils: { degToRad: (d) => d * Math.PI / 180 }
+  MathUtils: { degToRad: (d) => (d * Math.PI) / 180 }
 }));
 
 // ── canvas / document stub ────────────────────────────────────────────────────
 const ctx2d = {
-  clearRect() {}, fillRect() {}, fillText() {}, strokeRect() {},
-  beginPath() {}, arc() {}, fill() {},
-  set fillStyle(v) {}, set strokeStyle(v) {},
-  set font(v) {}, set textAlign(v) {}, set lineWidth(v) {},
+  clearRect() {},
+  fillRect() {},
+  fillText() {},
+  strokeRect() {},
+  beginPath() {},
+  arc() {},
+  fill() {},
+  set fillStyle(v) {},
+  set strokeStyle(v) {},
+  set font(v) {},
+  set textAlign(v) {},
+  set lineWidth(v) {},
   set textBaseline(v) {}
 };
 global.document = {
@@ -52,10 +81,7 @@ global.document = {
 };
 
 const { WebPanel } = require('../src/vr/browser/WebPanel.js');
-const {
-  topSiteTiles, hitTestTopSites,
-  TOP_SITE_MAX, TOP_SITE_COLS, TILE_H, TILE_GAP, TILE_TOP
-} = require('../src/vr/browser/topSitesLayout.js');
+const { topSiteTiles, hitTestTopSites, TILE_TOP } = require('../src/vr/browser/topSitesLayout.js');
 const { CONTENT_PX_W, CONTENT_PX_H } = require('../src/vr/browser/readerLayout.js');
 
 function makePanel(opts = {}) {
@@ -70,27 +96,33 @@ function makePanel(opts = {}) {
 
 /** Map a content-canvas pixel coordinate to the point _onContentSelect sees. */
 function evtAtCanvasPx(px, py) {
-  const localX = ((px / CONTENT_PX_W) - 0.5) * 1.6;              // PANEL_W
-  const localY = (((1 - (py / CONTENT_PX_H)) - 0.5)) * (1.0 * (1 - 0.08)); // PANEL_H*(1-CHROME_H)
-  return { x: localX, y: localY, clone() { return this; } };
+  const localX = (px / CONTENT_PX_W - 0.5) * 1.6; // PANEL_W
+  const localY = (1 - py / CONTENT_PX_H - 0.5) * (1.0 * (1 - 0.08)); // PANEL_H*(1-CHROME_H)
+  return {
+    x: localX,
+    y: localY,
+    clone() {
+      return this;
+    }
+  };
 }
 
 // ── topSiteTiles geometry ─────────────────────────────────────────────────────
 describe('topSiteTiles', () => {
   test('lays out up to TOP_SITE_MAX tiles as a 4-wide grid inside the canvas', () => {
-    const tiles = topSiteTiles(TOP_SITE_MAX);
+    const tiles = topSiteTiles(8);
     expect(tiles).toHaveLength(8);
     for (const r of tiles) {
       expect(r.x).toBeGreaterThanOrEqual(0);
       expect(r.y).toBeGreaterThanOrEqual(TILE_TOP);
       expect(r.x + r.w).toBeLessThanOrEqual(CONTENT_PX_W);
       expect(r.y + r.h).toBeLessThanOrEqual(CONTENT_PX_H);
-      expect(r.h).toBe(TILE_H);
+      expect(r.h).toBe(132);
     }
     // Rows of TOP_SITE_COLS: first four share one y, next four the next.
-    expect(new Set(tiles.slice(0, 4).map(r => r.y)).size).toBe(1);
-    expect(new Set(tiles.slice(4).map(r => r.y)).size).toBe(1);
-    expect(tiles[4].y).toBe(tiles[0].y + TILE_H + TILE_GAP);
+    expect(new Set(tiles.slice(0, 4).map((r) => r.y)).size).toBe(1);
+    expect(new Set(tiles.slice(4).map((r) => r.y)).size).toBe(1);
+    expect(tiles[4].y).toBe(tiles[0].y + 132 + 24);
   });
 
   test('a short last row is centred under the full rows', () => {
@@ -102,7 +134,7 @@ describe('topSiteTiles', () => {
   });
 
   test('clamps over-large counts and tolerates degenerate input', () => {
-    expect(topSiteTiles(99)).toHaveLength(TOP_SITE_MAX);
+    expect(topSiteTiles(99)).toHaveLength(8);
     expect(topSiteTiles(0)).toEqual([]);
     expect(topSiteTiles(-3)).toEqual([]);
     expect(topSiteTiles(4)).toHaveLength(4);
