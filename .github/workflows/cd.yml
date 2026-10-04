@@ -331,6 +331,7 @@ jobs:
       - name: Run Lighthouse on deployed site
         run: |
           lhci autorun --collect.url=${{ needs.deploy-github-pages.outputs.url }} \
+            --collect.staticDistDir= \
             --collect.numberOfRuns=3 \
             --assert.preset=lighthouse:recommended
         continue-on-error: true

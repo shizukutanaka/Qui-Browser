@@ -11,6 +11,12 @@
  *  3. ci.yml triggered on `develop`, a branch that does not exist.
  *  4. ci.yml job-header comments skipped JOB 3/JOB 4 (renumbering left
  *     behind after those jobs were deleted).
+ *  5. verify-performance audits the deployed Pages URL via
+ *     `lhci autorun --collect.url=…`, but autorun also loads
+ *     .lighthouserc.json whose `collect.staticDistDir` then takes the
+ *     static-dir path: LHCI serves ./dist locally and rewrites the URL's
+ *     port to the local server — an unreachable https://host:PORT fetch.
+ *     The job must clear staticDistDir for its URL audit.
  *
  * These tests pin the invariants, not the instances.
  */
@@ -51,6 +57,19 @@ describe('live workflows only promise what exists', () => {
     // is always empty.
     const pagesJob = src.slice(src.indexOf('deploy-github-pages:'), src.indexOf('deploy-netlify:'));
     expect(pagesJob).toMatch(/outputs:\s*\n\s+url:\s*\$\{\{\s*steps\.deployment\.outputs\.page_url\s*\}\}/);
+  });
+
+  it('verify-performance clears staticDistDir when auditing the live URL', () => {
+    const src = read(CD);
+    // .lighthouserc.json sets collect.staticDistDir, which lhci honours over
+    // --collect.url (it serves dist and rewrites the URL's port). Any lhci
+    // invocation that passes --collect.url must empty staticDistDir too.
+    const lhciRuns = [...src.matchAll(/lhci autorun[^`]*/g)].map((m) => m[0]);
+    const urlRuns = lhciRuns.filter((line) => line.includes('--collect.url'));
+    expect(urlRuns.length).toBeGreaterThan(0);
+    urlRuns.forEach((line) => {
+      expect(line).toMatch(/--collect\.staticDistDir=(?:\s|$)/);
+    });
   });
 
   it('JOB numbering comments are contiguous in every live workflow', () => {
