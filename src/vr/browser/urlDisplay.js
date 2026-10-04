@@ -70,10 +70,10 @@ function safeParse(s) {
  * @param {string} url
  * @returns {{
  *   valid: boolean, scheme: string, host: string, rest: string,
- *   security: 'secure'|'insecure'|'local'|'none', hasUserinfo: boolean, raw: string
+ *   security: 'secure'|'insecure'|'local'|'none', raw: string
  * }}
  */
-export function parseDisplayUrl(url) {
+function parseDisplayUrl(url) {
   const raw = String(url === null || url === undefined ? '' : url).trim();
   const parsed = safeParse(raw);
   if (!parsed) {
@@ -81,7 +81,7 @@ export function parseDisplayUrl(url) {
     // rather than inventing structure we can't verify.
     return {
       valid: false, scheme: '', host: '', rest: raw,
-      security: 'none', hasUserinfo: false, raw
+      security: 'none', raw
     };
   }
   return {
@@ -90,9 +90,6 @@ export function parseDisplayUrl(url) {
     host: parsed.host, // includes :port when present
     rest: `${parsed.pathname}${parsed.search}${parsed.hash}`,
     security: securityLevel(raw),
-    // username/password before the host is essentially only used to deceive
-    // in a browser address bar; surface it so the caller can flag it.
-    hasUserinfo: parsed.username !== '' || parsed.password !== '',
     raw
   };
 }
