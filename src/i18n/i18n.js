@@ -115,6 +115,7 @@ const CATALOG = {
     'vr.settings.panelDist': 'Panel Dist',
     // VR Settings Panel Labels (UI)
     'vr.settings.webPanel': 'Web Browser Panel',
+    'vr.settings.homeEnv': 'Home Environment',
     'vr.settings.privateMode': 'Private',
     'vr.settings.restoreTabs': 'Restore Tabs',
     'vr.settings.readerTextSize': 'Reader Text Size',
@@ -178,6 +179,8 @@ const CATALOG = {
     'vr.msg.panelMoved': 'Panel moved',
     'vr.msg.webPanelOn': 'Browsing panel enabled',
     'vr.msg.webPanelOff': 'Browsing panel closed',
+    'vr.msg.homeEnvOn': 'Home environment shown',
+    'vr.msg.homeEnvOff': 'Home environment hidden',
     'vr.msg.privateModeOn': 'Private browsing on — history is not recorded',
     'vr.msg.privateModeOff': 'Private browsing off',
     // VR Error Messages
@@ -294,6 +297,7 @@ const CATALOG = {
     'vr.settings.panelDist': 'パネル距離',
     // VR Settings Panel Labels (UI)
     'vr.settings.webPanel': 'ブラウザパネル',
+    'vr.settings.homeEnv': 'ホーム環境',
     'vr.settings.privateMode': 'プライベート',
     'vr.settings.restoreTabs': 'タブを復元',
     'vr.settings.readerTextSize': 'リーダー文字サイズ',
@@ -357,6 +361,8 @@ const CATALOG = {
     'vr.msg.panelMoved': 'パネル移動完了',
     'vr.msg.webPanelOn': 'ブラウジングパネルを有効にしました',
     'vr.msg.webPanelOff': 'ブラウジングパネルを閉じました',
+    'vr.msg.homeEnvOn': 'ホーム環境を表示しました',
+    'vr.msg.homeEnvOff': 'ホーム環境を非表示にしました',
     'vr.msg.privateModeOn': 'プライベートモード: オン — 履歴は記録されません',
     'vr.msg.privateModeOff': 'プライベートモード: オフ',
     // VR Error Messages

@@ -458,6 +458,50 @@ describe('ImmersiveVideo lifecycle', () => {
     expect(iv.playing).toBe(true);
   });
 
+  // The resume branch must not claim playback eagerly: if the browser's
+  // Autoplay Policy rejects video.play() (the HUD Play button is a gaze click,
+  // not a user gesture on most runtimes), nothing is actually playing, so
+  // iv.playing must stay false and no 'playing' playback event may fire.
+  // Otherwise the HUD lies "Pause" forever and the visibilitychange guard
+  // (which reads iv.playing) misbehaves — the exact lie play()'s
+  // 'playing'-event wiring was built to avoid.
+  test('togglePause resume does not claim playback when video.play() is rejected', () => {
+    const onPlaybackChange = jest.fn();
+    nextVideoAutoplayBlocked = true;
+    const scene = {
+      children: [],
+      add(o) {
+        scene.children.push(o);
+      },
+      remove(o) {
+        scene.children = scene.children.filter((x) => x !== o);
+      }
+    };
+    const iv = new ImmersiveVideo(
+      scene,
+      makeCamera(),
+      {},
+      {
+        registerInteractable: jest.fn(),
+        unregisterInteractable: jest.fn(),
+        onPlaybackChange
+      }
+    );
+    iv.play('https://cdn.example.com/clip.mp4'); // rejected → honest 'Play'
+    expect(iv.playing).toBe(false);
+
+    iv.togglePause(); // user hits Play → play() rejected again
+
+    expect(iv.video.paused).toBe(true);
+    expect(iv.playing).toBe(false);
+    expect(onPlaybackChange).not.toHaveBeenCalledWith('playing');
+    // …and the HUD still shows "Play" (setLabel never wrote 'Pause').
+    const setLabelSpy = jest.spyOn(iv._playPauseBtn.userData, 'setLabel');
+    iv.video._emit('playing'); // a later real start still flips state
+    expect(iv.playing).toBe(true);
+    expect(setLabelSpy).toHaveBeenCalledWith('Pause');
+  });
+
   test('update() re-centres the sphere on the head each frame', () => {
     const { iv, scene } = makeHarness();
     iv.play('https://cdn.example.com/clip.mp4');
