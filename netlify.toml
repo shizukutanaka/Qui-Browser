@@ -13,12 +13,11 @@
     Cache-Control = "no-cache, no-store, must-revalidate"
     Service-Worker-Allowed = "/"
 
-# JavaScript/CSS用のキャッシュ設定
+# Vite のハッシュ付きバンドル・静的アセット（/assets/*）は immutable
 [[headers]]
-  for = "/*.js"
+  for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
-    Content-Type = "application/javascript; charset=utf-8"
 
 # HTML用のキャッシュ設定
 [[headers]]
@@ -27,30 +26,7 @@
     Cache-Control = "public, max-age=3600"
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
-    X-XSS-Protection = "1; mode=block"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
-
-# 画像/アイコン用のキャッシュ設定
-[[headers]]
-  for = "/assets/icons/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/*.png"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/*.jpg"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/*.svg"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
 
 # manifest.json用の設定
 [[headers]]
@@ -67,35 +43,21 @@
     Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
 
     # Content Security Policy
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; media-src 'self' https: blob:; worker-src 'self' blob:; frame-src 'self';"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; media-src 'self' https: blob:; worker-src 'self' blob:; frame-src 'self';"
 
     # その他のセキュリティヘッダー
     X-Frame-Options = "SAMEORIGIN"
     X-Content-Type-Options = "nosniff"
-    X-XSS-Protection = "1; mode=block"
     Referrer-Policy = "strict-origin-when-cross-origin"
 
-    # Permissions Policy（WebXR用）
+    # Permissions Policy（WebXR・音声入力が必要なため全ページで許可）
     Permissions-Policy = "accelerometer=*, camera=*, gyroscope=*, magnetometer=*, microphone=*, xr-spatial-tracking=*"
 
-# SPA用のリダイレクト設定（将来のルーティング用）
-[[redirects]]
-  from = "/app/*"
-  to = "/index.html"
-  status = 200
-
-# 404ページ
+# 404ページ（未一致パスはアプリシェルを404で返す — SPAルーティングは存在しない）
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 404
-
-# リダイレクト（HTTPからHTTPS）
-[[redirects]]
-  from = "http://:splat"
-  to = "https://:splat"
-  status = 301
-  force = true
 
 # プラグイン設定
 [[plugins]]
@@ -118,7 +80,6 @@
 # 環境変数（オプション）
 [context.production.environment]
   NODE_ENV = "production"
-  VR_BROWSER_VERSION = "2.0.0"
 
 [context.deploy-preview.environment]
   NODE_ENV = "staging"
@@ -141,17 +102,9 @@
 [build.processing.images]
   compress = true
 
-# 関数（将来のAPI用、オプション）
-[functions]
-  directory = "netlify/functions"
-
-# エッジ関数（オプション）
-[edge_functions]
-  directory = "netlify/edge-functions"
-
-# 開発サーバー設定
+# 開発サーバー設定（vite dev をプロキシ）
 [dev]
-  command = "python -m http.server 8888"
+  command = "npm run dev"
   port = 8888
-  targetPort = 8888
+  targetPort = 5173
   autoLaunch = true
