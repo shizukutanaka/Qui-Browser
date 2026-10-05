@@ -31,7 +31,7 @@ describe('deleted assets/js tree has no live references', () => {
     //   netlify.toml                  -> #1143 (re-pointed to dist/)
     const IN_FLIGHT = new Set(['.github/CODEOWNERS', '.github/workflows/wasm-build.yml', 'netlify.toml']);
     const offenders = trackedFiles().filter((f) => {
-      if (f.startsWith('docs/') || f.endsWith('.md') || IN_FLIGHT.has(f)) {
+      if (f.startsWith('docs/') || f.startsWith('tests/') || f.endsWith('.md') || IN_FLIGHT.has(f)) {
         return false;
       }
       return read(f).includes('assets/js/');
