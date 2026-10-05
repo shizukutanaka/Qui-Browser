@@ -23,6 +23,24 @@ describe('SpatialAudio dead surface is gone', () => {
     expect(audio.setSourceVolume).toBeUndefined();
     expect(audio.createReverb).toBeUndefined();
   });
+
+  test('getStats returns only the consumed fields', () => {
+    // getStats() has exactly one consumer — tests/spatial-audio.test.js — and it
+    // reads only the stats counters plus hrtfThreshold. Fields describing a
+    // WebAudio diagnostics surface nothing reads (contextState, currentTime,
+    // sampleRate, latency) are write-only payload.
+    const a = new SpatialAudio();
+    a.context = { state: 'running', currentTime: 1.5, sampleRate: 48000, baseLatency: 0.01 };
+    expect(a.getStats()).toEqual({
+      sourcesActive: 0,
+      buffersLoaded: 0,
+      totalPlayTime: 0,
+      cpuLoad: 0,
+      hrtfSources: 0,
+      equalPowerSources: 0,
+      hrtfThreshold: 15
+    });
+  });
 });
 
 describe('SpatialAudio live surface is intact', () => {

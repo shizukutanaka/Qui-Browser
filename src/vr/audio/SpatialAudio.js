@@ -628,10 +628,6 @@ export class SpatialAudio {
   getStats() {
     return {
       ...this.stats,
-      contextState: this.context ? this.context.state : 'uninitialized',
-      currentTime: this.context ? this.context.currentTime : 0,
-      sampleRate: this.context ? this.context.sampleRate : 0,
-      latency: this.context ? this.context.baseLatency || this.context.outputLatency || 0 : 0,
       hrtfThreshold: this.settings.hrtfThreshold
     };
   }
