@@ -184,6 +184,7 @@ export class WebPanel {
     this.isPrivate = !!privateMode;
     this._topSitesProvider = typeof topSitesProvider === 'function' ? topSitesProvider : null;
     this._topSiteTiles = []; // rects hit-tested by _onContentSelect
+    this._drawnTopSites = []; // the list _drawTopSites actually painted
     // Optional companion proxy (proxy/server.js). Empty = direct fetch only.
     this.readerProxyUrl = typeof readerProxyUrl === 'string' ? readerProxyUrl : '';
 
@@ -383,6 +384,9 @@ export class WebPanel {
   _drawTopSites(ctx, w, col) {
     const sites = this._topSitesProvider ? this._topSitesProvider() : [];
     this._topSiteTiles = topSiteTiles(sites.length, w);
+    // Snapshot what was painted — _onContentSelect resolves tiles against this
+    // list, not a live re-fetch whose ordering may have shifted since the draw.
+    this._drawnTopSites = sites.slice(0, this._topSiteTiles.length);
     if (!sites.length || !this._topSiteTiles.length) {
       return;
     }
@@ -597,8 +601,7 @@ export class WebPanel {
     if (this._contentState === 'empty') {
       const idx = hitTestTopSites(px, py, this._topSiteTiles);
       if (idx >= 0) {
-        const sites = this._topSitesProvider ? this._topSitesProvider() : [];
-        const site = sites[idx];
+        const site = this._drawnTopSites[idx];
         if (site && site.url) {
           this.navigate(site.url);
         }
