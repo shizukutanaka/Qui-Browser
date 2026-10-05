@@ -1,79 +1,36 @@
 # Publishing a Release + GitHub Pages
 
-> ## ⚠️ REQUIRED FIRST: five workflows still reference deleted code
->
-> Session 74 deleted `assets/js/` (119,698 lines of unreachable legacy code).
-> **Five workflow files still reference it**, and at least one now fails:
->
-> ```
-> $ find assets/js -name "vr-*.js" -exec ls -lh {} \;
-> find: 'assets/js': No such file or directory     # exit 1 -> deploy.yml fails
-> ```
->
-> Automation in this repo **cannot push `.github/workflows/**`** (403,
-> `without workflows permission`), so this needs your hands. Every one of these
-> steps existed to audit the legacy code that is now gone, so the fix is
-> deletion, not repair:
->
-> | file | what to do |
-> |---|---|
-> | `.github/workflows/deploy.yml` | delete the *Validate VR Modules*, *Check file sizes*, and the `npx eslint assets/js/*.js` / `MODULE_COUNT` steps (lines ~38–50, ~100, ~104) |
-> | `.github/workflows/test.yml` | delete every step globbing `assets/js/**` (lines ~60, 78–99, 143, 164–177, 203–226) — the real suite is `npm test` |
-> | `.github/workflows/benchmark.yml` | delete, or drop the `assets/js/vr-*.js` path trigger |
-> | `.github/workflows/v5.8.0-planning.yml` | delete — it audits modules that no longer exist |
-> | `.github/workflows/wasm-build.yml` | delete — there is no `assets/js/wasm/` and no WASM in the build |
->
-> **A ready-to-apply patch is committed at
-> `docs/patches/0001-ci-drop-assets-js-steps.patch`** — verified to apply
-> cleanly to `main` and to leave zero `assets/js` references behind:
->
-> ```bash
-> git checkout main && git pull
-> git am docs/patches/0001-ci-drop-assets-js-steps.patch
-> git push
-> ```
->
-> (`git apply` instead of `git am` if you'd rather write your own commit message.)
->
-> If you prefer to also add a job that runs what this repo actually verifies:
->
-> ```yaml
->       - run: npm ci
->       - run: npm test
->       - run: npm run lint
->       - run: npm run ci:verify   # build + verify:layout + verify:app
-> ```
->
-> Until this is done, CI results on `main` are not trustworthy.
-
 ---
 
 The finished product is on `main` (tested, release-ready, subpath-aware build).
 Two owner-side steps remain to make it a conventional public release: a
 versioned **Release object** and a live **GitHub Pages** URL. Automation with
 only `contents`/`pull_requests` scope cannot do these — they need `workflows`
-+ tag/`actions` permission or a couple of clicks in the UI.
+
+- tag/`actions` permission or a couple of clicks in the UI.
 
 ---
 
 ## 1. Cut the `v2.0.0` Release
 
 **Option A — GitHub UI (fastest):**
-Releases → *Draft a new release* → *Choose a tag* → type `v2.0.0` → *Create new
-tag on publish* → target `main` → *Generate release notes* → **Publish release**.
+Releases → _Draft a new release_ → _Choose a tag_ → type `v2.0.0` → _Create new
+tag on publish_ → target `main` → _Generate release notes_ → **Publish release**.
 
 **Option B — from a local clone (your own credentials):**
+
 ```bash
 git tag -a v2.0.0 -m "Qui Browser VR v2.0.0"
 git push origin v2.0.0
 ```
+
 This triggers `.github/workflows/release.yml`, which builds `dist/`, packages a
 tarball + checksum, and creates the Release. (The two docs its "Build
 documentation" step checks for — `docs/QUICK_START.md`, `docs/USAGE_GUIDE.md` —
 now exist, so that step passes.)
 
 **Option C — run the workflow manually:**
-Actions → *Create Release* → *Run workflow* → version `v2.0.0`.
+Actions → _Create Release_ → _Run workflow_ → version `v2.0.0`.
 
 ---
 
@@ -86,8 +43,8 @@ URLs are already subpath-aware.
 
 1. **Settings → Pages → Source: GitHub Actions.**
 2. Replace `.github/workflows/deploy.yml` with the version below (the current
-   one uploads raw source and has no `enablement`, so it fails at *Setup
-   Pages*). Requires `workflows` write permission — commit it yourself, or grant
+   one uploads raw source and has no `enablement`, so it fails at _Setup
+   Pages_). Requires `workflows` write permission — commit it yourself, or grant
    the automation that scope.
 
 ```yaml
@@ -104,7 +61,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
+  group: 'pages'
   cancel-in-progress: false
 
 jobs:
@@ -198,7 +155,8 @@ jobs:
 ## Why the automation stopped here
 
 The session's GitHub integration has `contents`/`pull_requests` scope (PR create
-+ merge, branch commits) but **not** `workflows`, tag push, or `actions`
-dispatch — every such attempt returned `403 "not accessible by integration"`,
-and no release-creation API is exposed to it. These two steps are therefore
-owner-gated by design.
+
+- merge, branch commits) but **not** `workflows`, tag push, or `actions`
+  dispatch — every such attempt returned `403 "not accessible by integration"`,
+  and no release-creation API is exposed to it. These two steps are therefore
+  owner-gated by design.

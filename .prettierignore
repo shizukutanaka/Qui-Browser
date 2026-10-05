@@ -27,9 +27,6 @@ logs/
 .DS_Store
 Thumbs.db
 
-# Benchmark results
-benchmark-results.*
-
 # Temporary files
 *.tmp
 *.temp

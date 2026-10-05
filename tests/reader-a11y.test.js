@@ -15,23 +15,41 @@ class MockGroup {
     this.position = { set: jest.fn() };
     this._objects = [];
   }
-  add(o) { this._objects.push(o); }
-  remove(o) { this._objects = this._objects.filter(x => x !== o); }
-  traverse(fn) { this._objects.forEach(fn); fn(this); }
+  add(o) {
+    this._objects.push(o);
+  }
+  remove(o) {
+    this._objects = this._objects.filter((x) => x !== o);
+  }
+  traverse(fn) {
+    this._objects.forEach(fn);
+    fn(this);
+  }
 }
 class MockMesh {
   constructor() {
     this.name = '';
     this.position = { set: jest.fn() };
   }
-  worldToLocal(v) { return v; }
+  worldToLocal(v) {
+    return v;
+  }
 }
 jest.mock('three', () => ({
   Group: MockGroup,
   Mesh: MockMesh,
-  PlaneGeometry: class { dispose() {} },
-  MeshBasicMaterial: class { dispose() {} },
-  CanvasTexture: class { constructor() { this.needsUpdate = false; } dispose() {} }
+  PlaneGeometry: class {
+    dispose() {}
+  },
+  MeshBasicMaterial: class {
+    dispose() {}
+  },
+  CanvasTexture: class {
+    constructor() {
+      this.needsUpdate = false;
+    }
+    dispose() {}
+  }
 }));
 
 // ── WebPanel stub (records readerScale + setReaderScale calls) ─────────────────
@@ -43,29 +61,49 @@ jest.mock('../src/vr/browser/WebPanel.js', () => ({
       this.currentUrl = '';
       this.isPrivate = !!opts.privateMode;
       this.readerScale = opts.readerScale;
-      this.setReaderScale = jest.fn(function(v) { this.readerScale = v; });
+      this.setReaderScale = jest.fn(function (v) {
+        this.readerScale = v;
+      });
       this.group = { position: { set: jest.fn() } };
       this.visible = false;
       this.disposed = false;
       panelInstances.push(this);
     }
-    addToScene(parent) { this.parent = parent; }
-    navigate(url) { this.currentUrl = url; }
-    setVisible(v) { this.visible = !!v; }
+    addToScene(parent) {
+      this.parent = parent;
+    }
+    navigate(url) {
+      this.currentUrl = url;
+    }
+    setVisible(v) {
+      this.visible = !!v;
+    }
     setCurved() {}
-    scrollContentPage(d) { this.pageDelta = d; }
-    dispose() { this.disposed = true; }
+    scrollContentPage(d) {
+      this.pageDelta = d;
+    }
+    dispose() {
+      this.disposed = true;
+    }
   }
 }));
 const { WebPanel: RealWebPanel } = jest.requireActual('../src/vr/browser/WebPanel.js');
 
 global.document = {
   createElement: () => ({
-    width: 0, height: 0,
+    width: 0,
+    height: 0,
     getContext: () => ({
-      clearRect: jest.fn(), fillRect: jest.fn(), fillText: jest.fn(),
-      beginPath: jest.fn(), arc: jest.fn(), fill: jest.fn(),
-      fillStyle: '', font: '', textAlign: '', textBaseline: ''
+      clearRect: jest.fn(),
+      fillRect: jest.fn(),
+      fillText: jest.fn(),
+      beginPath: jest.fn(),
+      arc: jest.fn(),
+      fill: jest.fn(),
+      fillStyle: '',
+      font: '',
+      textAlign: '',
+      textBaseline: ''
     })
   })
 };
@@ -73,7 +111,7 @@ global.URL = URL;
 
 const { TabManager } = require('../src/vr/browser/TabManager.js');
 const { VoiceCommands } = require('../src/vr/input/VoiceCommands.js');
-const { narrationChunks, NARRATION_CHUNK_MAX } = require('../src/vr/browser/readerNarration.js');
+const { narrationChunks } = require('../src/vr/browser/readerNarration.js');
 const { layoutReaderLines, visibleLinesFor, pageJumpLines } = require('../src/vr/browser/readerLayout.js');
 
 function makeManager(opts = {}) {
@@ -125,13 +163,16 @@ describe('narrationChunks', () => {
       { type: 'p', text: 'Second paragraph.' }
     ]);
     expect(chunks[0]).toContain('Title');
-    expect(chunks.indexOf(chunks.find(c => c.includes('First'))))
-      .toBeLessThan(chunks.indexOf(chunks.find(c => c.includes('Second'))));
+    expect(chunks.indexOf(chunks.find((c) => c.includes('First')))).toBeLessThan(
+      chunks.indexOf(chunks.find((c) => c.includes('Second')))
+    );
   });
 
   test('skips blank and malformed blocks', () => {
     const chunks = narrationChunks('', [
-      null, { type: 'p', text: '' }, { type: 'p' },
+      null,
+      { type: 'p', text: '' },
+      { type: 'p' },
       { type: 'p', text: 'Real text.' }
     ]);
     expect(chunks).toEqual(['Real text.']);
@@ -143,10 +184,14 @@ describe('narrationChunks', () => {
   });
 
   test('paragraph boundaries always break chunks', () => {
-    const chunks = narrationChunks('T', [
-      { type: 'p', text: 'Short one.' },
-      { type: 'p', text: 'Short two.' }
-    ], 400);
+    const chunks = narrationChunks(
+      'T',
+      [
+        { type: 'p', text: 'Short one.' },
+        { type: 'p', text: 'Short two.' }
+      ],
+      400
+    );
     expect(chunks).toEqual(['T', 'Short one.', 'Short two.']);
   });
 
@@ -157,7 +202,7 @@ describe('narrationChunks', () => {
     expect(chunks.length).toBe(2);
     expect(chunks[0]).toContain('あ');
     expect(chunks[1]).toContain('い');
-    chunks.forEach(c => expect([...c].length).toBeLessThanOrEqual(200));
+    chunks.forEach((c) => expect([...c].length).toBeLessThanOrEqual(200));
   });
 
   test('a sentence longer than maxLen hard-splits without severing a surrogate pair', () => {
@@ -170,7 +215,7 @@ describe('narrationChunks', () => {
     expect(joined).toContain('😀');
     // No lone surrogates: a high surrogate never ends a chunk and a low
     // surrogate never starts one.
-    chunks.forEach(c => {
+    chunks.forEach((c) => {
       expect(c.match(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/)).toBeNull();
       expect(c.match(/(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/)).toBeNull();
       expect([...c].length).toBeLessThanOrEqual(100);
@@ -179,7 +224,7 @@ describe('narrationChunks', () => {
 
   test('respects a custom maxLen', () => {
     const chunks = narrationChunks('T', [{ type: 'p', text: 'word '.repeat(60) }], 50);
-    chunks.forEach(c => expect([...c].length).toBeLessThanOrEqual(50));
+    chunks.forEach((c) => expect([...c].length).toBeLessThanOrEqual(50));
     expect(chunks.length).toBeGreaterThan(2);
   });
 });
@@ -249,7 +294,9 @@ describe('WebPanel — reader a11y methods', () => {
 
 // ── TabManager.setReaderScale ─────────────────────────────────────────────────
 describe('TabManager — setReaderScale', () => {
-  beforeEach(() => { panelInstances.length = 0; });
+  beforeEach(() => {
+    panelInstances.length = 0;
+  });
 
   test('applies to every open tab and is inherited by new tabs', () => {
     const tm = makeManager();
@@ -274,9 +321,13 @@ describe('TabManager — setReaderScale', () => {
 describe('VoiceCommands — narration and paging', () => {
   const origSSU = global.SpeechSynthesisUtterance;
   beforeAll(() => {
-    global.SpeechSynthesisUtterance = function(text) { this.text = text; };
+    global.SpeechSynthesisUtterance = function (text) {
+      this.text = text;
+    };
   });
-  afterAll(() => { global.SpeechSynthesisUtterance = origSSU; });
+  afterAll(() => {
+    global.SpeechSynthesisUtterance = origSSU;
+  });
 
   test('"読み上げて" announces the start, then queues every chunk uncaptioned', () => {
     const onReadAloud = jest.fn(() => ['段落一です。', '段落二です。']);

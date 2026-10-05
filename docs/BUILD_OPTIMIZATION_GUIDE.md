@@ -12,14 +12,14 @@ This guide covers production build optimization for Qui Browser VR, ensuring max
 
 ### Optimization Goals
 
-| Metric | Target | Strategy |
-|--------|--------|----------|
-| **Initial Load** | <3s | Code splitting, lazy loading |
-| **Bundle Size** | <2MB | Tree shaking, minification |
-| **First Paint** | <1s | Critical CSS inline |
-| **Time to Interactive** | <3s | Priority-based loading |
-| **Memory Usage** | <500MB | Object pooling, texture compression |
-| **Runtime FPS** | 90-120 | FFR, dynamic quality |
+| Metric                  | Target | Strategy                            |
+| ----------------------- | ------ | ----------------------------------- |
+| **Initial Load**        | <3s    | Code splitting, lazy loading        |
+| **Bundle Size**         | <2MB   | Tree shaking, minification          |
+| **First Paint**         | <1s    | Critical CSS inline                 |
+| **Time to Interactive** | <3s    | Priority-based loading              |
+| **Memory Usage**        | <500MB | Object pooling, texture compression |
+| **Runtime FPS**         | 90-120 | FFR, dynamic quality                |
 
 ---
 
@@ -63,15 +63,12 @@ The project uses **Vite** for fast builds and excellent ES module support.
 ### Chunk Strategy
 
 **Critical Path (load immediately):**
+
 1. `main.js` - Entry point (~10KB)
 2. `tier1.js` - Performance optimizations (~50KB)
 3. `vendor-three.js` - Three.js library (~600KB compressed)
 
-**Lazy Loaded (on demand):**
-4. `tier2-input.js` - IME, Hand tracking (~80KB)
-5. `tier2-media.js` - Audio, MR, Loading (~70KB)
-6. `tier3.js` - Advanced features (~120KB)
-7. `dev-tools.js` - Debugging tools (~60KB)
+**Lazy Loaded (on demand):** 4. `tier2-input.js` - IME, Hand tracking (~80KB) 5. `tier2-media.js` - Audio, MR, Loading (~70KB) 6. `tier3.js` - Advanced features (~120KB) 7. `dev-tools.js` - Debugging tools (~60KB)
 
 **Total Initial:** ~660KB (gzipped)
 **Total Application:** ~1.08MB (gzipped)
@@ -105,6 +102,7 @@ document.getElementById('vr-toggle').addEventListener('click', async () => {
 ```
 
 #### Benefits
+
 - **Initial load:** -50% (660KB vs 1.3MB)
 - **Time to interactive:** -40% (1.8s vs 3.0s)
 - **User experience:** Faster perceived load
@@ -134,6 +132,7 @@ import { Vector3, Quaternion, Scene, WebGLRenderer } from 'three';
 ```
 
 #### Results
+
 - Three.js: 600KB → 450KB (-25%)
 - Custom code: Unused exports removed automatically
 
@@ -146,21 +145,22 @@ import { Vector3, Quaternion, Scene, WebGLRenderer } from 'three';
 ```javascript
 terser({
   compress: {
-    drop_console: true,     // Remove console.log
-    drop_debugger: true,    // Remove debugger statements
-    passes: 2,              // Two-pass optimization
+    drop_console: true, // Remove console.log
+    drop_debugger: true, // Remove debugger statements
+    passes: 2, // Two-pass optimization
     pure_funcs: ['console.log', 'console.info']
   },
   mangle: {
-    properties: false       // Don't mangle Three.js properties
+    properties: false // Don't mangle Three.js properties
   },
   format: {
-    comments: false         // Remove all comments
+    comments: false // Remove all comments
   }
-})
+});
 ```
 
 #### Results
+
 - JavaScript: -40% size reduction
 - No runtime performance impact
 - Preserves source map generation (if enabled)
@@ -183,6 +183,7 @@ const texture = await textureManager.loadTexture('wood.ktx2', {
 ```
 
 **Size Comparison:**
+
 - PNG 4K: 8MB
 - JPG 4K: 2MB
 - KTX2 4K: 512KB (-94% vs PNG)
@@ -198,6 +199,7 @@ imagemin assets/images/*.{jpg,png} --out-dir=dist/assets/images --plugin=mozjpeg
 ```
 
 **Results:**
+
 - PNG: -70% (lossless)
 - JPG: -50% (quality 85)
 
@@ -209,6 +211,7 @@ pyftsubset font.ttf --text-file=characters.txt --output-file=font-subset.woff2
 ```
 
 **Results:**
+
 - Full font: 200KB
 - Subset: 20KB (-90%)
 
@@ -248,18 +251,21 @@ const CACHE_NAME = `qui-browser-${CACHE_VERSION}`;
 // Automatic cleanup on version change
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys
-          .filter(key => key !== CACHE_NAME)
-          .map(key => caches.delete(key))
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => key !== CACHE_NAME)
+            .map((key) => caches.delete(key))
+        )
       )
-    )
   );
 });
 ```
 
 **Results:**
+
 - First visit: 3s load
 - Repeat visit: 0.5s load (-83%)
 - Offline support: ✅
@@ -274,17 +280,30 @@ self.addEventListener('activate', (event) => {
 <!-- Inline critical CSS in <head> -->
 <style>
   /* Critical above-the-fold styles */
-  body { margin: 0; font-family: sans-serif; }
-  .loading-screen { /* ... */ }
-  .app-container { /* ... */ }
+  body {
+    margin: 0;
+    font-family: sans-serif;
+  }
+  .loading-screen {
+    /* ... */
+  }
+  .app-container {
+    /* ... */
+  }
 </style>
 
 <!-- Async load full CSS -->
-<link rel="preload" href="styles.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="styles.css"></noscript>
+<link
+  rel="preload"
+  href="styles.css"
+  as="style"
+  onload="this.onload=null;this.rel='stylesheet'"
+/>
+<noscript><link rel="stylesheet" href="styles.css" /></noscript>
 ```
 
 **Results:**
+
 - First paint: 0.8s → 0.3s (-62%)
 - No FOUC (Flash of Unstyled Content)
 
@@ -296,21 +315,22 @@ self.addEventListener('activate', (event) => {
 
 ```html
 <!-- DNS prefetch for external resources -->
-<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+<link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
 
 <!-- Preconnect for critical origins -->
-<link rel="preconnect" href="https://api.google.com">
+<link rel="preconnect" href="https://api.google.com" />
 
 <!-- Preload critical assets -->
-<link rel="preload" href="main.js" as="script">
-<link rel="preload" href="main.css" as="style">
-<link rel="preload" href="font.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="main.js" as="script" />
+<link rel="preload" href="main.css" as="style" />
+<link rel="preload" href="font.woff2" as="font" type="font/woff2" crossorigin />
 
 <!-- Prefetch for likely next navigations -->
-<link rel="prefetch" href="tier2-input.js">
+<link rel="prefetch" href="tier2-input.js" />
 ```
 
 **Results:**
+
 - DNS lookup: -200ms
 - Connection time: -300ms
 - Resource load: -150ms
@@ -357,15 +377,9 @@ npm run build
 ### Build Analysis
 
 ```bash
-# Analyze bundle size
-npm run build:analyze
-
-# Opens webpack-bundle-analyzer
-# Shows:
-# - Chunk sizes
-# - Module dependencies
-# - Duplicate code
-# - Optimization opportunities
+# Build and inspect the emitted bundles
+npm run build
+ls -lh dist/assets/
 ```
 
 ---
@@ -374,36 +388,36 @@ npm run build:analyze
 
 ### Size Budgets
 
-| Asset Type | Budget | Current | Status |
-|------------|--------|---------|--------|
-| **JavaScript (initial)** | 700KB | 660KB | ✅ |
-| **JavaScript (total)** | 1.5MB | 1.08MB | ✅ |
-| **CSS** | 50KB | 32KB | ✅ |
-| **Fonts** | 100KB | 45KB | ✅ |
-| **Images** | 500KB | 280KB | ✅ |
-| **Total** | 2.5MB | 2.1MB | ✅ |
+| Asset Type               | Budget | Current | Status |
+| ------------------------ | ------ | ------- | ------ |
+| **JavaScript (initial)** | 700KB  | 660KB   | ✅     |
+| **JavaScript (total)**   | 1.5MB  | 1.08MB  | ✅     |
+| **CSS**                  | 50KB   | 32KB    | ✅     |
+| **Fonts**                | 100KB  | 45KB    | ✅     |
+| **Images**               | 500KB  | 280KB   | ✅     |
+| **Total**                | 2.5MB  | 2.1MB   | ✅     |
 
 ### Performance Budgets
 
-| Metric | Budget | Current | Status |
-|--------|--------|---------|--------|
-| **Time to First Byte** | 200ms | 150ms | ✅ |
-| **First Contentful Paint** | 1.0s | 0.8s | ✅ |
-| **Largest Contentful Paint** | 2.5s | 1.9s | ✅ |
-| **Time to Interactive** | 3.0s | 2.4s | ✅ |
-| **Total Blocking Time** | 300ms | 180ms | ✅ |
-| **Cumulative Layout Shift** | 0.1 | 0.05 | ✅ |
+| Metric                       | Budget | Current | Status |
+| ---------------------------- | ------ | ------- | ------ |
+| **Time to First Byte**       | 200ms  | 150ms   | ✅     |
+| **First Contentful Paint**   | 1.0s   | 0.8s    | ✅     |
+| **Largest Contentful Paint** | 2.5s   | 1.9s    | ✅     |
+| **Time to Interactive**      | 3.0s   | 2.4s    | ✅     |
+| **Total Blocking Time**      | 300ms  | 180ms   | ✅     |
+| **Cumulative Layout Shift**  | 0.1    | 0.05    | ✅     |
 
 ### Runtime Budgets
 
-| Metric | Budget | Current | Status |
-|--------|--------|---------|--------|
-| **FPS (Quest 2)** | 90 | 90-120 | ✅ |
-| **FPS (Quest 3)** | 120 | 120 | ✅ |
-| **Frame Time** | <11.1ms | 8-11ms | ✅ |
-| **Memory** | <1GB | <500MB | ✅ |
-| **GPU Load** | <70% | 40-60% | ✅ |
-| **Battery** | >2hrs | >3hrs | ✅ |
+| Metric            | Budget  | Current | Status |
+| ----------------- | ------- | ------- | ------ |
+| **FPS (Quest 2)** | 90      | 90-120  | ✅     |
+| **FPS (Quest 3)** | 120     | 120     | ✅     |
+| **Frame Time**    | <11.1ms | 8-11ms  | ✅     |
+| **Memory**        | <1GB    | <500MB  | ✅     |
+| **GPU Load**      | <70%    | 40-60%  | ✅     |
+| **Battery**       | >2hrs   | >3hrs   | ✅     |
 
 ---
 
@@ -490,13 +504,13 @@ Lighthouse Score: 96/100 [+33%]
 
 ### Performance Gains
 
-| Metric | Improvement |
-|--------|-------------|
-| Bundle Size | **-55%** (2.4MB → 1.08MB) |
-| Initial Load | **-54%** (5.2s → 2.4s) |
-| TTI | **-61%** (7.1s → 2.8s) |
-| First Paint | **-67%** (2.4s → 0.8s) |
-| Lighthouse | **+33%** (72 → 96) |
+| Metric       | Improvement               |
+| ------------ | ------------------------- |
+| Bundle Size  | **-55%** (2.4MB → 1.08MB) |
+| Initial Load | **-54%** (5.2s → 2.4s)    |
+| TTI          | **-61%** (7.1s → 2.8s)    |
+| First Paint  | **-67%** (2.4s → 0.8s)    |
+| Lighthouse   | **+33%** (72 → 96)        |
 
 ---
 
@@ -572,11 +586,17 @@ add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
 ```javascript
 // ✅ Good: Single responsibility, easy to tree-shake
-export class FFRSystem { /* ... */ }
-export class ComfortSystem { /* ... */ }
+export class FFRSystem {
+  /* ... */
+}
+export class ComfortSystem {
+  /* ... */
+}
 
 // ❌ Bad: Monolithic, hard to split
-export class VRSystemsManager { /* everything */ }
+export class VRSystemsManager {
+  /* everything */
+}
 ```
 
 ### 2. Import Strategy
@@ -613,7 +633,7 @@ loader.addResource({
 });
 
 // ❌ Bad: Load all assets simultaneously
-Promise.all(assets.map(a => fetch(a)));
+Promise.all(assets.map((a) => fetch(a)));
 ```
 
 ### 5. Memory Management
@@ -635,52 +655,12 @@ const vec = new Vector3(); // GC pressure!
 ### Monitoring
 
 ```bash
-# Run Lighthouse CI
-npm run lighthouse
+# Build and inspect output size
+npm run build
+ls -lh dist/assets/
 
-# Monitor bundle size
-npm run build:analyze
-
-# Check performance
-npm run benchmark:all
-```
-
-### Regression Prevention
-
-```javascript
-// package.json
-{
-  "scripts": {
-    "size-limit": "size-limit",
-    "test:size": "size-limit --json"
-  },
-  "size-limit": [
-    {
-      "name": "Main bundle",
-      "path": "dist/js/main-*.js",
-      "limit": "700 KB"
-    },
-    {
-      "name": "Tier 1",
-      "path": "dist/js/tier1-*.js",
-      "limit": "60 KB"
-    }
-  ]
-}
-```
-
-### Performance Budget CI
-
-```yaml
-# .github/workflows/performance.yml
-- name: Check bundle size
-  run: npm run test:size
-
-- name: Run Lighthouse
-  run: npm run lighthouse
-
-- name: Fail if budget exceeded
-  run: npm run check-budgets
+# Serve the production build locally
+npm run serve
 ```
 
 ---
