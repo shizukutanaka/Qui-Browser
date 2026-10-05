@@ -29,8 +29,13 @@ import { createServer, request as httpRequest } from 'node:http';
 import { request as httpsRequest } from 'node:https';
 import { lookup } from 'node:dns/promises';
 import {
-  assertRequestAllowed, isBlockedAddress, safeUpstreamHeaders, isReadableContentType,
-  MAX_RESPONSE_BYTES, UPSTREAM_TIMEOUT_MS, MAX_REDIRECTS
+  assertRequestAllowed,
+  isBlockedAddress,
+  safeUpstreamHeaders,
+  isReadableContentType,
+  MAX_RESPONSE_BYTES,
+  UPSTREAM_TIMEOUT_MS,
+  MAX_REDIRECTS
 } from './ssrfGuard.js';
 
 const PORT = Number(process.env.PORT || 8080);
@@ -48,7 +53,7 @@ const ALLOW_ORIGIN = process.env.ALLOW_ORIGIN || '*';
  * @param {string} hostname
  * @returns {Promise<{ok: true, address: string, family: number} | {ok: false, reason: string}>}
  */
-export async function resolveSafely(hostname) {
+async function resolveSafely(hostname) {
   let addresses;
   try {
     addresses = await lookup(hostname, { all: true });
@@ -79,7 +84,7 @@ export async function resolveSafely(hostname) {
  * @param {object} [headers]
  * @returns {Promise<{ok: true, status: number, contentType: string, body: string, finalUrl: string} | {ok: false, reason: string}>}
  */
-export async function fetchThroughGuard(target, headers = {}) {
+async function fetchThroughGuard(target, headers = {}) {
   let current = target;
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     const check = assertRequestAllowed(current);
@@ -94,11 +99,15 @@ export async function fetchThroughGuard(target, headers = {}) {
 
     const res = await new Promise((resolve) => {
       const send = url.protocol === 'https:' ? httpsRequest : httpRequest;
-      const req = send(url, {
-        method: 'GET',
-        headers: { ...safeUpstreamHeaders(headers), host: url.host },
-        timeout: UPSTREAM_TIMEOUT_MS
-      }, (r) => resolve({ kind: 'response', r }));
+      const req = send(
+        url,
+        {
+          method: 'GET',
+          headers: { ...safeUpstreamHeaders(headers), host: url.host },
+          timeout: UPSTREAM_TIMEOUT_MS
+        },
+        (r) => resolve({ kind: 'response', r })
+      );
       req.on('timeout', () => {
         req.destroy();
         resolve({ kind: 'error', reason: 'upstream-timeout' });
@@ -158,7 +167,7 @@ function cors(res) {
   res.setHeader('access-control-allow-headers', 'content-type');
 }
 
-export function createProxyServer() {
+function createProxyServer() {
   return createServer(async (req, res) => {
     cors(res);
     if (req.method === 'OPTIONS') {
@@ -166,8 +175,7 @@ export function createProxyServer() {
       return;
     }
     if (req.method !== 'GET') {
-      res.writeHead(405, { 'content-type': 'application/json' })
-        .end(JSON.stringify({ error: 'method-not-allowed' }));
+      res.writeHead(405, { 'content-type': 'application/json' }).end(JSON.stringify({ error: 'method-not-allowed' }));
       return;
     }
     const url = new URL(req.url, 'http://localhost');
@@ -176,29 +184,26 @@ export function createProxyServer() {
       return;
     }
     if (url.pathname !== '/fetch') {
-      res.writeHead(404, { 'content-type': 'application/json' })
-        .end(JSON.stringify({ error: 'not-found' }));
+      res.writeHead(404, { 'content-type': 'application/json' }).end(JSON.stringify({ error: 'not-found' }));
       return;
     }
     const target = url.searchParams.get('url');
     if (!target) {
-      res.writeHead(400, { 'content-type': 'application/json' })
-        .end(JSON.stringify({ error: 'missing-url' }));
+      res.writeHead(400, { 'content-type': 'application/json' }).end(JSON.stringify({ error: 'missing-url' }));
       return;
     }
     const out = await fetchThroughGuard(target, req.headers);
     if (!out.ok) {
       // The reason is returned so the reader can say something honest, but it
       // never includes anything resolved about the internal network.
-      res.writeHead(400, { 'content-type': 'application/json' })
-        .end(JSON.stringify({ error: out.reason }));
+      res.writeHead(400, { 'content-type': 'application/json' }).end(JSON.stringify({ error: out.reason }));
       return;
     }
     res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' }).end(out.body);
   });
 }
 
-// Only listen when run directly, so tests can import the pieces.
+// Only listen when run directly.
 if (process.argv[1] && process.argv[1].endsWith('server.js')) {
   createProxyServer().listen(PORT, () => {
     console.log(`Qui-Browser reader proxy on http://127.0.0.1:${PORT}`);

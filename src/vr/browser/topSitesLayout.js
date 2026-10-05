@@ -16,10 +16,10 @@
 
 import { CONTENT_PX_W, CONTENT_PX_H } from './readerLayout.js';
 
-export const TOP_SITE_COLS = 4;
-export const TOP_SITE_MAX = 8;
-export const TILE_H = 132;
-export const TILE_GAP = 24;
+const TOP_SITE_COLS = 4;
+const TOP_SITE_MAX = 8;
+const TILE_H = 132;
+const TILE_GAP = 24;
 export const TILE_TOP = Math.round(CONTENT_PX_H * 0.56);
 const TILE_SIDE_PAD = 64;
 
@@ -42,7 +42,7 @@ export function topSiteTiles(count, canvasW = CONTENT_PX_W) {
     const row = Math.floor(i / cols);
     const col = i % cols;
     // Centre a short last row under the full rows above it.
-    const inRow = (row === rows - 1) ? (n - row * cols) : cols;
+    const inRow = row === rows - 1 ? n - row * cols : cols;
     const rowW = inRow * tileW + (inRow - 1) * TILE_GAP;
     const rowX0 = Math.round((canvasW - rowW) / 2);
     rects.push({

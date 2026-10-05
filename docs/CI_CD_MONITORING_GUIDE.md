@@ -63,6 +63,7 @@ This guide covers the complete CI/CD pipeline and production monitoring setup fo
 ### CI Pipeline (.github/workflows/ci.yml)
 
 **Triggers:**
+
 - Push to `main` or `develop` branches
 - Pull requests to `main` or `develop`
 - Manual workflow dispatch
@@ -70,6 +71,7 @@ This guide covers the complete CI/CD pipeline and production monitoring setup fo
 **Jobs:**
 
 #### 1. Code Quality & Linting (10 min)
+
 ```yaml
 - ESLint check
 - Prettier format check
@@ -78,11 +80,13 @@ This guide covers the complete CI/CD pipeline and production monitoring setup fo
 ```
 
 **Success Criteria:**
+
 - All ESLint rules pass
 - Code is properly formatted
 - No security vulnerabilities (high/critical)
 
 #### 2. Unit Tests (15 min)
+
 ```yaml
 - Run Jest with coverage
 - Upload to Codecov
@@ -91,31 +95,36 @@ This guide covers the complete CI/CD pipeline and production monitoring setup fo
 ```
 
 **Artifacts:**
+
 - Coverage reports (30 days retention)
 - Coverage badge
 
 #### 3. Integration Tests (15 min)
+
 ```yaml
-- Tier system integration tests
-- Cross-module tests
+- Cross-module wiring tests
 - Upload results
 ```
 
 **Test Files:**
-- `tests/tier-system-integration.test.js` (34 test suites)
 
-#### 4. Performance Tests (20 min)
+- `tests/vr-app-wiring.test.js` (VRApp 配線の統合テスト)
+
+#### 4. Performance Verification
+
 ```yaml
-- Run benchmarks (100 iterations)
-- Check performance regression
-- Compare against baseline
+- Build production bundle
+- Check bundle size budgets
+- Lighthouse audit (see ci.yml `lighthouse` job)
 ```
 
 **Outputs:**
-- `benchmark-results.json`
-- Performance regression report
+
+- `dist/` artifacts
+- Lighthouse report
 
 #### 5. Build Verification (15 min)
+
 ```yaml
 - Test on Node 16, 18, 20
 - Build production
@@ -124,11 +133,13 @@ This guide covers the complete CI/CD pipeline and production monitoring setup fo
 ```
 
 **Success Criteria:**
+
 - Build succeeds on all Node versions
 - Bundle size within budget
 - All artifacts generated
 
 #### 6. Lighthouse CI (15 min)
+
 ```yaml
 - Build production
 - Run Lighthouse audit
@@ -136,12 +147,14 @@ This guide covers the complete CI/CD pipeline and production monitoring setup fo
 ```
 
 **Thresholds:**
+
 - Performance: > 90
 - Accessibility: > 90
 - Best Practices: > 90
 - SEO: > 90
 
 #### 7. Docker Build Test (20 min)
+
 ```yaml
 - Build Docker image
 - Test health endpoint
@@ -149,10 +162,12 @@ This guide covers the complete CI/CD pipeline and production monitoring setup fo
 ```
 
 **Success Criteria:**
+
 - Image builds successfully
 - Container responds to health check
 
 #### 8. Security Scanning (15 min)
+
 ```yaml
 - Trivy vulnerability scanner
 - npm audit
@@ -160,10 +175,12 @@ This guide covers the complete CI/CD pipeline and production monitoring setup fo
 ```
 
 **Success Criteria:**
+
 - No critical/high vulnerabilities
 - Security reports uploaded
 
 #### 9. CI Summary
+
 ```yaml
 - Aggregate all job results
 - Generate summary report
@@ -175,6 +192,7 @@ This guide covers the complete CI/CD pipeline and production monitoring setup fo
 ### CD Pipeline (.github/workflows/cd.yml)
 
 **Triggers:**
+
 - Push to `main` branch
 - Git tags matching `v*.*.*`
 - Manual workflow dispatch
@@ -182,6 +200,7 @@ This guide covers the complete CI/CD pipeline and production monitoring setup fo
 **Jobs:**
 
 #### 1. Build Production Assets (15 min)
+
 ```yaml
 - Install dependencies
 - Run tests
@@ -191,6 +210,7 @@ This guide covers the complete CI/CD pipeline and production monitoring setup fo
 ```
 
 **Build Info:**
+
 ```json
 {
   "version": "v2.0.0",
@@ -201,6 +221,7 @@ This guide covers the complete CI/CD pipeline and production monitoring setup fo
 ```
 
 #### 2. Deploy to GitHub Pages (10 min)
+
 ```yaml
 - Download build artifacts
 - Setup GitHub Pages
@@ -210,6 +231,7 @@ This guide covers the complete CI/CD pipeline and production monitoring setup fo
 **URL:** `https://yourusername.github.io/qui-browser-vr/`
 
 #### 3. Deploy to Netlify (10 min)
+
 ```yaml
 - Download build artifacts
 - Deploy using Netlify CLI
@@ -219,12 +241,14 @@ This guide covers the complete CI/CD pipeline and production monitoring setup fo
 **URL:** `https://your-site.netlify.app`
 
 **Environment Variables:**
+
 ```
 NETLIFY_AUTH_TOKEN (secret)
 NETLIFY_SITE_ID (secret)
 ```
 
 #### 4. Deploy to Vercel (10 min)
+
 ```yaml
 - Download build artifacts
 - Deploy using Vercel action
@@ -234,6 +258,7 @@ NETLIFY_SITE_ID (secret)
 **URL:** `https://your-project.vercel.app`
 
 **Environment Variables:**
+
 ```
 VERCEL_TOKEN (secret)
 VERCEL_ORG_ID (secret)
@@ -241,6 +266,7 @@ VERCEL_PROJECT_ID (secret)
 ```
 
 #### 5. Build & Push Docker Image (30 min)
+
 ```yaml
 - Build multi-platform (amd64, arm64)
 - Tag with version, latest, sha
@@ -249,6 +275,7 @@ VERCEL_PROJECT_ID (secret)
 ```
 
 **Image Tags:**
+
 ```
 ghcr.io/yourusername/qui-browser-vr:v2.0.0
 ghcr.io/yourusername/qui-browser-vr:2.0
@@ -258,6 +285,7 @@ ghcr.io/yourusername/qui-browser-vr:sha-abc123
 ```
 
 #### 6. Create GitHub Release (10 min)
+
 ```yaml
 - Create release archives (.zip, .tar.gz)
 - Generate SHA256 checksums
@@ -267,11 +295,13 @@ ghcr.io/yourusername/qui-browser-vr:sha-abc123
 ```
 
 **Release Assets:**
+
 - `qui-browser-vr-v2.0.0.zip`
 - `qui-browser-vr-v2.0.0.tar.gz`
 - `checksums.txt`
 
 #### 7. Performance Verification (15 min)
+
 ```yaml
 - Run Lighthouse on deployed site
 - 3 runs for consistency
@@ -279,6 +309,7 @@ ghcr.io/yourusername/qui-browser-vr:sha-abc123
 ```
 
 #### 8. Smoke Tests (10 min)
+
 ```yaml
 - Test homepage (HTTP 200)
 - Test service worker (HTTP 200)
@@ -286,69 +317,11 @@ ghcr.io/yourusername/qui-browser-vr:sha-abc123
 ```
 
 #### 9. Deployment Summary
+
 ```yaml
 - Generate deployment report
 - Notify success/failure
 - Update deployment status
-```
-
----
-
-## 🔧 Performance Regression Testing
-
-### Tool: check-performance-regression.js
-
-**Purpose:** Detect performance degradations by comparing current benchmarks against baseline.
-
-**Usage:**
-```bash
-# First run - create baseline
-node tools/check-performance-regression.js benchmark-results.json
-
-# Subsequent runs - compare against baseline
-node tools/check-performance-regression.js benchmark-results.json baseline-performance.json
-```
-
-**Thresholds:**
-
-| Metric | Warning | Error |
-|--------|---------|-------|
-| Load Time | +10% | +20% |
-| Memory | +15% | +30% |
-| File Size | +10% | +20% |
-
-**Output:**
-```
-==========================================================
-  Performance Regression Check
-==========================================================
-
-📊 Summary:
-   Total modules: 17
-   ✅ Improved: 5
-   ⚠️  Degraded: 2
-   ➡️  Unchanged: 10
-
-📈 Detailed Results:
-
-❌ VRTextRenderer
-   ┌─────────────┬──────────────┬──────────────┬──────────┬────────┐
-   │ Metric      │ Current      │ Baseline     │ Change   │ Status │
-   ├─────────────┼──────────────┼──────────────┼──────────┼────────┤
-   │ Load Time   │ 1.85ms       │ 1.50ms       │ +23.3%   │ ❌     │
-   │ Memory      │ 245 KB       │ 230 KB       │ +6.5%    │ ➡️     │
-   │ File Size   │ 42.3 KB      │ 41.8 KB      │ +1.2%    │ ➡️     │
-   └─────────────┴──────────────┴──────────────┴──────────┴────────┘
-
-❌ Performance regression detected!
-```
-
-**CI Integration:**
-```yaml
-- name: Check performance regression
-  run: |
-    node tools/check-performance-regression.js benchmark-results.json
-  continue-on-error: true
 ```
 
 ---
@@ -362,6 +335,7 @@ node tools/check-performance-regression.js benchmark-results.json baseline-perfo
 #### 1. Sentry (Error Tracking)
 
 **Features:**
+
 - Automatic error capture
 - Performance tracing (10% sample)
 - Session replay (10% sample, 100% on errors)
@@ -369,6 +343,7 @@ node tools/check-performance-regression.js benchmark-results.json baseline-perfo
 - Sensitive data sanitization
 
 **Configuration:**
+
 ```javascript
 {
   dsn: process.env.VITE_SENTRY_DSN,
@@ -380,6 +355,7 @@ node tools/check-performance-regression.js benchmark-results.json baseline-perfo
 ```
 
 **Usage:**
+
 ```javascript
 import monitoring from './monitoring.js';
 
@@ -401,6 +377,7 @@ monitoring.captureMessage('Performance threshold exceeded', 'warning', {
 ```
 
 **Environment Variable:**
+
 ```env
 VITE_SENTRY_DSN=https://xxx@yyy.ingest.sentry.io/zzz
 ```
@@ -408,6 +385,7 @@ VITE_SENTRY_DSN=https://xxx@yyy.ingest.sentry.io/zzz
 #### 2. Google Analytics 4 (User Analytics)
 
 **Features:**
+
 - Page views
 - Custom events
 - User interactions
@@ -415,6 +393,7 @@ VITE_SENTRY_DSN=https://xxx@yyy.ingest.sentry.io/zzz
 - GDPR compliant (IP anonymization)
 
 **Configuration:**
+
 ```javascript
 {
   measurementId: process.env.VITE_GA_MEASUREMENT_ID,
@@ -424,6 +403,7 @@ VITE_SENTRY_DSN=https://xxx@yyy.ingest.sentry.io/zzz
 ```
 
 **Usage:**
+
 ```javascript
 // Track event
 monitoring.trackEvent('vr_session_started', {
@@ -436,6 +416,7 @@ monitoring.trackPageView('/vr-mode', 'VR Browsing');
 ```
 
 **Environment Variable:**
+
 ```env
 VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
 ```
@@ -443,6 +424,7 @@ VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
 #### 3. Web Vitals (Performance)
 
 **Metrics Tracked:**
+
 - **CLS** (Cumulative Layout Shift) - Target: < 0.1
 - **FID** (First Input Delay) - Target: < 100ms
 - **FCP** (First Contentful Paint) - Target: < 1800ms
@@ -450,6 +432,7 @@ VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
 - **TTFB** (Time to First Byte) - Target: < 600ms
 
 **Thresholds:**
+
 ```javascript
 {
   fcp: 1800,
@@ -461,12 +444,14 @@ VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
 ```
 
 **Automatic Reporting:**
+
 - Sends to Google Analytics
 - Alerts in Sentry if threshold exceeded
 
 #### 4. Custom Metrics (VR-Specific)
 
 **FPS Monitoring:**
+
 ```javascript
 monitoring.trackFPS(90);
 
@@ -475,6 +460,7 @@ monitoring.trackFPS(90);
 ```
 
 **Memory Monitoring:**
+
 ```javascript
 monitoring.trackMemory(450); // MB
 
@@ -483,6 +469,7 @@ monitoring.trackMemory(450); // MB
 ```
 
 **VR Session Tracking:**
+
 ```javascript
 // Session started
 monitoring.trackVRSession('started', {
@@ -504,6 +491,7 @@ monitoring.trackVRError(error, {
 ```
 
 **User Interactions:**
+
 ```javascript
 monitoring.trackInteraction('pinch_gesture', {
   hand: 'right',
@@ -605,6 +593,7 @@ vercel link
 **URL:** `https://sentry.io/organizations/your-org/issues/`
 
 **Widgets:**
+
 - Error count by type
 - Performance by transaction
 - Session replay
@@ -615,6 +604,7 @@ vercel link
 **URL:** `https://analytics.google.com/`
 
 **Custom Reports:**
+
 - VR session duration
 - Device distribution (Quest 2/3)
 - Feature usage (hand tracking, voice, etc.)
@@ -625,6 +615,7 @@ vercel link
 **URL:** GitHub Actions artifacts
 
 **Metrics:**
+
 - Performance score
 - Accessibility score
 - Best practices score
@@ -638,18 +629,20 @@ vercel link
 ### CI Pipeline Failures
 
 **Issue: Tests failing**
+
 ```bash
 # Run locally
 npm test
 
 # Check specific test
-npm test -- tests/tier-system-integration.test.js
+npm test -- tests/vr-app-wiring.test.js
 
 # With verbose output
 npm test -- --verbose
 ```
 
 **Issue: Build failing**
+
 ```bash
 # Clean and rebuild
 rm -rf node_modules dist
@@ -661,6 +654,7 @@ du -sh dist
 ```
 
 **Issue: Docker build failing**
+
 ```bash
 # Build locally
 docker build -t qui-browser-vr:test .
@@ -672,6 +666,7 @@ docker build -t qui-browser-vr:test . --progress=plain
 ### CD Pipeline Failures
 
 **Issue: Deployment failing**
+
 ```bash
 # Check secrets are set
 gh secret list
@@ -686,6 +681,7 @@ netlify deploy --dir=dist
 ```
 
 **Issue: Docker push failing**
+
 ```bash
 # Check registry login
 echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
@@ -697,6 +693,7 @@ echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
 ### Monitoring Issues
 
 **Issue: Sentry not capturing errors**
+
 ```bash
 # Check DSN is set
 console.log(import.meta.env.VITE_SENTRY_DSN);
@@ -707,6 +704,7 @@ captureException(new Error('Test error'));
 ```
 
 **Issue: GA not tracking events**
+
 ```bash
 # Check measurement ID
 console.log(import.meta.env.VITE_GA_MEASUREMENT_ID);
@@ -722,6 +720,7 @@ console.log(window.gtag);
 ## ✅ Checklist
 
 ### CI/CD Setup
+
 - [x] CI workflow created (.github/workflows/ci.yml)
 - [x] CD workflow created (.github/workflows/cd.yml)
 - [x] GitHub secrets configured
@@ -731,6 +730,7 @@ console.log(window.gtag);
 - [x] Performance regression tool created
 
 ### Monitoring Setup
+
 - [x] Sentry integrated (src/monitoring.js)
 - [x] Google Analytics integrated
 - [x] Web Vitals tracking
@@ -739,6 +739,7 @@ console.log(window.gtag);
 - [x] Performance alerts configured
 
 ### Testing
+
 - [x] All CI jobs passing
 - [x] CD deploys successfully
 - [x] Monitoring captures events
@@ -748,16 +749,16 @@ console.log(window.gtag);
 
 ## 📊 Success Metrics
 
-| Metric | Target | Current | Status |
-|--------|--------|---------|--------|
-| **CI Time** | <30 min | ~25 min | ✅ |
-| **CD Time** | <45 min | ~40 min | ✅ |
-| **Test Coverage** | >70% | 70%+ | ✅ |
-| **Lighthouse Score** | >90 | 96 | ✅ |
-| **Build Success Rate** | >95% | TBD | 📊 |
-| **Deploy Success Rate** | >98% | TBD | 📊 |
-| **Error Rate** | <1% | TBD | 📊 |
-| **Performance** | 90 FPS | 90-120 | ✅ |
+| Metric                  | Target  | Current | Status |
+| ----------------------- | ------- | ------- | ------ |
+| **CI Time**             | <30 min | ~25 min | ✅     |
+| **CD Time**             | <45 min | ~40 min | ✅     |
+| **Test Coverage**       | >70%    | 70%+    | ✅     |
+| **Lighthouse Score**    | >90     | 96      | ✅     |
+| **Build Success Rate**  | >95%    | TBD     | 📊     |
+| **Deploy Success Rate** | >98%    | TBD     | 📊     |
+| **Error Rate**          | <1%     | TBD     | 📊     |
+| **Performance**         | 90 FPS  | 90-120  | ✅     |
 
 ---
 

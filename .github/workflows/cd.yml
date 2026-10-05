@@ -2,7 +2,7 @@ name: CD - Continuous Deployment
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
     tags:
       - 'v*.*.*'
   workflow_dispatch:
@@ -84,6 +84,9 @@ jobs:
 
     environment:
       name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    outputs:
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
@@ -328,6 +331,7 @@ jobs:
       - name: Run Lighthouse on deployed site
         run: |
           lhci autorun --collect.url=${{ needs.deploy-github-pages.outputs.url }} \
+            --collect.staticDistDir= \
             --collect.numberOfRuns=3 \
             --assert.preset=lighthouse:recommended
         continue-on-error: true

@@ -7,7 +7,9 @@
  *   - history-search — announce the hit count plus the most recent match
  */
 
-global.SpeechSynthesisUtterance = function (text) { this.text = text; };
+global.SpeechSynthesisUtterance = function (text) {
+  this.text = text;
+};
 
 const { layoutReaderLines } = require('../src/vr/browser/readerLayout.js');
 const { narrationFromLine, narrationChunks } = require('../src/vr/browser/readerNarration.js');
@@ -47,7 +49,6 @@ describe('layoutReaderLines block index', () => {
 // ── narrationFromLine ─────────────────────────────────────────────────────────
 describe('narrationFromLine', () => {
   const lines = layoutReaderLines(BLOCKS, { title: 'Article Title' });
-  const firstBlockLine = lines.findIndex((l) => l.block === 0);
   const lastBlockLine = lines.findIndex((l) => l.block === 2);
 
   test('at the title line it equals a full read-aloud', () => {
@@ -76,7 +77,7 @@ describe('narrationFromLine', () => {
 
 // ── read-here ─────────────────────────────────────────────────────────────────
 describe('VoiceCommands read-here', () => {
-  test('\'ここから読み上げ\' hands the hook chunks to readAloud', () => {
+  test("'ここから読み上げ' hands the hook chunks to readAloud", () => {
     const onReadHere = jest.fn(() => ['chunk one', 'chunk two']);
     const vc = makeSpeakingVC({ onReadHere });
     vc.processCommand('ここから読み上げ');
@@ -85,7 +86,7 @@ describe('VoiceCommands read-here', () => {
     expect(vc._spoken).toContain('chunk two');
   });
 
-  test('\'read from here\' routes in English', () => {
+  test("'read from here' routes in English", () => {
     const vc = makeSpeakingVC({ onReadHere: () => ['x'] });
     vc.processCommand('read from here');
     expect(vc._spoken).toContain('x');
@@ -100,7 +101,7 @@ describe('VoiceCommands read-here', () => {
 
 // ── top-site-select ───────────────────────────────────────────────────────────
 describe('VoiceCommands top-site-select', () => {
-  test('\'トップサイト2\' opens via the hook and announces the title', () => {
+  test("'トップサイト2' opens via the hook and announces the title", () => {
     const onTopSiteOpen = jest.fn(() => 'Example Site');
     const vc = makeSpeakingVC({ onTopSiteOpen });
     vc.processCommand('トップサイト2');
@@ -108,7 +109,7 @@ describe('VoiceCommands top-site-select', () => {
     expect(vc._spoken.pop()).toBe('Example Site');
   });
 
-  test('\'top site 3\' routes in English', () => {
+  test("'top site 3' routes in English", () => {
     const onTopSiteOpen = jest.fn(() => 'Third');
     const vc = makeSpeakingVC({ onTopSiteOpen });
     vc.processCommand('top site 3');
@@ -124,7 +125,7 @@ describe('VoiceCommands top-site-select', () => {
 
 // ── history-search ────────────────────────────────────────────────────────────
 describe('VoiceCommands history-search', () => {
-  test('\'履歴からGoogleを検索\' passes the term and announces hits', () => {
+  test("'履歴からGoogleを検索' passes the term and announces hits", () => {
     const onHistorySearch = jest.fn(() => ({ count: 2, title: 'Google' }));
     const vc = makeSpeakingVC({ onHistorySearch });
     vc.processCommand('履歴からGoogleを検索');
@@ -132,14 +133,14 @@ describe('VoiceCommands history-search', () => {
     expect(vc._spoken.pop()).toBe('2件見つかりました。最近: Google');
   });
 
-  test('\'履歴からXを探して\' stays with find-in-page (it owns that phrasing)', () => {
+  test("'履歴からXを探して' stays with find-in-page (it owns that phrasing)", () => {
     const onHistorySearch = jest.fn();
     const vc = makeSpeakingVC({ onHistorySearch });
     vc.processCommand('履歴からGoogleを探して');
     expect(onHistorySearch).not.toHaveBeenCalled();
   });
 
-  test('\'history search apple\' routes in English', () => {
+  test("'history search apple' routes in English", () => {
     const onHistorySearch = jest.fn(() => ({ count: 1, title: 'Apple' }));
     const vc = makeSpeakingVC({ onHistorySearch });
     vc.processCommand('history search apple');
@@ -152,7 +153,7 @@ describe('VoiceCommands history-search', () => {
     expect(vc._spoken.pop()).toBe('unknownは履歴にありません');
   });
 
-  test('\'履歴2番目\' still routes to history-select, not history-search', () => {
+  test("'履歴2番目' still routes to history-select, not history-search", () => {
     const onHistorySearch = jest.fn();
     const vc = makeSpeakingVC({ onHistorySearch, onHistoryOpen: () => 'T' });
     vc.processCommand('履歴2番目');

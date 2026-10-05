@@ -37,7 +37,6 @@ This is a client-side WebXR application. Reports of particular interest:
 
 - Cross-site scripting (XSS) or injection in rendered content.
 - Service worker / cache poisoning.
-- Insecure handling of WebRTC signaling or peer data (multiplayer features).
 - Exposure of secrets in the build output.
 
 Out of scope: vulnerabilities in third-party browsers/headsets themselves, and

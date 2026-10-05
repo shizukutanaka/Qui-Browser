@@ -74,14 +74,12 @@ reloads (localStorage):
 Most toggles apply instantly. Hovering a setting announces it as a caption for
 gaze users.
 
-## Web browsing panel (opt-in)
+## Web browsing panel
 
 The in-VR web browsing surface — URL bar, tabs, bookmarks/history, WebXR Layers
-for sharp text, grab-to-move windows — is gated behind the **Web Browser
-Panel** setting, which is **off by default**. Turn it on in the settings panel;
-because these subsystems are constructed once at load, the panel announces that
-a **page reload is required** for the change to take effect. After reloading
-with it enabled you get:
+for sharp text, grab-to-move windows — is enabled by default and can be
+toggled from the **Web Browser Panel** setting; the change applies immediately.
+With it enabled you get:
 
 - **URL bar** — tap to open the VR keyboard; frecency-ranked suggestions from
   your history/bookmarks appear as you type, so you can jump to a known

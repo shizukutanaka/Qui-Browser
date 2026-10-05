@@ -9,7 +9,7 @@
  * hard-split — code-point-aware so a surrogate pair is never severed.
  */
 
-export const NARRATION_CHUNK_MAX = 200;
+const NARRATION_CHUNK_MAX = 200;
 
 const SENTENCE_END = /([。！？!?…]+|[.!?]+\s+|[\r\n]+)/;
 
@@ -34,7 +34,10 @@ function hardSplit(sentence, maxLen) {
   const cps = [...sentence];
   const pieces = [];
   for (let i = 0; i < cps.length; i += maxLen) {
-    const piece = cps.slice(i, i + maxLen).join('').trim();
+    const piece = cps
+      .slice(i, i + maxLen)
+      .join('')
+      .trim();
     if (piece) {
       pieces.push(piece);
     }
@@ -107,10 +110,7 @@ export function narrationChunks(title, blocks, maxLen = NARRATION_CHUNK_MAX) {
  */
 export function narrationFromLine(lines, scroll, title, blocks, maxLen = NARRATION_CHUNK_MAX) {
   const all = Array.isArray(lines) ? lines : [];
-  const i = Math.min(
-    Math.max(0, Math.floor(scroll) || 0),
-    Math.max(0, all.length - 1)
-  );
+  const i = Math.min(Math.max(0, Math.floor(scroll) || 0), Math.max(0, all.length - 1));
   const start = all[i] && Number.isFinite(all[i].block) ? all[i].block : 0;
   const rest = (Array.isArray(blocks) ? blocks : []).slice(start);
   return narrationChunks(start <= 0 ? title : null, rest, maxLen);
