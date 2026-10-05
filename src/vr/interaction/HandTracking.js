@@ -36,35 +36,42 @@ export class HandTracking {
     // (tracked → lost, or lost → regained). Used for WCAG 4.1.3 status messages.
     this._onTrackingChange = null;
 
-    // Statistics
-    this.stats = {
-      framesTracked: 0,
-      gesturesRecognized: 0,
-      pinchAccuracy: 0,
-      trackingQuality: 1.0
-    };
-
     // Joint names as per WebXR spec
     this.jointNames = [
       'wrist',
-      'thumb-metacarpal', 'thumb-phalanx-proximal', 'thumb-phalanx-distal', 'thumb-tip',
-      'index-finger-metacarpal', 'index-finger-phalanx-proximal',
-      'index-finger-phalanx-intermediate', 'index-finger-phalanx-distal', 'index-finger-tip',
-      'middle-finger-metacarpal', 'middle-finger-phalanx-proximal',
-      'middle-finger-phalanx-intermediate', 'middle-finger-phalanx-distal', 'middle-finger-tip',
-      'ring-finger-metacarpal', 'ring-finger-phalanx-proximal',
-      'ring-finger-phalanx-intermediate', 'ring-finger-phalanx-distal', 'ring-finger-tip',
-      'pinky-finger-metacarpal', 'pinky-finger-phalanx-proximal',
-      'pinky-finger-phalanx-intermediate', 'pinky-finger-phalanx-distal', 'pinky-finger-tip'
+      'thumb-metacarpal',
+      'thumb-phalanx-proximal',
+      'thumb-phalanx-distal',
+      'thumb-tip',
+      'index-finger-metacarpal',
+      'index-finger-phalanx-proximal',
+      'index-finger-phalanx-intermediate',
+      'index-finger-phalanx-distal',
+      'index-finger-tip',
+      'middle-finger-metacarpal',
+      'middle-finger-phalanx-proximal',
+      'middle-finger-phalanx-intermediate',
+      'middle-finger-phalanx-distal',
+      'middle-finger-tip',
+      'ring-finger-metacarpal',
+      'ring-finger-phalanx-proximal',
+      'ring-finger-phalanx-intermediate',
+      'ring-finger-phalanx-distal',
+      'ring-finger-tip',
+      'pinky-finger-metacarpal',
+      'pinky-finger-phalanx-proximal',
+      'pinky-finger-phalanx-intermediate',
+      'pinky-finger-phalanx-distal',
+      'pinky-finger-tip'
     ];
 
     // Gesture thresholds
     this.thresholds = {
-      pinch: 0.02,        // 2cm between thumb and index tips to START a pinch
-      pinchRelease: 0.035,// 3.5cm to RELEASE — hysteresis against tremor chatter
-      fist: 0.1,          // Average finger curl threshold
-      pointSpeed: 0.5,    // m/s for pointing gesture
-      grabStrength: 0.7   // Strength threshold for grab
+      pinch: 0.02, // 2cm between thumb and index tips to START a pinch
+      pinchRelease: 0.035, // 3.5cm to RELEASE — hysteresis against tremor chatter
+      fist: 0.1, // Average finger curl threshold
+      pointSpeed: 0.5, // m/s for pointing gesture
+      grabStrength: 0.7 // Strength threshold for grab
     };
   }
 
@@ -117,10 +124,10 @@ export class HandTracking {
     this.rightHand.name = 'rightHand';
 
     // Create joint spheres for each hand
-    ['left', 'right'].forEach(handedness => {
+    ['left', 'right'].forEach((handedness) => {
       const handGroup = handedness === 'left' ? this.leftHand : this.rightHand;
 
-      this.jointNames.forEach(jointName => {
+      this.jointNames.forEach((jointName) => {
         // Joint sphere
         const jointGeometry = new THREE.SphereGeometry(0.008, 8, 8);
         const jointMesh = new THREE.Mesh(jointGeometry, jointMaterial.clone());
@@ -145,12 +152,10 @@ export class HandTracking {
       return;
     }
 
-    this.stats.framesTracked++;
-
     // Snapshot pre-frame visibility so we can detect both lost AND regained
     // transitions after updateHand() has had a chance to set visible=true.
     const prevVisible = {
-      left:  this.leftHand  ? this.leftHand.visible  : false,
+      left: this.leftHand ? this.leftHand.visible : false,
       right: this.rightHand ? this.rightHand.visible : false
     };
 
@@ -221,12 +226,7 @@ export class HandTracking {
         jointMesh.position.set(position.x, position.y, position.z);
 
         if (orientation) {
-          jointMesh.quaternion.set(
-            orientation.x,
-            orientation.y,
-            orientation.z,
-            orientation.w
-          );
+          jointMesh.quaternion.set(orientation.x, orientation.y, orientation.z, orientation.w);
         }
 
         // Update joint radius based on tracking confidence
@@ -249,7 +249,7 @@ export class HandTracking {
    * Recognize hand gestures
    */
   recognizeGestures() {
-    ['left', 'right'].forEach(handedness => {
+    ['left', 'right'].forEach((handedness) => {
       const joints = this.joints[handedness];
       if (joints.size === 0) {
         return;
@@ -284,49 +284,51 @@ export class HandTracking {
     const pinchDistance = thumbTip.position.distanceTo(indexTip.position);
     const pinchThreshold = wasPinching ? this.thresholds.pinchRelease : this.thresholds.pinch;
     if (pinchDistance < pinchThreshold) {
-      this.stats.gesturesRecognized++;
       return 'pinch';
     }
 
     // Point detection (index extended, others curled)
-    if (this.isFingerExtended(joints, 'index-finger') &&
-        !this.isFingerExtended(joints, 'middle-finger') &&
-        !this.isFingerExtended(joints, 'ring-finger') &&
-        !this.isFingerExtended(joints, 'pinky-finger')) {
-      this.stats.gesturesRecognized++;
+    if (
+      this.isFingerExtended(joints, 'index-finger') &&
+      !this.isFingerExtended(joints, 'middle-finger') &&
+      !this.isFingerExtended(joints, 'ring-finger') &&
+      !this.isFingerExtended(joints, 'pinky-finger')
+    ) {
       return 'point';
     }
 
     // Open hand (all fingers extended)
-    if (this.isFingerExtended(joints, 'index-finger') &&
-        this.isFingerExtended(joints, 'middle-finger') &&
-        this.isFingerExtended(joints, 'ring-finger') &&
-        this.isFingerExtended(joints, 'pinky-finger')) {
-      this.stats.gesturesRecognized++;
+    if (
+      this.isFingerExtended(joints, 'index-finger') &&
+      this.isFingerExtended(joints, 'middle-finger') &&
+      this.isFingerExtended(joints, 'ring-finger') &&
+      this.isFingerExtended(joints, 'pinky-finger')
+    ) {
       return 'open';
     }
 
     // Fist (all fingers curled)
-    if (!this.isFingerExtended(joints, 'index-finger') &&
-        !this.isFingerExtended(joints, 'middle-finger') &&
-        !this.isFingerExtended(joints, 'ring-finger') &&
-        !this.isFingerExtended(joints, 'pinky-finger')) {
-      this.stats.gesturesRecognized++;
+    if (
+      !this.isFingerExtended(joints, 'index-finger') &&
+      !this.isFingerExtended(joints, 'middle-finger') &&
+      !this.isFingerExtended(joints, 'ring-finger') &&
+      !this.isFingerExtended(joints, 'pinky-finger')
+    ) {
       return 'fist';
     }
 
     // Peace sign (index and middle extended)
-    if (this.isFingerExtended(joints, 'index-finger') &&
-        this.isFingerExtended(joints, 'middle-finger') &&
-        !this.isFingerExtended(joints, 'ring-finger') &&
-        !this.isFingerExtended(joints, 'pinky-finger')) {
-      this.stats.gesturesRecognized++;
+    if (
+      this.isFingerExtended(joints, 'index-finger') &&
+      this.isFingerExtended(joints, 'middle-finger') &&
+      !this.isFingerExtended(joints, 'ring-finger') &&
+      !this.isFingerExtended(joints, 'pinky-finger')
+    ) {
       return 'peace';
     }
 
     // Thumbs up
     if (this.isThumbUp(joints)) {
-      this.stats.gesturesRecognized++;
       return 'thumbsup';
     }
 
@@ -369,9 +371,7 @@ export class HandTracking {
     if (!this._tmpThumbVec) {
       this._tmpThumbVec = new THREE.Vector3();
     }
-    const thumbVector = this._tmpThumbVec
-      .subVectors(thumbTip.position, thumbProximal.position)
-      .normalize();
+    const thumbVector = this._tmpThumbVec.subVectors(thumbTip.position, thumbProximal.position).normalize();
 
     return thumbVector.y > 0.7;
   }
@@ -409,29 +409,7 @@ export class HandTracking {
     }
 
     // Return midpoint between thumb and index
-    return new THREE.Vector3()
-      .addVectors(thumbTip.position, indexTip.position)
-      .multiplyScalar(0.5);
-  }
-
-  /**
-   * Get pointing ray (for selection)
-   */
-  getPointingRay(handedness) {
-    const joints = this.joints[handedness];
-    const indexTip = joints.get('index-finger-tip');
-    const indexProximal = joints.get('index-finger-phalanx-proximal');
-
-    if (!indexTip || !indexProximal) {
-      return null;
-    }
-
-    const origin = indexProximal.position.clone();
-    const direction = new THREE.Vector3()
-      .subVectors(indexTip.position, indexProximal.position)
-      .normalize();
-
-    return new THREE.Ray(origin, direction);
+    return new THREE.Vector3().addVectors(thumbTip.position, indexTip.position).multiplyScalar(0.5);
   }
 
   /**
@@ -454,18 +432,6 @@ export class HandTracking {
   }
 
   /**
-   * Get tracking statistics
-   */
-  getStats() {
-    return {
-      ...this.stats,
-      leftGesture: this.gestures.left,
-      rightGesture: this.gestures.right,
-      trackingActive: this.enabled
-    };
-  }
-
-  /**
    * Dispose hand tracking
    */
   dispose() {
@@ -481,7 +447,7 @@ export class HandTracking {
     // Remove hand models from scene
     if (this.leftHand) {
       this.scene.remove(this.leftHand);
-      this.leftHand.traverse(child => {
+      this.leftHand.traverse((child) => {
         if (child.geometry) {
           child.geometry.dispose();
         }
@@ -493,7 +459,7 @@ export class HandTracking {
 
     if (this.rightHand) {
       this.scene.remove(this.rightHand);
-      this.rightHand.traverse(child => {
+      this.rightHand.traverse((child) => {
         if (child.geometry) {
           child.geometry.dispose();
         }
@@ -526,17 +492,8 @@ export class HandTracking {
  *   // Use position for UI interaction
  * });
  *
- * handTracking.onGesture('point', (hand, gesture) => {
- *   const ray = handTracking.getPointingRay(hand);
- *   // Use ray for selection
- * });
- *
  * // Update in render loop
  * function render(timestamp, frame) {
  *   handTracking.update(frame, referenceSpace);
  * }
- *
- * // Get statistics
- * const stats = handTracking.getStats();
- * console.debug(`Gestures recognized: ${stats.gesturesRecognized}`);
  */
