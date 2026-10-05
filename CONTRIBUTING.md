@@ -5,7 +5,7 @@ Thank you for your interest in contributing to Qui Browser VR!
 ## 🚀 Getting Started
 
 1. Fork the repository
-2. Clone your fork: `git clone https://github.com/YOUR-USERNAME/qui-browser-vr.git`
+2. Clone your fork: `git clone https://github.com/shizukutanaka/Qui-Browser.git`
 3. Install dependencies: `npm install`
 4. Create a branch: `git checkout -b feature/your-feature`
 
