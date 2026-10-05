@@ -221,8 +221,6 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
-            type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
@@ -285,7 +283,12 @@ jobs:
         id: changelog
         run: |
           VERSION=${{ github.ref_name }}
-          awk "/## \[${VERSION}\]/,/## \[/" CHANGELOG.md | sed '1d;$d' > release-notes.md
+          VERSION_NUM=${VERSION#v}
+          awk -v ver="## [${VERSION_NUM}]" '
+            index($0, ver) == 1 { found=1; next }
+            found && /^## \[/ { exit }
+            found
+          ' CHANGELOG.md > release-notes.md
           if [ ! -s release-notes.md ]; then
             echo "No changelog found for ${VERSION}" > release-notes.md
           fi
