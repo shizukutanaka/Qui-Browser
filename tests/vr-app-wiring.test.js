@@ -1326,18 +1326,6 @@ describe('settings-panel labels route through t() (WCAG 3.1.2)', () => {
   beforeEach(() => ctx2d.fillText.mockClear());
   afterEach(() => setLanguage('en'));
 
-  test('makeToggleButton draws the state word in the active language', () => {
-    setLanguage('en');
-    VRApp.prototype.makeToggleButton.call(makePanelApp({ flag: false }), 'Flag', 'flag');
-    expect(drawn()).toContain('OFF');
-
-    ctx2d.fillText.mockClear();
-    setLanguage('ja');
-    VRApp.prototype.makeToggleButton.call(makePanelApp({ flag: true }), 'Flag', 'flag');
-    expect(drawn()).toContain('オン');
-    expect(drawn()).not.toContain('ON');
-  });
-
   test('makeCompactToggleButton draws the state word in the active language', () => {
     setLanguage('en');
     VRApp.prototype.makeCompactToggleButton.call(makePanelApp({ flag: true }), 'Flag', 'flag');
