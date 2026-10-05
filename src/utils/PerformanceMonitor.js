@@ -582,85 +582,6 @@ export class PerformanceMonitor {
       this.show();
     }
   }
-
-  /**
-   * Get performance report
-   */
-  getReport() {
-    return {
-      summary: {
-        totalFrames: this.stats.totalFrames,
-        averageFrameTime: this.stats.totalFrames > 0 ? this.stats.totalTime / this.stats.totalFrames : 0,
-        bestFrame: this.stats.bestFrame,
-        worstFrame: this.stats.worstFrame,
-        alertsGenerated: this.stats.alertsGenerated
-      },
-      current: {
-        fps: this.metrics.fps.current,
-        frameTime: this.metrics.frameTime.current,
-        memory: this.metrics.memory.current,
-        drawCalls: this.metrics.drawCalls.current,
-        triangles: this.metrics.triangles.current
-      },
-      metrics: Object.fromEntries(
-        Object.entries(this.metrics).map(([name, metric]) => [
-          name,
-          {
-            current: metric.current,
-            min: metric.min,
-            max: metric.max,
-            avg: metric.avg
-          }
-        ])
-      )
-    };
-  }
-
-  /**
-   * Export metrics to CSV
-   */
-  exportCSV() {
-    const headers = Object.keys(this.metrics);
-    const rows = [headers.join(',')];
-
-    // Get max history length
-    const maxLength = Math.max(...Object.values(this.metrics).map((m) => m.history.length));
-
-    // Build rows
-    for (let i = 0; i < maxLength; i++) {
-      const row = headers.map((name) => {
-        const history = this.metrics[name].history;
-        return history[i] !== undefined ? history[i].toFixed(2) : '';
-      });
-      rows.push(row.join(','));
-    }
-
-    return rows.join('\n');
-  }
-
-  /**
-   * Reset statistics
-   */
-  reset() {
-    this.stats = {
-      totalFrames: 0,
-      totalTime: 0,
-      alertsGenerated: 0,
-      worstFrame: { time: 0, timestamp: 0 },
-      bestFrame: { time: 999, timestamp: 0 }
-    };
-
-    this.alerts = [];
-
-    Object.values(this.metrics).forEach((metric) => {
-      metric.min = 999;
-      metric.max = 0;
-      metric.avg = 0;
-      metric.history = [];
-    });
-
-    console.debug('PerformanceMonitor: Statistics reset');
-  }
 }
 
 /**
@@ -680,11 +601,4 @@ export class PerformanceMonitor {
  *
  * // Toggle display
  * perfMon.toggle();
- *
- * // Get report
- * const report = perfMon.getReport();
- * console.debug(report);
- *
- * // Export data
- * const csv = perfMon.exportCSV();
  */

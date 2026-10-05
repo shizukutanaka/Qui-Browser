@@ -18,21 +18,23 @@ it does not ship its own rendering engine.
 ## Installation & running
 
 **How do I run it locally?**
+
 ```bash
 npm install
 npm run dev        # Vite dev server
 npm run build      # production build to dist/
 npm run preview    # serve the built output
 ```
+
 See [QUICK_START.md](QUICK_START.md).
 
 **Why does WebXR not start over `http://`?**
 WebXR requires a secure context. Use `https://` or `localhost`. For headset testing on
 your LAN, tunnel it (e.g. via a dev-server HTTPS cert) or use ADB port forwarding.
 
-**Do I need the backend server?**
-Only for billing. `npm run start:server` runs the Express app; without Stripe
-credentials the billing routes deliberately answer `503` and everything else works.
+**Is there a backend server?**
+No. The app is a static Vite bundle; the old Express billing backend was removed.
+The `proxy/` helper is only for local dev CORS tunneling (`npm run proxy`).
 
 ## Accessibility
 

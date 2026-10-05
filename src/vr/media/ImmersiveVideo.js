@@ -284,11 +284,11 @@ export class ImmersiveVideo {
       if (p && p.catch) {
         p.catch(() => {});
       }
-      this.playing = true;
-      if (this._playPauseBtn) {
-        this._playPauseBtn.userData.setLabel(t('vr.video.pause'));
-      }
-      this.onPlaybackChange('playing');
+      // Do not mark playback here: a gaze click is not a user gesture, so
+      // play() can still be rejected by the Autoplay Policy. The 'playing'
+      // listener wired in play() flips playing/label/onPlaybackChange only
+      // once playback truly starts — writing them eagerly would leave the
+      // HUD claiming "Pause" while the video stays paused forever.
     } else {
       this.video.pause();
       this.playing = false;
