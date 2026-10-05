@@ -12,9 +12,9 @@ export class FFRSystem {
     this.projectionLayer = null;
     this.glBinding = null;
     this.gpuLoadThresholds = {
-      high: 0.85,    // >85% GPU = aggressive foveation
-      medium: 0.75,  // >75% GPU = medium foveation
-      low: 0.5       // <50% GPU = light foveation
+      high: 0.85, // >85% GPU = aggressive foveation
+      medium: 0.75, // >75% GPU = medium foveation
+      low: 0.5 // <50% GPU = light foveation
     };
 
     // FR-4.2: predicted gaze foveation via head-motion stability.
@@ -22,8 +22,8 @@ export class FFRSystem {
     // approximation we observe head angular velocity — a still head implies
     // fixation (periphery can be lower-res), a moving head implies scanning
     // (need uniform quality).
-    this._prevHeadQuat = null;   // {x,y,z,w} from the previous frame
-    this._headVelocity = 0;      // smoothed angular velocity (rad/s)
+    this._prevHeadQuat = null; // {x,y,z,w} from the previous frame
+    this._headVelocity = 0; // smoothed angular velocity (rad/s)
     this.predictedGazeEnabled = false;
   }
 
@@ -95,36 +95,6 @@ export class FFRSystem {
   }
 
   /**
-   * Dynamically adjust FFR based on GPU load
-   * @param {number} gpuLoad - Current GPU load (0-1)
-   */
-  setDynamicFFR(gpuLoad) {
-    if (!this.enabled || !this.projectionLayer) {
-      return;
-    }
-
-    let targetIntensity;
-
-    if (gpuLoad > this.gpuLoadThresholds.high) {
-      // High GPU load: aggressive foveation
-      targetIntensity = 0.8;
-    } else if (gpuLoad > this.gpuLoadThresholds.medium) {
-      // Medium GPU load: moderate foveation
-      targetIntensity = 0.5;
-    } else if (gpuLoad > this.gpuLoadThresholds.low) {
-      // Low-medium GPU load: light foveation
-      targetIntensity = 0.2;
-    } else {
-      // Very low GPU load: minimal foveation
-      targetIntensity = 0.1;
-    }
-
-    // Smooth transition to avoid jarring changes
-    this.intensity += (targetIntensity - this.intensity) * 0.1;
-    this.projectionLayer.fixedFoveation = this.intensity;
-  }
-
-  /**
    * Get current FFR status
    */
   getStatus() {
@@ -168,9 +138,9 @@ export class FFRSystem {
       // Angular velocity: 2·acos(|q1·q2|) / dt
       const dot = Math.abs(
         this._prevHeadQuat.x * quat.x +
-        this._prevHeadQuat.y * quat.y +
-        this._prevHeadQuat.z * quat.z +
-        this._prevHeadQuat.w * quat.w
+          this._prevHeadQuat.y * quat.y +
+          this._prevHeadQuat.z * quat.z +
+          this._prevHeadQuat.w * quat.w
       );
       const angleDelta = 2 * Math.acos(Math.min(1, dot));
       const angularVelocity = angleDelta / dtSeconds;
@@ -200,11 +170,9 @@ export class FFRSystem {
       return;
     }
 
-    const SLOW = 0.05;  // rad/s — below this: fixating
-    const FAST = 0.50;  // rad/s — above this: scanning
-    const t = Math.max(0, Math.min(1,
-      (this._headVelocity - SLOW) / (FAST - SLOW)
-    ));
+    const SLOW = 0.05; // rad/s — below this: fixating
+    const FAST = 0.5; // rad/s — above this: scanning
+    const t = Math.max(0, Math.min(1, (this._headVelocity - SLOW) / (FAST - SLOW)));
 
     // Still head (t=0) → intensity 0.8; fast head (t=1) → intensity 0.2.
     const target = 0.8 - 0.6 * t;
@@ -231,10 +199,6 @@ export class FFRSystem {
  * // In XR session start
  * await ffrSystem.initialize(xrSession, gl);
  * ffrSystem.enable(0.5); // Medium foveation
- *
- * // In render loop
- * const gpuLoad = performanceMonitor.getGPULoad();
- * ffrSystem.setDynamicFFR(gpuLoad);
  *
  * // Cleanup
  * ffrSystem.dispose();
