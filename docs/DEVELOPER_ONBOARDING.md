@@ -92,7 +92,7 @@ qui-browser-vr/
 │       └── release.yml           # リリース
 ├── index.html                    # エントリーポイント
 ├── sw.js                         # Service Worker
-├── manifest.json                 # PWAマニフェスト
+├── public/manifest.json          # PWAマニフェスト（vite が dist/ へコピー）
 ├── package.json                  # 依存関係
 ├── webpack.config.js             # ビルド設定
 └── jest.config.js                # テスト設定
