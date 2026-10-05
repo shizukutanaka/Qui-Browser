@@ -68,115 +68,21 @@ This guide provides complete deployment instructions for Qui Browser VR across m
 
 **Best for:** Open source projects, documentation sites
 **Cost:** Free
-**Setup time:** 5 minutes
+**Setup time:** 0 minutes — already wired
 
-### Automatic Deployment (Recommended)
+GitHub Pages deploys are handled by the release workflow at
+`.github/workflows/cd.yml`: on every push to `main` it runs
+`BASE_PATH=/Qui-Browser/ npm run build` and publishes `dist/` via the
+`actions/deploy-pages` artifact path. `BASE_PATH` matters — a plain
+`npm run build` emits root-absolute asset URLs that 404 under the
+`/Qui-Browser/` Pages subpath, so never ship a local build to Pages.
 
-#### Step 1: Enable GitHub Pages
+### Enable once
 
-1. Go to repository Settings
-2. Navigate to Pages section
-3. Source: **GitHub Actions**
+1. Repository Settings → Pages
+2. Source: **GitHub Actions**
 
-#### Step 2: Create Workflow
-
-Create `.github/workflows/deploy.yml`:
-
-```yaml
-name: Deploy to GitHub Pages
-
-on:
-  push:
-    branches: [main]
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: 'pages'
-  cancel-in-progress: true
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run tests
-        run: npm test
-
-      - name: Build
-        run: npm run build
-        env:
-          NODE_ENV: production
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v3
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
-        with:
-          path: './dist'
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v2
-```
-
-#### Step 3: Configure base URL
-
-Update `vite.config.js`:
-
-```javascript
-export default defineConfig({
-  base: '/qui-browser-vr/' // Replace with your repo name
-  // ... rest of config
-});
-```
-
-#### Step 4: Push to GitHub
-
-```bash
-git add .
-git commit -m "Add GitHub Pages deployment"
-git push origin main
-```
-
-**Your site will be live at:** `https://yourusername.github.io/qui-browser-vr/`
-
-### Manual Deployment
-
-```bash
-# Build
-npm run build
-
-# Deploy using gh-pages
-npm install -g gh-pages
-gh-pages -d dist
-
-# Or use GitHub CLI
-gh repo deploy
-```
+**Live site:** `https://shizukutanaka.github.io/Qui-Browser/`
 
 ---
 
