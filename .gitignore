@@ -57,3 +57,6 @@ backups/
 
 # Test coverage
 coverage/
+
+# Per-developer tool state (shared config lives in .claude/settings.json)
+.claude/*.local.json
