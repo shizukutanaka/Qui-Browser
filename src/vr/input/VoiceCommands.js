@@ -101,7 +101,6 @@ export class VoiceCommands {
 
     // Language settings
     this.language = 'ja-JP'; // Japanese default
-    this.fallbackLanguage = 'en-US';
 
     // Recognition settings
     this.settings = {

@@ -9,8 +9,8 @@
  *  - VRApp._settingsSections / _settingsBg: stored panel references never read
  *    back (teardown traverses the panel group's children instead).
  *
- * (VoiceCommands.fallbackLanguage is the same class but deferred — its file
- * needs a whole-file prettier reformat that would conflict with open PRs.)
+ * (VoiceCommands.fallbackLanguage and VRJapaneseKeyboard.candidatePanel were
+ * the same class, removed in round 905 — tests/vr-dead-store-905.test.js.)
  */
 
 import { VRControllerInput } from '../src/vr/input/VRControllerInput.js';
