@@ -86,9 +86,7 @@ Qui-Browser/
 ├── .github/
 │   └── workflows/                # CI/CDワークフロー
 │       ├── ci.yml                # PR チェック
-│       ├── cd.yml                # CD
-│       ├── deploy.yml            # デプロイ
-│       └── release.yml           # リリース
+│       └── cd.yml                # デプロイ + リリース + Docker
 ├── index.html                    # エントリーポイント
 ├── public/manifest.json          # PWAマニフェスト（vite が dist/ へコピー）
 ├── package.json                  # 依存関係
