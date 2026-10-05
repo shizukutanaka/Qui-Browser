@@ -189,12 +189,6 @@ Qui Browser VR is a production-ready WebXR VR browser optimized for Meta Quest 2
 # GitHub Pages (automated via CI/CD)
 git push origin main
 
-# Netlify
-npm run deploy:netlify
-
-# Vercel
-npm run deploy:vercel
-
 # Docker
 npm run docker:build
 npm run docker:run
@@ -331,9 +325,6 @@ npm run serve            # Serve production build
 npm test                 # Run all tests
 npm run test:watch       # Run tests in watch mode
 npm run test:coverage    # Run tests with coverage
-npm run test:tier        # Run tier integration tests
-npm run test:integration # Run integration tests
-npm run test:e2e         # Run E2E tests (Playwright)
 ```
 
 ### Code Quality
@@ -345,21 +336,11 @@ npm run format           # Format all files
 npm run format:check     # Check formatting
 ```
 
-### Benchmarking
-
-```bash
-npm run benchmark                # Run benchmark tool
-npm run benchmark:all            # Benchmark all modules
-npm run benchmark:report         # Generate Markdown report
-npm run benchmark:regression     # Check for regressions
-```
-
 ### CI/CD
 
 ```bash
 npm run ci:lint          # Lint + format check
 npm run ci:test          # Tests with coverage
-npm run ci:benchmark     # Benchmark + regression check
 npm run ci:all           # Complete CI suite
 ```
 
@@ -377,9 +358,7 @@ npm run docker:logs      # View container logs
 ### Deployment
 
 ```bash
-npm run deploy:gh-pages  # Deploy to GitHub Pages
-npm run deploy:netlify   # Deploy to Netlify
-npm run deploy:vercel    # Deploy to Vercel
+git push origin main          # cd.yml が dist/ を Pages へデプロイ
 ```
 
 ### Release Management

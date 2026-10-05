@@ -63,7 +63,7 @@ git config user.email noreply@anthropic.com && git config user.name Claude
 ### O-2. Playwright E2E スモークハーネス（E-2、環境は準備済み）
 
 - この実行環境は Chromium プリインストール（`PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`、`PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1`）。**`playwright install` は実行しない。** 別バージョンが要る場合は `executablePath: '/opt/pw-browsers/chromium'`。
-- スモーク範囲: `npm run build` → `npm run preview` → ページロード・console error ゼロ・Enter VR ボタン存在・SW 登録成功。`npm test`（Jest）には混ぜず別スクリプト（`npm run test:e2e`）にする。
+- スモーク範囲: `npm run build` → `npm run preview` → ページロード・console error ゼロ・Enter VR ボタン存在・SW 登録成功。`npm test`（Jest）には混ぜず、`test:e2e` スクリプトを新設する。
 - これが入ると「canvas UI を目視検証できない」積年の制約が部分的に解消される。
 
 ### O-3. VRApp 分割の継続（モノリス ~3300行）

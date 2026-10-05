@@ -211,8 +211,6 @@ npm run format:check          # Check formatting
 
 # CI/CD
 npm run ci:all                # Complete CI suite
-npm run deploy:netlify        # Deploy to Netlify
-npm run deploy:vercel         # Deploy to Vercel
 
 # Docker
 npm run docker:build          # Build Docker image
@@ -240,8 +238,7 @@ npm run release:major         # Major version (X.0.0)
 | Platform          | Status            | Deployment               | Configuration                                        |
 | ----------------- | ----------------- | ------------------------ | ---------------------------------------------------- |
 | **GitHub Pages**  | ✅ Auto           | Push to main             | [.github/workflows/cd.yml](.github/workflows/cd.yml) |
-| **Netlify**       | ✅ Auto           | `npm run deploy:netlify` | [netlify.toml](netlify.toml)                         |
-| **Vercel**        | ✅ Auto           | `npm run deploy:vercel`  | Vite preset (auto-detect)                            |
+| **Netlify**       | ✅ Auto           | push to main (Git 統合)  | [netlify.toml](netlify.toml)                         |
 | **Docker**        | ✅ Multi-platform | `npm run docker:compose` | [Dockerfile](Dockerfile)                             |
 | **Custom Server** | ✅ Nginx          | Manual setup             | [docker/nginx.conf](docker/nginx.conf)               |
 
