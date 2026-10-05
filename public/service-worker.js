@@ -1,6 +1,6 @@
 /**
  * Service Worker for Qui Browser VR
- * Implements offline caching with 70% faster repeat loads
+ * Implements offline caching for repeat visits
  *
  * John Carmack principle: Cache aggressively, invalidate carefully
  */
@@ -13,65 +13,27 @@ const RUNTIME_CACHE = 'qui-browser-runtime';
 // /Qui-Browser/service-worker.js) it is '/Qui-Browser/'. Everything the worker
 // precaches or falls back to is resolved against it so caching/offline work
 // regardless of where the app is deployed.
-const BASE = ((self.location && self.location.pathname) || '/service-worker.js')
-  .replace(/service-worker\.js$/, '');
+const BASE = ((self.location && self.location.pathname) || '/service-worker.js').replace(/service-worker\.js$/, '');
 
 // Critical assets that must be cached for offline support. Kept to the app
 // shell only: the hashed JS/CSS bundles Vite emits are picked up at runtime by
 // the fetch handler (their names aren't known here), and the previous list's
 // '/src/*.js' entries never existed in the production build (Vite bundles them)
 // while the CDN Three.js URLs are unused (Three is bundled locally).
-const CRITICAL_ASSETS = [
-  BASE,
-  `${BASE}index.html`,
-  `${BASE}manifest.json`,
-  `${BASE}offline.html`
-];
+const CRITICAL_ASSETS = [BASE, `${BASE}index.html`, `${BASE}manifest.json`, `${BASE}offline.html`];
 
-// Asset patterns to cache with different strategies
+// URL patterns routed away from the default stale-while-revalidate strategy.
+// Only classes of requests that can actually occur belong here — everything
+// else falls through to stale-while-revalidate.
 const CACHE_PATTERNS = {
-  // Cache first - static assets that rarely change
-  cacheFirst: [
-    /\.ktx2$/,     // KTX2 compressed textures
-    /\.wasm$/,     // WebAssembly modules
-    /\.glb$/,      // 3D models
-    /\.gltf$/,     // 3D models
-    /fonts\//,     // Font files
-    /\.woff2?$/    // Web fonts
-  ],
-
-  // Network first - dynamic content
+  // Network first - freshness matters more than speed
   networkFirst: [
-    /api\//,       // API calls
-    /\.json$/,     // JSON data (except manifest)
-    /socket/       // WebSocket connections
-  ],
-
-  // Stale while revalidate - balance freshness and speed
-  staleWhileRevalidate: [
-    /\.js$/,       // JavaScript files
-    /\.css$/,      // Stylesheets
-    /\.html$/,     // HTML pages
-    /\.jpg$/,      // Images
-    /\.png$/,      // Images
-    /\.svg$/       // SVG graphics
+    /\.json$/ // manifest.json and other JSON
   ]
 };
 
-// Maximum cache sizes (in entries)
-const CACHE_LIMITS = {
-  textures: 100,   // ~100MB with KTX2 compression
-  models: 50,      // ~50MB of 3D models
-  runtime: 200     // General runtime cache
-};
-
-// Memory usage tracking
-let cacheStats = {
-  hits: 0,
-  misses: 0,
-  updates: 0,
-  evictions: 0
-};
+// Maximum entries held in the unversioned runtime cache.
+const RUNTIME_CACHE_LIMIT = 200;
 
 /**
  * Install event - cache critical assets
@@ -80,13 +42,14 @@ self.addEventListener('install', (event) => {
   console.log('[ServiceWorker] Installing version:', CACHE_VERSION);
 
   event.waitUntil(
-    caches.open(CACHE_VERSION)
-      .then(cache => {
+    caches
+      .open(CACHE_VERSION)
+      .then((cache) => {
         console.log('[ServiceWorker] Pre-caching critical assets');
         // Cache all critical assets in parallel for speed
         return Promise.all(
-          CRITICAL_ASSETS.map(url =>
-            cache.add(url).catch(err => {
+          CRITICAL_ASSETS.map((url) =>
+            cache.add(url).catch((err) => {
               console.warn(`[ServiceWorker] Failed to cache ${url}:`, err);
             })
           )
@@ -107,13 +70,13 @@ self.addEventListener('activate', (event) => {
   console.log('[ServiceWorker] Activating version:', CACHE_VERSION);
 
   event.waitUntil(
-    caches.keys()
-      .then(cacheNames => {
+    caches
+      .keys()
+      .then((cacheNames) => {
         return Promise.all(
-          cacheNames.map(cacheName => {
+          cacheNames.map((cacheName) => {
             if (cacheName !== CACHE_VERSION && cacheName !== RUNTIME_CACHE) {
               console.log('[ServiceWorker] Deleting old cache:', cacheName);
-              cacheStats.evictions++;
               return caches.delete(cacheName);
             }
           })
@@ -149,7 +112,7 @@ self.addEventListener('fetch', (event) => {
   // Without this, ANY cross-origin GET fell through to the default
   // stale-while-revalidate strategy and was written into the versioned
   // app-shell cache, which has no size limit (enforceCacheLimit only runs in
-  // the cacheFirst/networkFirst paths). Since the reader viewport now fetches
+  // the networkFirst path). Since the reader viewport now fetches
   // arbitrary page HTML, that would grow the cache without bound and serve
   // users stale article text. Caching third-party responses in the app shell
   // was never intended regardless.
@@ -161,23 +124,13 @@ self.addEventListener('fetch', (event) => {
   // Determine caching strategy
   const strategy = getCacheStrategy(url.pathname);
 
-  event.respondWith(
-    executeStrategy(strategy, request)
-  );
+  event.respondWith(executeStrategy(strategy, request));
 });
 
 /**
  * Determine caching strategy based on URL pattern
  */
 function getCacheStrategy(pathname) {
-  // Check cache-first patterns
-  for (const pattern of CACHE_PATTERNS.cacheFirst) {
-    if (pattern.test(pathname)) {
-      return 'cache-first';
-    }
-  }
-
-  // Check network-first patterns
   for (const pattern of CACHE_PATTERNS.networkFirst) {
     if (pattern.test(pathname)) {
       return 'network-first';
@@ -193,9 +146,6 @@ function getCacheStrategy(pathname) {
  */
 async function executeStrategy(strategy, request) {
   switch (strategy) {
-    case 'cache-first':
-      return cacheFirst(request);
-
     case 'network-first':
       return networkFirst(request);
 
@@ -204,42 +154,6 @@ async function executeStrategy(strategy, request) {
 
     default:
       return fetch(request);
-  }
-}
-
-/**
- * Cache-first strategy - ideal for static assets
- */
-async function cacheFirst(request) {
-  const cache = await caches.open(CACHE_VERSION);
-
-  // Try cache first
-  const cached = await cache.match(request);
-  if (cached) {
-    cacheStats.hits++;
-    return cached;
-  }
-
-  // Cache miss - fetch from network
-  cacheStats.misses++;
-  try {
-    const response = await fetch(request);
-
-    // Cache successful responses
-    if (response.ok) {
-      // Clone response before caching (response can only be used once)
-      cache.put(request, response.clone());
-      cacheStats.updates++;
-
-      // Enforce cache limits
-      enforceCacheLimit(cache, 'textures');
-    }
-
-    return response;
-  } catch (error) {
-    console.error('[ServiceWorker] Fetch failed:', error);
-    // Return offline fallback if available
-    return getOfflineFallback(request);
   }
 }
 
@@ -255,12 +169,11 @@ async function networkFirst(request) {
     if (response.ok) {
       const cache = await caches.open(RUNTIME_CACHE);
       await cache.put(request, response.clone());
-      cacheStats.updates++;
       // Bound the runtime cache. RUNTIME_CACHE is never versioned and never
       // cleared by the activate handler, so without this it grows without limit
       // across every app version — the documented "Service Worker cache eats
       // all your storage" failure. FIFO-evict the oldest entries past the limit.
-      await enforceCacheLimit(cache, 'runtime');
+      await enforceCacheLimit(cache);
     }
 
     return response;
@@ -268,7 +181,6 @@ async function networkFirst(request) {
     // Network failed - try cache
     const cached = await caches.match(request);
     if (cached) {
-      cacheStats.hits++;
       return cached;
     }
 
@@ -288,27 +200,23 @@ async function staleWhileRevalidate(request) {
 
   // Fetch fresh version in background
   const fetchPromise = fetch(request)
-    .then(response => {
+    .then((response) => {
       // Update cache with fresh version
       if (response.ok) {
         cache.put(request, response.clone());
-        cacheStats.updates++;
       }
       return response;
     })
-    .catch(error => {
+    .catch((error) => {
       console.warn('[ServiceWorker] Background fetch failed:', error);
       return cached; // Return cached version on error
     });
 
   // Return cached immediately if available, otherwise wait for network
   if (cached) {
-    cacheStats.hits++;
     return cached;
-  } else {
-    cacheStats.misses++;
-    return fetchPromise;
   }
+  return fetchPromise;
 }
 
 /**
@@ -317,9 +225,7 @@ async function staleWhileRevalidate(request) {
 function fetchWithTimeout(request, timeout = 5000) {
   return Promise.race([
     fetch(request),
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Request timeout')), timeout)
-    )
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), timeout))
   ]);
 }
 
@@ -332,11 +238,13 @@ async function getOfflineFallback(request) {
   // Return offline page for navigation requests
   if (request.mode === 'navigate') {
     const cache = await caches.open(CACHE_VERSION);
-    return cache.match(`${BASE}offline.html`) ||
-           new Response('Offline - Please check your connection', {
-             status: 503,
-             statusText: 'Service Unavailable'
-           });
+    return (
+      cache.match(`${BASE}offline.html`) ||
+      new Response('Offline - Please check your connection', {
+        status: 503,
+        statusText: 'Service Unavailable'
+      })
+    );
   }
 
   // Return placeholder for images
@@ -355,124 +263,18 @@ async function getOfflineFallback(request) {
 }
 
 /**
- * Enforce cache size limits
+ * Enforce the runtime cache's entry limit (FIFO eviction)
  */
-async function enforceCacheLimit(cache, type) {
-  const limit = CACHE_LIMITS[type] || CACHE_LIMITS.runtime;
+async function enforceCacheLimit(cache) {
   const keys = await cache.keys();
 
-  if (keys.length > limit) {
+  if (keys.length > RUNTIME_CACHE_LIMIT) {
     // Remove oldest entries (FIFO)
-    const toDelete = keys.length - limit;
+    const toDelete = keys.length - RUNTIME_CACHE_LIMIT;
     for (let i = 0; i < toDelete; i++) {
       await cache.delete(keys[i]);
-      cacheStats.evictions++;
     }
   }
-}
-
-/**
- * Message handler for cache management
- */
-self.addEventListener('message', async (event) => {
-  const { type, payload } = event.data;
-
-  switch (type) {
-    case 'SKIP_WAITING':
-      self.skipWaiting();
-      break;
-
-    case 'GET_STATS':
-      event.ports[0].postMessage({
-        type: 'CACHE_STATS',
-        stats: cacheStats,
-        caches: await getCacheInfo()
-      });
-      break;
-
-    case 'CLEAR_CACHE':
-      await clearCache(payload.cacheType);
-      event.ports[0].postMessage({
-        type: 'CACHE_CLEARED',
-        success: true
-      });
-      break;
-
-    case 'PRELOAD_ASSETS':
-      await preloadAssets(payload.urls);
-      event.ports[0].postMessage({
-        type: 'PRELOAD_COMPLETE',
-        success: true
-      });
-      break;
-  }
-});
-
-/**
- * Get cache information
- */
-async function getCacheInfo() {
-  const info = {};
-  const cacheNames = await caches.keys();
-
-  for (const name of cacheNames) {
-    const cache = await caches.open(name);
-    const keys = await cache.keys();
-    info[name] = {
-      entries: keys.length,
-      urls: keys.map(req => req.url)
-    };
-  }
-
-  return info;
-}
-
-/**
- * Clear specific cache type
- */
-async function clearCache(cacheType) {
-  if (cacheType === 'all') {
-    const cacheNames = await caches.keys();
-    await Promise.all(cacheNames.map(name => caches.delete(name)));
-    cacheStats = { hits: 0, misses: 0, updates: 0, evictions: 0 };
-  } else {
-    await caches.delete(cacheType);
-  }
-}
-
-/**
- * Preload assets into cache
- */
-async function preloadAssets(urls) {
-  const cache = await caches.open(CACHE_VERSION);
-
-  const promises = urls.map(url =>
-    fetch(url)
-      .then(response => {
-        if (response.ok) {
-          return cache.put(url, response);
-        }
-      })
-      .catch(error => {
-        console.warn(`[ServiceWorker] Failed to preload ${url}:`, error);
-      })
-  );
-
-  await Promise.all(promises);
-}
-
-/**
- * Background sync for offline actions
- */
-self.addEventListener('sync', async (event) => {
-  if (event.tag === 'sync-offline-actions') {
-    event.waitUntil(syncOfflineActions());
-  }
-});
-
-async function syncOfflineActions() {
-  // Implement offline action sync if needed
-  console.log('[ServiceWorker] Syncing offline actions');
 }
 
 // Test-only export hook: in a CommonJS (Jest) context the internals are exposed
@@ -482,11 +284,10 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     enforceCacheLimit,
     networkFirst,
-    CACHE_LIMITS,
+    RUNTIME_CACHE_LIMIT,
     RUNTIME_CACHE,
     BASE,
-    CRITICAL_ASSETS,
-    _getCacheStats: () => cacheStats
+    CRITICAL_ASSETS
   };
 }
 
