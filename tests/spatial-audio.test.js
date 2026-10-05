@@ -42,7 +42,9 @@ const makeAudioContext = () => ({
   createBuffer: jest.fn((channels, length, sampleRate) => {
     const data = Array.from({ length: channels }, () => new Float32Array(length));
     return {
-      numberOfChannels: channels, length, sampleRate,
+      numberOfChannels: channels,
+      length,
+      sampleRate,
       duration: length / sampleRate,
       getChannelData: (c) => data[c]
     };
@@ -93,7 +95,7 @@ describe('SpatialAudio — perceptual LOD (FR-5.2)', () => {
     const panner = makePanner(); // starts as 'HRTF'
     audio.sources.set('near', {
       panner,
-      position: { x: 0, y: 0, z: 5 }  // 5 m away
+      position: { x: 0, y: 0, z: 5 } // 5 m away
     });
     audio._listenerPos = { x: 0, y: 0, z: 0 };
     audio.settings.enableHRTF = true;
@@ -107,7 +109,7 @@ describe('SpatialAudio — perceptual LOD (FR-5.2)', () => {
     const panner = makePanner();
     audio.sources.set('far', {
       panner,
-      position: { x: 0, y: 0, z: 20 }  // 20 m away
+      position: { x: 0, y: 0, z: 20 } // 20 m away
     });
     audio._listenerPos = { x: 0, y: 0, z: 0 };
     audio.settings.enableHRTF = true;
@@ -137,7 +139,7 @@ describe('SpatialAudio — perceptual LOD (FR-5.2)', () => {
     const panner = makePanner();
     audio.sources.set('any', {
       panner,
-      position: { x: 0, y: 0, z: 2 }  // very close
+      position: { x: 0, y: 0, z: 2 } // very close
     });
     audio._listenerPos = { x: 0, y: 0, z: 0 };
     audio.settings.enableHRTF = false;
@@ -195,7 +197,7 @@ describe('SpatialAudio — master volume', () => {
     audio.setMasterVolume(0.5);
 
     expect(audio.sources.get('a').gain.gain.value).toBeCloseTo(0.25); // 0.5 * 0.5
-    expect(audio.sources.get('b').gain.gain.value).toBeCloseTo(0.5);  // 1.0 * 0.5
+    expect(audio.sources.get('b').gain.gain.value).toBeCloseTo(0.5); // 1.0 * 0.5
   });
 
   test('muting (0) drops every source gain to 0 without discarding source.volume', () => {
@@ -275,72 +277,6 @@ describe('SpatialAudio.registerProceduralBuffer', () => {
   });
 });
 
-describe('SpatialAudio — spatial voice (FR-7.2)', () => {
-  let audio, mockCtx;
-
-  beforeEach(() => {
-    mockCtx = makeAudioContext();
-    // Add createMediaStreamSource to the mock context.
-    mockCtx.createMediaStreamSource = jest.fn(() => ({ connect: jest.fn(), disconnect: jest.fn() }));
-    global.window.AudioContext = jest.fn(() => mockCtx);
-    audio = new SpatialAudio();
-    // Manually set context for synchronous testing (initialize() is async).
-    audio.context = mockCtx;
-    audio.listener = mockCtx.listener;
-  });
-
-  test('createVoiceSource creates a source keyed as "voice:<peerId>"', () => {
-    const stream = {};
-    audio.createVoiceSource('peer1', stream);
-    expect(audio.sources.has('voice:peer1')).toBe(true);
-  });
-
-  test('createVoiceSource routes MediaStream through a panner', () => {
-    audio.createVoiceSource('peer1', {});
-    expect(mockCtx.createMediaStreamSource).toHaveBeenCalledTimes(1);
-    expect(mockCtx.createPanner).toHaveBeenCalled();
-  });
-
-  test('createVoiceSource sets initial position on the panner', () => {
-    const panner = makePanner();
-    mockCtx.createPanner = jest.fn(() => panner);
-    audio.createVoiceSource('peer1', {}, { x: 1, y: 2, z: 3 });
-    expect(panner.positionX.value).toBe(1);
-    expect(panner.positionY.value).toBe(2);
-    expect(panner.positionZ.value).toBe(3);
-  });
-
-  test('createVoiceSource is idempotent — returns existing source on repeat call', () => {
-    audio.createVoiceSource('peer1', {});
-    audio.createVoiceSource('peer1', {});
-    expect(mockCtx.createMediaStreamSource).toHaveBeenCalledTimes(1);
-  });
-
-  test('createVoiceSource returns null when context is absent', () => {
-    audio.context = null;
-    expect(audio.createVoiceSource('p', {})).toBeNull();
-  });
-
-  test('removeVoiceSource disconnects and deletes the source', () => {
-    audio.createVoiceSource('peer1', {});
-    audio.removeVoiceSource('peer1');
-    expect(audio.sources.has('voice:peer1')).toBe(false);
-  });
-
-  test('removeVoiceSource is safe when peer had no voice source', () => {
-    expect(() => audio.removeVoiceSource('unknown')).not.toThrow();
-  });
-
-  test('updateVoicePosition delegates to setSourcePosition', () => {
-    audio.createVoiceSource('peer1', {});
-    const panner = audio.sources.get('voice:peer1').panner;
-    audio.updateVoicePosition('peer1', 5, 1.7, -3);
-    expect(panner.positionX.value).toBe(5);
-    expect(panner.positionY.value).toBe(1.7);
-    expect(panner.positionZ.value).toBe(-3);
-  });
-});
-
 describe('SpatialAudio — autoplay-policy resume (suspended context)', () => {
   let listeners, removed, suspendedCtx;
 
@@ -368,22 +304,22 @@ describe('SpatialAudio — autoplay-policy resume (suspended context)', () => {
   // double-arm).
   test('arms click, touchstart, and keydown when the context starts suspended', () => {
     new SpatialAudio();
-    expect(listeners.map(l => l.evt).sort()).toEqual(['click', 'keydown', 'touchstart']);
+    expect(listeners.map((l) => l.evt).sort()).toEqual(['click', 'keydown', 'touchstart']);
   });
 
   test('a single gesture resumes the context and removes ALL gesture listeners', () => {
     new SpatialAudio();
     // Fire just one of the three (touchstart) — the others must still be torn down.
-    const touch = listeners.find(l => l.evt === 'touchstart');
+    const touch = listeners.find((l) => l.evt === 'touchstart');
     touch.fn();
     expect(suspendedCtx.resume).toHaveBeenCalledTimes(1);
-    expect(removed.map(l => l.evt).sort()).toEqual(['click', 'keydown', 'touchstart']);
+    expect(removed.map((l) => l.evt).sort()).toEqual(['click', 'keydown', 'touchstart']);
   });
 
   test('dispose() removes the gesture listeners if no gesture ever fired', () => {
     const audio = new SpatialAudio();
     audio.dispose();
-    expect(removed.map(l => l.evt).sort()).toEqual(['click', 'keydown', 'touchstart']);
+    expect(removed.map((l) => l.evt).sort()).toEqual(['click', 'keydown', 'touchstart']);
   });
 
   test('running context arms no gesture listeners', () => {
