@@ -202,19 +202,12 @@ npm run preview               # Preview production build
 # Testing
 npm test                      # Run all tests
 npm run test:coverage         # Tests with coverage
-npm run test:tier             # Tier integration tests
-npm run test:integration      # Integration tests
 
 # Code Quality
 npm run lint                  # Lint JavaScript
 npm run lint:fix              # Auto-fix linting issues
 npm run format                # Format code (Prettier)
 npm run format:check          # Check formatting
-
-# Performance
-npm run benchmark             # Run benchmarks
-npm run benchmark:all         # Benchmark all modules
-npm run benchmark:regression  # Check for regressions
 
 # CI/CD
 npm run ci:all                # Complete CI suite
@@ -234,10 +227,8 @@ npm run release:major         # Major version (X.0.0)
 
 ## 🧪 Testing
 
-- **Unit Tests:** 21 test suites, 231 tests
-- **Integration Tests:** Tier system integration
-- **Performance Tests:** Benchmarking and regression detection
-- **Code Coverage:** Growing; 4 major modules newly covered (TextureManager, ComfortSystem, HapticFeedback, monitoring)
+- **Unit Tests:** Jest suites covering the VR shell — see docs/TESTING.md
+- **Code Coverage:** Collected via `npm run test:coverage`
 - **CI/CD:** Automated testing on every push/PR
 
 **📖 Testing Guide:** [docs/TESTING.md](docs/TESTING.md)
