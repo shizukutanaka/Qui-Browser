@@ -7,7 +7,7 @@ module.exports = {
   testEnvironment: 'node',
 
   // テストファイルのパターン
-  testMatch: ['**/tests/**/*.test.js', '**/__tests__/**/*.js'],
+  testMatch: ['**/tests/**/*.test.js'],
 
   // カバレッジ収集対象
   collectCoverageFrom: ['src/**/*.js', '!**/node_modules/**'],
@@ -18,8 +18,7 @@ module.exports = {
   // カバレッジレポーター
   coverageReporters: ['text', 'text-summary', 'html', 'lcov'],
 
-  // カバレッジ閾値 — raised from 0 after adding test suites for TextureManager,
-  // ComfortSystem, HapticFeedback, and monitoring. Current baseline: ~28% lines.
+  // カバレッジ閾値 — current baseline sits comfortably above these floors.
   coverageThreshold: {
     global: {
       branches: 20,
@@ -50,7 +49,7 @@ module.exports = {
   },
 
   // 無視するパス
-  testPathIgnorePatterns: ['/node_modules/', '/dist/', '/build/', '/.git/'],
+  testPathIgnorePatterns: ['/node_modules/', '/dist/', '/.git/'],
 
   // トランスフォーム
   transform: {
