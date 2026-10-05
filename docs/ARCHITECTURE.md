@@ -24,7 +24,7 @@ most subsystems are unit-testable in Node with no GPU context.
 
 | Directory                | Responsibility                                                                                                                                                                         |
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `vr/rendering/`          | `FFRSystem` (fixed foveated rendering), `LayersSystem` (WebXR quad layers for sharp text), `WebGPURenderer` (optional backend)                                                         |
+| `vr/rendering/`          | `FFRSystem` (fixed foveated rendering), `LayersSystem` (WebXR quad layers for sharp text)                                                                                              |
 | `vr/browser/`            | `WebPanel`, `WindowManager`, `TabManager`, `BookmarkPanel`, `urlDisplay`, `urlResolver`, plus pure layout helpers (`curvedGeometry`, `readableText`, `readerLayout`, `bookmarkLayout`) |
 | `vr/input/`              | `VRControllerInput`, `JapaneseIME` (in-VR kana/kanji keyboard), `VoiceCommands`, `keyboardLayout`                                                                                      |
 | `vr/interaction/`        | `GazeInteraction` (dwell selection with grace time), `HandTracking`, `HapticFeedback`                                                                                                  |
@@ -32,11 +32,8 @@ most subsystems are unit-testable in Node with no GPU context.
 | `vr/audio/`              | `SpatialAudio` — procedurally synthesized UI cues, positional audio                                                                                                                    |
 | `vr/comfort/`            | `ComfortSystem` — vignette, snap turn, teleport for vestibular comfort                                                                                                                 |
 | `vr/media/`              | `ImmersiveVideo`, `videoProjection` (equirect / 180 / 360 mapping)                                                                                                                     |
-| `vr/multiplayer/`        | `MultiplayerSystem` (WebRTC + signaling with backoff reconnect), `AvatarSystem`                                                                                                        |
-| `vr/ar/`                 | `MixedReality` — passthrough and depth                                                                                                                                                 |
-| `vr/ai/`                 | `AIRecommendation`                                                                                                                                                                     |
 | `vr/ui/`                 | `canvasTexture`, `buttonStyle`, `textWrap`, `settingsStepper` — pure canvas/text primitives                                                                                            |
-| `utils/`                 | `ObjectPool`, `TextureManager`, `ProgressiveLoader`, `PerformanceMonitor`, `DeviceCompatibility`, `BookmarkStore`, `debounce`                                                          |
+| `utils/`                 | `ProgressiveLoader`, `PerformanceMonitor`, `DeviceCompatibility`, `BookmarkStore`, `debounce`                                                                                          |
 | `i18n/`                  | `i18n.js` — `CATALOG` (en/ja), `t()`, `setLanguage()`, `detectLanguage()`                                                                                                              |
 | `a11y/`, `monitoring.js` | DOM-side accessibility helpers and production telemetry                                                                                                                                |
 
@@ -48,8 +45,8 @@ most subsystems are unit-testable in Node with no GPU context.
 2. **Cross-modal by default.** Every status or error is routed through
    `notifyCrossModal()` → haptic pulse + caption line + visual toast, with severity
    carried by glyphs (`✕ ⚠ ℹ`) rather than colour alone (WCAG 1.4.1, 4.1.3).
-3. **Optional subsystems must degrade.** FFR, quad layers, WebGPU, hand tracking,
-   haptics, spatial audio and multiplayer are all capability-detected; failure emits a
+3. **Optional subsystems must degrade.** FFR, quad layers, hand tracking,
+   haptics and spatial audio are all capability-detected; failure emits a
    warning toast and the session continues.
 4. **Everything tunable is tunable at runtime.** Caption hold/scale, dwell time, grace
    time, snap-turn angle, window distance and 15+ other parameters are live steppers in
@@ -63,14 +60,12 @@ most subsystems are unit-testable in Node with no GPU context.
    text-heavy panels to quad layers when the runtime supports them.
 3. The XR frame loop: poll input sources → hit-test the interactable registry →
    dispatch hover/select → update captions, comfort vignette and avatars → render.
-4. `PerformanceMonitor` samples frame timing; `ObjectPool` and `TextureManager` keep
-   per-frame allocation near zero to hold 72–90 fps on standalone headsets.
+4. `PerformanceMonitor` samples frame timing to hold 72–90 fps on standalone headsets.
 
 ## Build & bundling
 
 Vite (`vite.config.js`) produces manual chunks so the headset only downloads what a
-tier needs: `vendor-three`, `app`, `tier1`, and lazy `tier2-*` chunks (input, audio,
-loading, interaction, ar) plus `WebGPURenderer`. See
+tier needs: `vendor-three`, `app`, `tier1`, and lazy `tier2-*` chunks. See
 [BUILD_OPTIMIZATION_GUIDE.md](BUILD_OPTIMIZATION_GUIDE.md).
 
 ## Related documents
