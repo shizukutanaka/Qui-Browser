@@ -136,13 +136,6 @@ export default defineConfig({
     include: ['three']
   },
 
-  // Define global constants
-  define: {
-    __APP_VERSION__: JSON.stringify('2.0.0'),
-    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
-    __PRODUCTION__: true
-  },
-
   // Build optimizations
   esbuild: {
     logOverride: { 'this-is-undefined-in-esm': 'silent' },

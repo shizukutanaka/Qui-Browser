@@ -61,4 +61,20 @@ describe('vite.config declares no dead surface', () => {
       expect(declared[dep]).toBeDefined();
     }
   });
+
+  it('every define constant is referenced outside vite.config.js', () => {
+    // A define key nothing reads is write-only build surface: it advertises a
+    // compile-time constant that never reaches the app.
+    const defineMatch = viteSource.match(/define:\s*\{([^}]*)\}/s);
+    if (!defineMatch) {
+      return; // no define block — nothing to check
+    }
+    const keys = [...defineMatch[1].matchAll(/(__\w+__)/g)].map((m) => m[1]);
+    const sources = [path.join(ROOT, 'index.html'), ...srcFiles(), ...srcFiles(path.join(ROOT, 'public'))]
+      .filter((f) => /\.(js|mjs|cjs|html)$/.test(f))
+      .map((f) => fs.readFileSync(f, 'utf8'))
+      .join('\n');
+    const unreferenced = keys.filter((key) => !sources.includes(key));
+    expect(unreferenced).toEqual([]);
+  });
 });
