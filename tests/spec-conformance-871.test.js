@@ -43,12 +43,10 @@ function callers(needle, ownerFiles, skip) {
 
 describe('SPEC.md conformance claims stay honest about unreachable surface', () => {
   it('FR-4.3 (KTX2 textures) is not claimed implemented while it is unreachable', () => {
-    expect(
-      callers('loadTexture', ['TextureManager.js', 'ProgressiveLoader.js'], /async\s+loadTexture|textureManager\./)
-    ).toEqual([]);
+    expect(callers('loadTexture', ['TextureManager.js'], /async\s+loadTexture|textureManager\./)).toEqual([]);
     expect(fs.readdirSync(path.join(ROOT, 'public')).filter((f) => f.endsWith('.ktx2'))).toEqual([]);
-    // The ProgressiveLoader delegation reads `window.textureManager`, which
-    // nothing assigns — assert the delegation target is still unset.
+    // Nothing in src assigns `window.textureManager` — assert the stale
+    // delegation target stays unset.
     const assigns = SRC_FILES.filter((f) => {
       const code = fs.readFileSync(f, 'utf8');
       return /window\.textureManager\s*=/.test(code);

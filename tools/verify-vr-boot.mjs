@@ -77,7 +77,9 @@ function findChrome() {
     try {
       execFileSync(p, ['--version'], { stdio: 'ignore' });
       return p;
-    } catch { /* try the next candidate */ }
+    } catch {
+      /* try the next candidate */
+    }
   }
   return null;
 }
@@ -127,11 +129,12 @@ function connectCdp(wsUrl) {
       events.push(m);
     }
   };
-  const send = (method, params = {}, sessionId) => new Promise((res) => {
-    const i = ++id;
-    pending.set(i, res);
-    ws.send(JSON.stringify({ id: i, method, params, ...(sessionId ? { sessionId } : {}) }));
-  });
+  const send = (method, params = {}, sessionId) =>
+    new Promise((res) => {
+      const i = ++id;
+      pending.set(i, res);
+      ws.send(JSON.stringify({ id: i, method, params, ...(sessionId ? { sessionId } : {}) }));
+    });
   return new Promise((res, rej) => {
     ws.onopen = () => res({ send, events, close: () => ws.close() });
     ws.onerror = (e) => rej(new Error('CDP connect failed: ' + e.message));
@@ -154,10 +157,19 @@ async function main() {
   const server = await serveDistWithStub();
   const url = `http://127.0.0.1:${server.address().port}/`;
 
-  const proc = spawn(chrome, [
-    '--headless=new', '--disable-gpu', '--no-sandbox', '--disable-dev-shm-usage',
-    '--enable-unsafe-swiftshader', '--remote-debugging-port=0', 'about:blank'
-  ], { stdio: ['ignore', 'pipe', 'pipe'] });
+  const proc = spawn(
+    chrome,
+    [
+      '--headless=new',
+      '--disable-gpu',
+      '--no-sandbox',
+      '--disable-dev-shm-usage',
+      '--enable-unsafe-swiftshader',
+      '--remote-debugging-port=0',
+      'about:blank'
+    ],
+    { stdio: ['ignore', 'pipe', 'pipe'] }
+  );
 
   const cleanup = () => {
     proc.kill();
@@ -179,8 +191,12 @@ async function main() {
     });
 
     const cdp = await connectCdp(wsUrl);
-    const { result: { targetId } } = await cdp.send('Target.createTarget', { url: 'about:blank' });
-    const { result: { sessionId } } = await cdp.send('Target.attachToTarget', { targetId, flatten: true });
+    const {
+      result: { targetId }
+    } = await cdp.send('Target.createTarget', { url: 'about:blank' });
+    const {
+      result: { sessionId }
+    } = await cdp.send('Target.attachToTarget', { targetId, flatten: true });
     await cdp.send('Runtime.enable', {}, sessionId);
     await cdp.send('Page.enable', {}, sessionId);
     await cdp.send('Page.navigate', { url }, sessionId);
@@ -217,10 +233,7 @@ async function main() {
       }
       if (ev.method === 'Runtime.consoleAPICalled' && ev.params.type === 'error') {
         const text = (ev.params.args || []).map((a) => a.value ?? a.description ?? '').join(' ');
-        // Missing optional sound assets degrade gracefully by design.
-        if (!/assets\/sounds/.test(text)) {
-          errors.push('console.error: ' + text.slice(0, 200));
-        }
+        errors.push('console.error: ' + text.slice(0, 200));
       }
     }
 

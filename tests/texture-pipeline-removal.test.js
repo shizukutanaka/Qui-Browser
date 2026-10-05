@@ -8,15 +8,16 @@
  * - `VRApp.loadTexture` was the pipeline's only consumer and had zero call
  *   sites (referenced only by its own JSDoc).
  * - `ProgressiveLoader.loadTexture` delegated to `window.textureManager`,
- *   a global VRApp never assigned — the branch could never fire.
+ *   a global VRApp never assigned — the branch could never fire. (The
+ *   ProgressiveLoader module itself was removed in round 914: its only
+ *   production consumer was the never-shipped .mp3 preload path.)
  *
  * The key, the gate, the field, the wrapper method, the stats/dispose
  * blocks and the dead delegation were removed; TextureManager.js and its
  * test file went with them (the module is now unreferenced).
  *
- * These tests pin the surviving contracts: no stray API surface remains,
- * stats don't consult a foreign manager, and the progressive loader never
- * hands a load to a global that doesn't exist.
+ * These tests pin the surviving contracts: no stray API surface remains
+ * and stats don't consult a foreign manager.
  */
 import * as THREE from 'three';
 
@@ -32,7 +33,6 @@ jest.mock('three/examples/jsm/webxr/XRControllerModelFactory.js', () => ({
 }));
 
 import { VRApp } from '../src/vr/VRApp.js';
-import { ProgressiveLoader } from '../src/utils/ProgressiveLoader.js';
 
 describe('dead texture pipeline removed', () => {
   test('VRApp no longer exposes the uncalled loadTexture wrapper', () => {
@@ -58,19 +58,5 @@ describe('dead texture pipeline removed', () => {
     const stats = app.getPerformanceStats();
     expect(stats.textureMemory).toBeUndefined();
     expect(stats.textureCompression).toBeUndefined();
-  });
-
-  test('ProgressiveLoader never delegates to a foreign window.textureManager', async () => {
-    const delegated = jest.fn(async () => new THREE.Texture());
-    global.window = { textureManager: { loadTexture: delegated } };
-    try {
-      const loader = new ProgressiveLoader();
-      loader.loadImage = jest.fn(async () => new THREE.Texture());
-      await loader.loadTexture('assets/x.png');
-      expect(delegated).not.toHaveBeenCalled();
-      expect(loader.loadImage).toHaveBeenCalledWith('assets/x.png');
-    } finally {
-      delete global.window;
-    }
   });
 });

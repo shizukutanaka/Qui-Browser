@@ -672,9 +672,8 @@ export class SpatialAudio {
  *
  * const audio = new SpatialAudio();
  *
- * // Load audio files
- * await audio.loadAudio('assets/sounds/click.mp3', 'click');
- * await audio.loadAudio('assets/sounds/ambient.mp3', 'ambient');
+ * // Register sounds (procedural synthesis — no audio files are shipped)
+ * audio.registerProceduralBuffer('click', { freq: 880, duration: 0.06, decay: 45 });
  *
  * // Create spatial sources
  * audio.createSource('button', { volume: 0.5 });
