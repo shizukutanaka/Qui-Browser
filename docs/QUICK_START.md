@@ -56,7 +56,7 @@ BASE_PATH=/Qui-Browser/ npm run build
 
 ```bash
 npm test             # full Jest suite
-npm run lint         # ESLint (0 errors expected)
+npm run lint         # ESLint — reports errors + warnings
 ```
 
 ## Next steps

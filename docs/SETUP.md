@@ -122,12 +122,16 @@ npm run test:coverage
 
 ### GitHub Pages
 
+Deployment is automated: every push to `main` runs the `deploy` job in
+`.github/workflows/cd.yml`, which builds `dist/` (with
+`BASE_PATH=/Qui-Browser/`) and publishes it via `actions/deploy-pages` —
+no manual add or push of build output is needed — `dist/` is gitignored,
+so tracking it by hand would not deploy anything anyway.
+
+To build the same artifact locally:
+
 ```bash
-# Build and deploy
-npm run build
-git add dist
-git commit -m "Deploy to GitHub Pages"
-git push
+BASE_PATH=/Qui-Browser/ npm run build
 ```
 
 ### Netlify
