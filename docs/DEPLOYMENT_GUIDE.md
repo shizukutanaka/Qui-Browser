@@ -478,16 +478,16 @@ docker rm qui-browser
 
 ```bash
 # Tag image
-docker tag qui-browser-vr:2.0.0 yourusername/qui-browser-vr:2.0.0
-docker tag qui-browser-vr:2.0.0 yourusername/qui-browser-vr:latest
+docker tag qui-browser-vr:2.0.0 shizukutanaka/qui-browser:2.0.0
+docker tag qui-browser-vr:2.0.0 shizukutanaka/qui-browser:latest
 
 # Push to Docker Hub
-docker push yourusername/qui-browser-vr:2.0.0
-docker push yourusername/qui-browser-vr:latest
+docker push shizukutanaka/qui-browser:2.0.0
+docker push shizukutanaka/qui-browser:latest
 
 # Pull and run on another server
-docker pull yourusername/qui-browser-vr:latest
-docker run -d -p 8080:80 yourusername/qui-browser-vr:latest
+docker pull shizukutanaka/qui-browser:latest
+docker run -d -p 8080:80 shizukutanaka/qui-browser:latest
 ```
 
 ---
@@ -521,7 +521,7 @@ sudo apt install -y certbot python3-certbot-nginx
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/qui-browser-vr.git
+git clone https://github.com/shizukutanaka/qui-browser.git
 cd qui-browser-vr
 
 # Install dependencies

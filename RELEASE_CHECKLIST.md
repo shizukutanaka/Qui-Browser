@@ -160,6 +160,7 @@
 ### 7. Feature Verification ✅
 
 #### Tier 1: Performance Optimizations
+
 - [x] FFR System: Foveated rendering working
 - [x] Comfort System: Motion comfort features active
 - [x] Object Pooling: Memory management optimized
@@ -167,6 +168,7 @@
 - [x] Service Worker: Offline functionality verified
 
 #### Tier 2: Enhanced Features
+
 - [x] Japanese IME: Input working correctly
 - [x] Hand Tracking: Gestures recognized
 - [x] Spatial Audio: 3D sound positioned correctly
@@ -175,6 +177,7 @@
 - [x] Offline Support: App works offline
 
 #### Tier 3: Advanced Features
+
 - [x] WebGPU: Hardware acceleration working (with fallback)
 - [x] Multiplayer: Peer connections established
 - [x] AI Recommendations: Content suggestions working
@@ -183,6 +186,7 @@
 - [x] WebCodecs: Video playback optimized
 
 #### Development Tools
+
 - [x] Performance Monitor: Real-time metrics displayed
 - [x] DevTools: In-VR debugging functional
 
@@ -255,9 +259,11 @@
 ### Step 1: Final Verification (30 min)
 
 1. **Run complete CI/CD suite locally**
+
    ```bash
    npm run ci:all
    ```
+
    - Verify all tests pass
    - Check code quality
    - Run benchmarks
@@ -322,29 +328,29 @@ git push origin v2.0.0
 ### Step 3: Monitor CD Pipeline (40 min)
 
 1. **Watch GitHub Actions**
-   - Go to: https://github.com/your-username/qui-browser-vr/actions
+   - Go to: https://github.com/shizukutanaka/qui-browser/actions
    - Watch CD workflow progress
    - Monitor all 9 jobs
 
 2. **Verify deployments**
    - Wait for all jobs to complete
    - Check deployment URLs:
-     - [ ] GitHub Pages: https://your-username.github.io/qui-browser-vr/
-     - [ ] Netlify: https://qui-browser-vr.netlify.app/
-     - [ ] Vercel: https://qui-browser-vr.vercel.app/
+     - [ ] GitHub Pages: https://shizukutanaka.github.io/qui-browser/
+     - [ ] Netlify / Vercel (optional deploy targets — see DEPLOYMENT_GUIDE)
 
 3. **Docker image verification**
+
    ```bash
    # Pull and test Docker image
-   docker pull ghcr.io/your-username/qui-browser-vr:2.0.0
-   docker run -d -p 8080:80 ghcr.io/your-username/qui-browser-vr:2.0.0
+   docker pull ghcr.io/shizukutanaka/qui-browser:2.0.0
+   docker run -d -p 8080:80 ghcr.io/shizukutanaka/qui-browser:2.0.0
 
    # Test in browser
    curl http://localhost:8080/
    ```
 
 4. **GitHub Release verification**
-   - Check GitHub release created: https://github.com/your-username/qui-browser-vr/releases/tag/v2.0.0
+   - Check GitHub release created: https://github.com/shizukutanaka/qui-browser/releases/tag/v2.0.0
    - Verify artifacts:
      - [ ] qui-browser-vr-v2.0.0.zip
      - [ ] qui-browser-vr-v2.0.0.tar.gz
@@ -356,15 +362,11 @@ git push origin v2.0.0
 1. **Test deployed sites**
    - GitHub Pages:
      ```bash
-     curl -I https://your-username.github.io/qui-browser-vr/
+     curl -I https://shizukutanaka.github.io/qui-browser/
      ```
-   - Netlify:
+   - Netlify / Vercel (if deployed to those targets):
      ```bash
-     curl -I https://qui-browser-vr.netlify.app/
-     ```
-   - Vercel:
-     ```bash
-     curl -I https://qui-browser-vr.vercel.app/
+     curl -I <your-netlify-or-vercel-url>
      ```
 
 2. **VR device testing**
@@ -455,6 +457,7 @@ If critical issues are discovered post-release:
 ### Option 1: Quick Hotfix (< 2 hours)
 
 1. **Create hotfix branch**
+
    ```bash
    git checkout -b hotfix/v2.0.1 v2.0.0
    ```
@@ -473,6 +476,7 @@ If critical issues are discovered post-release:
 ### Option 2: Rollback to Previous Version (< 30 min)
 
 1. **GitHub Pages**
+
    ```bash
    git revert HEAD
    git push origin main
@@ -490,14 +494,15 @@ If critical issues are discovered post-release:
 
 4. **Docker**
    ```bash
-   docker pull ghcr.io/your-username/qui-browser-vr:1.x.x
-   docker tag ghcr.io/your-username/qui-browser-vr:1.x.x ghcr.io/your-username/qui-browser-vr:latest
-   docker push ghcr.io/your-username/qui-browser-vr:latest
+   docker pull ghcr.io/shizukutanaka/qui-browser:1.x.x
+   docker tag ghcr.io/shizukutanaka/qui-browser:1.x.x ghcr.io/shizukutanaka/qui-browser:latest
+   docker push ghcr.io/shizukutanaka/qui-browser:latest
    ```
 
 ### Option 3: Disable Problematic Feature (< 1 hour)
 
 1. **Create feature flag**
+
    ```javascript
    const FEATURES = {
      problematicFeature: false // Disable temporarily
@@ -513,6 +518,7 @@ If critical issues are discovered post-release:
 ## 📊 Success Metrics
 
 ### Immediate (24 hours)
+
 - [ ] Deployment success rate: 100%
 - [ ] Error rate: < 1%
 - [ ] Lighthouse score: ≥ 90
@@ -520,6 +526,7 @@ If critical issues are discovered post-release:
 - [ ] User feedback: Mostly positive
 
 ### Short-term (1 week)
+
 - [ ] GitHub Stars: +50
 - [ ] Downloads/Installs: 100+
 - [ ] Bug reports: < 10 critical issues
@@ -527,6 +534,7 @@ If critical issues are discovered post-release:
 - [ ] Community engagement: Active discussions
 
 ### Long-term (1 month)
+
 - [ ] Monthly Active Users: 500+
 - [ ] Average session duration: > 10 minutes
 - [ ] Retention rate: > 40%
@@ -542,6 +550,7 @@ If critical issues are discovered post-release:
 **Status:** ✅ **APPROVED FOR RELEASE**
 
 ### Pre-Release Verification
+
 - [x] All checklist items completed
 - [x] Tests passing (34/34 suites)
 - [x] Documentation complete (12 files)
@@ -550,6 +559,7 @@ If critical issues are discovered post-release:
 - [x] Performance targets met
 
 ### Release Approval
+
 - [x] Technical Lead: Approved
 - [x] QA Lead: Approved
 - [x] Product Owner: Approved
@@ -570,6 +580,7 @@ watch -n 5 'gh run list --limit 1'
 **🚀 Qui Browser VR v2.0.0 is ready for production release!**
 
 **Next Steps:**
+
 1. Execute release command
 2. Monitor CD pipeline
 3. Verify deployments
@@ -577,9 +588,10 @@ watch -n 5 'gh run list --limit 1'
 5. Monitor metrics
 
 **Questions or Issues:**
+
 - Technical: Open GitHub Issue
-- Security: Email security@qui-browser.example.com
-- General: Email support@qui-browser.example.com
+- Security: See [SECURITY.md](SECURITY.md)
+- General: Open a GitHub Discussion
 
 ---
 

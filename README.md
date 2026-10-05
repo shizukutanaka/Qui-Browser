@@ -113,15 +113,17 @@ A WebXR **VR shell** targeting Meta Quest 2/3 and Pico devices, featuring Japane
 Visit the live demo on your VR device:
 
 - **GitHub Pages**: https://shizukutanaka.github.io/qui-browser/
-- **Netlify**: https://qui-browser-vr.netlify.app/
-- **Vercel**: https://qui-browser-vr.vercel.app/
+
+Netlify and Vercel are also wired as deploy targets (see
+[docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)); no public URL is
+assigned to them.
 
 ### Option 2: Install Locally
 
 ```bash
 # Clone repository
 git clone https://github.com/shizukutanaka/qui-browser.git
-cd qui-browser-vr
+cd qui-browser
 
 # Install dependencies
 npm install
@@ -289,7 +291,7 @@ We welcome contributions! See our [Contributing Guide](CONTRIBUTING.md) for deta
 ```bash
 # Fork and clone
 git clone https://github.com/shizukutanaka/qui-browser.git
-cd qui-browser-vr
+cd qui-browser
 
 # Create feature branch
 git checkout -b feature/amazing-feature

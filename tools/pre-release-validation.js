@@ -515,7 +515,7 @@ function printSummary(results) {
     console.log('Next steps:');
     console.log('  1. git tag -a v2.0.0 -m "Release v2.0.0 - Production Ready"');
     console.log('  2. git push origin v2.0.0');
-    console.log('  3. Monitor CD pipeline: https://github.com/your-username/qui-browser-vr/actions');
+    console.log('  3. Monitor CD pipeline: https://github.com/shizukutanaka/qui-browser/actions');
   } else if (results.failed.length === 0) {
     console.log('👍 Good! Minor warnings detected.');
     console.log('   Review warnings above before proceeding with release.');

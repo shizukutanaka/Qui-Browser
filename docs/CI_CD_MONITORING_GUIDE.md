@@ -228,7 +228,7 @@ This guide covers the complete CI/CD pipeline and production monitoring setup fo
 - Deploy to Pages
 ```
 
-**URL:** `https://yourusername.github.io/qui-browser-vr/`
+**URL:** `https://shizukutanaka.github.io/qui-browser/`
 
 #### 3. Deploy to Netlify (10 min)
 
@@ -277,11 +277,11 @@ VERCEL_PROJECT_ID (secret)
 **Image Tags:**
 
 ```
-ghcr.io/yourusername/qui-browser-vr:v2.0.0
-ghcr.io/yourusername/qui-browser-vr:2.0
-ghcr.io/yourusername/qui-browser-vr:2
-ghcr.io/yourusername/qui-browser-vr:latest
-ghcr.io/yourusername/qui-browser-vr:sha-abc123
+ghcr.io/shizukutanaka/qui-browser:v2.0.0
+ghcr.io/shizukutanaka/qui-browser:2.0
+ghcr.io/shizukutanaka/qui-browser:2
+ghcr.io/shizukutanaka/qui-browser:latest
+ghcr.io/shizukutanaka/qui-browser:sha-abc123
 ```
 
 #### 6. Create GitHub Release (10 min)
