@@ -3,8 +3,8 @@
  *
  * `npm run verify:docs` (tools/verify-documentation.js, wired via `verify:all`) failed on
  * main: README's deploy table linked `[vercel.json](vercel.json)` — the file was deleted
- * in #1143 — and FINAL_RELEASE_SUMMARY_v2.0.0.md's Support & Resources nav linked
- * `[docs/API.md](docs/API.md)` — deleted in #1149. Two merged dead-surface removals left
+ * in #1143 — and FINAL_RELEASE_SUMMARY_v2.0.0.md's Support & Resources nav linked the
+ * API reference doc — deleted in #1149. Two merged dead-surface removals left
  * navigational links behind, so the live doc gate exited 1.
  */
 
