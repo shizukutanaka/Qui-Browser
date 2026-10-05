@@ -6,9 +6,7 @@
 npm test                 # full Jest suite
 npm run test:watch       # watch mode
 npm run test:coverage    # coverage + thresholds (jest.config.js)
-npm run test:tier        # tier-system integration only
 npm run test:integration # **/tests/*integration*.test.js
-npm run test:e2e         # Playwright (requires a browser install)
 npm run lint             # ESLint over src/ and server/
 npm run format:check     # Prettier check
 npm run verify:docs      # documentation/link verification
@@ -47,7 +45,7 @@ Three tiers of test:
   aging and always `dispose()` subsystems in teardown.
 - **Assert behaviour, not source text.** Never assert on exact source strings,
   indentation, or comments — those break on formatting changes without a real defect.
-- **Locale-aware assertions.** i18n specs must check catalog *keys* resolve in both
+- **Locale-aware assertions.** i18n specs must check catalog _keys_ resolve in both
   `en` and `ja` rather than hard-coding one language's output.
 - **Accessibility specs are first-class.** A new interactive element needs a test that
   its hover fires a caption and its activation fires haptic + caption

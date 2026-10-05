@@ -19,7 +19,6 @@ import {
   fireTeleportFeedback,
   smoothMoveWarning
 } from './comfort/ComfortSystem.js';
-import { TextureManager } from '../utils/TextureManager.js';
 import { debounce } from '../utils/debounce.js';
 
 // Tier 2 Features
@@ -147,7 +146,6 @@ export class VRApp {
     // Tier 1 systems
     this.ffrSystem = null;
     this.comfortSystem = null;
-    this.textureManager = null;
 
     // Tier 2 systems
     this.japaneseIME = null;
@@ -218,10 +216,13 @@ export class VRApp {
     // Settings
     this.settings = {
       targetFPS: 90, // Quest 2 target
+      // Set when the user explicitly chooses a frame-rate target
+      // (updateSetting('targetFPS')). initializeSystems skips the device-tier
+      // detection override when true so the choice survives reboots.
+      _fpsOverridden: false,
       motionSensitivity: 'moderate',
       enableFFR: true,
       enableComfort: true,
-      enableTextureCompression: true,
       // Default home environment (floor + grid + sky + welcome panel). Doubles
       // as a static comfort "rest frame"; without it the scene is an empty void.
       enableHomeEnvironment: true,
@@ -241,6 +242,11 @@ export class VRApp {
       southpaw: false, // swap left/right controller roles for left-handed users
       // In-VR settings panel (toggle buttons).
       enableSettingsPanel: true,
+      // Which settings-section tab is open (tab semantics: exactly one).
+      // Persisted via updateSetting — the loadPersistedSettings whitelist only
+      // copies keys declared here, so without this entry the selection was
+      // dropped on every boot.
+      openSettingsSections: ['settings.section.a11y'],
       // FR-13.1: gaze-dwell selection (hands-free accessibility). Look at an
       // interactable for gazeDwellTime ms to activate it. OFF by default.
       enableGazeDwell: false,
@@ -432,6 +438,9 @@ export class VRApp {
    */
   updateSetting(key, value) {
     this.settings[key] = value;
+    if (key === 'targetFPS') {
+      this.settings._fpsOverridden = true;
+    }
     this.saveSettings();
     return value;
   }
@@ -567,9 +576,12 @@ export class VRApp {
     this.scene.add(directionalLight);
 
     // Default home environment so entering VR shows a grounded space (and a
-    // static rest frame) rather than an empty void.
+    // static rest frame) rather than an empty void. Always built — the group
+    // carries this.floorMesh, the teleport raycast target, which has to exist
+    // whether or not the environment is shown; only adding it to the scene is
+    // gated by the setting.
+    this.homeEnvironment = this.createHomeEnvironment();
     if (this.settings.enableHomeEnvironment) {
-      this.homeEnvironment = this.createHomeEnvironment();
       this.scene.add(this.homeEnvironment);
     }
 
@@ -1063,6 +1075,61 @@ export class VRApp {
   }
 
   /**
+   * Apply the `enableVoice` toggle.
+   *
+   * A constructed VoiceCommands instance stops (isEnabled=false disarms the
+   * continuous onend restart) and can resume in place. If no instance exists
+   * the SpeechRecognition + mic-permission init is one-shot in
+   * initializeSystems(), which runs once at boot — the persisted setting
+   * (FR-9.1) takes effect next launch, and the toast says so honestly.
+   *
+   * @param {boolean} enabled
+   */
+  _onVoiceToggleChanged(enabled) {
+    const on = enabled === undefined ? !!this.settings.enableVoice : !!enabled;
+    if (!on) {
+      if (this.voiceCommands) {
+        this.voiceCommands.isEnabled = false;
+        this.voiceCommands.stop();
+      }
+      this.showVRToast(t('vr.msg.voiceOff'), { type: 'info' });
+      return;
+    }
+    if (this.voiceCommands) {
+      this.voiceCommands.isEnabled = true;
+      const started = this.voiceCommands.start();
+      this.showVRToast(t(started ? 'vr.msg.voiceOn' : 'vr.msg.voiceNextSession'), { type: 'info' });
+      return;
+    }
+    this.showVRToast(t('vr.msg.voiceNextSession'), { type: 'info' });
+  }
+
+  /**
+   * Apply the `enableHomeEnvironment` toggle immediately.
+   *
+   * The key is persisted but previously had no write path — a user could only
+   * change it by hand-editing localStorage. The toggle adds/removes the
+   * environment Group live and confirms cross-modally (WCAG 4.1.3).
+   * this.floorMesh is deliberately left alone: it is the teleport raycast
+   * target, and raycasting a detached object still works, so teleport keeps
+   * functioning in the void.
+   *
+   * @param {boolean} [enabled]  falls back to the persisted setting
+   */
+  _onHomeEnvToggleChanged(enabled) {
+    const on = enabled === undefined ? !!this.settings.enableHomeEnvironment : !!enabled;
+    if (!this.homeEnvironment) {
+      this.homeEnvironment = this.createHomeEnvironment();
+    }
+    if (on) {
+      this.scene.add(this.homeEnvironment);
+    } else {
+      this.scene.remove(this.homeEnvironment);
+    }
+    this.showVRToast(t(on ? 'vr.msg.homeEnvOn' : 'vr.msg.homeEnvOff'), { type: 'info' });
+  }
+
+  /**
    * One tab in the settings panel's section selector.
    *
    * Tabs replaced a stack of collapsible headers: five stacked headers plus the
@@ -1178,14 +1245,16 @@ export class VRApp {
     if (!panel) {
       return;
     }
+    const sharedGeometries = this._sharedGeometries ? new Set(this._sharedGeometries.values()) : null;
     panel.traverse((obj) => {
       if (obj.isMesh) {
         this.unregisterInteractable(obj);
         // Per-button materials and canvas textures are owned by this panel
         // generation — release them now or they accumulate with every rebuild
         // (_panelTextures only tracks the live set for teardown). Geometries
-        // stay shared via _sharedPlaneGeometry, so they are never disposed.
-        const { material } = obj;
+        // registered in _sharedGeometries stay shared and are never disposed;
+        // per-generation ones (the panel background quad) are freed here.
+        const { material, geometry } = obj;
         if (material) {
           if (material.map) {
             material.map.dispose();
@@ -1195,6 +1264,9 @@ export class VRApp {
             }
           }
           material.dispose();
+        }
+        if (geometry && !(sharedGeometries && sharedGeometries.has(geometry))) {
+          geometry.dispose();
         }
       }
     });
@@ -1702,13 +1774,21 @@ export class VRApp {
         }
       ],
       // FR-1.1: in-VR web browsing (WebPanel/TabManager/BookmarkPanel/
-      // WindowManager) is constructed once, in initializeSystems(), gated on
-      // this same setting — there was previously no way for a real user to
-      // ever set it, since it was absent from every settings-panel/voice/
-      // persisted-setting path. Toggling it here persists the preference
-      // (FR-9.1) but can only take effect on the next page load, since
-      // construction is one-shot; the apply callback is honest about that.
+      // WindowManager) is gated on this persisted setting — there was
+      // previously no way for a real user to ever set it, since it was absent
+      // from every settings-panel/voice/persisted-setting path. Toggling it
+      // here persists the preference (FR-9.1) and applies it live.
       [t('vr.settings.webPanel'), 'enableWebPanel', (v) => this._onWebPanelToggleChanged(v)],
+      // FR-2.4: voice commands — same defect shape as enableWebPanel above:
+      // VoiceCommands is constructed once in initializeSystems(), gated on this
+      // same persisted setting, which had no write path at all. The row makes
+      // the subsystem reachable; _onVoiceToggleChanged resumes an existing
+      // instance live and is honest about the boot-only init otherwise.
+      [t('vr.settings.voice'), 'enableVoice', (v) => this._onVoiceToggleChanged(v)],
+      // The home environment (sky/floor/grid rest frame) had the same
+      // unreachable persisted-key defect. The toggle applies live by
+      // adding/removing the Group; the teleport floor stays functional.
+      [t('vr.settings.homeEnv'), 'enableHomeEnvironment', (v) => this._onHomeEnvToggleChanged(v)],
       [
         t('vr.settings.followView'),
         'enableWindowFollow',
@@ -1935,7 +2015,7 @@ export class VRApp {
     const SECTIONS = [
       [
         'settings.section.a11y',
-        byKey(items, ['enableCaptions', 'enableGazeDwell', 'highContrast', 'enableHaptics']),
+        byKey(items, ['enableCaptions', 'enableGazeDwell', 'enableVoice', 'highContrast', 'enableHaptics']),
         byKey(steppers, ['captionDuration', 'captionScale', 'captionHeight', 'gazeDwellTime', 'gazeGraceTime']),
         [],
         []
@@ -1949,7 +2029,7 @@ export class VRApp {
       ],
       [
         'settings.section.display',
-        byKey(items, ['enableFFR', 'enableCurvedPanel', 'enableWindowFollow']),
+        byKey(items, ['enableFFR', 'enableCurvedPanel', 'enableWindowFollow', 'enableHomeEnvironment']),
         byKey(steppers, ['windowDistance']),
         [],
         []
@@ -1997,7 +2077,6 @@ export class VRApp {
     if (!Array.isArray(this.settings.openSettingsSections)) {
       this.settings.openSettingsSections = ['settings.section.a11y'];
     }
-    this._settingsSections = sections;
     const layout = layoutSettingsPanel(sections, this.settings.openSettingsSections);
 
     const bg = new THREE.Mesh(
@@ -2005,7 +2084,6 @@ export class VRApp {
       new THREE.MeshBasicMaterial({ color: 0x0a0d14, transparent: true, opacity: 0.6 })
     );
     group.add(bg);
-    this._settingsBg = bg;
 
     for (const p of layout.placements) {
       if (p.type === 'tab') {
@@ -2120,6 +2198,12 @@ export class VRApp {
       onHoverEnd: () => panel.material.color.set(0xffffff)
     });
 
+    // Resolve world transforms now: the group may never enter the scene
+    // (enableHomeEnvironment off), and this.floorMesh is the teleport raycast
+    // target — intersectObject works on detached objects, but only with a
+    // computed matrixWorld.
+    env.updateMatrixWorld(true);
+
     return env;
   }
 
@@ -2162,8 +2246,7 @@ export class VRApp {
 
     // Profile-aware, dead-zone-filtered controller input.
     this.controllerInput = new VRControllerInput({
-      deadZone: this.settings.controllerDeadZone,
-      southpaw: this.settings.southpaw
+      deadZone: this.settings.controllerDeadZone
     });
 
     // Shared ray line geometry (pointing down -Z from the controller).
@@ -2684,6 +2767,16 @@ export class VRApp {
   }
 
   /**
+   * Apply the device-tier frame-rate target unless the user explicitly chose
+   * one (settings._fpsOverridden is set by updateSetting('targetFPS')).
+   */
+  _applyDetectedTargetFPS() {
+    if (!this.settings._fpsOverridden) {
+      this.settings.targetFPS = this.deviceCompat.targetFPS();
+    }
+  }
+
+  /**
    * Initialize all optimization systems
    */
   async initializeSystems() {
@@ -2693,9 +2786,7 @@ export class VRApp {
     // respect what the runtime actually supports.
     const compat = await this.deviceCompat.check();
     // Override targetFPS from device detection if not already user-specified.
-    if (!this.settings._fpsOverridden) {
-      this.settings.targetFPS = this.deviceCompat.targetFPS();
-    }
+    this._applyDetectedTargetFPS();
     console.debug(`VRApp: Device tier=${compat.deviceTier}, targetFPS=${this.settings.targetFPS}`);
 
     // Use progressive loader for efficient initialization
@@ -2724,13 +2815,6 @@ export class VRApp {
       });
       this.comfortSystem.setPreset(this.settings.motionSensitivity);
       console.debug('VRApp: Comfort system initialized');
-    }
-
-    // 4. Texture Manager with KTX2 support
-    if (this.settings.enableTextureCompression) {
-      this.textureManager = new TextureManager(this.renderer);
-      await this.textureManager.initializeKTX2();
-      console.debug('VRApp: Texture manager ready with KTX2 support');
     }
 
     // === TIER 2 SYSTEMS ===
@@ -4148,19 +4232,6 @@ export class VRApp {
   }
 
   /**
-   * Load texture using optimized texture manager
-   */
-  async loadTexture(url, options = {}) {
-    if (this.textureManager) {
-      return await this.textureManager.loadTexture(url, options);
-    } else {
-      // Fallback to standard Three.js loader
-      const loader = new THREE.TextureLoader();
-      return await loader.loadAsync(url);
-    }
-  }
-
-  /**
    * Get performance statistics
    */
   /**
@@ -4297,12 +4368,6 @@ export class VRApp {
       stats.ffrIntensity = (this.ffrSystem.intensity * 100).toFixed(0) + '%';
     }
 
-    if (this.textureManager) {
-      const memStats = this.textureManager.getMemoryStats();
-      stats.textureMemory = memStats.usedMB + '/' + memStats.maxMB + 'MB';
-      stats.textureCompression = memStats.compressionRatio;
-    }
-
     return stats;
   }
 
@@ -4394,9 +4459,6 @@ export class VRApp {
     if (this.ffrSystem) {
       this.ffrSystem.dispose();
     }
-    if (this.textureManager) {
-      this.textureManager.dispose();
-    }
     if (this.vrKeyboard) {
       this.vrKeyboard.dispose();
       this.vrKeyboard = null;
@@ -4469,9 +4531,11 @@ export class VRApp {
       this._sharedGeometries.clear();
     }
 
-    // Dispose Three.js
+    // Dispose Three.js. The home environment may be detached from the scene
+    // (the toggle removes it), so traverse it explicitly — geometry/material
+    // dispose is idempotent if it is still attached.
     this.renderer.dispose();
-    this.scene.traverse((object) => {
+    const disposeSceneObject = (object) => {
       if (object.geometry) {
         object.geometry.dispose();
       }
@@ -4482,7 +4546,11 @@ export class VRApp {
           object.material.dispose();
         }
       }
-    });
+    };
+    this.scene.traverse(disposeSceneObject);
+    if (this.homeEnvironment) {
+      this.homeEnvironment.traverse(disposeSceneObject);
+    }
 
     // Tear down monitoring side-effects (intervals + event listeners).
     // Called last so any final metrics can still be reported above.
@@ -4500,11 +4568,6 @@ export class VRApp {
  * Usage Example:
  *
  * const app = new VRApp(document.getElementById('vr-container'));
- *
- * // Load optimized texture
- * const texture = await app.loadTexture('assets/wood.ktx2', {
- *   preferKTX2: true
- * });
  *
  * // Get performance stats
  * setInterval(() => {
