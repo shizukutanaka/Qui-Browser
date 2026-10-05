@@ -68,7 +68,7 @@
     <!-- Loading Screen -->
     <div class="loading-screen" id="loadingScreen">
       <div class="loading-spinner"></div>
-      <div class="loading-text">Loading Qui Browser VR v2.0.0...</div>
+      <div class="loading-text" data-i18n="app.loading">Loading Qui Browser VR v2.0.0...</div>
     </div>
 
     <!-- App Container -->
@@ -102,7 +102,12 @@
 
         <!-- Features Grid -->
         <div class="features-grid" role="list">
-          <div class="feature-card" role="listitem" aria-label="High Performance">
+          <div
+            class="feature-card"
+            role="listitem"
+            aria-label="High Performance"
+            data-i18n-attr="aria-label:feat.perf.title"
+          >
             <div class="feature-icon" aria-hidden="true">⚡</div>
             <h3 class="feature-title" data-i18n="feat.perf.title">High Performance</h3>
             <p class="feature-description" data-i18n="feat.perf.desc">
@@ -110,7 +115,12 @@
             </p>
           </div>
 
-          <div class="feature-card" role="listitem" aria-label="Hand Tracking">
+          <div
+            class="feature-card"
+            role="listitem"
+            aria-label="Hand Tracking"
+            data-i18n-attr="aria-label:feat.hand.title"
+          >
             <div class="feature-icon" aria-hidden="true">🤝</div>
             <h3 class="feature-title" data-i18n="feat.hand.title">Hand Tracking</h3>
             <p class="feature-description" data-i18n="feat.hand.desc">
@@ -118,7 +128,12 @@
             </p>
           </div>
 
-          <div class="feature-card" role="listitem" aria-label="Spatial Audio">
+          <div
+            class="feature-card"
+            role="listitem"
+            aria-label="Spatial Audio"
+            data-i18n-attr="aria-label:feat.audio.title"
+          >
             <div class="feature-icon" aria-hidden="true">🎵</div>
             <h3 class="feature-title" data-i18n="feat.audio.title">Spatial Audio</h3>
             <p class="feature-description" data-i18n="feat.audio.desc">
@@ -126,7 +141,12 @@
             </p>
           </div>
 
-          <div class="feature-card" role="listitem" aria-label="Japanese IME">
+          <div
+            class="feature-card"
+            role="listitem"
+            aria-label="Japanese IME"
+            data-i18n-attr="aria-label:feat.ime.title"
+          >
             <div class="feature-icon" aria-hidden="true">🇯🇵</div>
             <h3 class="feature-title" data-i18n="feat.ime.title">Japanese IME</h3>
             <p class="feature-description" data-i18n="feat.ime.desc">
@@ -134,13 +154,18 @@
             </p>
           </div>
 
-          <div class="feature-card" role="listitem" aria-label="Multiplayer">
+          <div class="feature-card" role="listitem" aria-label="Multiplayer" data-i18n-attr="aria-label:feat.mp.title">
             <div class="feature-icon" aria-hidden="true">🌐</div>
             <h3 class="feature-title" data-i18n="feat.mp.title">Multiplayer</h3>
             <p class="feature-description" data-i18n="feat.mp.desc">Real-time collaboration in shared VR spaces</p>
           </div>
 
-          <div class="feature-card" role="listitem" aria-label="AI Recommendations">
+          <div
+            class="feature-card"
+            role="listitem"
+            aria-label="AI Recommendations"
+            data-i18n-attr="aria-label:feat.ai.title"
+          >
             <div class="feature-icon" aria-hidden="true">🤖</div>
             <h3 class="feature-title" data-i18n="feat.ai.title">AI Recommendations</h3>
             <p class="feature-description" data-i18n="feat.ai.desc">
@@ -169,6 +194,7 @@
         aria-pressed="false"
         title="High contrast"
         aria-label="Toggle high contrast"
+        data-i18n-attr="title:a11y.highContrast;aria-label:a11y.highContrast"
         style="
           padding: 6px 12px;
           background: rgba(0, 0, 0, 0.6);
@@ -187,6 +213,7 @@
         aria-pressed="false"
         title="Large text"
         aria-label="Toggle large text"
+        data-i18n-attr="title:a11y.largeText;aria-label:a11y.largeText"
         style="
           padding: 6px 12px;
           background: rgba(0, 0, 0, 0.6);
@@ -203,6 +230,7 @@
         id="langToggle"
         class="util-toggle"
         aria-label="Toggle language"
+        data-i18n-attr="aria-label:a11y.language"
         style="
           padding: 6px 12px;
           background: rgba(0, 0, 0, 0.6);
