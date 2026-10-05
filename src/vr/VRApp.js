@@ -19,7 +19,6 @@ import {
   fireTeleportFeedback,
   smoothMoveWarning
 } from './comfort/ComfortSystem.js';
-import { TextureManager } from '../utils/TextureManager.js';
 import { debounce } from '../utils/debounce.js';
 
 // Tier 2 Features
@@ -147,7 +146,6 @@ export class VRApp {
     // Tier 1 systems
     this.ffrSystem = null;
     this.comfortSystem = null;
-    this.textureManager = null;
 
     // Tier 2 systems
     this.japaneseIME = null;
@@ -225,7 +223,6 @@ export class VRApp {
       motionSensitivity: 'moderate',
       enableFFR: true,
       enableComfort: true,
-      enableTextureCompression: true,
       // Default home environment (floor + grid + sky + welcome panel). Doubles
       // as a static comfort "rest frame"; without it the scene is an empty void.
       enableHomeEnvironment: true,
@@ -2823,13 +2820,6 @@ export class VRApp {
       console.debug('VRApp: Comfort system initialized');
     }
 
-    // 4. Texture Manager with KTX2 support
-    if (this.settings.enableTextureCompression) {
-      this.textureManager = new TextureManager(this.renderer);
-      await this.textureManager.initializeKTX2();
-      console.debug('VRApp: Texture manager ready with KTX2 support');
-    }
-
     // === TIER 2 SYSTEMS ===
 
     // 5. Japanese IME — pass interactable hooks so the 3D keyboard keys can be
@@ -4245,19 +4235,6 @@ export class VRApp {
   }
 
   /**
-   * Load texture using optimized texture manager
-   */
-  async loadTexture(url, options = {}) {
-    if (this.textureManager) {
-      return await this.textureManager.loadTexture(url, options);
-    } else {
-      // Fallback to standard Three.js loader
-      const loader = new THREE.TextureLoader();
-      return await loader.loadAsync(url);
-    }
-  }
-
-  /**
    * Get performance statistics
    */
   /**
@@ -4394,12 +4371,6 @@ export class VRApp {
       stats.ffrIntensity = (this.ffrSystem.intensity * 100).toFixed(0) + '%';
     }
 
-    if (this.textureManager) {
-      const memStats = this.textureManager.getMemoryStats();
-      stats.textureMemory = memStats.usedMB + '/' + memStats.maxMB + 'MB';
-      stats.textureCompression = memStats.compressionRatio;
-    }
-
     return stats;
   }
 
@@ -4490,9 +4461,6 @@ export class VRApp {
     }
     if (this.ffrSystem) {
       this.ffrSystem.dispose();
-    }
-    if (this.textureManager) {
-      this.textureManager.dispose();
     }
     if (this.vrKeyboard) {
       this.vrKeyboard.dispose();
@@ -4603,11 +4571,6 @@ export class VRApp {
  * Usage Example:
  *
  * const app = new VRApp(document.getElementById('vr-container'));
- *
- * // Load optimized texture
- * const texture = await app.loadTexture('assets/wood.ktx2', {
- *   preferKTX2: true
- * });
  *
  * // Get performance stats
  * setInterval(() => {
