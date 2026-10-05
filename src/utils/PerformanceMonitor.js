@@ -29,7 +29,6 @@ export class PerformanceMonitor {
 
     // Frame timing
     this.frameStartTime = 0;
-    this.lastFrameTime = 0;
     this.frameCount = 0;
     this.fpsUpdateInterval = 1000; // Update FPS every second
     this.lastFpsUpdate = 0;
@@ -205,7 +204,6 @@ export class PerformanceMonitor {
    */
   endFrame(renderer) {
     const frameTime = performance.now() - this.frameStartTime;
-    this.lastFrameTime = frameTime;
 
     // Update frame count
     this.frameCount++;

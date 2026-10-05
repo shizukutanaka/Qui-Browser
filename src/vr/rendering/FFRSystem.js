@@ -11,11 +11,6 @@ export class FFRSystem {
     this.intensity = 0.5; // 0-1 range
     this.projectionLayer = null;
     this.glBinding = null;
-    this.gpuLoadThresholds = {
-      high: 0.85, // >85% GPU = aggressive foveation
-      medium: 0.75, // >75% GPU = medium foveation
-      low: 0.5 // <50% GPU = light foveation
-    };
 
     // FR-4.2: predicted gaze foveation via head-motion stability.
     // True eye tracking (XREyeTracking) is Quest-Pro-only; as a practical

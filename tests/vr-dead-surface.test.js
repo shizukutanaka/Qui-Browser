@@ -116,11 +116,6 @@ describe('dead diagnostic surface is gone', () => {
     expect(ffr.setThresholds).toBeUndefined();
   });
 
-  test('FFRSystem still honours its constructor gpuLoadThresholds defaults', () => {
-    const ffr = new FFRSystem();
-    expect(ffr.gpuLoadThresholds).toEqual({ high: 0.85, medium: 0.75, low: 0.5 });
-  });
-
   test('ComfortSystem exposes no getStatus (zero call sites)', () => {
     const comfort = new ComfortSystem(null, { fov: 90 }, null);
     expect(comfort.getStatus).toBeUndefined();
