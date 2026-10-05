@@ -27,7 +27,6 @@ package.json @shizukutanaka
 manifest.json @shizukutanaka
 
 # Examples
-/examples/ @shizukutanaka
 
 # Security
 SECURITY.md @shizukutanaka
