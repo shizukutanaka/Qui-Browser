@@ -240,8 +240,6 @@ export class VRApp {
       // Controller input options.
       controllerDeadZone: 0.15, // axis dead zone (fraction of full travel)
       southpaw: false, // swap left/right controller roles for left-handed users
-      // In-VR settings panel (toggle buttons).
-      enableSettingsPanel: true,
       // Which settings-section tab is open (tab semantics: exactly one).
       // Persisted via updateSetting — the loadPersistedSettings whitelist only
       // copies keys declared here, so without this entry the selection was
@@ -618,10 +616,8 @@ export class VRApp {
     });
 
     // In-VR settings panel (toggle buttons wired to the persisted settings).
-    if (this.settings.enableSettingsPanel) {
-      this.settingsPanel = this.createSettingsPanel();
-      this.scene.add(this.settingsPanel);
-    }
+    this.settingsPanel = this.createSettingsPanel();
+    this.scene.add(this.settingsPanel);
 
     // FR-1.1/1.3: in-VR web browsing with tabs (each tab is a WebPanel).
     if (this.settings.enableWebPanel) {
