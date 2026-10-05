@@ -73,7 +73,7 @@ describe('live surface stays pinned', () => {
 
   test('urlResolver real API intact', () => {
     expect(typeof urlResolver.resolveInput).toBe('function');
-    expect(typeof urlResolver.buildSearchUrl).toBe('function');
-    expect(urlResolver.SEARCH_ENGINES).toBeDefined();
+    expect(typeof urlResolver.searchEngineHosts).toBe('function');
+    expect(urlResolver.DEFAULT_SEARCH_ENGINE).toBe('duckduckgo');
   });
 });

@@ -2,13 +2,14 @@
  * Unit tests for the URL/search resolver used by the in-VR address bar.
  */
 
-const {
-  resolveInput,
-  buildSearchUrl,
-  SEARCH_ENGINES,
-  DEFAULT_SEARCH_ENGINE,
-  searchEngineHosts
-} = require('../src/vr/browser/urlResolver.js');
+const { resolveInput, DEFAULT_SEARCH_ENGINE, searchEngineHosts } = require('../src/vr/browser/urlResolver.js');
+
+// Literal search-URL templates — asserting against the module's own registry
+// would make the expectations tautological (a wrong template would still
+// pass), so the expected URLs are written out.
+const DDG = 'https://duckduckgo.com/?q=';
+const GOOGLE = 'https://www.google.com/search?q=';
+const ENGINE_HOSTS = ['duckduckgo.com', 'www.google.com', 'www.bing.com', 'www.ecosia.org'];
 
 // NFD "が" = か (U+304B) + combining voiced sound mark (U+3099) → 2 code points.
 // NFC "が" = the single precomposed code point (U+304C)        → 1 code point.
@@ -81,35 +82,34 @@ describe('resolveInput', () => {
     expect(new URL(resolveInput('日本語.jp')).host).toBe('xn--wgv71a119e.jp');
   });
   test('Japanese text without a dot is still a search, not a host', () => {
-    expect(resolveInput('東京タワー')).toBe(SEARCH_ENGINES.duckduckgo + encodeURIComponent('東京タワー'));
+    expect(resolveInput('東京タワー')).toBe(DDG + encodeURIComponent('東京タワー'));
   });
   test('Japanese text with a full-width space is still a search', () => {
     // U+3000 (ideographic space) is matched by \s, so this stays a query.
-    expect(resolveInput('東京　天気')).toBe(
-      SEARCH_ENGINES.duckduckgo + encodeURIComponent('東京　天気'.normalize('NFC'))
-    );
+    expect(resolveInput('東京　天気')).toBe(DDG + encodeURIComponent('東京　天気'.normalize('NFC')));
   });
 
   // ── search queries ──────────────────────────────────────────────────────────
   test('single word becomes a search', () => {
-    expect(resolveInput('weather')).toBe(SEARCH_ENGINES.duckduckgo + 'weather');
+    expect(resolveInput('weather')).toBe(DDG + 'weather');
   });
   test('multi-word phrase becomes a search', () => {
-    expect(resolveInput('best vr browser')).toBe(SEARCH_ENGINES.duckduckgo + encodeURIComponent('best vr browser'));
+    expect(resolveInput('best vr browser')).toBe(DDG + encodeURIComponent('best vr browser'));
   });
   test('text with a dot but spaces becomes a search', () => {
-    expect(resolveInput('what is three.js')).toBe(SEARCH_ENGINES.duckduckgo + encodeURIComponent('what is three.js'));
+    expect(resolveInput('what is three.js')).toBe(DDG + encodeURIComponent('what is three.js'));
   });
   test('query characters are URL-encoded', () => {
-    expect(resolveInput('a & b')).toBe(SEARCH_ENGINES.duckduckgo + 'a%20%26%20b');
+    expect(resolveInput('a & b')).toBe(DDG + 'a%20%26%20b');
   });
 
   // ── engine selection ──────────────────────────────────────────────────────
   test('respects google engine', () => {
-    expect(resolveInput('cats', { searchEngine: 'google' })).toBe(SEARCH_ENGINES.google + 'cats');
+    expect(resolveInput('cats', { searchEngine: 'google' })).toBe(GOOGLE + 'cats');
   });
   test('falls back to default for unknown engine key', () => {
-    expect(resolveInput('cats', { searchEngine: 'nope' })).toBe(SEARCH_ENGINES[DEFAULT_SEARCH_ENGINE] + 'cats');
+    expect(DEFAULT_SEARCH_ENGINE).toBe('duckduckgo');
+    expect(resolveInput('cats', { searchEngine: 'nope' })).toBe(DDG + 'cats');
   });
   test('accepts a full template string as engine', () => {
     expect(resolveInput('cats', { searchEngine: 'https://s.example/?q=' })).toBe('https://s.example/?q=cats');
@@ -130,23 +130,13 @@ describe('resolveInput', () => {
   });
 });
 
-describe('buildSearchUrl', () => {
-  test('uses default engine when none given', () => {
-    expect(buildSearchUrl('hello')).toBe(SEARCH_ENGINES[DEFAULT_SEARCH_ENGINE] + 'hello');
-  });
-  test('encodes the query', () => {
-    expect(buildSearchUrl('a/b?c')).toBe(SEARCH_ENGINES[DEFAULT_SEARCH_ENGINE] + encodeURIComponent('a/b?c'));
-  });
-});
-
 describe('searchEngineHosts', () => {
   test('derives the host of every built-in search engine', () => {
     const hosts = searchEngineHosts();
-    expect(hosts).toContain('duckduckgo.com');
-    expect(hosts).toContain('www.google.com');
-    expect(hosts).toContain('www.bing.com');
-    expect(hosts).toContain('www.ecosia.org');
-    expect(hosts).toHaveLength(Object.keys(SEARCH_ENGINES).length);
+    for (const h of ENGINE_HOSTS) {
+      expect(hosts).toContain(h);
+    }
+    expect(hosts).toHaveLength(ENGINE_HOSTS.length);
   });
 
   test('returns lowercased, non-empty hosts', () => {

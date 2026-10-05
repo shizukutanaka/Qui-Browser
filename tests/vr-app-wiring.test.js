@@ -931,6 +931,107 @@ describe('VRApp._onWebPanelToggleChanged', () => {
   });
 });
 
+describe('VRApp._onVoiceToggleChanged', () => {
+  // settings.enableVoice gated a one-shot construction inside initializeSystems()
+  // and was absent from every settings-panel/voice/persisted-write path — the
+  // entire VoiceCommands subsystem (SPEC FR-2.4) was unreachable by real users,
+  // the same defect class as enableWebPanel before Session 74. The toggle keeps
+  // a constructed instance (stop + isEnabled=false, so the continuous onend
+  // restart stays disarmed) so OFF→ON resumes live; when no instance exists the
+  // SpeechRecognition + mic-permission init is still one-shot at boot, which the
+  // toast says honestly instead of lying about an instant enable.
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  const makeVoiceApp = (over = {}) =>
+    makeVRAppLike({
+      isVREnabled: true,
+      camera: { add: jest.fn(), remove: jest.fn() },
+      showVRToast: VRApp.prototype.showVRToast,
+      settings: { enableVoice: true },
+      voiceCommands: null,
+      ...over
+    });
+
+  const makeVoice = () => ({
+    isEnabled: true,
+    isListening: true,
+    start: jest.fn(() => true),
+    stop: jest.fn(),
+    dispose: jest.fn()
+  });
+
+  test('turning it OFF stops the recognizer but keeps the instance resumable', () => {
+    const voiceCommands = makeVoice();
+    const app = makeVoiceApp({ voiceCommands });
+    VRApp.prototype._onVoiceToggleChanged.call(app, false);
+
+    expect(voiceCommands.isEnabled).toBe(false); // blocks the continuous onend restart
+    expect(voiceCommands.stop).toHaveBeenCalledTimes(1);
+    expect(voiceCommands.dispose).not.toHaveBeenCalled();
+    expect(app.voiceCommands).toBe(voiceCommands); // still there for the ON resume
+  });
+
+  test('turning it OFF confirms cross-modally (WCAG 4.1.3)', () => {
+    const app = makeVoiceApp({ voiceCommands: makeVoice() });
+    VRApp.prototype._onVoiceToggleChanged.call(app, false);
+    expect(app.captionSystem.show).toHaveBeenCalledTimes(1);
+    expect(app.captionSystem.show.mock.calls[0][0]).toMatch(/off|オフ/i);
+    expect(app.hapticFeedback.playPatternBothHands).toHaveBeenCalledTimes(1);
+  });
+
+  test('turning it OFF without an instance is a safe no-op', () => {
+    const app = makeVoiceApp({ voiceCommands: null });
+    expect(() => VRApp.prototype._onVoiceToggleChanged.call(app, false)).not.toThrow();
+    expect(app.captionSystem.show).toHaveBeenCalledTimes(1);
+  });
+
+  test('turning it ON resumes a stopped instance live', () => {
+    const voiceCommands = makeVoice();
+    voiceCommands.isEnabled = false;
+    voiceCommands.isListening = false;
+    const app = makeVoiceApp({ voiceCommands });
+    VRApp.prototype._onVoiceToggleChanged.call(app, true);
+
+    expect(voiceCommands.isEnabled).toBe(true);
+    expect(voiceCommands.start).toHaveBeenCalledTimes(1);
+    expect(app.captionSystem.show.mock.calls[0][0]).toMatch(/on|オン/i);
+  });
+
+  test('turning it ON with no instance is honest about the boot-only init', () => {
+    const app = makeVoiceApp({ voiceCommands: null });
+    VRApp.prototype._onVoiceToggleChanged.call(app, true);
+    expect(app.captionSystem.show).toHaveBeenCalledTimes(1);
+    expect(app.captionSystem.show.mock.calls[0][0]).toMatch(/next session|次回/i);
+  });
+
+  test('falls back to the persisted setting when called with no argument', () => {
+    const voiceCommands = makeVoice();
+    const app = makeVoiceApp({ settings: { enableVoice: false }, voiceCommands });
+    VRApp.prototype._onVoiceToggleChanged.call(app);
+    expect(voiceCommands.stop).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('enableVoice is reachable from the settings panel (the reachability fix)', () => {
+  test('the settings items contain an enableVoice row wired to _onVoiceToggleChanged', () => {
+    const src = require('fs').readFileSync(require('path').join(__dirname, '../src/vr/VRApp.js'), 'utf8');
+    expect(src).toMatch(/t\('vr\.settings\.voice'\),\s*'enableVoice',\s*\(v\)\s*=>\s*this\._onVoiceToggleChanged\(v\)/);
+    // …and the row must be placed in a section, not left to the leftover catch-all.
+    expect(src).toMatch(/'enableVoice'/);
+  });
+
+  test('the label and status messages exist in both catalogs', () => {
+    const { t } = require('../src/i18n/i18n.js');
+    setLanguage('en');
+    expect(t('vr.settings.voice')).toBe('Voice Commands');
+    setLanguage('ja');
+    expect(t('vr.settings.voice')).toBe('音声コマンド');
+    expect(t('vr.msg.voiceNextSession')).not.toBe('vr.msg.voiceNextSession');
+    setLanguage('en');
+  });
+});
+
 describe('VRApp._clearBrowsingHistory (privacy action)', () => {
   beforeEach(() => jest.useFakeTimers());
   afterEach(() => jest.useRealTimers());

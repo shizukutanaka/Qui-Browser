@@ -8,7 +8,7 @@
  */
 
 // Built-in search engines. The query is appended URL-encoded.
-export const SEARCH_ENGINES = {
+const SEARCH_ENGINES = {
   duckduckgo: 'https://duckduckgo.com/?q=',
   google: 'https://www.google.com/search?q=',
   bing: 'https://www.bing.com/search?q=',
@@ -101,7 +101,7 @@ export function resolveInput(input, opts = {}) {
  * @param {string} [engine] key into SEARCH_ENGINES or a full template
  * @returns {string}
  */
-export function buildSearchUrl(query, engine = DEFAULT_SEARCH_ENGINE) {
+function buildSearchUrl(query, engine = DEFAULT_SEARCH_ENGINE) {
   const template =
     SEARCH_ENGINES[engine] ||
     (typeof engine === 'string' && engine.includes('=') ? engine : SEARCH_ENGINES[DEFAULT_SEARCH_ENGINE]);

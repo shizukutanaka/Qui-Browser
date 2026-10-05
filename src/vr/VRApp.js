@@ -19,7 +19,6 @@ import {
   fireTeleportFeedback,
   smoothMoveWarning
 } from './comfort/ComfortSystem.js';
-import { TextureManager } from '../utils/TextureManager.js';
 import { debounce } from '../utils/debounce.js';
 
 // Tier 2 Features
@@ -147,7 +146,6 @@ export class VRApp {
     // Tier 1 systems
     this.ffrSystem = null;
     this.comfortSystem = null;
-    this.textureManager = null;
 
     // Tier 2 systems
     this.japaneseIME = null;
@@ -218,10 +216,13 @@ export class VRApp {
     // Settings
     this.settings = {
       targetFPS: 90, // Quest 2 target
+      // Set when the user explicitly chooses a frame-rate target
+      // (updateSetting('targetFPS')). initializeSystems skips the device-tier
+      // detection override when true so the choice survives reboots.
+      _fpsOverridden: false,
       motionSensitivity: 'moderate',
       enableFFR: true,
       enableComfort: true,
-      enableTextureCompression: true,
       // Default home environment (floor + grid + sky + welcome panel). Doubles
       // as a static comfort "rest frame"; without it the scene is an empty void.
       enableHomeEnvironment: true,
@@ -437,6 +438,9 @@ export class VRApp {
    */
   updateSetting(key, value) {
     this.settings[key] = value;
+    if (key === 'targetFPS') {
+      this.settings._fpsOverridden = true;
+    }
     this.saveSettings();
     return value;
   }
@@ -1068,6 +1072,36 @@ export class VRApp {
       this._teardownBrowsingSystems();
     }
     this.showVRToast(t(on ? 'vr.msg.webPanelOn' : 'vr.msg.webPanelOff'), { type: 'info' });
+  }
+
+  /**
+   * Apply the `enableVoice` toggle.
+   *
+   * A constructed VoiceCommands instance stops (isEnabled=false disarms the
+   * continuous onend restart) and can resume in place. If no instance exists
+   * the SpeechRecognition + mic-permission init is one-shot in
+   * initializeSystems(), which runs once at boot — the persisted setting
+   * (FR-9.1) takes effect next launch, and the toast says so honestly.
+   *
+   * @param {boolean} enabled
+   */
+  _onVoiceToggleChanged(enabled) {
+    const on = enabled === undefined ? !!this.settings.enableVoice : !!enabled;
+    if (!on) {
+      if (this.voiceCommands) {
+        this.voiceCommands.isEnabled = false;
+        this.voiceCommands.stop();
+      }
+      this.showVRToast(t('vr.msg.voiceOff'), { type: 'info' });
+      return;
+    }
+    if (this.voiceCommands) {
+      this.voiceCommands.isEnabled = true;
+      const started = this.voiceCommands.start();
+      this.showVRToast(t(started ? 'vr.msg.voiceOn' : 'vr.msg.voiceNextSession'), { type: 'info' });
+      return;
+    }
+    this.showVRToast(t('vr.msg.voiceNextSession'), { type: 'info' });
   }
 
   /**
@@ -1745,6 +1779,12 @@ export class VRApp {
       // from every settings-panel/voice/persisted-setting path. Toggling it
       // here persists the preference (FR-9.1) and applies it live.
       [t('vr.settings.webPanel'), 'enableWebPanel', (v) => this._onWebPanelToggleChanged(v)],
+      // FR-2.4: voice commands — same defect shape as enableWebPanel above:
+      // VoiceCommands is constructed once in initializeSystems(), gated on this
+      // same persisted setting, which had no write path at all. The row makes
+      // the subsystem reachable; _onVoiceToggleChanged resumes an existing
+      // instance live and is honest about the boot-only init otherwise.
+      [t('vr.settings.voice'), 'enableVoice', (v) => this._onVoiceToggleChanged(v)],
       // The home environment (sky/floor/grid rest frame) had the same
       // unreachable persisted-key defect. The toggle applies live by
       // adding/removing the Group; the teleport floor stays functional.
@@ -1975,7 +2015,7 @@ export class VRApp {
     const SECTIONS = [
       [
         'settings.section.a11y',
-        byKey(items, ['enableCaptions', 'enableGazeDwell', 'highContrast', 'enableHaptics']),
+        byKey(items, ['enableCaptions', 'enableGazeDwell', 'enableVoice', 'highContrast', 'enableHaptics']),
         byKey(steppers, ['captionDuration', 'captionScale', 'captionHeight', 'gazeDwellTime', 'gazeGraceTime']),
         [],
         []
@@ -2037,7 +2077,6 @@ export class VRApp {
     if (!Array.isArray(this.settings.openSettingsSections)) {
       this.settings.openSettingsSections = ['settings.section.a11y'];
     }
-    this._settingsSections = sections;
     const layout = layoutSettingsPanel(sections, this.settings.openSettingsSections);
 
     const bg = new THREE.Mesh(
@@ -2045,7 +2084,6 @@ export class VRApp {
       new THREE.MeshBasicMaterial({ color: 0x0a0d14, transparent: true, opacity: 0.6 })
     );
     group.add(bg);
-    this._settingsBg = bg;
 
     for (const p of layout.placements) {
       if (p.type === 'tab') {
@@ -2189,7 +2227,7 @@ export class VRApp {
     this.scene.add(this.playerRig);
 
     // Spatial window management for the in-VR browser panel (head-lock follow,
-    // billboard, distance). Attached to the active tab's group when present.
+    // distance). Attached to the active tab's group when present.
     if (this.settings.enableWebPanel) {
       this.windowManager = new WindowManager(this.camera, {
         distance: this.settings.windowDistance
@@ -2208,8 +2246,7 @@ export class VRApp {
 
     // Profile-aware, dead-zone-filtered controller input.
     this.controllerInput = new VRControllerInput({
-      deadZone: this.settings.controllerDeadZone,
-      southpaw: this.settings.southpaw
+      deadZone: this.settings.controllerDeadZone
     });
 
     // Shared ray line geometry (pointing down -Z from the controller).
@@ -2730,6 +2767,16 @@ export class VRApp {
   }
 
   /**
+   * Apply the device-tier frame-rate target unless the user explicitly chose
+   * one (settings._fpsOverridden is set by updateSetting('targetFPS')).
+   */
+  _applyDetectedTargetFPS() {
+    if (!this.settings._fpsOverridden) {
+      this.settings.targetFPS = this.deviceCompat.targetFPS();
+    }
+  }
+
+  /**
    * Initialize all optimization systems
    */
   async initializeSystems() {
@@ -2739,9 +2786,7 @@ export class VRApp {
     // respect what the runtime actually supports.
     const compat = await this.deviceCompat.check();
     // Override targetFPS from device detection if not already user-specified.
-    if (!this.settings._fpsOverridden) {
-      this.settings.targetFPS = this.deviceCompat.targetFPS();
-    }
+    this._applyDetectedTargetFPS();
     console.debug(`VRApp: Device tier=${compat.deviceTier}, targetFPS=${this.settings.targetFPS}`);
 
     // Use progressive loader for efficient initialization
@@ -2770,13 +2815,6 @@ export class VRApp {
       });
       this.comfortSystem.setPreset(this.settings.motionSensitivity);
       console.debug('VRApp: Comfort system initialized');
-    }
-
-    // 4. Texture Manager with KTX2 support
-    if (this.settings.enableTextureCompression) {
-      this.textureManager = new TextureManager(this.renderer);
-      await this.textureManager.initializeKTX2();
-      console.debug('VRApp: Texture manager ready with KTX2 support');
     }
 
     // === TIER 2 SYSTEMS ===
@@ -4111,7 +4149,7 @@ export class VRApp {
       this.captionSystem.update(dt * 1000);
     }
 
-    // Spatial window management: keep the active panel followed/billboarded.
+    // Spatial window management: keep the active panel followed.
     if (this.windowManager && (this.windowManager.followMode || this.windowManager.isGrabbing)) {
       // The managed target is TabManager's rootGroup, which does not change
       // with the active tab — so this only has to cover the case where the
@@ -4191,19 +4229,6 @@ export class VRApp {
     // this.renderer.setPixelRatio(1.0);
 
     console.debug('VRApp: Quality increased');
-  }
-
-  /**
-   * Load texture using optimized texture manager
-   */
-  async loadTexture(url, options = {}) {
-    if (this.textureManager) {
-      return await this.textureManager.loadTexture(url, options);
-    } else {
-      // Fallback to standard Three.js loader
-      const loader = new THREE.TextureLoader();
-      return await loader.loadAsync(url);
-    }
   }
 
   /**
@@ -4343,12 +4368,6 @@ export class VRApp {
       stats.ffrIntensity = (this.ffrSystem.intensity * 100).toFixed(0) + '%';
     }
 
-    if (this.textureManager) {
-      const memStats = this.textureManager.getMemoryStats();
-      stats.textureMemory = memStats.usedMB + '/' + memStats.maxMB + 'MB';
-      stats.textureCompression = memStats.compressionRatio;
-    }
-
     return stats;
   }
 
@@ -4439,9 +4458,6 @@ export class VRApp {
     }
     if (this.ffrSystem) {
       this.ffrSystem.dispose();
-    }
-    if (this.textureManager) {
-      this.textureManager.dispose();
     }
     if (this.vrKeyboard) {
       this.vrKeyboard.dispose();
@@ -4552,11 +4568,6 @@ export class VRApp {
  * Usage Example:
  *
  * const app = new VRApp(document.getElementById('vr-container'));
- *
- * // Load optimized texture
- * const texture = await app.loadTexture('assets/wood.ktx2', {
- *   preferKTX2: true
- * });
  *
  * // Get performance stats
  * setInterval(() => {

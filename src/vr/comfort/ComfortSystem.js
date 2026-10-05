@@ -69,7 +69,7 @@ export class ComfortSystem {
    * system uses (VRApp.camera.add(mesh)). Two reasons a post-process pass is
    * the wrong tool here:
    *   1. VRApp renders the scene directly (renderer.render) and never calls
-   *      comfortSystem.render(), so the old post-process shader never reached
+   *      the old post-process render path, so that shader never reached
    *      the display — currentVignette was computed every frame and drawn to
    *      nothing.
    *   2. A single fullscreen render target cannot serve WebXR's per-eye stereo
@@ -494,19 +494,3 @@ export function smoothMoveWarning(enabledNow, reduceMotion) {
   }
   return null;
 }
-
-/**
- * Usage Example:
- *
- * const comfort = new ComfortSystem(scene, camera, renderer);
- * comfort.setPreset('moderate');
- *
- * // In animation loop
- * comfort.update(deltaTime);
- * comfort.render(scene, camera);
- *
- * // Handle controller input
- * controller.addEventListener('thumbstick', (e) => {
- *   comfort.handleSnapTurn(e.axes[0]);
- * });
- */
