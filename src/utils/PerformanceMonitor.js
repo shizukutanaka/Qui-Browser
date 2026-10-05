@@ -80,8 +80,6 @@ export class PerformanceMonitor {
   createUI() {
     // Main container
     this.container = document.createElement('div');
-    // Distinct id: 'performance-monitor' is used by the lightweight overlay in
-    // src/app.js; this richer panel must not collide with it.
     this.container.id = 'perf-monitor-overlay';
     this.container.style.cssText = `
       position: fixed;
