@@ -20,6 +20,7 @@ const root = join(__dirname, '..');
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 const scripts = pkg.scripts || {};
 const doc = readFileSync(join(root, 'docs/TESTING.md'), 'utf8');
+const readme = readFileSync(join(root, 'README.md'), 'utf8');
 const specFiles = readdirSync(join(root, 'tests')).filter((f) => f.endsWith('.test.js'));
 
 describe('npm test scripts match real specs', () => {
@@ -65,5 +66,19 @@ describe('TESTING.md describes only a live testing surface', () => {
     expect(doc).not.toMatch(/server\.test\.js|src\/ and server\//);
     expect(doc).not.toMatch(/\d+ suites?\s*\/\s*[\d,]+ tests/);
     expect(doc).not.toMatch(/benchmarks/);
+  });
+});
+
+describe('README describes only a live script surface', () => {
+  test('every `npm run <cmd>` listed resolves to a package.json script', () => {
+    const listed = [...readme.matchAll(/npm run ([a-z][a-z0-9:-]*)/g)].map((m) => m[1]);
+    const missing = [...new Set(listed)].filter((name) => !(name in scripts));
+    expect(missing).toEqual([]);
+  });
+
+  test('Testing section carries no dead tiers or stale absolute counts', () => {
+    const section = readme.match(/## 🧪 Testing([\s\S]*?)##/);
+    expect(section).not.toBeNull();
+    expect(section[1]).not.toMatch(/tier|benchmark|\d+ test suites/i);
   });
 });
