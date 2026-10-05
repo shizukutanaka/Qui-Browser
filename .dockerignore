@@ -6,8 +6,6 @@
 # Node
 node_modules
 npm-debug.log
-yarn-error.log
-yarn.lock
 
 # Docker
 Dockerfile
@@ -33,14 +31,6 @@ logs
 # Testing
 tests
 coverage
-.nyc_output
-
-# Documentation (optional - comment out if you want to include)
-# docs
-# examples
-
-# CI/CD
-.github/workflows
 
 # Environment
 .env
@@ -54,8 +44,6 @@ temp
 
 # Build artifacts
 dist
-build
-*.map
 
 # Editor
 *.sublime-project
@@ -63,4 +51,3 @@ build
 
 # Backup files
 *.bak
-*~

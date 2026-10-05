@@ -12,7 +12,6 @@ services:
     # ポートマッピング
     ports:
       - '8080:80'
-      # - "8443:443"  # HTTPS用（SSL証明書がある場合）
 
     # ボリュームマウント（開発時）
     volumes:
@@ -59,28 +58,10 @@ services:
         max-size: '10m'
         max-file: '3'
 
-  # 監視サービス（Prometheus、オプション）
-  # prometheus:
-  #   image: prom/prometheus:latest
-  #   container_name: qui-browser-vr-prometheus
-  #   ports:
-  #     - "9090:9090"
-  #   volumes:
-  #     - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-  #     - prometheus-data:/prometheus
-  #   command:
-  #     - '--config.file=/etc/prometheus/prometheus.yml'
-  #     - '--storage.tsdb.path=/prometheus'
-  #   networks:
-  #     - vr-browser-network
-  #   restart: unless-stopped
-
 # ボリューム定義
 volumes:
   nginx-logs:
     driver: local
-  # prometheus-data:
-  #   driver: local
 
 # ネットワーク定義
 networks:
