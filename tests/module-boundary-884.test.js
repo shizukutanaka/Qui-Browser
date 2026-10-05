@@ -13,11 +13,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
-const MODULES = [
-  'src/vr/browser/readerNarration.js',
-  'src/vr/browser/readableText.js',
-  'src/vr/settingsStepper.js'
-];
+const MODULES = ['src/vr/browser/readerNarration.js', 'src/vr/browser/readableText.js', 'src/vr/settingsStepper.js'];
 
 function srcFiles(dir) {
   const out = [];
