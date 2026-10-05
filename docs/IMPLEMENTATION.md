@@ -1,4 +1,5 @@
 # Qui Browser VR - Implementation Guide
+
 ## From Research to Production (Step-by-Step)
 
 **Last Updated**: November 5, 2025
@@ -10,6 +11,7 @@
 ## Quick Start (5 Minutes)
 
 ### Setup
+
 ```bash
 git clone <repository>
 cd Qui-Browser
@@ -18,6 +20,7 @@ npm run dev
 ```
 
 ### Access VR
+
 1. Open on Meta Quest device
 2. Allow WebXR permission
 3. Click "Enter VR" button
@@ -66,6 +69,7 @@ export class FFRSystem {
 ```
 
 **Usage in main VR loop**:
+
 ```javascript
 const ffrSystem = new FFRSystem(session, glBinding);
 ffrSystem.enable(0.5); // Medium foveation
@@ -75,6 +79,7 @@ ffrSystem.setDynamic(gpuMonitor.getLoad());
 ```
 
 **Validation**:
+
 - [ ] Enable/disable works
 - [ ] Visual inspection: edge quality degradation imperceptible
 - [ ] FPS maintained at 90+ (Quest 2)
@@ -139,21 +144,26 @@ export class ComfortSystem {
     this.lastPosition = this.camera.position.clone();
 
     // Update FOV
-    const targetFOV = this.isMoving ? (this.settings.fov - 25) : this.settings.fov;
+    const targetFOV = this.isMoving
+      ? this.settings.fov - 25
+      : this.settings.fov;
     this.camera.fov += (targetFOV - this.camera.fov) * deltaTime;
     this.camera.updateProjectionMatrix();
 
     // Update vignette
     const targetVignette = this.isMoving ? this.settings.vignette : 0;
     this.vignetteMaterial.uniforms.intensity.value +=
-      (targetVignette - this.vignetteMaterial.uniforms.intensity.value) * deltaTime;
+      (targetVignette - this.vignetteMaterial.uniforms.intensity.value) *
+      deltaTime;
   }
 
   handleSnapTurn(degrees) {
     if (!this.settings.snapTurn) return;
 
-    const snapAngle = Math.round(degrees / this.settings.snapTurn) * this.settings.snapTurn;
-    const targetRotation = this.camera.rotation.y + THREE.MathUtils.degToRad(snapAngle);
+    const snapAngle =
+      Math.round(degrees / this.settings.snapTurn) * this.settings.snapTurn;
+    const targetRotation =
+      this.camera.rotation.y + THREE.MathUtils.degToRad(snapAngle);
 
     this.animateRotation(this.camera.rotation.y, targetRotation, 0.2);
   }
@@ -174,9 +184,9 @@ export class ComfortSystem {
 
   setPreset(preset) {
     const presets = {
-      'sensitive': { vignette: 0.8, fov: 60, snapTurn: 15 },
-      'moderate': { vignette: 0.4, fov: 75, snapTurn: 30 },
-      'tolerant': { vignette: 0, fov: 90, snapTurn: 45 }
+      sensitive: { vignette: 0.8, fov: 60, snapTurn: 15 },
+      moderate: { vignette: 0.4, fov: 75, snapTurn: 30 },
+      tolerant: { vignette: 0, fov: 90, snapTurn: 45 }
     };
 
     Object.assign(this.settings, presets[preset] || {});
@@ -185,6 +195,7 @@ export class ComfortSystem {
 ```
 
 **Usage**:
+
 ```javascript
 const comfort = new ComfortSystem(scene, camera);
 comfort.setPreset('moderate');
@@ -199,6 +210,7 @@ controller.addEventListener('thumbstick', (direction) => {
 ```
 
 **Validation**:
+
 - [ ] Vignette darkens during movement
 - [ ] FOV smoothly changes
 - [ ] Snap turning feels smooth
@@ -254,13 +266,15 @@ export class ObjectPool {
       available: this.available.length,
       inUse: this.inUse.size,
       total: this.available.length + this.inUse.size,
-      utilizationPercent: (this.inUse.size / (this.available.length + this.inUse.size)) * 100
+      utilizationPercent:
+        (this.inUse.size / (this.available.length + this.inUse.size)) * 100
     };
   }
 }
 ```
 
 **Example UI Button Pool**:
+
 ```javascript
 class VRButton {
   constructor() {
@@ -299,6 +313,7 @@ function createButton(position, callback) {
 ```
 
 **Validation**:
+
 - [ ] No GC pauses visible
 - [ ] Frame time variance <1ms
 - [ ] Pool stats reasonable (not too many allocated)
@@ -367,6 +382,7 @@ export class TextureManager {
 ```
 
 **Conversion Tool** (Command line):
+
 ```bash
 # Install
 npm install --save-dev @replit/basis-universal
@@ -377,6 +393,7 @@ basisu input.jpg -output_file output.ktx2 -q 185
 ```
 
 **Validation**:
+
 - [ ] KTX2 loads correctly
 - [ ] Memory usage at 75% of original
 - [ ] Visual quality acceptable
@@ -406,7 +423,8 @@ const ASSETS_TO_CACHE = [
 // Install
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
+    caches
+      .open(CACHE_NAME)
       .then((cache) => cache.addAll(ASSETS_TO_CACHE))
       .then(() => self.skipWaiting())
   );
@@ -415,10 +433,13 @@ self.addEventListener('install', (event) => {
 // Activate
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys()
-      .then((names) => Promise.all(
-        names.map((name) => name !== CACHE_NAME && caches.delete(name))
-      ))
+    caches
+      .keys()
+      .then((names) =>
+        Promise.all(
+          names.map((name) => name !== CACHE_NAME && caches.delete(name))
+        )
+      )
       .then(() => self.clients.claim())
   );
 });
@@ -433,7 +454,8 @@ self.addEventListener('fetch', (event) => {
       fetch(event.request)
         .then((response) => {
           if (response.status === 200) {
-            caches.open(CACHE_NAME)
+            caches
+              .open(CACHE_NAME)
               .then((cache) => cache.put(event.request, response.clone()));
           }
           return response;
@@ -444,23 +466,25 @@ self.addEventListener('fetch', (event) => {
 
   // Assets: Cache first
   event.respondWith(
-    caches.match(event.request)
-      .then((cached) => cached || fetch(event.request))
+    caches.match(event.request).then((cached) => cached || fetch(event.request))
   );
 });
 ```
 
 **Registration**:
+
 ```javascript
 // In main app
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/service-worker.js')
+  navigator.serviceWorker
+    .register('/service-worker.js')
     .then((registration) => console.log('SW registered'))
     .catch((error) => console.error('SW registration failed', error));
 }
 ```
 
 **Validation**:
+
 - [ ] First load: ~5 seconds
 - [ ] Second load: <1 second
 - [ ] Offline: App loads (cached)
@@ -516,6 +540,7 @@ export class JapaneseIME {
 ```
 
 **Integration in keyboard**:
+
 ```javascript
 class VRKeyboardWithIME {
   constructor() {
@@ -527,7 +552,9 @@ class VRKeyboardWithIME {
   async onKey(key) {
     if (key === 'space') {
       // Convert hiragana to kanji
-      const candidates = await this.ime.convertHiraganaToKanji(this.inputBuffer);
+      const candidates = await this.ime.convertHiraganaToKanji(
+        this.inputBuffer
+      );
       this.ime.displayCandidates(candidates);
     } else {
       this.inputBuffer += key;
@@ -543,6 +570,7 @@ class VRKeyboardWithIME {
 ```
 
 **Validation**:
+
 - [ ] Hiragana input works
 - [ ] Conversion to kanji works
 - [ ] Candidate selection works
@@ -642,6 +670,7 @@ export class HandTracking {
 ```
 
 **Validation**:
+
 - [ ] Hand visible in VR
 - [ ] Joints track accurately
 - [ ] Pinch gesture works
@@ -659,7 +688,9 @@ export class HandTracking {
 ```javascript
 export class SpatialAudio {
   constructor() {
-    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    this.audioContext = new (
+      window.AudioContext || window.webkitAudioContext
+    )();
     this.listener = this.audioContext.listener;
     this.sources = new Map();
   }
@@ -692,8 +723,12 @@ export class SpatialAudio {
   updateListenerPosition(position, forward, up) {
     this.listener.setPosition(position.x, position.y, position.z);
     this.listener.setOrientation(
-      forward.x, forward.y, forward.z,
-      up.x, up.y, up.z
+      forward.x,
+      forward.y,
+      forward.z,
+      up.x,
+      up.y,
+      up.z
     );
   }
 
@@ -714,6 +749,7 @@ export class SpatialAudio {
 ```
 
 **Integration in XR loop**:
+
 ```javascript
 const spatialAudio = new SpatialAudio();
 
@@ -736,6 +772,7 @@ function onXRFrame(time, frame) {
 ```
 
 **Validation**:
+
 - [ ] Sound plays in 3D space
 - [ ] Position changes with movement
 - [ ] Attenuation works with distance
@@ -745,6 +782,7 @@ function onXRFrame(time, frame) {
 ## Testing & Validation
 
 ### Performance Checklist
+
 ```
 Quest 2 (90 Hz, 11.1ms budget):
 - [ ] Consistent 90 FPS
@@ -767,6 +805,7 @@ All Devices:
 ```
 
 ### User Experience Checklist
+
 ```
 Comfort:
 - [ ] Motion sickness reduced (<30%)
@@ -797,13 +836,15 @@ Loading:
 ## Deployment
 
 ### Production Build
-```bash
-npm run build:production
 
-# Output: build/ directory ready for deployment
+```bash
+npm run build
+
+# Output: dist/ directory ready for deployment
 ```
 
 ### Deploy to Quest Store
+
 ```bash
 # Configure manifest.json
 # Upload to Meta Quest Store
@@ -824,6 +865,7 @@ npm run build:production
 **Timeline**: 8 weeks (Tier 1-2)
 
 **Expected Results**:
+
 - Motion sickness: 70% → <15%
 - Text input speed: 12 WPM → 73 WPM (Quest 3) / 22 WPM (voice+keyboard)
 - Performance: D → A grade
