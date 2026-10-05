@@ -112,7 +112,7 @@ Brief description of what you built.
 
 - Qui Browser VR v2.0.0
 - Feature 1: Gesture recognition
-- Feature 2: Spatial anchors
+- Feature 2: Voice commands
 
 ## Try it!
 
@@ -384,18 +384,19 @@ We recognize community members who:
 ### Example 1: Good Question
 
 ````markdown
-# [Question] How to recognize custom hand gestures?
+# [Question] How to detect hand gestures reliably?
 
 ## What I'm trying to do
 
-I want to detect a specific hand gesture (peace sign)
-and trigger an action when it's recognized.
+I want to trigger an action when the user makes a
+peace sign with either hand.
 
 ## What I've tried
 
 - Read the API documentation
-- Looked at gesture recognition examples
-- Tried recording my own gesture
+- Checked the built-in gesture list (pinch, point, open,
+  fist, peace, thumbsup)
+- Tested detection while holding the pose
 
 ## What's happening
 
@@ -416,32 +417,23 @@ Gesture should be recognized 90%+ of the time.
 ## Code Example
 
 ```javascript
-const gestureRecognizer = new VRMLGestureRecognition({
-  confidenceThreshold: 0.7
-});
-
-// Recording custom gesture
-await gestureRecognizer.recordCustomGesture('peace-sign');
-
-// Trying to detect it
-gestureRecognizer.on('gesture', (gesture) => {
-  if (gesture.type === 'peace-sign') {
-    console.log('Peace sign detected!');
-  }
+// Subscribe to one of the built-in gestures
+handTracking.onGesture('peace', (hand, gesture) => {
+  console.log(`Peace detected on ${hand}: ${gesture}`);
 });
 ```
 ````
 
 ## Questions
 
-1. Is 0.7 confidence threshold too high?
-2. Do I need more training samples?
+1. Does hand position affect reliability?
+2. Should I dwell on the pose longer?
 3. Is there a way to improve recognition accuracy?
 
 ## Additional context
 
-I've recorded about 50 samples of the peace sign gesture.
-The gesture is consistent but sometimes has slight variations.
+The peace pose is consistent, but detection only fires
+intermittently — mostly when my hand jitters off the pose.
 
 ````
 
@@ -491,25 +483,18 @@ Productivity app wants:
 - Gesture C = Save
 
 ## Implementation Ideas
-```javascript
-// API could look like:
-const profileManager = new VRGestureProfileManager();
+Concept sketch (hypothetical API, not yet implemented):
 
-// Create profile
-profileManager.createProfile('gaming');
-profileManager.bindGesture('gaming', 'peace-sign', 'jump');
-
-// Switch profile
-profileManager.switchProfile('gaming');
-
-// Query current profile
-const currentProfile = profileManager.getCurrentProfile();
+- `profiles.create(name)` — register a named profile
+- `profiles.bind(name, gesture, action)` — map a gesture
+- `profiles.activate(name)` — switch the active profile
+- `profiles.current()` — query the active profile
 ````
 
 ## Related discussions
 
 - [Gesture Customization Thread](link)
-- [Gesture Macro Support](link)
+- [Gesture Sensitivity Thread](link)
 
 ## Community Thoughts?
 
@@ -522,7 +507,7 @@ Any other profile types we should consider?
 - Clear problem statement
 - Specific solution
 - Real-world examples
-- Code examples showing API
+- Shows how the API could look
 - Considers extensibility
 - Asks for community input
 
@@ -538,11 +523,11 @@ A virtual reality physics sandbox where users can create
 objects, apply forces, and watch them interact realistically.
 
 ## Features
-- Real-time physics simulation (Cannon.js)
+- Real-time physics simulation
 - Hand gesture controls for object manipulation
 - Multiple physics materials (wood, metal, rubber)
 - Performance metrics display
-- Gesture macro recording for complex interactions
+- Voice commands for scene reset and mode switching
 
 ## Demo
 [Link to live demo: https://example.com/vr-physics]
@@ -559,16 +544,16 @@ objects, apply forces, and watch them interact realistically.
 [GitHub repo: https://github.com/user/vr-physics-playground]
 
 ## What I used from Qui Browser VR
-- Hand Gesture Recognition (v2.0.0)
+- Hand tracking (pinch / point / peace gestures)
 - Performance Monitor (optimization)
-- Spatial Anchors (for saving scene)
-- Advanced Eye Tracking (menu control)
+- Gaze-dwell selection (menu control)
+- Voice commands (v2.0.0)
 
 ## Try it!
 1. Open in Meta Quest Browser
 2. Allow hand tracking when prompted
 3. Use gestures to interact with objects
-4. Record custom gesture macros
+4. Try the voice command list for scene controls
 
 ## Performance
 - Runs at 90 FPS on Quest 3
@@ -578,8 +563,8 @@ objects, apply forces, and watch them interact realistically.
 
 ## Technical Details
 - Built with Three.js r152
-- Cannon.js physics engine
-- Gesture recognition ML model
+- Custom physics integrator
+- Runs inside Qui Browser VR panels
 - Optimized for Quest 2+ devices
 
 ## Questions & Feedback
@@ -636,11 +621,11 @@ Would you like to see specific features?
 
 ### Common Topics
 
-- Hand Gesture Recognition
+- Hand-tracking gestures
 - Performance Optimization
-- Spatial Anchors
-- Eye Tracking
-- Custom Gestures
+- Voice Commands
+- Gaze-dwell Settings
+- Japanese IME
 - Deployment Issues
 
 ### Getting Help
