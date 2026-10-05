@@ -3,160 +3,55 @@
 ---
 
 The finished product is on `main` (tested, release-ready, subpath-aware build).
-Two owner-side steps remain to make it a conventional public release: a
-versioned **Release object** and a live **GitHub Pages** URL. Automation with
-only `contents`/`pull_requests` scope cannot do these — they need `workflows`
-
-- tag/`actions` permission or a couple of clicks in the UI.
+Publishing is driven by `.github/workflows/cd.yml` — there is **no separate
+deploy.yml or release.yml to create**. Two owner-side steps remain: push a
+versioned tag for the **Release object**, and make sure **GitHub Pages** is
+enabled once in repo settings.
 
 ---
 
-## 1. Cut the `v2.0.0` Release
+## 1. Cut a `v*.*.*` Release
 
-**Option A — GitHub UI (fastest):**
-Releases → _Draft a new release_ → _Choose a tag_ → type `v2.0.0` → _Create new
-tag on publish_ → target `main` → _Generate release notes_ → **Publish release**.
+Every push of a tag matching `v*.*.*` runs cd.yml's `create-release` job:
+`npm ci` → `npm test` → `npm run build`, then the built `dist/` is packaged as
+`qui-browser-vr-<version>.tar.gz` + `checksums.txt` and published as a GitHub
+Release via `softprops/action-gh-release`. The same pipeline also pushes the
+`ghcr.io/shizukutanaka/qui-browser` Docker image.
 
-**Option B — from a local clone (your own credentials):**
+**Option A — from a local clone (your own credentials):**
 
 ```bash
 git tag -a v2.0.0 -m "Qui Browser VR v2.0.0"
 git push origin v2.0.0
 ```
 
-This triggers `.github/workflows/release.yml`, which builds `dist/`, packages a
-tarball + checksum, and creates the Release. (The two docs its "Build
-documentation" step checks for — `docs/QUICK_START.md`, `docs/USAGE_GUIDE.md` —
-now exist, so that step passes.)
-
-**Option C — run the workflow manually:**
-Actions → _Create Release_ → _Run workflow_ → version `v2.0.0`.
+**Option B — GitHub UI:** Releases → _Draft a new release_ → _Choose a tag_ →
+type `v2.0.0` → _Create new tag on publish_ → target `main` → _Generate release
+notes_ → **Publish release**. Creating the tag on publish fires the same
+`v*.*.*` trigger, so the tarball job runs and attaches its artifacts to the
+draft release.
 
 ---
 
-## 2. Enable + deploy GitHub Pages
+## 2. GitHub Pages deploy
 
-The app serves under the repo subpath `https://shizukutanaka.github.io/Qui-Browser/`,
-so the build must set `BASE_PATH=/Qui-Browser/` (wired via `vite.config.js`
-`base: process.env.BASE_PATH || '/'`). The service worker, manifest, and asset
-URLs are already subpath-aware.
+`cd.yml`'s `deploy-github-pages` job runs on every push to `main`: it builds
+`dist/` with `BASE_PATH=/Qui-Browser/` (matching the live subpath
+`https://shizukutanaka.github.io/Qui-Browser/`), uploads it via
+`actions/upload-pages-artifact`, and publishes it with
+`actions/deploy-pages`. The service worker, manifest, and asset URLs are
+already subpath-aware.
 
-1. **Settings → Pages → Source: GitHub Actions.**
-2. Replace `.github/workflows/deploy.yml` with the version below (the current
-   one uploads raw source and has no `enablement`, so it fails at _Setup
-   Pages_). Requires `workflows` write permission — commit it yourself, or grant
-   the automation that scope.
-
-```yaml
-name: Deploy to GitHub Pages
-
-on:
-  push:
-    branches: [main]
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: 'pages'
-  cancel-in-progress: false
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-      - run: npm ci
-      - run: npm test
-      - name: Build (GitHub Pages subpath)
-        run: npm run build
-        env:
-          BASE_PATH: /Qui-Browser/
-      - uses: actions/configure-pages@v5
-        with:
-          enablement: true
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
-```
-
-### Reference: clean `release.yml` (optional replacement)
-
-The existing `release.yml` works once the two docs exist, but this trimmed
-version drops the legacy-asset benchmark and the raw-source Pages sub-job and
-ships the built `dist/` instead:
-
-```yaml
-name: Create Release
-
-on:
-  push:
-    tags: ['v*.*.*']
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Release version (e.g., v2.0.0)'
-        required: true
-        default: 'v2.0.0'
-
-permissions:
-  contents: write
-
-jobs:
-  release:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-      - run: npm ci
-      - run: npm test
-      - run: npm run build
-      - id: version
-        run: echo "value=${{ github.event.inputs.version || github.ref_name }}" >> "$GITHUB_OUTPUT"
-      - name: Package built app
-        run: |
-          V="${{ steps.version.outputs.value }}"
-          tar -czf "qui-browser-vr-${V}.tar.gz" -C dist .
-          sha256sum "qui-browser-vr-${V}.tar.gz" > checksums.txt
-      - uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.version.outputs.value }}
-          name: Qui Browser VR ${{ steps.version.outputs.value }}
-          generate_release_notes: true
-          files: |
-            qui-browser-vr-*.tar.gz
-            checksums.txt
-```
+One-time setup: **Settings → Pages → Source: GitHub Actions.** After that every
+push to `main` deploys automatically — no workflow file to add and no build
+output to commit.
 
 ---
 
 ## Why the automation stopped here
 
-The session's GitHub integration has `contents`/`pull_requests` scope (PR create
-
-- merge, branch commits) but **not** `workflows`, tag push, or `actions`
-  dispatch — every such attempt returned `403 "not accessible by integration"`,
-  and no release-creation API is exposed to it. These two steps are therefore
-  owner-gated by design.
+The session's GitHub integration has `contents`/`pull_requests` scope (PR
+create/merge, branch commits) but **not** `workflows`, tag push, or `actions`
+dispatch — every such attempt returned `403 "not accessible by integration"`,
+and no release-creation API is exposed to it. The tag push and the Pages
+source toggle are therefore owner-gated by design.
