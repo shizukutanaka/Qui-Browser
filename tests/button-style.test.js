@@ -3,22 +3,28 @@
  * The hover state must be clearly perceptible (WCAG 2.4.7 / 1.4.11): a brighter
  * fill AND a thicker border (a hue-independent shape cue).
  */
-const {
-  buttonBg, buttonLineWidth, toggleIndicatorColors, buttonAccentColor,
-  BUTTON_BG, BUTTON_BG_HOVER, BUTTON_LINE, BUTTON_LINE_HOVER,
-  BUTTON_BG_HC, BUTTON_BG_HOVER_HC, BUTTON_LINE_HC, BUTTON_LINE_HOVER_HC
-} = require('../src/vr/ui/buttonStyle.js');
+const { buttonBg, buttonLineWidth, toggleIndicatorColors, buttonAccentColor } = require('../src/vr/ui/buttonStyle.js');
+
+// The palette, pinned as literals so a silent colour/width change fails here.
+const IDLE_BG = 'rgba(16,20,30,0.92)';
+const HOVER_BG = 'rgba(64,96,150,0.97)';
+const IDLE_LINE = 4;
+const HOVER_LINE = 6;
+const HC_IDLE_BG = '#000000';
+const HC_HOVER_BG = '#004adf';
+const HC_IDLE_LINE = 5;
+const HC_HOVER_LINE = 8;
 
 describe('buttonStyle — focus/hover indicator', () => {
   test('idle vs hover fill differ', () => {
-    expect(buttonBg(false)).toBe(BUTTON_BG);
-    expect(buttonBg(true)).toBe(BUTTON_BG_HOVER);
+    expect(buttonBg(false)).toBe(IDLE_BG);
+    expect(buttonBg(true)).toBe(HOVER_BG);
     expect(buttonBg(true)).not.toBe(buttonBg(false));
   });
 
   test('hover thickens the border (shape cue independent of hue)', () => {
-    expect(buttonLineWidth(false)).toBe(BUTTON_LINE);
-    expect(buttonLineWidth(true)).toBe(BUTTON_LINE_HOVER);
+    expect(buttonLineWidth(false)).toBe(IDLE_LINE);
+    expect(buttonLineWidth(true)).toBe(HOVER_LINE);
     expect(buttonLineWidth(true)).toBeGreaterThan(buttonLineWidth(false));
   });
 
@@ -26,41 +32,41 @@ describe('buttonStyle — focus/hover indicator', () => {
     // Parse the leading "rgb" channels and compare summed luminance-ish weight.
     const channels = (s) => s.match(/\d+/g).slice(0, 3).map(Number);
     const sum = (a) => a.reduce((n, x) => n + x, 0);
-    expect(sum(channels(BUTTON_BG_HOVER))).toBeGreaterThan(sum(channels(BUTTON_BG)) * 2);
+    expect(sum(channels(HOVER_BG))).toBeGreaterThan(sum(channels(IDLE_BG)) * 2);
   });
 });
 
 describe('buttonStyle — high-contrast mode (WCAG 1.4.11)', () => {
   test('HC idle background is pure black', () => {
-    expect(buttonBg(false, true)).toBe(BUTTON_BG_HC);
-    expect(BUTTON_BG_HC).toBe('#000000');
+    expect(buttonBg(false, true)).toBe(HC_IDLE_BG);
+    expect(buttonBg(false, true)).toBe('#000000');
   });
 
   test('HC hover background differs from HC idle', () => {
-    expect(buttonBg(true, true)).toBe(BUTTON_BG_HOVER_HC);
-    expect(BUTTON_BG_HOVER_HC).not.toBe(BUTTON_BG_HC);
+    expect(buttonBg(true, true)).toBe(HC_HOVER_BG);
+    expect(HC_HOVER_BG).not.toBe(HC_IDLE_BG);
   });
 
   test('HC idle border is at least as thick as normal idle', () => {
     expect(buttonLineWidth(false, true)).toBeGreaterThanOrEqual(buttonLineWidth(false, false));
-    expect(BUTTON_LINE_HC).toBeGreaterThanOrEqual(BUTTON_LINE);
+    expect(buttonLineWidth(false, true)).toBe(HC_IDLE_LINE);
   });
 
   test('HC hover border is thicker than HC idle (shape cue preserved)', () => {
     expect(buttonLineWidth(true, true)).toBeGreaterThan(buttonLineWidth(false, true));
-    expect(BUTTON_LINE_HOVER_HC).toBeGreaterThan(BUTTON_LINE_HC);
+    expect(buttonLineWidth(true, true)).toBe(HC_HOVER_LINE);
   });
 
   test('normal-mode colors unchanged when highContrast is false (regression guard)', () => {
-    expect(buttonBg(false, false)).toBe(BUTTON_BG);
-    expect(buttonBg(true, false)).toBe(BUTTON_BG_HOVER);
-    expect(buttonLineWidth(false, false)).toBe(BUTTON_LINE);
-    expect(buttonLineWidth(true, false)).toBe(BUTTON_LINE_HOVER);
+    expect(buttonBg(false, false)).toBe(IDLE_BG);
+    expect(buttonBg(true, false)).toBe(HOVER_BG);
+    expect(buttonLineWidth(false, false)).toBe(IDLE_LINE);
+    expect(buttonLineWidth(true, false)).toBe(HOVER_LINE);
   });
 
   test('toggleIndicatorColors ON — normal green, HC vivid green', () => {
     const normal = toggleIndicatorColors(true, false);
-    const hc     = toggleIndicatorColors(true, true);
+    const hc = toggleIndicatorColors(true, true);
     expect(normal.border).toBe('#44ff88');
     expect(normal.label).toBe('#44ff88');
     expect(hc.border).toBe('#00ff88');
@@ -69,10 +75,14 @@ describe('buttonStyle — high-contrast mode (WCAG 1.4.11)', () => {
 
   test('toggleIndicatorColors OFF HC is brighter than normal OFF', () => {
     const normal = toggleIndicatorColors(false, false);
-    const hc     = toggleIndicatorColors(false, true);
+    const hc = toggleIndicatorColors(false, true);
     // HC off-border must be visibly brighter: compare R+G+B hex sums.
     const brightness = (s) =>
-      s.match(/[0-9a-f]{2}/gi).slice(0, 3).map(h => parseInt(h, 16)).reduce((a, b) => a + b, 0);
+      s
+        .match(/[0-9a-f]{2}/gi)
+        .slice(0, 3)
+        .map((h) => parseInt(h, 16))
+        .reduce((a, b) => a + b, 0);
     expect(brightness(hc.border)).toBeGreaterThan(brightness(normal.border));
     expect(brightness(hc.label)).toBeGreaterThan(brightness(normal.label));
   });
@@ -112,14 +122,14 @@ describe('buttonStyle — high-contrast WCAG contrast ratios', () => {
     expect(contrastRatio('#004adf', '#004adf')).toBeCloseTo(1, 5);
   });
 
-  const HC_BG_IDLE  = BUTTON_BG_HC;        // '#000000'
-  const HC_BG_HOVER = BUTTON_BG_HOVER_HC;  // '#004adf'
+  const HC_BG_IDLE = '#000000';
+  const HC_BG_HOVER = '#004adf';
 
   test('every HC indicator colour clears 3:1 against BOTH the idle and hover backings', () => {
     const fg = [
-      toggleIndicatorColors(true, true).label,   // '#00ff88'
-      toggleIndicatorColors(false, true).label,  // '#aaccee'
-      buttonAccentColor('#5e72e4', true)         // '#ffffff'
+      toggleIndicatorColors(true, true).label, // '#00ff88'
+      toggleIndicatorColors(false, true).label, // '#aaccee'
+      buttonAccentColor('#5e72e4', true) // '#ffffff'
     ];
     for (const c of fg) {
       expect(contrastRatio(c, HC_BG_IDLE)).toBeGreaterThanOrEqual(3);

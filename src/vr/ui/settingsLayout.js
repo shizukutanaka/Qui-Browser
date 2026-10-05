@@ -23,19 +23,19 @@ export const ROW_H = 0.18;
 /** Top/bottom padding added to the backing plane (m). */
 export const PAD = 0.14;
 /** Horizontal offset of each column in a paired-toggle row (m). */
-export const COL_X = 0.27;
+const COL_X = 0.27;
 /** Panel width (m). */
 export const PANEL_W = 1.1;
 
 /** Gap between adjacent section tabs (m). */
-export const TAB_GAP = 0.012;
+const TAB_GAP = 0.012;
 
 /**
  * Width (m) of one section tab when `count` of them share the panel row.
  * @param {number} count
  * @returns {number}
  */
-export function tabWidth(count) {
+function tabWidth(count) {
   const n = Math.max(1, Math.floor(Number(count) || 1));
   return (PANEL_W - TAB_GAP * (n - 1)) / n;
 }
@@ -80,7 +80,7 @@ export function layoutSettingsPanel(sections, openIds = []) {
         i += 1;
       } else {
         const next = list2[i + 1];
-        i += (next && !next.wide) ? 2 : 1;
+        i += next && !next.wide ? 2 : 1;
         n += 1;
       }
     }
@@ -128,24 +128,4 @@ export function layoutSettingsPanel(sections, openIds = []) {
   }
 
   return { rows, height: rows * ROW_H + PAD, placements };
-}
-
-/**
- * Worst-case height (m): one tab row plus the largest section.
- *
- * This is the number that bounds the panel. Two earlier shapes did not:
- * the flat stack of all 24 controls was 3.56 m / 72.2°, and grouping with
- * every section expanded was 5.00 m / 91.4° — *worse*, because each header
- * added a row on top of all the controls. With a single tab row and one
- * section shown, a new control can only grow the panel by its own section.
- *
- * @param {Array} sections
- * @returns {number} metres
- */
-export function worstCaseHeight(sections) {
-  const list = Array.isArray(sections) ? sections : [];
-  if (!list.length) {
-    return PAD;
-  }
-  return Math.max(...list.map((s) => layoutSettingsPanel(list, [s.id]).height));
 }

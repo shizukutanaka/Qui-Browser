@@ -5,14 +5,11 @@ global.document = { documentElement: { lang: 'en' } };
 const { setLanguage, t } = require('../src/i18n/i18n.js');
 const {
   stepValue,
-  decimalsFor,
   stepperRegion,
   formatValue,
   settingsButtonCaption,
   shouldAnnounceSettingsButton,
-  cycleOptionLabel,
-  MINUS_MAX_U,
-  PLUS_MIN_U
+  cycleOptionLabel
 } = require('../src/vr/settingsStepper.js');
 
 describe('stepValue', () => {
@@ -49,26 +46,26 @@ describe('stepValue', () => {
   });
 });
 
-describe('decimalsFor', () => {
+describe('decimalsFor (via formatValue decimal places)', () => {
   test('integer step → 0 decimals', () => {
-    expect(decimalsFor(15)).toBe(0);
+    expect(formatValue(1, { step: 15 })).toBe('1');
   });
   test('0.5 → 1 decimal', () => {
-    expect(decimalsFor(0.5)).toBe(1);
+    expect(formatValue(1, { step: 0.5 })).toBe('1.0');
   });
   test('0.25 → 2 decimals', () => {
-    expect(decimalsFor(0.25)).toBe(2);
+    expect(formatValue(1, { step: 0.25 })).toBe('1.00');
   });
 });
 
 describe('stepperRegion', () => {
   test('left region decrements', () => {
     expect(stepperRegion(0.1)).toBe('decrement');
-    expect(stepperRegion(MINUS_MAX_U - 0.01)).toBe('decrement');
+    expect(stepperRegion(0.25 - 0.01)).toBe('decrement');
   });
   test('right region increments', () => {
     expect(stepperRegion(0.9)).toBe('increment');
-    expect(stepperRegion(PLUS_MIN_U + 0.01)).toBe('increment');
+    expect(stepperRegion(0.75 + 0.01)).toBe('increment');
   });
   test('middle is none', () => {
     expect(stepperRegion(0.5)).toBe('none');
