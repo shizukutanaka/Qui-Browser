@@ -6,7 +6,6 @@
  */
 
 import { defineConfig } from 'vite';
-import legacy from '@vitejs/plugin-legacy';
 
 export default defineConfig({
   root: '.',
@@ -57,18 +56,18 @@ export default defineConfig({
           const ext = info[info.length - 1];
 
           if (/png|jpe?g|svg|gif|tiff|bmp|ico/i.test(ext)) {
-            return `assets/images/[name]-[hash][extname]`;
+            return 'assets/images/[name]-[hash][extname]';
           }
 
           if (/woff2?|ttf|otf|eot/i.test(ext)) {
-            return `assets/fonts/[name]-[hash][extname]`;
+            return 'assets/fonts/[name]-[hash][extname]';
           }
 
           if (/ktx2|basis/i.test(ext)) {
-            return `assets/textures/[name]-[hash][extname]`;
+            return 'assets/textures/[name]-[hash][extname]';
           }
 
-          return `assets/[name]-[hash][extname]`;
+          return 'assets/[name]-[hash][extname]';
         },
 
         chunkFileNames: 'js/[name]-[hash].js',
@@ -130,19 +129,11 @@ export default defineConfig({
   },
 
   // Plugins
-  plugins: [
-    // Support older browsers if needed
-    // Disabled for now to simplify build
-    // legacy({
-    //   targets: ['defaults', 'not IE 11'],
-    //   additionalLegacyPolyfills: ['regenerator-runtime/runtime']
-    // })
-  ],
+  plugins: [],
 
   // Optimize dependencies
   optimizeDeps: {
-    include: ['three'],
-    exclude: ['@tensorflow/tfjs'] // Large, load on demand
+    include: ['three']
   },
 
   // Define global constants
@@ -150,39 +141,6 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify('2.0.0'),
     __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
     __PRODUCTION__: true
-  },
-
-  // Module resolution
-  resolve: {
-    alias: {
-      '@': '/src',
-      '@vr': '/src/vr',
-      '@utils': '/src/utils',
-      '@assets': '/assets'
-    },
-    extensions: ['.js', '.jsx', '.json', '.wasm']
-  },
-
-  // CSS handling
-  css: {
-    postcss: {
-      plugins: []
-    },
-    preprocessorOptions: {
-      scss: {
-        additionalData: `@import "@/styles/variables.scss";`
-      }
-    }
-  },
-
-  // Worker configuration
-  worker: {
-    format: 'es',
-    rollupOptions: {
-      output: {
-        entryFileNames: 'workers/[name]-[hash].js'
-      }
-    }
   },
 
   // Build optimizations
