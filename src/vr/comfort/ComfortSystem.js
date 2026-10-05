@@ -246,9 +246,6 @@ export class ComfortSystem {
   }
 
   /**
-   * Handle snap turning
-   */
-  /**
    * Live-update the reduced-motion preference (WCAG 2.3.3). Read once at
    * construction from the OS signal; this lets a mid-session OS preference
    * change (e.g. toggled from the headset's system Quick Settings without
@@ -260,6 +257,9 @@ export class ComfortSystem {
     this.reduceMotion = !!value;
   }
 
+  /**
+   * Handle snap turning
+   */
   handleSnapTurn(direction) {
     if (!this.settings.snapTurn.enabled) {
       // Smooth turning

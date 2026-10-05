@@ -401,7 +401,6 @@ export class CaptionSystem {
     return this.highContrast ? 'rgba(0, 0, 0, 1)' : 'rgba(0, 0, 0, 0.55)';
   }
 
-  /** Chars per row at the current scale: bigger text wraps sooner. */
   /**
    * Line measure in em for the current scale.
    *

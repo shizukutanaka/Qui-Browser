@@ -79,13 +79,6 @@ export class WebPanel {
   /**
    * @param {object} opts
    * @param {THREE.Scene} opts.scene
-   * @param {Function} opts.registerInteractable   — from VRApp
-   * @param {Function} opts.unregisterInteractable — from VRApp
-   * @param {Function} [opts.onNavigate]           — called with (url, title)
-   */
-  /**
-   * @param {object} opts
-   * @param {THREE.Scene} opts.scene
    * @param {Function} opts.registerInteractable
    * @param {Function} opts.unregisterInteractable
    * @param {Function} [opts.onNavigate]          — called with (url, title)
@@ -2080,6 +2073,11 @@ export class WebPanel {
 
   // ── Curved screen (Quest-style flat ↔ curved) ─────────────────────────────
 
+  /** Update the search engine used by address-bar queries on this panel. */
+  setSearchEngine(engine) {
+    this.searchEngine = engine;
+  }
+
   /**
    * Toggle the content area between a flat plane and a concave curved surface.
    * Only the content (reading) area is curved; the chrome bar stays flat so
@@ -2088,11 +2086,6 @@ export class WebPanel {
    * @param {boolean} value
    * @param {number}  [radius] — curve radius in metres (defaults to curveRadius)
    */
-  /** Update the search engine used by address-bar queries on this panel. */
-  setSearchEngine(engine) {
-    this.searchEngine = engine;
-  }
-
   setCurved(value, radius = this.curveRadius) {
     value = !!value;
     if (value === this.curved || !this.contentMesh) {

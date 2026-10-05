@@ -724,9 +724,6 @@ export class JapaneseIME {
 }
 
 /**
- * VR Keyboard Integration for Japanese IME
- */
-/**
  * Visual cues for a conversion candidate at a given list position. The primary
  * (default) candidate must not be signalled by colour alone (WCAG 1.4.1), so it
  * also carries a heavier border (a shape cue) and every candidate gets a 1-based
@@ -747,16 +744,6 @@ export function candidateStyle(index, highContrast = false) {
   };
 }
 
-/**
- * Line measure (em) for a suggestion button label.
- *
- * The button canvas is 384px and the label is drawn at bold 34px, so only
- * ~10.6 em of glyphs fit. A code-point budget of 22 characters silently
- * assumed Latin: 22 Latin characters are ~374px (just fits) but 22 full-width
- * ones are 748px — **95% wider than the button**. Suggestion labels are page
- * titles, which for a Japanese user are overwhelmingly Japanese, so this was
- * the worst instance of the "full-width == half-width" assumption in the app.
- */
 /**
  * Display label for a URL suggestion button: the page title when one exists,
  * otherwise the hostname (falling back to the raw URL when unparseable),
@@ -930,7 +917,6 @@ export class VRJapaneseKeyboard {
     return this.keyboard;
   }
 
-  /** Draw a single key's label onto a CanvasTexture. */
   /**
    * @param {string}  glyph
    * @param {boolean} hover   pointer is over this key
