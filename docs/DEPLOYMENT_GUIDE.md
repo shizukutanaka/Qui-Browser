@@ -110,7 +110,9 @@ GitHub Pages deploys are handled by the release workflow at
 
 #### Step 2: Configure netlify.toml
 
-Create `netlify.toml` in project root:
+The repository ships a configured `netlify.toml` — `npm run build`
+publishes `dist/` plus cache/security headers tuned for WebXR and the
+service worker. A minimal equivalent is:
 
 ```toml
 [build]
@@ -248,208 +250,32 @@ git push
 
 ### Dockerfile
 
-Create `Dockerfile`:
+The repository ships a working `Dockerfile` — a two-stage build: a
+`node:25-alpine` builder runs `npm ci` + `npm run build` to emit `dist/`,
+then `nginx:alpine` serves that directory. The install must be a full
+`npm ci`, **not** a production-only install — vite and terser are
+devDependencies, so `--only=production` cannot build.
 
-```dockerfile
-# ============================================================================
-# Stage 1: Build
-# ============================================================================
-FROM node:18-alpine AS builder
+### Nginx configuration
 
-WORKDIR /app
+`docker/nginx.conf` is a `server` block the image copies to
+`/etc/nginx/conf.d/default.conf` — SPA `try_files` routing, immutable
+caching for hashed assets, `no-cache` for `/service-worker.js`, and a
+`/health` endpoint for the healthcheck.
 
-# Copy package files
-COPY package*.json ./
+### Health check script
 
-# Install dependencies
-RUN npm ci --only=production
-
-# Copy source code
-COPY . .
-
-# Build application
-RUN npm run build
-
-# ============================================================================
-# Stage 2: Production
-# ============================================================================
-FROM nginx:alpine AS production
-
-# Copy custom nginx config
-COPY docker/nginx.conf /etc/nginx/nginx.conf
-
-# Copy built files from builder stage
-COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Create health check script
-COPY docker/healthcheck.sh /usr/local/bin/healthcheck.sh
-RUN chmod +x /usr/local/bin/healthcheck.sh
-
-# Expose port
-EXPOSE 80
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD /usr/local/bin/healthcheck.sh
-
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
-```
-
-### Nginx Configuration
-
-Create `docker/nginx.conf`:
-
-```nginx
-user nginx;
-worker_processes auto;
-error_log /var/log/nginx/error.log warn;
-pid /var/run/nginx.pid;
-
-events {
-    worker_connections 1024;
-}
-
-http {
-    include /etc/nginx/mime.types;
-    default_type application/octet-stream;
-
-    log_format main '$remote_addr - $remote_user [$time_local] "$request" '
-                    '$status $body_bytes_sent "$http_referer" '
-                    '"$http_user_agent" "$http_x_forwarded_for"';
-
-    access_log /var/log/nginx/access.log main;
-
-    sendfile on;
-    tcp_nopush on;
-    tcp_nodelay on;
-    keepalive_timeout 65;
-    types_hash_max_size 2048;
-
-    # Gzip compression
-    gzip on;
-    gzip_vary on;
-    gzip_min_length 1024;
-    gzip_comp_level 6;
-    gzip_types text/plain text/css text/xml text/javascript
-               application/javascript application/json application/xml+rss
-               image/svg+xml;
-
-    # Brotli compression (if available)
-    brotli on;
-    brotli_comp_level 6;
-    brotli_types text/plain text/css text/xml text/javascript
-                 application/javascript application/json application/xml+rss;
-
-    server {
-        listen 80;
-        server_name _;
-        root /usr/share/nginx/html;
-        index index.html;
-
-        # Security headers
-        add_header X-Frame-Options "SAMEORIGIN" always;
-        add_header X-Content-Type-Options "nosniff" always;
-        add_header X-XSS-Protection "1; mode=block" always;
-        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-        add_header Permissions-Policy "accelerometer=(self), gyroscope=(self), xr-spatial-tracking=(self)" always;
-
-        # Service Worker
-        location = /service-worker.js {
-            add_header Cache-Control "no-cache, no-store, must-revalidate";
-            add_header Service-Worker-Allowed "/";
-            expires off;
-        }
-
-        # Static assets (long-term caching)
-        location ~* \.(js|css|woff2|ktx2)$ {
-            add_header Cache-Control "public, max-age=31536000, immutable";
-            expires 1y;
-        }
-
-        # Images
-        location ~* \.(jpg|jpeg|png|gif|ico|svg)$ {
-            add_header Cache-Control "public, max-age=2592000";
-            expires 30d;
-        }
-
-        # SPA routing
-        location / {
-            try_files $uri $uri/ /index.html;
-        }
-
-        # Health check endpoint
-        location /health {
-            access_log off;
-            return 200 "healthy\n";
-            add_header Content-Type text/plain;
-        }
-    }
-}
-```
-
-### Health Check Script
-
-Create `docker/healthcheck.sh`:
-
-```bash
-#!/bin/sh
-set -e
-
-# Check if nginx is running
-if ! pgrep -x nginx > /dev/null; then
-    echo "Nginx is not running"
-    exit 1
-fi
-
-# Check if application responds
-if ! curl -f http://localhost/health > /dev/null 2>&1; then
-    echo "Health check endpoint failed"
-    exit 1
-fi
-
-echo "Health check passed"
-exit 0
-```
+`docker/healthcheck.sh` (busybox `wget`, not curl) verifies nginx is
+running, `/health` responds, and `index.html` is present.
 
 ### Docker Compose
 
-Create `docker-compose.yml`:
+`docker-compose.yml` wires the same image on port 8080, mounts
+`./docker/nginx.conf` read-only, and persists logs to an `nginx-logs`
+volume:
 
-```yaml
-version: '3.8'
-
-services:
-  qui-browser:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - '8080:80'
-    environment:
-      - NODE_ENV=production
-    restart: unless-stopped
-    healthcheck:
-      test: ['CMD', '/usr/local/bin/healthcheck.sh']
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 5s
-    volumes:
-      - ./logs:/var/log/nginx
-
-  # Optional: Add reverse proxy
-  nginx-proxy:
-    image: nginx:alpine
-    ports:
-      - '443:443'
-      - '80:80'
-    volumes:
-      - ./proxy/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./certs:/etc/nginx/certs:ro
-    depends_on:
-      - qui-browser
-    restart: unless-stopped
+```bash
+docker compose up -d
 ```
 
 ### Build and Deploy
@@ -525,7 +351,7 @@ git clone https://github.com/yourusername/qui-browser-vr.git
 cd qui-browser-vr
 
 # Install dependencies
-npm ci --only=production
+npm ci
 
 # Build
 npm run build
@@ -611,7 +437,7 @@ set -e
 
 cd /path/to/qui-browser-vr
 git pull origin main
-npm ci --only=production
+npm ci
 npm run build
 sudo cp -r dist/* /var/www/html/
 sudo systemctl reload nginx
