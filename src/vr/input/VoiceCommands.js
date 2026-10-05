@@ -133,8 +133,6 @@ export class VoiceCommands {
       onCommandFailed: null, // ({reason, transcript}) — no match or action threw
       onTranscript: null,
       onError: null,
-      onStart: null,
-      onEnd: null,
       onSpeak: null // mirror of spoken feedback for a visual channel (captions)
     };
 
@@ -184,19 +182,11 @@ export class VoiceCommands {
     this.recognition.onstart = () => {
       this.isListening = true;
       console.debug('VoiceCommands: Listening started');
-
-      if (this.callbacks.onStart) {
-        this.callbacks.onStart();
-      }
     };
 
     this.recognition.onend = () => {
       this.isListening = false;
       console.debug('VoiceCommands: Listening ended');
-
-      if (this.callbacks.onEnd) {
-        this.callbacks.onEnd();
-      }
 
       // Restart if continuous mode
       if (this.settings.continuous && this.isEnabled) {
