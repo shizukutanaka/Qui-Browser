@@ -130,11 +130,9 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - **理由**: Session 16/17 でフレセンシーランキング機能自体（データ層・音声コマンド）は実装済みだが、視覚的な「よく使うサイト」タイル表示は未実装のまま。
 - **解決（Session 75）**: BookmarkPanel にタブを足すのではなく、**新規タブの 'empty' 状態に Top Sites を描く**形で実現（Firefox/Chrome の新規タブページと同じ置き方。`topSitesLayout.js` の4列×最大8タイル + `hitTestTopSites` で dwell 選択 → navigate）。これにより元の「タブ追加でスクロール矢印ゾーンと衝突」という保留理由自体が不要になった。
 
-### C-4. `MixedReality`（AR/パススルー）が完全に未配線（優先度: 中、難易度: 高、Session 49 で発見）
+### ~~C-4. `MixedReality`（AR/パススルー）が完全に未配線~~ — **Session 74 で削除済み（A章）**
 
-- **対象**: `src/vr/ar/MixedReality.js`（963行）、`src/vr/VRApp.js`（`initializeSystems()` の `checkSupport()` 呼び出しのみ）
-- **現状**: `VRApp` は `new MixedReality(...)` を構築し `checkSupport()` を呼ぶだけ。`enabled` フラグは `startSession()` の中でのみ `true` になるが、`startSession()` を呼ぶコード（設定パネルボタン・音声コマンド・メニュー等）がリポジトリ内に一つも存在しない。平面/メッシュ検出・ヒットテスト設置・IndexedDB永続化アンカーなど、docstring に書かれた機能一式が実行時には完全に不動作 — Session 39 で削除した `AvatarSystem`（完全に重複した未配線コード）と同型だが、こちらは重複ではなく本当に唯一のAR実装なので削除ではなく配線が必要。
-- **保留理由**: (1) 実機（Quest 3等のARパススルー対応ヘッドセット）がないと動作検証不能。(2) WebXRの `immersive-vr` セッションが既に張られている状態で `immersive-ar` セッションをどう共存/切り替えするかという設計判断が必要（同時に2セッションは張れない仕様のため、既存VRセッションの終了 or 専用の入場フローが要る）。(3) 新規UI導入（設定パネル or 専用ボタン）+ 入力配線のセットが必要で、一発修正では終わらない規模。着手する場合はPlanエージェントで事前設計してから。
+- `src/vr/ar/MixedReality.js`（963行）は Session 74 の削除スイープで消えた — `startSession()` 呼び出し元ゼロの死んだARスタックで、配線ではなく削除が判断された。配線を提案する時点で対象ファイル自体が存在しない。
 
 ### C-5. `enableWebPanel` が到達不能だった（優先度: 高、Session 51 で発見・部分修正）
 
@@ -706,11 +704,11 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 
 ### D-2. WebXR-WebGPU Binding 対応（優先度: 中、難易度: 高）
 
-- WebGPU が 2026-01 に全ブラウザ Baseline 化、WebXR-WebGPU Binding が Editor's Draft（2026-06）。Three.js の WebGPURenderer 経由で native-class 性能が得られる。`src/vr/rendering/WebGPURenderer.js` は実験的スタブのまま。レンダリングパイプライン全体に関わる大規模変更のため、Plan エージェントでの事前設計が必須。出典: https://vr.org/articles/webgpu-baseline-2026-three-js-webxr-default
+- WebGPU が 2026-01 に全ブラウザ Baseline 化、WebXR-WebGPU Binding が Editor's Draft（2026-06）。Three.js の WebGPURenderer 経由で native-class 性能が得られる。**言及された `src/vr/rendering/WebGPURenderer.js` は Session 74 で削除済み**（レンダーループ未接続のスタブだった）— 採用するなら新規実装が前提で、既存ファイルへの改修ではない。出典: https://vr.org/articles/webgpu-baseline-2026-three-js-webxr-default
 
 ### D-3. Quest Browser 40.4 の Depth API ヒットテスト（優先度: 低、難易度: 中、実機必須）
 
-- Horizon Browser 40.4 で WebXR Hit Testing が Depth API ベースになり、MR での instant placement が可能に。`src/vr/ar/MixedReality.js` に関連。ただし Quest 3/3S 実機がないと検証不能。出典: https://www.uploadvr.com/quest-browser-depth-api-webxr-hit-testing-instant-placement/
+- Horizon Browser 40.4 で WebXR Hit Testing が Depth API ベースになり、MR での instant placement が可能に。**関連先だった `src/vr/ar/MixedReality.js` は Session 74 で削除済み** — Depth API を利用するには AR スタックの新規実装が前提となるため、候補としては残すが本書が処方する対象ファイルは存在しない。出典: https://www.uploadvr.com/quest-browser-depth-api-webxr-hit-testing-instant-placement/
 
 ### D-4. キーボード候補表示UI — **完了（Session 48）**
 
@@ -755,7 +753,7 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 | ~~E-4~~ | ~~Clear History の音声コマンド化~~ — **完了（Session 59）**: `clear-history` コマンド（ja/en、confirmationText 付き）を追加し `_clearBrowsingHistory()` に配線。go-to より前に登録。                                                                      | —      | —      | —                                                              |
 | E-5     | README/CHANGELOG の現状同期（陳腐化した主張の修正）                                                                                                                                                                                                       | 低     | Sonnet | 実測に基づく数値・リンクのみ                                   |
 | ~~E-6~~ | ~~Top Sites タイル（=C-3）~~ — **完了（Session 75）**: 新規タブ 'empty' 状態に描画 + `hitTestTopSites` で選択。タイル幾何・ヒットテスト・選択→navigate をテストで固定。                                                                                   | —      | —      | —                                                              |
-| E-7     | MixedReality 配線（=C-4）                                                                                                                                                                                                                                 | 中     | Opus   | Plan エージェント必須・実機検証不能の制約明記                  |
+| ~~E-7~~ | ~~MixedReality 配線（=C-4）~~ — **対象ファイルは Session 74 で削除済み**。再実装するなら新規設計が前提であり、削除済みコードへの配線提案としては解消。                                                                                                    | —      | —      | —                                                              |
 
 ---
 
