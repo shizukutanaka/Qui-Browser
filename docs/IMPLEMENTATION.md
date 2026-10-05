@@ -220,6 +220,10 @@ controller.addEventListener('thumbstick', (direction) => {
 
 ### 3. Object Pooling
 
+> **Status: not shipped.** This section prescribes `src/utils/ObjectPool.js`,
+> which does not exist in the codebase — pooling helpers live inline where
+> needed. Kept as a design note, not as a file to create.
+
 **Time**: 3-4 hours
 **GC Pause Reduction**: 40%
 **Difficulty**: ⭐⭐ Easy-Medium
@@ -321,6 +325,10 @@ function createButton(position, callback) {
 ---
 
 ### 4. KTX2 Texture Compression
+
+> **Status: deleted.** `src/utils/TextureManager.js` and the `loadTexture`
+> pipeline were removed in #1121 — zero call sites ever used them. Kept as a
+> design note; do not recreate without a consumer.
 
 **Time**: 1-2 hours
 **Memory Savings**: 75%
@@ -499,7 +507,7 @@ if ('serviceWorker' in navigator) {
 **Market Impact**: Unlocks 100M+ users
 **Difficulty**: ⭐⭐⭐ Medium
 
-**File**: `src/input/JapaneseIME.js`
+**File**: `src/vr/input/JapaneseIME.js`
 
 ```javascript
 export class JapaneseIME {
@@ -585,7 +593,7 @@ class VRKeyboardWithIME {
 **Time**: 6-8 hours
 **Difficulty**: ⭐⭐⭐ Medium
 
-**File**: `src/input/HandTracking.js`
+**File**: `src/vr/interaction/HandTracking.js`
 
 ```javascript
 export class HandTracking {
@@ -683,7 +691,7 @@ export class HandTracking {
 **Time**: 6-8 hours
 **Difficulty**: ⭐⭐⭐ Medium
 
-**File**: `src/audio/SpatialAudio.js`
+**File**: `src/vr/audio/SpatialAudio.js`
 
 ```javascript
 export class SpatialAudio {
