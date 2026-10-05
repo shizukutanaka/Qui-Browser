@@ -9,8 +9,8 @@
  */
 
 // ── localStorage shim ─────────────────────────────────────────────────────────
-// Simple in-memory map; cleared automatically between tests by jest's
-// clearMocks / resetMocks / restoreMocks flags in jest.config.js.
+// Simple in-memory map. jest's clearMocks/resetMocks only reset jest.fn()
+// state, so isolation is provided explicitly via beforeEach below.
 if (typeof localStorage === 'undefined') {
   const store = new Map();
   global.localStorage = {
@@ -18,17 +18,19 @@ if (typeof localStorage === 'undefined') {
     setItem: (key, value) => store.set(key, String(value)),
     removeItem: (key) => store.delete(key),
     clear: () => store.clear(),
-    get length() { return store.size; },
+    get length() {
+      return store.size;
+    },
     key: (i) => [...store.keys()][i] ?? null
   };
+  beforeEach(() => store.clear());
 }
 
-// ── navigator.xr stub ─────────────────────────────────────────────────────────
-// Prevents "Cannot read properties of undefined (reading 'xr')" in modules
-// that do a feature check (if ('xr' in navigator)) at import time.
+// ── navigator stub ────────────────────────────────────────────────────────────
+// Ensures `navigator` exists so feature checks don't throw. The `xr` key is
+// deliberately absent: `('xr' in navigator)` and `navigator.xr` truthiness
+// both correctly report XR as unavailable (assigning `xr = undefined` would
+// make the `in` check true and send `in`-guarding modules down the XR path).
 if (typeof navigator === 'undefined') {
   global.navigator = {};
-}
-if (!('xr' in navigator)) {
-  navigator.xr = undefined;
 }
