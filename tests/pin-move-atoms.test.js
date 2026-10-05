@@ -16,23 +16,41 @@ class MockGroup {
     this.position = { set: jest.fn() };
     this._objects = [];
   }
-  add(o) { this._objects.push(o); }
-  remove(o) { this._objects = this._objects.filter(x => x !== o); }
-  traverse(fn) { this._objects.forEach(fn); fn(this); }
+  add(o) {
+    this._objects.push(o);
+  }
+  remove(o) {
+    this._objects = this._objects.filter((x) => x !== o);
+  }
+  traverse(fn) {
+    this._objects.forEach(fn);
+    fn(this);
+  }
 }
 class MockMesh {
   constructor() {
     this.name = '';
     this.position = { set: jest.fn() };
   }
-  worldToLocal(v) { return v; }
+  worldToLocal(v) {
+    return v;
+  }
 }
 jest.mock('three', () => ({
   Group: MockGroup,
   Mesh: MockMesh,
-  PlaneGeometry: class { dispose() {} },
-  MeshBasicMaterial: class { dispose() {} },
-  CanvasTexture: class { constructor() { this.needsUpdate = false; } dispose() {} }
+  PlaneGeometry: class {
+    dispose() {}
+  },
+  MeshBasicMaterial: class {
+    dispose() {}
+  },
+  CanvasTexture: class {
+    constructor() {
+      this.needsUpdate = false;
+    }
+    dispose() {}
+  }
 }));
 
 // ── WebPanel stub ─────────────────────────────────────────────────────────────
@@ -49,27 +67,47 @@ jest.mock('../src/vr/browser/WebPanel.js', () => ({
       this.disposed = false;
       panelInstances.push(this);
     }
-    addToScene(parent) { this.parent = parent; }
-    navigate(url) { this.currentUrl = url; }
-    setVisible(v) { this.visible = !!v; }
+    addToScene(parent) {
+      this.parent = parent;
+    }
+    navigate(url) {
+      this.currentUrl = url;
+    }
+    setVisible(v) {
+      this.visible = !!v;
+    }
     setCurved() {}
-    stop() { this.stopped = true; }
-    dispose() { this.disposed = true; }
+    stop() {
+      this.stopped = true;
+    }
+    dispose() {
+      this.disposed = true;
+    }
   }
 }));
 
 global.document = {
   createElement: () => ({
-    width: 0, height: 0,
+    width: 0,
+    height: 0,
     getContext: () => ({
-      clearRect: jest.fn(), fillRect: jest.fn(), fillText: jest.fn(),
-      beginPath: jest.fn(), arc: jest.fn(), fill: jest.fn(),
-      fillStyle: '', font: '', textAlign: '', textBaseline: ''
+      clearRect: jest.fn(),
+      fillRect: jest.fn(),
+      fillText: jest.fn(),
+      beginPath: jest.fn(),
+      arc: jest.fn(),
+      fill: jest.fn(),
+      fillStyle: '',
+      font: '',
+      textAlign: '',
+      textBaseline: ''
     })
   })
 };
 global.URL = URL;
-global.SpeechSynthesisUtterance = function (text) { this.text = text; };
+global.SpeechSynthesisUtterance = function (text) {
+  this.text = text;
+};
 
 const { TabManager } = require('../src/vr/browser/TabManager.js');
 const { VoiceCommands } = require('../src/vr/input/VoiceCommands.js');
@@ -109,7 +147,7 @@ describe('pinned tabs (Chrome "Pin tab")', () => {
   test('the active index follows the pinned tab to the front', () => {
     const tm = makeManager();
     tm.newTab('https://a.example');
-    const b = tm.newTab('https://b.example');
+    tm.newTab('https://b.example');
     const c = tm.newTab('https://c.example'); // active by construction
     tm.pinTab(2);
     expect(tm.activeIndex).toBe(0);
@@ -121,7 +159,7 @@ describe('pinned tabs (Chrome "Pin tab")', () => {
     const a = tm.newTab('https://a.example');
     tm.newTab('https://b.example');
     const c = tm.newTab('https://c.example');
-    tm.pinTab(2);              // [c, a, b]
+    tm.pinTab(2); // [c, a, b]
     expect(tm.pinTab(1)).toBe(true); // pin a → [c, a, b] (a already at cluster end)
     expect(tm.tabs[0]).toBe(c);
     expect(tm.tabs[1]).toBe(a);
@@ -163,10 +201,10 @@ describe('pinned tabs (Chrome "Pin tab")', () => {
     const a = tm.newTab('https://a.example');
     tm.newTab('https://b.example');
     const c = tm.newTab('https://c.example');
-    tm.pinTab(0);                     // a pinned at front
-    tm.setActive(2);                  // c active (unpinned)
+    tm.pinTab(0); // a pinned at front
+    tm.setActive(2); // c active (unpinned)
     const closed = tm.closeOtherTabs();
-    expect(closed).toBe(1);           // only b went away
+    expect(closed).toBe(1); // only b went away
     expect(tm.tabs).toEqual([a, c]);
     expect(a.pinned).toBe(true);
   });
@@ -176,8 +214,8 @@ describe('pinned tabs (Chrome "Pin tab")', () => {
     tm.newTab('https://a.example');
     const b = tm.newTab('https://b.example');
     const c = tm.newTab('https://c.example');
-    tm.pinTab(2);                     // [c, a, b]
-    tm.setActive(1);                  // a active
+    tm.pinTab(2); // [c, a, b]
+    tm.setActive(1); // a active
     expect(tm.closeTabsToRight()).toBe(1); // only b
     expect(tm.tabs).toEqual([c, tm.tabs[1]]);
     expect(b.disposed).toBe(true);
@@ -199,7 +237,7 @@ describe('moveTab (Ctrl+Shift+PageUp/PageDown)', () => {
   test('a neighbouring swap also fixes the active index', () => {
     const tm = makeManager();
     tm.newTab('https://a.example');
-    const b = tm.newTab('https://b.example');
+    tm.newTab('https://b.example');
     tm.setActive(1);
     tm.moveTab(0, 1); // a moves right, b moves left
     expect(tm.activeIndex).toBe(0);
@@ -218,8 +256,8 @@ describe('moveTab (Ctrl+Shift+PageUp/PageDown)', () => {
     const a = tm.newTab('https://a.example');
     tm.newTab('https://b.example');
     tm.pinTab(0);
-    expect(tm.moveTab(0, 1)).toBe(false);   // pinned into unpinned zone
-    expect(tm.moveTab(1, -1)).toBe(false);  // unpinned into pinned zone
+    expect(tm.moveTab(0, 1)).toBe(false); // pinned into unpinned zone
+    expect(tm.moveTab(1, -1)).toBe(false); // unpinned into pinned zone
     expect(a.pinned).toBe(true);
   });
 });
@@ -270,11 +308,20 @@ describe('pin/move voice commands', () => {
 describe('bookmarks-open voice command', () => {
   function makePanel() {
     return {
-      mode: 'bookmarks', visible: false,
-      setMode: jest.fn(function (m) { this.mode = m; }),
-      show: jest.fn(function () { this.visible = true; }),
-      hide: jest.fn(function () { this.visible = false; }),
-      toggle: jest.fn(function () { this.visible = !this.visible; })
+      mode: 'bookmarks',
+      visible: false,
+      setMode: jest.fn(function (m) {
+        this.mode = m;
+      }),
+      show: jest.fn(function () {
+        this.visible = true;
+      }),
+      hide: jest.fn(function () {
+        this.visible = false;
+      }),
+      toggle: jest.fn(function () {
+        this.visible = !this.visible;
+      })
     };
   }
 

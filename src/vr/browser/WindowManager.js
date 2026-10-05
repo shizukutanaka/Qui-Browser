@@ -8,7 +8,6 @@
  *   - Head-lock / "follow view": the panel smoothly tracks the user's gaze so
  *     it stays centred in the field of view (ideal for video and narrow-FOV
  *     headsets). Wolvic calls this "head lock".
- *   - Billboard: the panel always faces the user without repositioning.
  *   - Distance adjust: pull the window closer or push it farther away.
  *   - Grab-to-move: while a controller "holds" the move bar, the panel rides
  *     with the controller (Wolvic's move bar / Quest's grab-reposition).
@@ -33,8 +32,10 @@ export class WindowManager {
    * @param {boolean} [opts.angularConstant=true] — keep the panel's apparent
    *   size fixed as its distance changes (see _applyAngularScale)
    */
-  constructor(camera, { distance = 2.0, minDistance = 0.6, maxDistance = 6.0,
-    followLerp = 0.15, angularConstant = true } = {}) {
+  constructor(
+    camera,
+    { distance = 2.0, minDistance = 0.6, maxDistance = 6.0, followLerp = 0.15, angularConstant = true } = {}
+  ) {
     this.camera = camera;
     this.distance = distance;
     this.minDistance = minDistance;
@@ -44,29 +45,30 @@ export class WindowManager {
     /** Distance at which scale is exactly 1 — the shipped default placement. */
     this.referenceDistance = PANEL_DISTANCE_DEFAULT;
 
-    this.target = null;        // managed Object3D (panel group)
-    this.followMode = false;   // head-lock
-    this.billboard = false;    // face user without following position
-    this._grab = null;         // { controller, distance } while grabbing
+    this.target = null; // managed Object3D (panel group)
+    this.followMode = false; // head-lock
+    this._grab = null; // { controller, distance } while grabbing
 
     // Scratch objects (avoid per-frame allocation).
-    this._camPos   = new THREE.Vector3();
-    this._camQuat  = new THREE.Quaternion();
-    this._forward  = new THREE.Vector3();
+    this._camPos = new THREE.Vector3();
+    this._camQuat = new THREE.Quaternion();
+    this._forward = new THREE.Vector3();
     this._targetPos = new THREE.Vector3();
-    this._grabPos  = new THREE.Vector3();
+    this._grabPos = new THREE.Vector3();
     this._grabQuat = new THREE.Quaternion();
-    this._grabFwd  = new THREE.Vector3();
+    this._grabFwd = new THREE.Vector3();
   }
 
   // ── Attach / detach ──────────────────────────────────────────────────────────
 
   /** Manage the given object (a panel group). */
   attach(object3D) {
-    this.target = object3D; return this;
+    this.target = object3D;
+    return this;
   }
   detach() {
-    this.target = null; this._grab = null;
+    this.target = null;
+    this._grab = null;
   }
 
   // ── Mode control ─────────────────────────────────────────────────────────────
@@ -75,17 +77,9 @@ export class WindowManager {
     this.followMode = !!value;
     return this.followMode;
   }
-  setBillboard(value) {
-    this.billboard = !!value;
-    return this.billboard;
-  }
-
   setDistance(d) {
     this.distance = Math.max(this.minDistance, Math.min(this.maxDistance, d));
     return this.distance;
-  }
-  nudgeDistance(delta) {
-    return this.setDistance(this.distance + delta);
   }
 
   // ── Grab-to-move ─────────────────────────────────────────────────────────────
@@ -118,8 +112,7 @@ export class WindowManager {
 
   /**
    * Update the managed panel's transform for this frame.
-   * Precedence: grab > follow. Billboard orientation is applied in follow and
-   * grab modes (and standalone when billboard is on but follow is off).
+   * Precedence: grab > follow. Both modes orient the panel toward the user.
    *
    * @param {number} [dtMs=16] — frame delta (ms); scales the follow lerp
    */
@@ -146,8 +139,6 @@ export class WindowManager {
       this.target.position.lerp(this._targetPos, t);
       this._faceUser();
       this._applyAngularScale();
-    } else if (this.billboard) {
-      this._faceUser();
     }
   }
 

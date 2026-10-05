@@ -21,7 +21,7 @@
  * @param {string} projection  '360' | '180'
  * @returns {{phiStart:number, phiLength:number, thetaStart:number, thetaLength:number}}
  */
-export function sphereParams(projection = '360') {
+function sphereParams(projection = '360') {
   const thetaStart = 0;
   const thetaLength = Math.PI; // full vertical sweep (pole to pole) either way
   if (projection === '180') {

@@ -42,14 +42,14 @@ Qui Browser VRは、**軽量で高性能なWebXRベースのVRブラウザ**で�
 
 ```
 Frontend:
-├── Three.js r152          # 3Dグラフィックス
+├── Three.js (0.181)       # 3Dグラフィックス
 ├── WebXR Device API       # VR/ARセッション管理
 ├── Web Audio API          # 空間音響
 ├── Service Worker         # オフライン対応
 └── Web Speech API         # 音声認識
 
 Build Tools:
-├── Webpack 5              # バンドラー
+├── Vite 5                 # バンドラー
 ├── Babel                  # トランスパイラー
 ├── Jest                   # テストフレームワーク
 └── ESLint + Prettier      # コード品質
@@ -64,37 +64,35 @@ Deployment:
 ### 📁 プロジェクト構造
 
 ```
-qui-browser-vr/
-├── assets/
-│   ├── js/                       # JavaScriptソース
-│   │   ├── unified-*.js          # 統合システム (4ファイル)
-│   │   ├── vr-*.js               # VRモジュール (20ファイル)
-│   │   └── vr-systems-index.js   # システムインデックス
-│   ├── css/                      # スタイルシート
-│   ├── images/                   # 画像アセット
-│   └── sounds/                   # 音響効果
+Qui-Browser/
+├── assets/                       # 静的アセット (css/images/sounds/icons)
+├── src/
+│   ├── main.js                   # エントリーポイント
+│   ├── app.js                    # 2D アプリシェル
+│   ├── monitoring.js             # 監視
+│   ├── i18n/                     # 国際化カタログ
+│   ├── a11y/                     # 2D アクセシビリティ
+│   ├── utils/                    # ユーティリティ
+│   ├── dev/                      # DevTools
+│   └── vr/                       # VR ブラウザ本体
 ├── docs/                         # ドキュメント
 │   ├── API.md                    # API仕様
 │   ├── ARCHITECTURE.md           # アーキテクチャ
 │   ├── COMPATIBILITY.md          # 互換性情報
 │   └── DEVELOPER_ONBOARDING.md   # このファイル
-├── tests/                        # テストスイート
-│   ├── unified-systems.test.js   # 統合システムテスト
-│   ├── vr-modules.test.js        # モジュールテスト
-│   └── comprehensive.test.js     # 総合テスト
-├── tools/                        # 開発ツール
-│   └── README.md                 # ツール説明
+├── tests/                        # テストスイート (400+ スイート)
+├── tools/                        # 開発ツール (verify-*.mjs 等)
+├── proxy/                        # ローカル開発用 CORS プロキシ
 ├── .github/
 │   └── workflows/                # CI/CDワークフロー
+│       ├── ci.yml                # PR チェック
+│       ├── cd.yml                # CD
 │       ├── deploy.yml            # デプロイ
-│       ├── test.yml              # テスト
-│       ├── benchmark.yml         # ベンチマーク
 │       └── release.yml           # リリース
 ├── index.html                    # エントリーポイント
-├── sw.js                         # Service Worker
 ├── public/manifest.json          # PWAマニフェスト（vite が dist/ へコピー）
 ├── package.json                  # 依存関係
-├── webpack.config.js             # ビルド設定
+├── vite.config.js                # ビルド設定
 └── jest.config.js                # テスト設定
 ```
 
@@ -119,13 +117,13 @@ git --version   # v2.30.0+
 
 ```bash
 # HTTPSでクローン
-git clone https://github.com/your-org/qui-browser-vr.git
+git clone https://github.com/shizukutanaka/Qui-Browser.git
 
 # SSHでクローン (推奨)
-git clone git@github.com:your-org/qui-browser-vr.git
+git clone git@github.com:shizukutanaka/Qui-Browser.git
 
 # ディレクトリ移動
-cd qui-browser-vr
+cd Qui-Browser
 ```
 
 ### ステップ 3: 依存関係インストール
@@ -142,19 +140,15 @@ npm install
 ```json
 {
   "dependencies": {
-    "three": "^0.152.0",
-    "express": "^4.18.2",
-    "cors": "^2.8.5"
+    "three": "^0.181.0",
+    "web-vitals": "^5.3.0"
   },
   "devDependencies": {
-    "webpack": "^5.88.0",
-    "webpack-cli": "^5.1.4",
-    "webpack-dev-server": "^4.15.1",
-    "@babel/core": "^7.22.0",
-    "@babel/preset-env": "^7.22.0",
-    "jest": "^29.5.0",
-    "eslint": "^8.43.0",
-    "prettier": "^2.8.8"
+    "vite": "^5.4.21",
+    "@babel/core": "^7.23.0",
+    "jest": "^29.7.0",
+    "eslint": "^9.39.0",
+    "prettier": "^3.1.0"
   }
 }
 ```
@@ -162,14 +156,11 @@ npm install
 ### ステップ 4: 開発サーバー起動
 
 ```bash
-# Webpack Dev Server起動
+# Vite Dev Server起動
 npm run dev
 
-# または
-npm start
-
-# ブラウザが自動で開きます
-# http://localhost:8080
+# ブラウザで開きます
+# http://localhost:5173
 ```
 
 ### ステップ 5: ビルド確認
@@ -181,10 +172,7 @@ npm run build
 # 出力ファイル確認
 ls -lh dist/
 
-# core.js      65.5 KB
-# vr.js        78.1 KB
-# enhancements.js  44.6 KB
-# Total:       189 KB ✅
+# index-<hash>.js / index-<hash>.css + assets/
 ```
 
 ### ステップ 6: テスト実行
@@ -193,15 +181,8 @@ ls -lh dist/
 # 全テスト実行
 npm test
 
-# 統合システムテストのみ
-npm run test:unified
-
 # カバレッジレポート
 npm run test:coverage
-
-# Test Suites: 2 passed, 2 total
-# Tests:       85 passed, 85 total
-# Coverage:    82.5%
 ```
 
 ---
@@ -210,281 +191,39 @@ npm run test:coverage
 
 ### 🏗️ システム構成
 
-Qui Browser VRは**統合システムアーキテクチャ**を採用しています。
+Qui Browser VRは、単一のVRコントローラー (`src/vr/VRApp.js`) が Three.js
+レンダラー・XRセッション・interactablesレジストリを所有し、サブシステムが
+コールバック (`onSelect` / `onHover` / `onError`) 経由で通信する構成です。
+GPUコンテキストなしで Node 上のユニットテストが可能な設計になっています。
 
-```
-┌─────────────────────────────────────────┐
-│          User Interface Layer           │
-│  (HTML + CSS + Three.js Scene Graph)    │
-└─────────────────────────────────────────┘
-                    ▼
-┌─────────────────────────────────────────┐
-│        VR Systems Layer (11)            │
-│  ┌─────────────────────────────────┐   │
-│  │ Core Systems (3)                │   │
-│  │ - VRLauncher                    │   │
-│  │ - VRUtils                       │   │
-│  │ - VRSettings                    │   │
-│  └─────────────────────────────────┘   │
-│  ┌─────────────────────────────────┐   │
-│  │ Unified Systems (4)             │   │
-│  │ - UnifiedPerformanceSystem      │   │
-│  │ - UnifiedSecuritySystem         │   │
-│  │ - UnifiedErrorHandler           │   │
-│  │ - UnifiedVRExtensionSystem      │   │
-│  └─────────────────────────────────┘   │
-│  ┌─────────────────────────────────┐   │
-│  │ Specialized Systems (5)         │   │
-│  │ - VRUISystem                    │   │
-│  │ - VRInputSystem                 │   │
-│  │ - VRNavigationSystem            │   │
-│  │ - VRMediaSystem                 │   │
-│  │ - VRSystemMonitor               │   │
-│  └─────────────────────────────────┘   │
-└─────────────────────────────────────────┘
-                    ▼
-┌─────────────────────────────────────────┐
-│         Browser APIs Layer              │
-│  - WebXR Device API                     │
-│  - Three.js                             │
-│  - Web Audio API                        │
-│  - Web Speech API                       │
-│  - Battery Status API                   │
-│  - Network Information API              │
-└─────────────────────────────────────────┘
-                    ▼
-┌─────────────────────────────────────────┐
-│         Hardware Layer                  │
-│  - Meta Quest 2/3/Pro                   │
-│  - Pico 4/Neo 3                         │
-│  - HTC Vive Focus 3                     │
-└─────────────────────────────────────────┘
-```
+完全なモジュールマップは [ARCHITECTURE.md](ARCHITECTURE.md) を参照してください。
+
+主な層:
+
+- `vr/browser/` — WebPanel / TabManager / BookmarkPanel / WindowManager
+- `vr/input/` — VRControllerInput / VoiceCommands / JapaneseIME
+- `vr/interaction/` — GazeInteraction / HandTracking / HapticFeedback
+- `vr/accessibility/` — CaptionSystem / crossModal / SemanticDOM
+- `vr/rendering/` — FFRSystem / LayersSystem
+- `vr/comfort/` — ComfortSystem (vignette / snap turn / teleport)
+- `vr/audio/` — SpatialAudio
+- `vr/media/` — ImmersiveVideo
+- `src/monitoring.js` — パフォーマンス・エラー監視
 
 ### 🔄 データフロー
 
 ```javascript
 // 1. ユーザー入力 (コントローラー/手/視線/音声)
-User Input → VRInputSystem.handleInput()
+User Input → VRControllerInput / GazeInteraction / VoiceCommands
 
-// 2. イベント処理
-VRInputSystem → EventDispatcher → 各システム
+// 2. interactables レジストリでヒットテスト
+VRApp.hitTest() → interactable.onSelect()
 
-// 3. 状態更新
-各システム → VRSettings.update()
+// 3. ユーザー向けフィードバック (cross-modal)
+Event → showVRToast() → notifyCrossModal(haptic, captions, msg)
 
 // 4. レンダリング
-VRUISystem → Three.js Scene → WebXR → HMD
-```
-
-### 📦 主要システム詳細
-
-#### 1. VRUISystem (630行)
-
-**責務:**
-
-- テキストレンダリング (font size計算)
-- テーマ管理 (default/dark/highContrast)
-- エルゴノミックUI (viewing zones)
-- パネル生成 (curved/flat)
-
-**主要メソッド:**
-
-```javascript
-class VRUISystem {
-  calculateFontSize(viewingDistance)  // 距離に応じたフォントサイズ
-  createPanel(options)                // UIパネル生成
-  applyTheme(themeName)               // テーマ適用
-  positionInViewingZone(element)      // 視野角内配置
-}
-```
-
-**使用例:**
-
-```javascript
-const uiSystem = new VRUISystem();
-
-// フォントサイズ計算 (2m先の場合)
-const fontSize = uiSystem.calculateFontSize(2.0);
-// → 28-72px (min-max範囲内)
-
-// カーブパネル作成
-const panel = uiSystem.createPanel({
-  width: 2.0,
-  height: 1.0,
-  curved: true,
-  curveRadius: 2.5
-});
-
-// ダークテーマ適用
-uiSystem.applyTheme('dark');
-```
-
-#### 2. VRInputSystem (680行)
-
-**責務:**
-
-- ジェスチャー認識 (pinch/swipe/grab)
-- ハンドトラッキング (21関節)
-- 視線入力 (dwell time)
-- 音声コマンド
-- 仮想キーボード
-
-**主要メソッド:**
-
-```javascript
-class VRInputSystem {
-  detectPinch(handData)              // ピンチ検出
-  recognizeSwipe(gestureHistory)     // スワイプ認識
-  processGazeDwell(target, time)     // 視線滞留処理
-  processVoiceCommand(transcript)    // 音声コマンド
-}
-```
-
-**使用例:**
-
-```javascript
-const inputSystem = new VRInputSystem();
-
-// ピンチジェスチャー検出
-const pinch = inputSystem.detectPinch({
-  thumb: { x: 0, y: 0, z: 0 },
-  index: { x: 0.01, y: 0, z: 0 }
-});
-// → { detected: true, distance: 0.01, strength: 0.5 }
-
-// スワイプ認識
-const swipe = inputSystem.recognizeSwipe([
-  { x: 0, y: 0, t: 0 },
-  { x: 0.5, y: 0, t: 100 }
-]);
-// → 'right'
-
-// 音声コマンド処理
-inputSystem.processVoiceCommand('次のタブ');
-// → NavigationSystem.nextTab()
-```
-
-#### 3. VRNavigationSystem (650行)
-
-**責務:**
-
-- タブ管理 (最大10タブ)
-- ブックマーク配置 (4レイアウト)
-- 空間ナビゲーション
-- 履歴管理
-
-**主要メソッド:**
-
-```javascript
-class VRNavigationSystem {
-  createTab(url, title)               // タブ作成
-  closeTab(tabId)                     // タブ削除
-  switchTab(tabId)                    // タブ切替
-  layoutBookmarks(mode)               // ブックマーク配置
-}
-```
-
-**ブックマークレイアウト:**
-
-```javascript
-// 1. Grid Layout (グリッド)
-navigationSystem.layoutBookmarks('grid');
-// 3x3グリッドに配置
-
-// 2. Carousel Layout (カルーセル)
-navigationSystem.layoutBookmarks('carousel');
-// 円形に配置、回転可能
-
-// 3. Sphere Layout (球面)
-navigationSystem.layoutBookmarks('sphere');
-// フィボナッチ球面分布
-
-// 4. Wall Layout (壁面)
-navigationSystem.layoutBookmarks('wall');
-// 平面壁に配置
-```
-
-#### 4. VRMediaSystem (540行)
-
-**責務:**
-
-- 空間音響 (HRTF)
-- 360°/180°動画
-- WebGPU/WebGL2レンダリング
-- テクスチャキャッシュ (LRU)
-
-**主要メソッド:**
-
-```javascript
-class VRMediaSystem {
-  createSpatialSound(url, position)   // 空間音響作成
-  create360Video(url, options)        // 360°動画作成
-  initWebGPU()                        // WebGPU初期化
-  cacheTexture(key, texture)          // テクスチャキャッシュ
-}
-```
-
-**使用例:**
-
-```javascript
-const mediaSystem = new VRMediaSystem();
-
-// 空間音響作成
-const sound = mediaSystem.createSpatialSound('/audio/click.mp3', {
-  x: 1.0,
-  y: 0.5,
-  z: -2.0
-});
-
-// 360°動画作成 (top-bottom stereo)
-const video = mediaSystem.create360Video('/video/vr.mp4', {
-  stereoMode: 'top-bottom',
-  projection: 'equirectangular'
-});
-
-// WebGPU初期化 (fallback to WebGL2)
-const renderer = await mediaSystem.initWebGPU();
-```
-
-#### 5. VRSystemMonitor (470行)
-
-**責務:**
-
-- バッテリー監視
-- ネットワーク品質
-- 使用統計
-- システムヘルススコア
-
-**主要メソッド:**
-
-```javascript
-class VRSystemMonitor {
-  getBatteryLevel()                   // バッテリー残量
-  getNetworkQuality()                 // ネットワーク品質
-  calculateHealthScore()              // ヘルススコア
-  trackUsage(metric)                  // 使用状況追跡
-}
-```
-
-**ヘルススコア計算:**
-
-```javascript
-const monitor = new VRSystemMonitor();
-
-const score = monitor.calculateHealthScore({
-  fps: 90, // 現在のFPS
-  batteryLevel: 0.8, // バッテリー残量
-  memoryUsage: 0.5, // メモリ使用率
-  networkQuality: 'excellent' // ネットワーク品質
-});
-// → 100点満点でスコア計算
-
-// スコア基準:
-// 90-100: Excellent ✅
-// 70-89:  Good ⚠️
-// 50-69:  Fair ⚠️
-// 0-49:   Poor ❌
+VRApp → Three.js Scene → WebXR → HMD
 ```
 
 ---
@@ -505,7 +244,7 @@ git checkout -b feature/add-new-gesture
 # ... コード編集 ...
 
 # 4. テスト実行
-npm run test:unified
+npm test
 
 # 5. Lint + Format
 npm run lint:fix
@@ -576,7 +315,7 @@ Closes #234
    - ✅ Lint (ESLint)
    - ✅ Format (Prettier)
    - ✅ Tests (Jest)
-   - ✅ Build (Webpack)
+   - ✅ Build (Vite)
 
 3. **レビュアー確認**
    - コード品質
@@ -912,9 +651,7 @@ module.exports = {
 
 **現在のカバレッジ:**
 
-- ✅ unified-systems.test.js: 100% (64/64 tests)
-- ✅ vr-modules.test.js: 100% (21/21 tests)
-- 📊 Overall: 82.5% (85/103 tests)
+- 📊 `npm run test:coverage` で全体レポートを確認
 
 ---
 
@@ -957,7 +694,7 @@ console.table({
 
 ```bash
 # 1. ローカルサーバー起動 (ポート指定)
-npm run dev -- --port 8080 --host 0.0.0.0
+npm run dev -- --port 5173 --host 0.0.0.0
 
 # 2. IPアドレス確認
 # Windows
@@ -966,7 +703,7 @@ ipconfig
 ifconfig
 
 # 3. VRデバイスのブラウザでアクセス
-# http://192.168.1.100:8080
+# http://192.168.1.100:5173
 ```
 
 ### 🐛 一般的な問題と解決策
@@ -1074,7 +811,7 @@ git checkout -b feature/my-new-feature
 # - ドキュメント更新
 
 # 4. テスト実行
-npm run test:unified
+npm test
 npm run lint:fix
 
 # 5. PR作成
@@ -1084,26 +821,23 @@ npm run lint:fix
 
 **A:** 機能別の編集場所:
 
-| 機能           | ファイル                                  |
-| -------------- | ----------------------------------------- |
-| UI関連         | `assets/js/vr-ui-system.js`               |
-| 入力処理       | `assets/js/vr-input-system.js`            |
-| ナビゲーション | `assets/js/vr-navigation-system.js`       |
-| メディア       | `assets/js/vr-media-system.js`            |
-| 監視           | `assets/js/vr-system-monitor.js`          |
-| パフォーマンス | `assets/js/unified-performance-system.js` |
-| セキュリティ   | `assets/js/unified-security-system.js`    |
+| 機能           | ファイル                          |
+| -------------- | --------------------------------- |
+| UI関連         | `src/vr/VRApp.js`                 |
+| 入力処理       | `src/vr/input/`                   |
+| ナビゲーション | `src/vr/browser/`                 |
+| メディア       | `src/vr/media/`                   |
+| 監視           | `src/monitoring.js`               |
+| パフォーマンス | `src/utils/PerformanceMonitor.js` |
+| セキュリティ   | `proxy/ssrfGuard.js`              |
 
 ### Q3: ビルドが遅い
 
 **A:** 開発モード使用:
 
 ```bash
-# Webpack Dev Server (HMR有効)
+# Vite Dev Server (HMR有効)
 npm run dev
-
-# 変更時自動ビルド
-npm run start
 ```
 
 ### Q4: テストが失敗する
@@ -1119,7 +853,7 @@ npm install
 npm run test -- --clearCache
 
 # 3. 個別テスト実行
-npm test -- unified-systems.test.js
+npm test -- a11y.test.js
 
 # 4. Verbose出力
 npm test -- --verbose
@@ -1131,11 +865,11 @@ npm test -- --verbose
 
 ```bash
 # Option 1: ngrok
-npx ngrok http 8080
+npx ngrok http 5173
 # → https://xxxx.ngrok.io
 
 # Option 2: LocalTunnel
-npx localtunnel --port 8080
+npx localtunnel --port 5173
 # → https://xxxx.loca.lt
 
 # Option 3: 自己署名証明書
@@ -1165,7 +899,7 @@ npx localtunnel --port 8080
 
 - **GitHub Issues**: プロジェクトの課題・質問
 - **Discord**: リアルタイムチャット
-- **Stack Overflow**: `qui-browser-vr` タグ
+- **Stack Overflow**: `qui-browser` タグ
 
 ---
 

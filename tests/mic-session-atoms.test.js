@@ -18,7 +18,8 @@ function makeVC(opts = {}) {
   vc.synthesis = { speak: (u) => spoken.push(u.text), cancel: () => {}, speaking: false };
   const tabs = opts.tabs || [
     {
-      currentTitle: 'ニュース', currentUrl: 'https://news.jp',
+      currentTitle: 'ニュース',
+      currentUrl: 'https://news.jp',
       reload: jest.fn()
     },
     { currentTitle: '天気', currentUrl: 'https://weather.jp' }
@@ -26,8 +27,12 @@ function makeVC(opts = {}) {
   const state = { activeIndex: 0 };
   const tabManager = {
     tabs,
-    get activeIndex() { return state.activeIndex; },
-    setActive: jest.fn((i) => { state.activeIndex = i; }),
+    get activeIndex() {
+      return state.activeIndex;
+    },
+    setActive: jest.fn((i) => {
+      state.activeIndex = i;
+    }),
     getActiveTab: () => tabs[state.activeIndex],
     closeTab: jest.fn(),
     reopenClosedTab: jest.fn(() => 'https://closed.jp')
@@ -40,12 +45,14 @@ function makeVC(opts = {}) {
 
 describe('peek-tab-n: indexed non-destructive announce', () => {
   test.each(['タブ1を読んで', 'タブ2は何', 'タブ1を教えて', 'read tab 2'])(
-    '"%s" announces tab N without switching', (phrase) => {
+    '"%s" announces tab N without switching',
+    (phrase) => {
       const { vc, spoken, tabManager } = makeVC();
       vc.processCommand(phrase);
       expect(tabManager.setActive).not.toHaveBeenCalled();
       expect(spoken[0]).toMatch(/^タブ[12]: /);
-    });
+    }
+  );
   test('"タブ1を読んで" says the title', () => {
     const { vc, spoken } = makeVC();
     vc.processCommand('タブ1を読んで');
@@ -65,13 +72,15 @@ describe('peek-tab-n: indexed non-destructive announce', () => {
 
 describe('mute misroutes: mic-off goes to stop, other-tabs does not mute', () => {
   test.each(['マイクをミュート', 'マイクオフ', 'mute the mic'])(
-    '"%s" stops listening rather than muting audio', (phrase) => {
+    '"%s" stops listening rather than muting audio',
+    (phrase) => {
       const onMute = jest.fn();
       const { vc, vcSpy } = makeVC({ onMute });
       vc.processCommand(phrase);
       expect(vcSpy).toHaveBeenCalled();
       expect(onMute).not.toHaveBeenCalled();
-    });
+    }
+  );
   test('"mute other tabs" does not mute the active tab', () => {
     const onMute = jest.fn();
     const { vc } = makeVC({ onMute });
@@ -88,14 +97,20 @@ describe('mute misroutes: mic-off goes to stop, other-tabs does not mute', () =>
 });
 
 describe('undo / reopen aliases', () => {
-  test.each(['元に戻して', '取り消して', '閉じたタブをもう一度', '閉じたタブを開いて',
-    'undo', 'undo close', 'undo last'])(
-    '"%s" reopens the last closed tab', (phrase) => {
-      const { vc, tabManager, goTo } = makeVC();
-      vc.processCommand(phrase);
-      expect(tabManager.reopenClosedTab).toHaveBeenCalled();
-      expect(goTo).not.toHaveBeenCalled();
-    });
+  test.each([
+    '元に戻して',
+    '取り消して',
+    '閉じたタブをもう一度',
+    '閉じたタブを開いて',
+    'undo',
+    'undo close',
+    'undo last'
+  ])('"%s" reopens the last closed tab', (phrase) => {
+    const { vc, tabManager, goTo } = makeVC();
+    vc.processCommand(phrase);
+    expect(tabManager.reopenClosedTab).toHaveBeenCalled();
+    expect(goTo).not.toHaveBeenCalled();
+  });
   test('"前回のタブを開いて" restores the session, not a literal nav', () => {
     const onRestoreSession = jest.fn(() => 2);
     const { vc, spoken, goTo } = makeVC({ onRestoreSession });
@@ -107,14 +122,13 @@ describe('undo / reopen aliases', () => {
 });
 
 describe('clear-session', () => {
-  test.each(['セッションを消して', 'セッションを消去', 'clear session'])(
-    '"%s" clears the saved session', (phrase) => {
-      const onSessionClear = jest.fn(() => true);
-      const { vc, spoken } = makeVC({ onSessionClear });
-      vc.processCommand(phrase);
-      expect(onSessionClear).toHaveBeenCalled();
-      expect(spoken[0]).toBe('保存したセッションを消去しました');
-    });
+  test.each(['セッションを消して', 'セッションを消去', 'clear session'])('"%s" clears the saved session', (phrase) => {
+    const onSessionClear = jest.fn(() => true);
+    const { vc, spoken } = makeVC({ onSessionClear });
+    vc.processCommand(phrase);
+    expect(onSessionClear).toHaveBeenCalled();
+    expect(spoken[0]).toBe('保存したセッションを消去しました');
+  });
   test('nothing to clear announces honestly', () => {
     const onSessionClear = jest.fn(() => false);
     const { vc, spoken } = makeVC({ onSessionClear });
@@ -142,14 +156,15 @@ describe('storage-status', () => {
 });
 
 describe('trouble: spoken guidance when the user reports a dead screen', () => {
-  test.each(['反応しない', '真っ暗', '画面が見えない', 'not responding',
-    'screen is dark', 'nothing works'])(
-    '"%s" answers with recovery guidance', (phrase) => {
+  test.each(['反応しない', '真っ暗', '画面が見えない', 'not responding', 'screen is dark', 'nothing works'])(
+    '"%s" answers with recovery guidance',
+    (phrase) => {
       const { vc, spoken } = makeVC();
       vc.processCommand(phrase);
       expect(spoken[0]).toContain('リセンター');
       expect(spoken[0]).toContain('ヘルプ');
-    });
+    }
+  );
 });
 
 describe('battery charging + vr-exit + close-window aliases', () => {
@@ -162,19 +177,17 @@ describe('battery charging + vr-exit + close-window aliases', () => {
     expect(spoken[0]).toContain('充電中');
     delete navigator.getBattery;
   });
-  test.each(['ブラウザを終了', 'アプリを終了', 'quit', 'exit the app'])(
-    '"%s" exits the session', (phrase) => {
-      const { vc, spoken } = makeVC();
-      vc.processCommand(phrase);
-      expect(spoken[0]).toContain('終了');
-      expect(vc.lastCommand.key).toBe('vr-exit');
-    });
-  test.each(['このウィンドウを閉じて', 'close window'])(
-    '"%s" closes the active tab', (phrase) => {
-      const { vc, tabManager } = makeVC();
-      vc.processCommand(phrase);
-      expect(tabManager.closeTab).toHaveBeenCalled();
-    });
+  test.each(['ブラウザを終了', 'アプリを終了', 'quit', 'exit the app'])('"%s" exits the session', (phrase) => {
+    const { vc, spoken } = makeVC();
+    vc.processCommand(phrase);
+    expect(spoken[0]).toContain('終了');
+    expect(vc.lastCommand.key).toBe('vr-exit');
+  });
+  test.each(['このウィンドウを閉じて', 'close window'])('"%s" closes the active tab', (phrase) => {
+    const { vc, tabManager } = makeVC();
+    vc.processCommand(phrase);
+    expect(tabManager.closeTab).toHaveBeenCalled();
+  });
 });
 
 describe('alias pass V', () => {
@@ -217,7 +230,7 @@ describe('alias pass V', () => {
     expect(spoken[0]).toMatch(/オンライン|オフライン/);
   });
   test('"フォントを大きく" grows reader text', () => {
-    const { vc, spoken } = makeVC({ onSettingToggle: (k, d) => `key:${k}` });
+    const { vc, spoken } = makeVC({ onSettingToggle: (k, _d) => `key:${k}` });
     vc.processCommand('フォントを大きく');
     expect(spoken[0]).not.toContain('認識できません');
   });

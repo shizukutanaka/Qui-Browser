@@ -138,6 +138,7 @@ describe('VRApp.setupScene home-environment gating', () => {
       env.add(floor);
       return env;
     });
+    app.createSettingsPanel = jest.fn(() => new THREE.Group());
     return app;
   }
 
