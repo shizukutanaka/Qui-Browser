@@ -6,15 +6,16 @@
 npm test                 # full Jest suite
 npm run test:watch       # watch mode
 npm run test:coverage    # coverage + thresholds (jest.config.js)
-npm run test:integration # **/tests/*integration*.test.js
-npm run lint             # ESLint over src/ and server/
+npm run lint             # ESLint over src/ and proxy/
 npm run format:check     # Prettier check
 npm run verify:docs      # documentation/link verification
-npm run ci:all           # lint + coverage + benchmarks
+npm run ci:all           # lint + coverage
 ```
 
-Current baseline on a clean checkout: **48 suites / 1156 tests passing**, ESLint
-0 errors (180 `no-console` style warnings are accepted in tooling/dev paths).
+On a clean checkout the full Jest suite passes. ESLint carries a known
+`indent`/prettier-formatting collision baseline on legacy files (the CI lint
+job runs advisory); `no-console` warnings in tooling/dev paths are accepted.
+New-file errors are the signal to watch.
 
 ## Layout
 
@@ -25,19 +26,17 @@ transforming ESM `src/` modules (`tests/babel-plugin-import-meta.cjs` shims
 Three tiers of test:
 
 1. **Pure-logic tests** — `curved-geometry`, `readable-text`, `bookmark-layout`,
-   `url-resolver`, `keyboard-layout`, `text-wrap`, `settings-stepper`, `debounce`.
+   `url-resolver`, `keyboard-layout`, `settings-stepper`, `debounce`.
    No mocks, fastest, highest value per line.
 2. **Subsystem tests with hand-built doubles** — `gaze-interaction`, `caption-system`,
    `haptic-feedback`, `spatial-audio`, `tab-manager`, `bookmark-panel`,
-   `multiplayer-system`, `hand-tracking`, `immersive-video`. A minimal fake Three.js
+   `hand-tracking`, `immersive-video`. A minimal fake Three.js
    object graph (`{ visible, parent, material: { color: { set() } } }`) is enough;
    do not pull in a real WebGL context.
 3. **Wiring / integration tests** — `vr-app-wiring.test.js` binds `VRApp`'s real
    prototype methods to a hand-constructed `this`. Constructing a full `new VRApp()` is
    not possible in Node because `setupRenderer()` needs a GPU context, so the prototype
-   binding pattern is deliberate. `server.test.js` exercises the Express app with
-   supertest-style requests, including the Stripe-unconfigured `503` paths and the raw
-   webhook body.
+   binding pattern is deliberate.
 
 ## Conventions
 

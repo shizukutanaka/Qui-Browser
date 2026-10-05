@@ -21,7 +21,6 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage --collectCoverageFrom='src/**/*.js'",
-    "test:integration": "jest --testMatch='**/tests/*integration*.test.js'",
     "icons": "node tools/generate-icons.mjs",
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src proxy",
     "lint:fix": "ESLINT_USE_FLAT_CONFIG=false eslint src proxy --fix",
