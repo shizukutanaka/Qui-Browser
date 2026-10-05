@@ -1,5 +1,13 @@
 # Qui Browser VR - Research & Implementation Guide
+
 ## Production-Ready Solutions from 100+ International Sources
+
+> **⚠️ Snapshot (point-in-time research survey)**: This guide predates the
+> `1eb7f8d7` cleanup that deleted 129k lines of unreachable code. Some of its
+> implementation prescriptions target surface that no longer ships —
+> `KTX2Loader`, `THREE.WebGPURenderer`, and the multiplayer subsystem — so
+> treat code examples and roadmap checkmarks as research notes, not current
+> recommendations. The external sources it cites remain valid.
 
 **Last Updated**: November 5, 2025
 **Coverage**: 6 languages, 100+ sources, academic + industry
@@ -11,6 +19,7 @@
 ## 1. Motion Sickness Solutions
 
 ### Problem
+
 - **40-70%** of VR users experience motion sickness
 - **Severity**: Peaks between 3-15 minutes of use
 - **Impact**: Main blocker for VR adoption
@@ -18,6 +27,7 @@
 ### Solutions
 
 #### Vignette Effect (60-80% reduction)
+
 ```glsl
 // Fragment shader - darken periphery during motion
 varying vec2 vUv;
@@ -36,6 +46,7 @@ void main() {
 **User Impact**: Imperceptible quality loss, major comfort gain
 
 #### FOV Reduction During Motion (25-40% additional)
+
 ```javascript
 class ComfortFOV {
   constructor(camera) {
@@ -55,21 +66,25 @@ class ComfortFOV {
 **Implementation**: Combine with vignette for 80%+ reduction
 
 #### Snap Turning vs Smooth (45% reduction)
+
 - Snap every 15-30° preferred by 65% of users
 - Smoother turns cause 45% more nausea in beginners
 - User-configurable preference
 
 #### Teleport vs Smooth Movement (70% reduction)
+
 - Teleport mode: 5-10% motion sickness
 - Smooth movement: 40-60% motion sickness
 - Offer both, let users choose
 
 #### Quest 3 IPD Adjustment (30% fewer complaints)
+
 - Continuous IPD adjustment (hardware feature)
 - Only on Quest 3
 - Significantly improves comfort over Quest 2
 
 ### Recommended Implementation Order
+
 1. **Week 1**: Vignette shader + FOV reduction (4-6 hours)
 2. **Week 2**: Snap turning option (1-2 hours)
 3. **Week 3**: Teleport + smooth movement toggle (2-3 hours)
@@ -80,9 +95,11 @@ class ComfortFOV {
 ## 2. Performance Optimization
 
 ### Fixed Foveated Rendering (FFR)
+
 **GPU Savings**: 25-40%
 **Implementation**: 1-2 hours
 **Code**:
+
 ```javascript
 const glBinding = new XRWebGLBinding(session, gl);
 const layer = glBinding.getProjectionLayer();
@@ -90,8 +107,10 @@ layer.fixedFoveation = 0.5; // 0-1 range
 ```
 
 ### Object Pooling (40% GC reduction)
+
 **Problem**: Per-frame allocations cause stutters
 **Solution**: Pre-allocate, reuse, release
+
 ```javascript
 class ObjectPool {
   constructor(Class, size = 50) {
@@ -115,6 +134,7 @@ class ObjectPool {
 **Impact**: ±1ms frame time variance (vs ±5ms with GC)
 
 ### KTX2 Texture Compression (75% reduction)
+
 **File Size**: 4K texture: 85MB (PNG) → 10.6MB (KTX2)
 **Load Time**: 450ms → 45ms
 **Format**: GPU-native decompression (no CPU cost)
@@ -126,13 +146,16 @@ const texture = await ktx2Loader.loadAsync('texture.ktx2');
 ```
 
 ### Instanced Rendering (92% draw call reduction)
+
 **Before**: 2000 objects = 13ms render time
 **After**: 2000 objects = 1ms with instancing
 **Use Case**: Massive UI elements, environmental objects
 
 ### WebGPU Backend (30-50% faster)
+
 **Status**: Chrome stable, Safari preview (2025+)
 **Recommendation**: Add alongside WebGL, not replace
+
 ```javascript
 if (navigator.gpu) {
   renderer = new THREE.WebGPURenderer();
@@ -142,7 +165,9 @@ if (navigator.gpu) {
 ```
 
 ### Battery Optimization (30-40% extension)
+
 **Techniques**:
+
 - Dark color schemes: 25-40% (OLED screens)
 - Reduced shadow complexity: 10-15%
 - Dynamic LOD based on battery: 5-10%
@@ -154,9 +179,11 @@ if (navigator.gpu) {
 ## 3. Text Input Improvements
 
 ### Quest 3 Surface Typing (73 WPM!)
+
 **Revolutionary**: Nearly matches physical keyboard
 **Speed**: 73 WPM vs 12 WPM (tap keyboard)
 **Implementation**: Detect hand proximity to virtual surface
+
 ```javascript
 class SurfaceTyping {
   detectFingerPosition(indexTip) {
@@ -171,7 +198,9 @@ class SurfaceTyping {
 ```
 
 ### Japanese IME Integration (100M+ market)
+
 **Google API**: `https://www.google.co.jp/transliterate`
+
 ```javascript
 async function convertHiraganaToKanji(hiragana) {
   const url = new URL('https://www.google.co.jp/transliterate');
@@ -190,6 +219,7 @@ async function convertHiraganaToKanji(hiragana) {
 **Impact**: Unlocks Japanese market (87% request Japanese input)
 
 ### Voice Input by Language
+
 ```
 Language     | Accuracy | Notes
 ─────────────┼──────────┼────────────────────
@@ -208,6 +238,7 @@ German       | 92.8%    | Consonant clarity
 ## 4. Device-Specific Optimization
 
 ### Meta Quest 2 (Baseline - 2020)
+
 - GPU: Adreno 650
 - RAM: 2.7GB available
 - FPS: 90Hz (11.1ms budget)
@@ -215,6 +246,7 @@ German       | 92.8%    | Consonant clarity
 - **Optimization**: Every microsecond counts
 
 ### Meta Quest 3 (Current Standard - 2023)
+
 - GPU: 2x Adreno 8 Gen 2
 - RAM: 3.5GB available
 - FPS: 120Hz (8.33ms budget)
@@ -223,11 +255,13 @@ German       | 92.8%    | Consonant clarity
 - **Optimization**: Enable FFR + passthrough
 
 ### Pico 4 (Asian Market)
+
 - Performance: Similar to Quest 2
 - Advantage: Better weight distribution
 - **Market**: Growing adoption in China, Korea
 
 ### Apple Vision Pro (Premium)
+
 - Resolution: 3660×3200 per eye
 - Input: Eyes + hands (no controllers)
 - Passthrough: Outstanding quality
@@ -238,6 +272,7 @@ German       | 92.8%    | Consonant clarity
 ## 5. Hand Tracking & Input
 
 ### WebXR Hand Input Module
+
 **25 joints per hand**: Wrist, palm, thumb, fingers (tip/DIP/PIP/MCP)
 
 ```javascript
@@ -269,6 +304,7 @@ class HandTracking {
 ```
 
 ### Multimodal Input (Hybrid)
+
 - **One hand**: Hand tracking for pointing/selecting
 - **Other hand**: Controller for buttons/menu
 - **Both**: Voice commands for text input
@@ -279,6 +315,7 @@ class HandTracking {
 ## 6. Spatial Audio
 
 ### Web Audio API Spatial Positioning
+
 ```javascript
 class SpatialAudio {
   constructor() {
@@ -310,6 +347,7 @@ class SpatialAudio {
 ## 7. Mixed Reality (Passthrough)
 
 ### Passthrough AR Mode
+
 ```javascript
 const session = await navigator.xr.requestSession('immersive-ar', {
   requiredFeatures: ['plane-detection', 'hit-test', 'dom-overlay']
@@ -335,6 +373,7 @@ if (hitTest.length > 0) {
 ## 8. Progressive Loading
 
 ### Strategy
+
 1. Load core UI (100ms)
 2. Load main content (500ms)
 3. Stream secondary content (background)
@@ -375,22 +414,26 @@ class ProgressiveLoader {
 ## 9. Implementation Roadmap
 
 ### Week 1-2: Tier 1 (11 hours)
+
 ✅ FFR + Dynamic Resolution (1-2h)
 ✅ Comfort System (4-6h)
 ✅ Object Pooling (3-4h)
 
 ### Week 3-4: Tier 2a (12 hours)
+
 ✅ KTX2 Compression (1-2h)
 ✅ Service Workers (2-3h)
 ✅ Japanese IME (8-12h) ← **Priority: Market unlock**
 
 ### Week 5-6: Tier 2b (32 hours)
+
 ✅ Hand Tracking (6-8h)
 ✅ Spatial Audio (6-8h)
 ✅ MR/Passthrough (5-7h)
 ✅ Progressive Loading (8-10h)
 
 ### Total: 87+ hours
+
 **Expected Result**: Motion sickness 70%→<15%, text speed 6x, performance A-grade
 
 ---
@@ -398,16 +441,19 @@ class ProgressiveLoader {
 ## 10. Language-Specific Insights
 
 ### 🇯🇵 Japanese Community
+
 **Priority**: Japanese IME (87% want it)
 **Pain Point**: Kanji input in VR is impossible currently
 **Solution**: Google Transliteration API (simple, proven)
 
 ### 🇨🇳 Chinese Community
+
 **Priority**: Performance (aggressive optimization)
 **Recommendation**: <5000 polygons per model, <1MB per asset
 **Challenge**: Great Firewall latency (use local CDN)
 
 ### 🇰🇷 Korean Community
+
 **Priority**: Multiplayer/social features
 **Advantage**: Fastest internet globally (leverage for co-browsing)
 
@@ -416,6 +462,7 @@ class ProgressiveLoader {
 ## 11. Testing Strategy
 
 ### Performance Checklist
+
 - [ ] 90 FPS on Quest 2 (11.1ms budget)
 - [ ] 120 FPS on Quest 3 (8.33ms budget)
 - [ ] <100 draw calls per frame
@@ -423,6 +470,7 @@ class ProgressiveLoader {
 - [ ] <30s initial load time
 
 ### User Experience Checklist
+
 - [ ] Motion sickness <30%
 - [ ] Text input works smoothly
 - [ ] Hand gestures recognized accurately
@@ -430,6 +478,7 @@ class ProgressiveLoader {
 - [ ] No stuttering or frame drops
 
 ### Compatibility Checklist
+
 - [ ] Works on Quest 2
 - [ ] Works on Quest 3
 - [ ] Works on Pico 4
@@ -441,18 +490,21 @@ class ProgressiveLoader {
 ## 12. Production Recommendations
 
 ### Implement First (Highest ROI)
+
 1. **Japanese IME** - Unlocks 100M+ market immediately
 2. **Comfort System** - Enables 70% of non-VR users to use VR
 3. **FFR** - Free 25-40% GPU performance
 4. **KTX2** - 75% memory reduction with no quality loss
 
 ### Then Implement
+
 5. Hand tracking
 6. Spatial audio
 7. Passthrough AR
 8. Progressive loading
 
 ### Long-Term
+
 - WebGPU backend
 - Multiplayer features
 - Advanced analytics
@@ -463,16 +515,19 @@ class ProgressiveLoader {
 ## 13. Known Limitations & Workarounds
 
 ### WebGPU Availability
+
 **Current**: Chrome stable, Safari preview
 **Workaround**: Maintain WebGL fallback
 **Timeline**: Firefox support coming 2025
 
 ### Eye Tracking Privacy
+
 **Challenge**: Eye gaze reveals user attention
 **Recommendation**: Explicit user consent, quantize data
 **Status**: Experimental on Quest Pro/3
 
 ### iOS WebXR Limitations
+
 **Problem**: iOS Safari has limited WebXR support
 **Impact**: iPhone/iPad VR not fully supported
 **Workaround**: Desktop/Android only for now
