@@ -44,7 +44,6 @@
     "docker:compose": "docker-compose up -d",
     "docker:compose:down": "docker-compose down",
     "docker:logs": "docker logs -f qui-browser",
-    "deploy:gh-pages": "npm run build && gh-pages -d dist",
     "deploy:netlify": "npm run build && netlify deploy --prod --dir=dist",
     "deploy:vercel": "npm run build && vercel --prod",
     "release:patch": "npm version patch && git push && git push --tags",

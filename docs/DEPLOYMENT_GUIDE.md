@@ -12,13 +12,13 @@ This guide provides complete deployment instructions for Qui Browser VR across m
 
 ### Deployment Options
 
-| Platform | Difficulty | Cost | Best For |
-|----------|------------|------|----------|
-| **GitHub Pages** | ⭐ Easy | Free | Open source projects |
-| **Netlify** | ⭐ Easy | Free tier | Quick deployments |
-| **Vercel** | ⭐ Easy | Free tier | Serverless functions |
-| **Docker** | ⭐⭐ Medium | Variable | Custom infrastructure |
-| **Custom Server** | ⭐⭐⭐ Hard | Variable | Full control |
+| Platform          | Difficulty  | Cost      | Best For              |
+| ----------------- | ----------- | --------- | --------------------- |
+| **GitHub Pages**  | ⭐ Easy     | Free      | Open source projects  |
+| **Netlify**       | ⭐ Easy     | Free tier | Quick deployments     |
+| **Vercel**        | ⭐ Easy     | Free tier | Serverless functions  |
+| **Docker**        | ⭐⭐ Medium | Variable  | Custom infrastructure |
+| **Custom Server** | ⭐⭐⭐ Hard | Variable  | Full control          |
 
 ---
 
@@ -68,115 +68,21 @@ This guide provides complete deployment instructions for Qui Browser VR across m
 
 **Best for:** Open source projects, documentation sites
 **Cost:** Free
-**Setup time:** 5 minutes
+**Setup time:** 0 minutes — already wired
 
-### Automatic Deployment (Recommended)
+GitHub Pages deploys are handled by the release workflow at
+`.github/workflows/cd.yml`: on every push to `main` it runs
+`BASE_PATH=/Qui-Browser/ npm run build` and publishes `dist/` via the
+`actions/deploy-pages` artifact path. `BASE_PATH` matters — a plain
+`npm run build` emits root-absolute asset URLs that 404 under the
+`/Qui-Browser/` Pages subpath, so never ship a local build to Pages.
 
-#### Step 1: Enable GitHub Pages
+### Enable once
 
-1. Go to repository Settings
-2. Navigate to Pages section
-3. Source: **GitHub Actions**
+1. Repository Settings → Pages
+2. Source: **GitHub Actions**
 
-#### Step 2: Create Workflow
-
-Create `.github/workflows/deploy.yml`:
-
-```yaml
-name: Deploy to GitHub Pages
-
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run tests
-        run: npm test
-
-      - name: Build
-        run: npm run build
-        env:
-          NODE_ENV: production
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v3
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
-        with:
-          path: './dist'
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v2
-```
-
-#### Step 3: Configure base URL
-
-Update `vite.config.js`:
-
-```javascript
-export default defineConfig({
-  base: '/qui-browser-vr/', // Replace with your repo name
-  // ... rest of config
-});
-```
-
-#### Step 4: Push to GitHub
-
-```bash
-git add .
-git commit -m "Add GitHub Pages deployment"
-git push origin main
-```
-
-**Your site will be live at:** `https://yourusername.github.io/qui-browser-vr/`
-
-### Manual Deployment
-
-```bash
-# Build
-npm run build
-
-# Deploy using gh-pages
-npm install -g gh-pages
-gh-pages -d dist
-
-# Or use GitHub CLI
-gh repo deploy
-```
+**Live site:** `https://shizukutanaka.github.io/Qui-Browser/`
 
 ---
 
@@ -584,12 +490,12 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8080:80"
+      - '8080:80'
     environment:
       - NODE_ENV=production
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "/usr/local/bin/healthcheck.sh"]
+      test: ['CMD', '/usr/local/bin/healthcheck.sh']
       interval: 30s
       timeout: 3s
       retries: 3
@@ -601,8 +507,8 @@ services:
   nginx-proxy:
     image: nginx:alpine
     ports:
-      - "443:443"
-      - "80:80"
+      - '443:443'
+      - '80:80'
     volumes:
       - ./proxy/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./certs:/etc/nginx/certs:ro
@@ -867,7 +773,7 @@ VITE_DEBUG=false
 
 ```javascript
 // src/monitoring.js
-import * as Sentry from "@sentry/browser";
+import * as Sentry from '@sentry/browser';
 
 if (import.meta.env.PROD) {
   Sentry.init({
@@ -886,6 +792,7 @@ if (import.meta.env.PROD) {
 ### Issue: WebXR not working
 
 **Solution:** HTTPS required. Check:
+
 - Certificate valid
 - No mixed content warnings
 - Service Worker scope correct
@@ -893,6 +800,7 @@ if (import.meta.env.PROD) {
 ### Issue: Assets not loading
 
 **Solution:** Check CORS headers:
+
 ```nginx
 add_header Access-Control-Allow-Origin "*";
 add_header Access-Control-Allow-Methods "GET, OPTIONS";
@@ -901,6 +809,7 @@ add_header Access-Control-Allow-Methods "GET, OPTIONS";
 ### Issue: Service Worker not updating
 
 **Solution:** Check cache headers:
+
 ```nginx
 location = /service-worker.js {
     add_header Cache-Control "no-cache, no-store, must-revalidate";
@@ -911,6 +820,7 @@ location = /service-worker.js {
 ### Issue: Build fails on CI
 
 **Solution:** Check Node version:
+
 ```yaml
 - uses: actions/setup-node@v3
   with:
