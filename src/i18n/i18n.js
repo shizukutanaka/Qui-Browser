@@ -130,8 +130,6 @@ const CATALOG = {
     'vr.settings.clearHistory': 'Clear History',
     'vr.settings.bookmarks': 'Bookmarks',
     // VR Settings Panel Values
-    'vr.value.on': 'ON',
-    'vr.value.off': 'OFF',
     'vr.value.left': 'Left',
     'vr.value.right': 'Right',
     'vr.value.sensitive': 'Sensitive',
@@ -315,8 +313,6 @@ const CATALOG = {
     'vr.settings.clearHistory': '履歴を消去',
     'vr.settings.bookmarks': 'ブックマーク',
     // VR Settings Panel Values
-    'vr.value.on': 'オン',
-    'vr.value.off': 'オフ',
     'vr.value.left': '左',
     'vr.value.right': '右',
     'vr.value.sensitive': '敏感',
