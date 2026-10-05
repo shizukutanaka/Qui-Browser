@@ -53,7 +53,9 @@ git config user.email noreply@anthropic.com && git config user.name Claude
 
 ## 5. Opus 担当タスク（設計判断を伴う大規模作業）
 
-### O-1. 設定パネルのグルーピング（E-1 / C-2、優先度: 高に昇格）
+### ~~O-1. 設定パネルのグルーピング（E-1 / C-2、優先度: 高に昇格）~~ — **出荷済み**
+
+折りたたみセクションは `settings.section.{a11y,locomotion,display,browsing,audio,other}` ＋ `openSettingsSections` 永続化として実装済み。以下の項目本文は当時の記録として温存。
 
 - **背景**: Session 54-56 で Sound Volume / Haptics / Clear History が加わり、フラット2カラムは飽和。発見性が受忍限度を超えつつある。
 - **対象**: `src/vr/VRApp.js` `createSettingsPanel()`（~1180行以降）と `makeToggleButton` 系。
@@ -71,13 +73,17 @@ git config user.email noreply@anthropic.com && git config user.name Claude
 - 実証済みパターン: `AccessibilityCoordinator`（Sessions 44/45/47）の **getter/setter 委譲**（呼び出し箇所ゼロ変更）。
 - 次候補: teleport/locomotion 系（`this.teleport`、`snapTurn`、`updateLocomotion`）→ LocomotionCoordinator。着手前に Explore エージェントで全代入箇所を洗う（dispose 時の null 再代入が委譲を壊さないか確認）。
 
-### O-4. MixedReality 配線（E-7 / C-4、Plan エージェント必須）
+### ~~O-4. MixedReality 配線（E-7 / C-4、Plan エージェント必須）~~ — **対象削除済み**
 
-- 963行の完成済みARサブシステム（`src/vr/ar/MixedReality.js`）に `startSession()` 呼び出しゼロ。**着手前に Plan エージェントで設計**: `immersive-vr` と `immersive-ar` はセッション共存不可 → 既存VRセッションの終了/再入場フローの設計が本体。実機（Quest 3）検証不能のため、マージ基準は「ユニットテスト + 正直な制約ドキュメント」。
+`src/vr/ar/MixedReality.js` は `1eb7f8d7`（129k行の未参照コード削除）で削除 — 配線対象が存在しないためクローズ。以下は当時の記録。
 
-### O-5. Top Sites スピードダイヤル（E-6 / C-3、Session 17 から保留）
+- ~~963行の完成済みARサブシステム（`src/vr/ar/MixedReality.js`）に `startSession()` 呼び出しゼロ。**着手前に Plan エージェントで設計**: `immersive-vr` と `immersive-ar` はセッション共存不可 → 既存VRセッションの終了/再入場フローの設計が本体。実機（Quest 3）検証不能のため、マージ基準は「ユニットテスト + 正直な制約ドキュメント」。~~
 
-- 障害: `BookmarkPanel` に3タブ目を足すとスクロール矢印ゾーン（`bookmarkLayout.js` の `SCROLL_*` 定数）と座標衝突。ヘッダレイアウト再設計から。データ層は完成済み（`BookmarkStore.getTopSites`）。
+### ~~O-5. Top Sites スピードダイヤル（E-6 / C-3、Session 17 から保留）~~ — **機能提供済み**
+
+Top Sites は WebPanel 新規タブのタイルグリッド（`topSitesLayout.js` ＋ `topSitesProvider`、`vr.content.topSites`）として出荷済み。BookmarkPanel 3タブ目案は不要となりクローズ。以下は当時の記録。
+
+- ~~障害: `BookmarkPanel` に3タブ目を足すとスクロール矢印ゾーン（`bookmarkLayout.js` の `SCROLL_*` 定数）と座標衝突。ヘッダレイアウト再設計から。データ層は完成済み（`BookmarkStore.getTopSites`）。~~
 
 ## 6. 完了時
 
