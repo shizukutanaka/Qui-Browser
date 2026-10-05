@@ -250,7 +250,7 @@ npm run release:major         # Major version (X.0.0)
 | ----------------- | ----------------- | ------------------------ | ---------------------------------------------------- |
 | **GitHub Pages**  | ✅ Auto           | Push to main             | [.github/workflows/cd.yml](.github/workflows/cd.yml) |
 | **Netlify**       | ✅ Auto           | `npm run deploy:netlify` | [netlify.toml](netlify.toml)                         |
-| **Vercel**        | ✅ Auto           | `npm run deploy:vercel`  | [vercel.json](vercel.json)                           |
+| **Vercel**        | ✅ Auto           | `npm run deploy:vercel`  | Vite preset (auto-detect)                            |
 | **Docker**        | ✅ Multi-platform | `npm run docker:compose` | [Dockerfile](Dockerfile)                             |
 | **Custom Server** | ✅ Nginx          | Manual setup             | [docker/nginx.conf](docker/nginx.conf)               |
 
