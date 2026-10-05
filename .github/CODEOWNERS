@@ -15,7 +15,6 @@
 /.github/workflows/ @shizukutanaka
 /docker/ @shizukutanaka
 netlify.toml @shizukutanaka
-vercel.json @shizukutanaka
 Dockerfile @shizukutanaka
 
 # Tests
@@ -24,7 +23,7 @@ jest.config.js @shizukutanaka
 
 # Configuration
 package.json @shizukutanaka
-manifest.json @shizukutanaka
+public/manifest.json @shizukutanaka
 
 # Examples
 /examples/ @shizukutanaka

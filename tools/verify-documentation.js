@@ -197,7 +197,6 @@ function main() {
     'Dockerfile',
     'docker-compose.yml',
     'netlify.toml',
-    'vercel.json',
     '.github/workflows/ci.yml',
     '.github/workflows/cd.yml',
     'src/app.js',

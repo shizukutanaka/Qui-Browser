@@ -90,7 +90,7 @@ Qui-Browser/
 │       ├── deploy.yml            # デプロイ
 │       └── release.yml           # リリース
 ├── index.html                    # エントリーポイント
-├── manifest.json                 # PWAマニフェスト
+├── public/manifest.json          # PWAマニフェスト（vite が dist/ へコピー）
 ├── package.json                  # 依存関係
 ├── vite.config.js                # ビルド設定
 └── jest.config.js                # テスト設定
