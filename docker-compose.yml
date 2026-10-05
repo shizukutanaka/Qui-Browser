@@ -23,8 +23,6 @@ services:
 
     # 環境変数
     environment:
-      - NODE_ENV=production
-      - VR_BROWSER_VERSION=2.0.0
       - TZ=Asia/Tokyo
 
     # 再起動ポリシー
