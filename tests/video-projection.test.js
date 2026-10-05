@@ -4,16 +4,22 @@
  * that consumes these helpers is exercised separately/in-VR).
  */
 
-const {
-  sphereParams,
-  eyeUVTransform,
-  detectVideoFormat,
-  buildVideoSphereGeometry
-} = require('../src/vr/media/videoProjection.js');
+const { eyeUVTransform, detectVideoFormat, buildVideoSphereGeometry } = require('../src/vr/media/videoProjection.js');
 
-describe('sphereParams', () => {
+// Minimal THREE stub capturing SphereGeometry constructor args.
+const THREE = {
+  SphereGeometry: class {
+    constructor(radius, wSeg, hSeg, phiStart, phiLength, thetaStart, thetaLength) {
+      this.parameters = { radius, wSeg, hSeg, phiStart, phiLength, thetaStart, thetaLength };
+    }
+  }
+};
+
+const params = (opts) => buildVideoSphereGeometry(THREE, opts).parameters;
+
+describe('sphere extents (via buildVideoSphereGeometry)', () => {
   test('360 spans the full sphere', () => {
-    const p = sphereParams('360');
+    const p = params({ projection: '360' });
     expect(p.phiStart).toBeCloseTo(0, 6);
     expect(p.phiLength).toBeCloseTo(Math.PI * 2, 6);
     expect(p.thetaStart).toBeCloseTo(0, 6);
@@ -21,15 +27,15 @@ describe('sphereParams', () => {
   });
 
   test('180 spans a front hemisphere centred on −z', () => {
-    const p = sphereParams('180');
+    const p = params({ projection: '180' });
     expect(p.phiLength).toBeCloseTo(Math.PI, 6); // half the horizontal sweep
     expect(p.phiStart).toBeCloseTo(Math.PI / 2, 6); // centred forward
     expect(p.thetaLength).toBeCloseTo(Math.PI, 6); // still pole-to-pole
   });
 
   test('defaults to 360 for unknown projection', () => {
-    expect(sphereParams().phiLength).toBeCloseTo(Math.PI * 2, 6);
-    expect(sphereParams('weird').phiLength).toBeCloseTo(Math.PI * 2, 6);
+    expect(params({}).phiLength).toBeCloseTo(Math.PI * 2, 6);
+    expect(params({ projection: 'weird' }).phiLength).toBeCloseTo(Math.PI * 2, 6);
   });
 });
 
@@ -97,15 +103,6 @@ describe('detectVideoFormat', () => {
 });
 
 describe('buildVideoSphereGeometry', () => {
-  // Minimal THREE stub capturing SphereGeometry constructor args.
-  const THREE = {
-    SphereGeometry: class {
-      constructor(radius, wSeg, hSeg, phiStart, phiLength, thetaStart, thetaLength) {
-        this.parameters = { radius, wSeg, hSeg, phiStart, phiLength, thetaStart, thetaLength };
-      }
-    }
-  };
-
   test('passes 360 extents and defaults to radius 200', () => {
     const geo = buildVideoSphereGeometry(THREE, {});
     expect(geo.parameters.radius).toBe(200);
