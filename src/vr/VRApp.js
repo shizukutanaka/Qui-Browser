@@ -4057,7 +4057,7 @@ export class VRApp {
     this._lastRenderTime = frameStart;
 
     // Update systems
-    this.updateSystems(timestamp, xrFrame, dt);
+    this.updateSystems(xrFrame, dt);
 
     // Render scene
     this.renderer.render(this.scene, this.camera);
@@ -4080,7 +4080,7 @@ export class VRApp {
   /**
    * Update all systems
    */
-  updateSystems(timestamp, xrFrame, dt = 0.016) {
+  updateSystems(xrFrame, dt = 0.016) {
     // Update comfort system (vignette, FOV)
     if (this.comfortSystem && this.settings.enableComfort) {
       this.comfortSystem.update(dt);
