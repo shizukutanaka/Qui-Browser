@@ -8,17 +8,38 @@
 // ── THREE + WebPanel stubs ────────────────────────────────────────────────────
 jest.mock('three', () => ({
   Group: class {
-    constructor() { this.position = { set: jest.fn() }; this._objects = []; }
-    add(o) { this._objects.push(o); }
-    remove(o) { this._objects = this._objects.filter(x => x !== o); }
-    traverse(fn) { this._objects.forEach(fn); fn(this); }
+    constructor() {
+      this.position = { set: jest.fn() };
+      this._objects = [];
+    }
+    add(o) {
+      this._objects.push(o);
+    }
+    remove(o) {
+      this._objects = this._objects.filter((x) => x !== o);
+    }
+    traverse(fn) {
+      this._objects.forEach(fn);
+      fn(this);
+    }
   },
   Mesh: class {
-    constructor() { this.position = { set: jest.fn() }; }
+    constructor() {
+      this.position = { set: jest.fn() };
+    }
   },
-  PlaneGeometry: class { dispose() {} },
-  MeshBasicMaterial: class { dispose() {} },
-  CanvasTexture: class { constructor() { this.needsUpdate = false; } dispose() {} }
+  PlaneGeometry: class {
+    dispose() {}
+  },
+  MeshBasicMaterial: class {
+    dispose() {}
+  },
+  CanvasTexture: class {
+    constructor() {
+      this.needsUpdate = false;
+    }
+    dispose() {}
+  }
 }));
 jest.mock('../src/vr/browser/WebPanel.js', () => ({
   WebPanel: class {
@@ -30,9 +51,15 @@ jest.mock('../src/vr/browser/WebPanel.js', () => ({
       this.group = { position: { set: jest.fn() } };
       this.visible = false;
     }
-    addToScene(parent) { this.parent = parent; }
-    navigate(url) { this.currentUrl = url; }
-    setVisible(v) { this.visible = !!v; }
+    addToScene(parent) {
+      this.parent = parent;
+    }
+    navigate(url) {
+      this.currentUrl = url;
+    }
+    setVisible(v) {
+      this.visible = !!v;
+    }
     setCurved() {}
     dispose() {}
   }
@@ -40,29 +67,29 @@ jest.mock('../src/vr/browser/WebPanel.js', () => ({
 
 global.document = {
   createElement: () => ({
-    width: 0, height: 0,
+    width: 0,
+    height: 0,
     getContext: () => ({
-      clearRect: jest.fn(), fillRect: jest.fn(), fillText: jest.fn(),
-      beginPath: jest.fn(), arc: jest.fn(), fill: jest.fn(),
+      clearRect: jest.fn(),
+      fillRect: jest.fn(),
+      fillText: jest.fn(),
+      beginPath: jest.fn(),
+      arc: jest.fn(),
+      fill: jest.fn(),
       measureText: () => ({ width: 0 }),
-      fillStyle: '', font: '', textAlign: '', textBaseline: ''
+      fillStyle: '',
+      font: '',
+      textAlign: '',
+      textBaseline: ''
     })
   })
 };
 global.URL = URL;
-global.SpeechSynthesisUtterance = function (text) { this.text = text; };
+global.SpeechSynthesisUtterance = function (text) {
+  this.text = text;
+};
 
-const { TabManager } = require('../src/vr/browser/TabManager.js');
 const { VoiceCommands } = require('../src/vr/input/VoiceCommands.js');
-
-function makeManager(opts = {}) {
-  return new TabManager({
-    scene: { add: jest.fn(), remove: jest.fn() },
-    registerInteractable: jest.fn(),
-    unregisterInteractable: jest.fn(),
-    ...opts
-  });
-}
 
 function makeSpeakingVC(extra = {}) {
   const vc = new VoiceCommands();
@@ -76,7 +103,7 @@ function makeSpeakingVC(extra = {}) {
 
 // ── bookmarks-list ────────────────────────────────────────────────────────────
 describe('VoiceCommands bookmarks-list', () => {
-  test('\'ブックマーク一覧\' reads count and names', () => {
+  test("'ブックマーク一覧' reads count and names", () => {
     const vc = makeSpeakingVC({
       onBookmarkList: () => ['Alpha', 'Beta', 'Gamma']
     });
@@ -98,13 +125,13 @@ describe('VoiceCommands bookmarks-list', () => {
     expect(vc._spoken.pop()).toBe('ブックマークがありません');
   });
 
-  test('\'list bookmarks\' routes in English', () => {
+  test("'list bookmarks' routes in English", () => {
     const vc = makeSpeakingVC({ onBookmarkList: () => ['Only'] });
     vc.processCommand('list bookmarks');
     expect(vc._spoken.pop()).toBe('1個のブックマーク。Only');
   });
 
-  test('\'ブックマーク\' alone still routes to the panel toggle', () => {
+  test("'ブックマーク' alone still routes to the panel toggle", () => {
     const onBookmarkList = jest.fn(() => ['X']);
     const vc = makeSpeakingVC({ onBookmarkList });
     vc.processCommand('ブックマーク');
@@ -114,7 +141,7 @@ describe('VoiceCommands bookmarks-list', () => {
 
 // ── history-list ──────────────────────────────────────────────────────────────
 describe('VoiceCommands history-list', () => {
-  test('\'履歴一覧\' reads count and names', () => {
+  test("'履歴一覧' reads count and names", () => {
     const vc = makeSpeakingVC({
       onHistoryList: () => ['Recent', 'Older']
     });
@@ -122,13 +149,13 @@ describe('VoiceCommands history-list', () => {
     expect(vc._spoken.pop()).toBe('2個の履歴。Recent、Older');
   });
 
-  test('\'list history\' routes in English', () => {
+  test("'list history' routes in English", () => {
     const vc = makeSpeakingVC({ onHistoryList: () => ['One'] });
     vc.processCommand('list history');
     expect(vc._spoken.pop()).toBe('1個の履歴。One');
   });
 
-  test('\'履歴\' alone still routes to the panel toggle', () => {
+  test("'履歴' alone still routes to the panel toggle", () => {
     const onHistoryList = jest.fn(() => ['X']);
     const vc = makeSpeakingVC({ onHistoryList });
     vc.processCommand('履歴');
@@ -138,7 +165,7 @@ describe('VoiceCommands history-list', () => {
 
 // ── copy-title ────────────────────────────────────────────────────────────────
 describe('VoiceCommands copy-title', () => {
-  test('\'タイトルをコピー\' copies via the hook and confirms', () => {
+  test("'タイトルをコピー' copies via the hook and confirms", () => {
     const onCopyTitle = jest.fn(() => 'Example Page');
     const vc = makeSpeakingVC({ onCopyTitle });
     vc.processCommand('タイトルをコピー');
@@ -146,7 +173,7 @@ describe('VoiceCommands copy-title', () => {
     expect(vc._spoken.pop()).toBe('タイトルをコピーしました');
   });
 
-  test('\'copy the title\' routes in English', () => {
+  test("'copy the title' routes in English", () => {
     const vc = makeSpeakingVC({ onCopyTitle: () => 'Page' });
     vc.processCommand('copy the title');
     expect(vc._spoken.pop()).toBe('タイトルをコピーしました');
@@ -158,7 +185,7 @@ describe('VoiceCommands copy-title', () => {
     expect(vc._spoken.pop()).toBe('コピーするタイトルがありません');
   });
 
-  test('\'URLをコピー\' still routes to copy-url, not copy-title', () => {
+  test("'URLをコピー' still routes to copy-url, not copy-title", () => {
     const onCopyTitle = jest.fn();
     const vc = makeSpeakingVC({ onCopyTitle });
     vc.processCommand('URLをコピー');
