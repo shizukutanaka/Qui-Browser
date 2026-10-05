@@ -12,17 +12,21 @@ Thank you for your interest in contributing to Qui Browser VR!
 ## 📝 Development Process
 
 ### Code Style
+
 - Use 2 spaces for indentation
 - Follow ESLint rules
 - Run `npm run format` before committing
 
 ### Testing
+
 - Write tests for new features
 - Ensure all tests pass: `npm test`
 - Maintain >80% code coverage
 
 ### Commit Messages
+
 Follow conventional commits:
+
 - `feat:` New features
 - `fix:` Bug fixes
 - `docs:` Documentation changes
@@ -42,15 +46,16 @@ Follow conventional commits:
 ## 🏗️ Project Structure
 
 ### Key Directories
-- `assets/js/unified-*.js` - Core unified systems (DO NOT duplicate functionality)
-- `assets/js/vr-*.js` - VR-specific modules
+
+- `src/` - Application source (`src/vr/` is the VR browser core)
 - `tests/` - Test files
 - `dist/` - Build output (auto-generated)
 
 ### Important Files
-- `index-optimized.html` - Main entry point
-- `webpack.config.js` - Build configuration
-- `tsconfig.json` - TypeScript configuration
+
+- `index.html` - Main entry point
+- `vite.config.js` - Build configuration
+- `jest.config.js` - Test configuration
 
 ## ⚡ Performance Guidelines
 
@@ -69,23 +74,21 @@ Follow conventional commits:
 ## 🧪 Testing Requirements
 
 ### Unit Tests
+
 ```bash
 npm test
 ```
 
-### Performance Tests
-```bash
-npm run benchmark
-```
+### Build Verification
 
-### Build Analysis
 ```bash
-npm run build:analyze
+npm run build
 ```
 
 ## 📚 Documentation
 
 Update relevant documentation:
+
 - README.md for major features
 - CHANGELOG.md for all changes
 - Code comments for complex logic
@@ -93,6 +96,7 @@ Update relevant documentation:
 ## ❓ Questions?
 
 Open an issue for:
+
 - Bug reports
 - Feature requests
 - Questions about the codebase

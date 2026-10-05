@@ -28,15 +28,37 @@
 
 /** Elements whose contents are never reader text. */
 const STRIP_ELEMENTS = [
-  'script', 'style', 'noscript', 'template', 'svg', 'canvas',
-  'nav', 'header', 'footer', 'aside', 'form', 'iframe'
+  'script',
+  'style',
+  'noscript',
+  'template',
+  'svg',
+  'canvas',
+  'nav',
+  'header',
+  'footer',
+  'aside',
+  'form',
+  'iframe'
 ];
 
 /** Minimal HTML entity set — the ones that actually show up in prose. */
 const ENTITIES = {
-  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ',
-  mdash: '—', ndash: '–', hellip: '…', lsquo: '‘', rsquo: '’',
-  ldquo: '“', rdquo: '”', middot: '·', bull: '•'
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: ' ',
+  mdash: '—',
+  ndash: '–',
+  hellip: '…',
+  lsquo: '‘',
+  rsquo: '’',
+  ldquo: '“',
+  rdquo: '”',
+  middot: '·',
+  bull: '•'
 };
 
 /**
@@ -45,7 +67,7 @@ const ENTITIES = {
  * @param {string} s
  * @returns {string}
  */
-export function decodeEntities(s) {
+function decodeEntities(s) {
   return String(s === null || s === undefined ? '' : s)
     .replace(/&#x([0-9a-f]+);/gi, (_, hex) => safeFromCodePoint(parseInt(hex, 16)))
     .replace(/&#(\d+);/g, (_, dec) => safeFromCodePoint(parseInt(dec, 10)))
@@ -109,7 +131,7 @@ function mainRegion(html) {
  * @param {string} html
  * @returns {string}
  */
-export function extractTitle(html) {
+function extractTitle(html) {
   const t = String(html).match(/<title\b[^>]*>([\s\S]*?)<\/title\s*>/i);
   if (t && textOf(t[1])) {
     return textOf(t[1]);

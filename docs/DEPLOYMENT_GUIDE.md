@@ -223,81 +223,16 @@ vercel --prod
    - **Output Directory:** `dist`
    - **Install Command:** `npm install`
 
-#### Step 2: Configure vercel.json
+#### Step 2: Build settings
 
-Create `vercel.json`:
-
-```json
-{
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "devCommand": "npm run dev",
-  "installCommand": "npm install",
-
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "SAMEORIGIN"
-        },
-        {
-          "key": "X-XSS-Protection",
-          "value": "1; mode=block"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "strict-origin-when-cross-origin"
-        },
-        {
-          "key": "Permissions-Policy",
-          "value": "accelerometer=(self), gyroscope=(self), xr-spatial-tracking=(self)"
-        }
-      ]
-    },
-    {
-      "source": "/service-worker.js",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate"
-        },
-        {
-          "key": "Service-Worker-Allowed",
-          "value": "/"
-        }
-      ]
-    },
-    {
-      "source": "/(.*\\.(?:js|css|woff2|ktx2))",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    }
-  ],
-
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ]
-}
-```
+No `vercel.json` is needed — Vercel's Vite preset auto-detects the build
+command (`npm run build`) and output directory (`dist`). Set custom
+headers in the dashboard (Project Settings → Headers) if required; the
+service worker must always be served with no-cache.
 
 #### Step 3: Deploy
 
 ```bash
-git add vercel.json
-git commit -m "Add Vercel configuration"
 git push
 ```
 

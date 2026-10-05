@@ -240,8 +240,6 @@ export class VRApp {
       // Controller input options.
       controllerDeadZone: 0.15, // axis dead zone (fraction of full travel)
       southpaw: false, // swap left/right controller roles for left-handed users
-      // In-VR settings panel (toggle buttons).
-      enableSettingsPanel: true,
       // Which settings-section tab is open (tab semantics: exactly one).
       // Persisted via updateSetting — the loadPersistedSettings whitelist only
       // copies keys declared here, so without this entry the selection was
@@ -317,7 +315,6 @@ export class VRApp {
       // Tier 3 / optional features — opt-in, default off so the base
       // experience is unchanged. Heavy/experimental features stay off.
       enableVoice: false,
-      enablePerfMonitorUI: false,
       // Accessibility preferences mirrored here so the in-VR settings panel can
       // read/toggle them.  The a11y module is the authoritative store (it persists
       // separately); these keys are re-synced from it at startup so a change made
@@ -618,10 +615,8 @@ export class VRApp {
     });
 
     // In-VR settings panel (toggle buttons wired to the persisted settings).
-    if (this.settings.enableSettingsPanel) {
-      this.settingsPanel = this.createSettingsPanel();
-      this.scene.add(this.settingsPanel);
-    }
+    this.settingsPanel = this.createSettingsPanel();
+    this.scene.add(this.settingsPanel);
 
     // FR-1.1/1.3: in-VR web browsing with tabs (each tab is a WebPanel).
     if (this.settings.enableWebPanel) {
@@ -1072,6 +1067,18 @@ export class VRApp {
       this._teardownBrowsingSystems();
     }
     this.showVRToast(t(on ? 'vr.msg.webPanelOn' : 'vr.msg.webPanelOff'), { type: 'info' });
+  }
+
+  /**
+   * Live-apply a controller dead-zone change from the settings stepper. The
+   * input layer reads `controllerInput.deadZone` every frame through
+   * applyRadialDeadZone, so writing the field is the whole apply — no rebuild.
+   * @param {number} v fraction of stick travel ignored near centre, [0, 1)
+   */
+  _onDeadZoneChanged(v) {
+    if (this.controllerInput) {
+      this.controllerInput.deadZone = v;
+    }
   }
 
   /**
@@ -1816,6 +1823,15 @@ export class VRApp {
     const steppers = [
       [t('vr.settings.snapAngle'), 'snapTurnAngle', { min: 15, max: 90, step: 15, unit: '°' }],
       [t('vr.settings.moveSpeed'), 'smoothMoveSpeed', { min: 0.5, max: 4.0, step: 0.5, unit: ' m/s' }],
+      // Thumbstick dead zone — persisted since the settings blob existed but
+      // with no write path (same unreachable-key defect class as the toggles
+      // above). Tremor users widen it to absorb jitter; precision users narrow
+      // it. Applies live: the input layer reads the field every frame.
+      [
+        t('vr.settings.deadZone'),
+        'controllerDeadZone',
+        { min: 0, max: 0.5, step: 0.05, apply: (v) => this._onDeadZoneChanged(v) }
+      ],
       [
         t('vr.settings.gazeTime'),
         'gazeDwellTime',
@@ -2023,7 +2039,7 @@ export class VRApp {
       [
         'settings.section.locomotion',
         byKey(items, ['enableTeleport', 'enableSnapTurn', 'enableSmoothMove', 'southpaw', 'enableComfort']),
-        byKey(steppers, ['snapTurnAngle', 'smoothMoveSpeed']),
+        byKey(steppers, ['snapTurnAngle', 'smoothMoveSpeed', 'controllerDeadZone']),
         cycles.filter((c) => c[1] === 'motionSensitivity'),
         []
       ],
@@ -2077,7 +2093,6 @@ export class VRApp {
     if (!Array.isArray(this.settings.openSettingsSections)) {
       this.settings.openSettingsSections = ['settings.section.a11y'];
     }
-    this._settingsSections = sections;
     const layout = layoutSettingsPanel(sections, this.settings.openSettingsSections);
 
     const bg = new THREE.Mesh(
@@ -2085,7 +2100,6 @@ export class VRApp {
       new THREE.MeshBasicMaterial({ color: 0x0a0d14, transparent: true, opacity: 0.6 })
     );
     group.add(bg);
-    this._settingsBg = bg;
 
     for (const p of layout.placements) {
       if (p.type === 'tab') {
@@ -2229,7 +2243,7 @@ export class VRApp {
     this.scene.add(this.playerRig);
 
     // Spatial window management for the in-VR browser panel (head-lock follow,
-    // billboard, distance). Attached to the active tab's group when present.
+    // distance). Attached to the active tab's group when present.
     if (this.settings.enableWebPanel) {
       this.windowManager = new WindowManager(this.camera, {
         distance: this.settings.windowDistance
@@ -2248,8 +2262,7 @@ export class VRApp {
 
     // Profile-aware, dead-zone-filtered controller input.
     this.controllerInput = new VRControllerInput({
-      deadZone: this.settings.controllerDeadZone,
-      southpaw: this.settings.southpaw
+      deadZone: this.settings.controllerDeadZone
     });
 
     // Shared ray line geometry (pointing down -Z from the controller).
@@ -3685,13 +3698,6 @@ export class VRApp {
       console.debug('VRApp: DevTools ready (F12 to toggle)');
     }
 
-    // 13. Performance monitor overlay (opt-in)
-    if (this.settings.enablePerfMonitorUI) {
-      this.perfMonitorUI = new PerformanceMonitor();
-      this.perfMonitorUI.initialize();
-      console.debug('VRApp: Performance monitor UI ready');
-    }
-
     const loadTime = performance.now() - startTime;
     console.debug(`VRApp: All systems initialized in ${loadTime.toFixed(1)}ms`);
   }
@@ -4152,7 +4158,7 @@ export class VRApp {
       this.captionSystem.update(dt * 1000);
     }
 
-    // Spatial window management: keep the active panel followed/billboarded.
+    // Spatial window management: keep the active panel followed.
     if (this.windowManager && (this.windowManager.followMode || this.windowManager.isGrabbing)) {
       // The managed target is TabManager's rootGroup, which does not change
       // with the active tab — so this only has to cover the case where the
@@ -4165,6 +4171,22 @@ export class VRApp {
     if (this.immersiveVideo) {
       this.immersiveVideo.update(dt);
     }
+  }
+
+  /**
+   * Lazily build the rich performance dashboard on first use, then toggle its
+   * visibility. The 'P' keyboard shortcut calls this — the overlay costs a DOM
+   * container plus a 1s metrics interval, so nothing is constructed until the
+   * user asks for it.
+   * @returns {boolean} whether the dashboard is now visible
+   */
+  togglePerfMonitor() {
+    if (!this.perfMonitorUI) {
+      this.perfMonitorUI = new PerformanceMonitor();
+      this.perfMonitorUI.initialize();
+    }
+    this.perfMonitorUI.toggle();
+    return this.perfMonitorUI.visible;
   }
 
   /**

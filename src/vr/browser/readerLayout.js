@@ -37,7 +37,7 @@ export const MEASURE_EM = 34;
 // through the same onSelect path.
 export const ARROW_W = 96;
 export const ARROW_H = 72;
-export const ARROW_GAP = 12;
+const ARROW_GAP = 12;
 export const ARROW_Y0 = CONTENT_PX_H - ARROW_H - 16;
 export const ARROW_DN_X0 = CONTENT_PX_W - ARROW_W - 16;
 export const ARROW_UP_X0 = ARROW_DN_X0 - ARROW_W - ARROW_GAP;
@@ -54,14 +54,13 @@ export const ARROW_UP_X0 = ARROW_DN_X0 - ARROW_W - ARROW_GAP;
  * with the reader text-scale control that low-vision users need — at scale 1.3
  * the last line collides with the progress label as well.
  */
-export const CONTENT_BOTTOM_GAP = 8;
-export const CONTENT_BOTTOM_RESERVED = (CONTENT_PX_H - ARROW_Y0) + CONTENT_BOTTOM_GAP;
+const CONTENT_BOTTOM_GAP = 8;
+export const CONTENT_BOTTOM_RESERVED = CONTENT_PX_H - ARROW_Y0 + CONTENT_BOTTOM_GAP;
 
 /** Lines that fit the viewport at a given scale. */
 export function visibleLineCount(scale = 1, reserveBottom = false) {
   const lh = LINE_H * (scale > 0 ? scale : 1);
-  const avail = CONTENT_PX_H - 2 * CONTENT_PAD
-    - (reserveBottom ? CONTENT_BOTTOM_RESERVED : 0);
+  const avail = CONTENT_PX_H - 2 * CONTENT_PAD - (reserveBottom ? CONTENT_BOTTOM_RESERVED : 0);
   return Math.max(1, Math.floor(avail / lh));
 }
 
@@ -113,7 +112,7 @@ export function measureEmFor(scale = 1) {
  * @param {number} scale
  * @returns {number} em
  */
-export function measureEmForStyle(style, scale = 1) {
+function measureEmForStyle(style, scale = 1) {
   const textW = CONTENT_PX_W - 2 * CONTENT_PAD;
   return Math.min(measureEmFor(scale), safeMeasureEm(textW, fontPxFor(style, scale)));
 }
@@ -214,7 +213,6 @@ export function readerProgressLabel(offset, total, visible) {
   const start = clampReaderScroll(offset, n, v);
   return `${start + 1}–${Math.min(start + v, n)}/${n}`;
 }
-
 
 /**
  * Lines a page-jump moves.

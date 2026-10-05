@@ -28,7 +28,6 @@ const DOCUMENTATION_FILES = [
   'PROJECT_STATUS.md',
   'RELEASE_CHECKLIST.md',
   'FINAL_RELEASE_SUMMARY_v2.0.0.md',
-  'docs/API.md',
   'docs/USAGE_GUIDE.md',
   'docs/DEPLOYMENT_GUIDE.md',
   'docs/BUILD_OPTIMIZATION_GUIDE.md',
@@ -198,7 +197,6 @@ function main() {
     'Dockerfile',
     'docker-compose.yml',
     'netlify.toml',
-    'vercel.json',
     '.github/workflows/ci.yml',
     '.github/workflows/cd.yml',
     'src/app.js',
@@ -231,11 +229,7 @@ function main() {
     console.log(`  Package version: ${version}`);
 
     // Check version in key documentation files
-    const versionFiles = [
-      'README.md',
-      'PROJECT_STATUS.md',
-      'FINAL_RELEASE_SUMMARY_v2.0.0.md'
-    ];
+    const versionFiles = ['README.md', 'PROJECT_STATUS.md', 'FINAL_RELEASE_SUMMARY_v2.0.0.md'];
 
     let versionConsistent = true;
     for (const file of versionFiles) {

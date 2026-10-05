@@ -22,7 +22,6 @@ import {
   SCROLL_DN_X1,
   hitTest,
   uvToPixels,
-  truncate,
   ROW_TEXT_X,
   ROW_TEXT_W,
   ROW_TITLE_EM,

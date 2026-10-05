@@ -12,14 +12,11 @@
 ~~- Session 312: EN end/halt/dispose 俗語動詞(end it/halt it/snip/chop/murder/smite)・needs-to-go・time-to-close・go/come close it・bye tab・JA とくれ/おくれ/んとくれ・てなよ/てわよ・ちゃうなら/ちゃったほうが・許可問い(てもいいよね/ええか)・dict名詞尾XXXI(慣例/原則/規範/ルール 等)~~
 ~~- Session 312: 'scram/beat it/get lost/begone'(話者解散)・'close off/shut off/shut out/cut that/stop the tab'(曖昧)は意図的に未ルート；'ておる/とる' 進行形は describe-tab 正当ヒットでピン見送り~~
 
-
 ~~- Session 311: EN 俗語処分動詞(bin/chuck/junk/nuke/kill/ditch/dump/toss 等)・close-all 俗語形・JA じゃい/まえよう/ておいちゃ/ちゃうけど・dict名詞尾XXX(定石/鉄則/王道 等)・閉鎖願い系が negate 複写リテラルに誤爆~~
 ~~- Session 311: 'wind it up'/'put a lid on it'/'lose it' は閉じ意図不明瞭のため意図的に未ルートのまま（false-positive 回避）~~
 
-
 ~~- Session 310: vocative 尾(man/pal/champ/love/darling/honey/guys/yall)・hey browser/bruh/dude 前置・do-X-a-favour・theres-a-love・er/'em eye-dialect・JA てんか/なはれ/おくり/もうて/たろか/させます 未ルート群~~
 ~~- Session 310: 曖昧処分句(sort it out/take care of it/deal with it/handle it)は破壊的操作と断定不可 → ack へ（'off with it' 系の明確な処分慣用句のみ close-tab）~~
-
 
 ~~- Session 309: "close every tab" が close-tab-by-name 誤ルート（lookahead に every/each/both/those/these 追加で解消）~~
 ~~- Session 309: silent-probe 検出の約90件残留（negate 見送り/断念枠、かね/たもれ/至急尾、close-all every 形、pin current、bookmark add-to、reopen 誤って形、EN discourse 前置、quick-ism 語尾、ordinal from-the-right）~~
@@ -32,17 +29,17 @@
 A-1 / A-2 は Session 38 から凍結されていたが、ユーザーが「イーロン・マスク思考法で完成させて」を
 指示したことで解除。**削除した 129,204 行はすべて git 履歴に残る**ので、本当に必要になれば戻せる。
 
-| 対象 | 行数 | 削除理由（すべて実測） |
-|---|---|---|
-| `assets/js/` | 119,698 | `src/` の旧並行実装。live 参照ゼロ（唯一の参照元 `tests/archive/` も同時削除＝閉じた死のペア） |
-| `tests/archive/` | 4,276 | テスト実行から除外済みの stale ファイル |
-| `src/vr/multiplayer/` | 1,390 | `enableMultiplayer` 既定 false で**トグルが存在せず**、加えて**リポジトリに signaling サーバが無い**ので第2ピアは原理的に接続不能 |
-| `server/` + `api/` | 1,235 | Stripe 課金。`src/` に決済 UI が皆無、DB も無し、fail-closed スタブのみ |
-| `src/vr/ar/MixedReality.js` | 963 | `startSession()` の呼び出し元ゼロ → `enabled` が真にならず `update()` も通らない |
-| `src/ai/AIRecommendation.js` | 638 | 唯一の出力 `getRecommendations()` に消費者ゼロ。Session 33 で出力は空に濾過済み |
-| `src/vr/rendering/WebGPURenderer.js` | 600 | `new` と `dispose` のみ。レンダーループ未接続 |
-| `src/utils/ObjectPool.js` | 404 | 参照ゼロ（Session 34 で最後の消費者を削除） |
-| **合計** | **129,204** | |
+| 対象                                 | 行数        | 削除理由（すべて実測）                                                                                                            |
+| ------------------------------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `assets/js/`                         | 119,698     | `src/` の旧並行実装。live 参照ゼロ（唯一の参照元 `tests/archive/` も同時削除＝閉じた死のペア）                                    |
+| `tests/archive/`                     | 4,276       | テスト実行から除外済みの stale ファイル                                                                                           |
+| `src/vr/multiplayer/`                | 1,390       | `enableMultiplayer` 既定 false で**トグルが存在せず**、加えて**リポジトリに signaling サーバが無い**ので第2ピアは原理的に接続不能 |
+| `server/` + `api/`                   | 1,235       | Stripe 課金。`src/` に決済 UI が皆無、DB も無し、fail-closed スタブのみ                                                           |
+| `src/vr/ar/MixedReality.js`          | 963         | `startSession()` の呼び出し元ゼロ → `enabled` が真にならず `update()` も通らない                                                  |
+| `src/ai/AIRecommendation.js`         | 638         | 唯一の出力 `getRecommendations()` に消費者ゼロ。Session 33 で出力は空に濾過済み                                                   |
+| `src/vr/rendering/WebGPURenderer.js` | 600         | `new` と `dispose` のみ。レンダーループ未接続                                                                                     |
+| `src/utils/ObjectPool.js`            | 404         | 参照ゼロ（Session 34 で最後の消費者を削除）                                                                                       |
+| **合計**                             | **129,204** |                                                                                                                                   |
 
 あわせて削除: 専用テスト6ファイル、`tsconfig.json`（`.ts` ファイルはゼロ）、
 未使用 devDependencies **19件**（webpack ツールチェーン一式 + TypeScript）、
@@ -51,19 +48,20 @@ A-1 / A-2 は Session 38 から凍結されていたが、ユーザーが「イ�
 
 ### 実測された効果
 
-| 指標 | before | after |
-|---|---|---|
-| リポジトリの JS | 165,443 行 | **36,239 行（−78%）** |
-| 出荷バンドル（gzip） | 235.2 kB | **218.9 kB（−6.9%）** |
-| lockfile のパッケージ数 | 807 | **474（−333）** |
-| runtime dependencies | 9 | **2**（`three`, `web-vitals`） |
-| lint warnings | 84 | **50** |
-| テスト | 1,477 | 1,348（削除したコードのテスト129件が同時に消えた） |
+| 指標                    | before     | after                                              |
+| ----------------------- | ---------- | -------------------------------------------------- |
+| リポジトリの JS         | 165,443 行 | **36,239 行（−78%）**                              |
+| 出荷バンドル（gzip）    | 235.2 kB   | **218.9 kB（−6.9%）**                              |
+| lockfile のパッケージ数 | 807        | **474（−333）**                                    |
+| runtime dependencies    | 9          | **2**（`three`, `web-vitals`）                     |
+| lint warnings           | 84         | **50**                                             |
+| テスト                  | 1,477      | 1,348（削除したコードのテスト129件が同時に消えた） |
 
 **テスト数が減ったことは劣化ではない** —— 消えたのは到達不能なコードを検証していたテストで、
 残った 1,348 件はすべてユーザーが到達できる経路を守っている。
 
 ### 戻す（add back）候補
+
 マスクのアルゴリズムは「削除しすぎたら 10% を戻せ」と言う。現時点で戻す価値があるのは
 **`server/` を SSRF 対策付きの取得プロキシとして作り直すこと**だけ（F-1 参照）。
 課金・マルチプレイヤ・AI・WebGPU・AR は戻す理由が現状無い。
@@ -83,24 +81,28 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 ## B. 調査済み・意図的に未修正（理由付き）
 
 ### B-1. `DeviceCompatibility.js` の AR 機能フラグが不正確（優先度: 低、難易度: 低〜中）
+
 - **場所**: `src/utils/DeviceCompatibility.js` の `_probeOptionalFeatures(xr, vrSupported, tier)`（86–116行目）
 - **問題**: `hitTest`/`anchors`/`planeDetection` は本来 AR（`immersive-ar`）セッションの機能だが、`vrSupported` を基準に判定しており、`arSupported` を一切参照していない（`check()` 内でも `arSupported` はこの関数に渡されていない）。VR専用でARに非対応な端末があれば誤った値になる。
 - **なぜ未修正か**: `deviceCompat.check()` の戻り値のうち、VRApp が実際に読むのは `deviceTier`（`targetFPS()` 経由）だけ。`hitTest`/`anchors`/`planeDetection`/`eyeTracking` はどこからも参照されていない（`grep` で確認済み）。つまり不正確ではあるが実害ゼロの死んだ計算値。
 - **対応するなら**: `check()` 内で `this._probeOptionalFeatures(xr, vrSupported, deviceTier, arSupported)` のように `arSupported` を渡し、AR系フラグは `arSupported` を基準に判定するよう修正。ただし前述の通り消費者が存在しないため、優先度は低い。
 
 ### B-2. `curvedGeometry.js` の頂点インデックスバッファがオーバーフローしうる（優先度: 低、難易度: 低）
+
 - **場所**: `src/vr/browser/curvedGeometry.js` の `curvedPlaneData()`（57行目: `new Uint16Array(sx * sy * 6)`）
 - **問題**: `Uint16Array` は 65,535 が上限。`cols * rows`（= `(segmentsX+1) * (segmentsY+1)`）がこれを超えると、頂点インデックスが暗黙にラップして破損したジオメトリになる（エラーは出ない）。
 - **なぜ未修正か**: 唯一の呼び出し元 `src/vr/browser/WebPanel.js:549-554` は `segmentsX: 24, segmentsY: 1` を固定値で渡しており、頂点数は50。65,536に到達する余地が現状ゼロ。
 - **対応するなら**: `cols * rows > 65536` の場合は `Uint32Array` にフォールバックする（`geo.setIndex` は Uint32BufferAttribute も受け付ける）。ただし今日的には到達不能なので優先度は低い。
 
 ### B-3. `TextureManager` 経由ではない `ProgressiveLoader.getAdaptiveUrl()` の非冪等性（優先度: 低、難易度: 中）
+
 - **場所**: `src/utils/ProgressiveLoader.js` の `loadResource()`（216–259行目付近）と `getAdaptiveUrl()`（452–470行目付近）
 - **問題**: `getAdaptiveUrl()` は拡張子の直前に品質サフィックスを挿入する（例: `photo.jpg` → `photo_high.jpg`）が、冪等ではない。`loadResource()` の再試行パスは自分自身を再帰呼び出しするため、リトライのたびに `item.url`（既に加工済み）に対して再度 `getAdaptiveUrl()` が適用され、`photo_high.jpg` → `photo_high_high.jpg` のようにサフィックスが累積し、ほぼ確実に404になる。
 - **なぜ未修正か**: `strategy.adaptiveQuality` はデフォルト `true` だが、現行コードで `addResource`/`loadResource` を実際に呼んでいるのは `VRApp.loadAudioAssets()` のみで、これは `.mp3` しか読み込まない。`getAdaptiveUrl()` の対象拡張子は `/\.(jpg|jpeg|png|webp|mp4|webm)$/i` なので `.mp3` にはマッチせず、このバグ自体は現状どこからも到達しない。
 - **対応するなら**: 加工済みURLかどうかを判定する（例えば正規表現でサフィックス済みかチェックする）か、リトライ時は「オリジナルURL」を別フィールドで保持し、毎回オリジナルから再導出する設計に直す。画像/動画を実際にロードする呼び出し元が将来追加されたときに顕在化するバグなので、その時点で一緒に直すのが自然。
 
 ### B-4. `TabManager` のタブストリップのホバー色がdispose時にリセットされない（優先度: 極低、難易度: 低）
+
 - **場所**: `src/vr/browser/TabManager.js` の `stripMesh` のホバーハンドラ（73–79行目）と `dispose()`（324行目以降）
 - **問題**（Session 25 で指摘、未修正のまま）: `dispose()` は `unregisterInteractable(stripMesh)` を呼ぶが、ホバー中に破棄されると、次フレームの `updateHover()` が「以前ホバーしていたオブジェクト」の `onHoverEnd` を呼び、既に破棄済みの `material.color.set(...)` を実行する。
 - **なぜ優先度が低いか**: 自分で追跡・検証済み。`THREE.Material.dispose()` は `.color`（Colorインスタンス）自体をnullにしない — GPUリソース解放をレンダラーに通知するだけなので、破棄後に `.color.set()` を呼んでも例外は出ず、単に無駄な代入が発生するだけ。実害（クラッシュや誤表示）は無い。
@@ -111,26 +113,31 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 ## C. ロードマップ Phase 3（未着手・大規模リファクタ）
 
 ### C-1. AccessibilityCoordinator への切り出し（優先度: 中、難易度: 高）— **完了（Session 44, 45, 47）**
+
 - **対象**: `src/vr/VRApp.js`（3,100行超）に散在する `captionSystem`/`hapticFeedback`/`gazeInteraction` を専用クラス `src/vr/accessibility/AccessibilityCoordinator.js` に集約する。
 - **理由**: VRApp が肥大化しており、アクセシビリティ設定のテスト・保守が困難。CLAUDE.md 冒頭の "Critical Gaps #4" として記録済み。
 - **完了内容**: `captionSystem`（Session 44）、`hapticFeedback`（Session 45）、`gazeInteraction`（Session 47）の3系統すべてを `AccessibilityCoordinator` に移動。VRApp側は各々に `get`/`set` を追加し、`this.a11y.X` に委譲。既存の全呼び出し箇所（構築・設定パネルの `apply` クロージャ・毎フレームの gaze-dwell ポーリング・dispose・`notifyCrossModal`/`fireTeleportFeedback` 等の呼び出し、合計40箇所以上）は一切変更不要——`tests/vr-app-wiring.test.js` の既存テストも無変更のまま通過することを確認済み。3系統とも「field-decl null → 構築 →（hapticFeedbackのみ）dispose時null再代入」という同一の形をしており、同じ getter/setter パターンがそのまま適用できた。挙動を変えない安全なリファクタであることを検証済み（フルスイート953件、無変更で通過）。
 - **スコープ外と判断したもの**: `highContrast`/`motionSensitivity`/`windowDistance` の同期ロジックは ComfortSystem/WindowManager 向けであり、この4系統（caption/haptic/gaze + 元々のhigh-contrast同期）のうち前者3つのみを対象とした。`highContrast` トグルの複合クロージャ（VRApp.js ~1177行）は `captionSystem.setHighContrast()`/`gazeInteraction.setHighContrast()` を呼ぶが、これらは対象オブジェクトのメソッド呼び出しであり `this.captionSystem`/`this.gazeInteraction` 自体の再代入ではないため、getter経由で問題なく動作する。
 
 ### C-2. 設定パネルのグルーピング（優先度: 低、難易度: 中）
+
 - **対象**: `src/vr/VRApp.js` の `createSettingsPanel()` 付近。20以上の設定項目が単一の2カラムレイアウトに未分類で並んでいる。
 - **理由**: UX上の発見性の問題（CLAUDE.md "Medium-Priority Gaps #5"）。ロコモーション/アクセシビリティ/レンダリング/オプション機能ごとに折りたたみセクション化し、各ボタンにヘルプテキスト（キャプション経由）を追加する。
 
 ### C-3. Top Sites の視覚的スピードダイヤルタイル（**Session 75 で解決** — 描画先は BookmarkPanel 第3タブではなく新規タブページ）
+
 - **対象**: `src/vr/browser/BookmarkPanel.js`
 - **理由**: Session 16/17 でフレセンシーランキング機能自体（データ層・音声コマンド）は実装済みだが、視覚的な「よく使うサイト」タイル表示は未実装のまま。
 - **解決（Session 75）**: BookmarkPanel にタブを足すのではなく、**新規タブの 'empty' 状態に Top Sites を描く**形で実現（Firefox/Chrome の新規タブページと同じ置き方。`topSitesLayout.js` の4列×最大8タイル + `hitTestTopSites` で dwell 選択 → navigate）。これにより元の「タブ追加でスクロール矢印ゾーンと衝突」という保留理由自体が不要になった。
 
 ### C-4. `MixedReality`（AR/パススルー）が完全に未配線（優先度: 中、難易度: 高、Session 49 で発見）
+
 - **対象**: `src/vr/ar/MixedReality.js`（963行）、`src/vr/VRApp.js`（`initializeSystems()` の `checkSupport()` 呼び出しのみ）
 - **現状**: `VRApp` は `new MixedReality(...)` を構築し `checkSupport()` を呼ぶだけ。`enabled` フラグは `startSession()` の中でのみ `true` になるが、`startSession()` を呼ぶコード（設定パネルボタン・音声コマンド・メニュー等）がリポジトリ内に一つも存在しない。平面/メッシュ検出・ヒットテスト設置・IndexedDB永続化アンカーなど、docstring に書かれた機能一式が実行時には完全に不動作 — Session 39 で削除した `AvatarSystem`（完全に重複した未配線コード）と同型だが、こちらは重複ではなく本当に唯一のAR実装なので削除ではなく配線が必要。
 - **保留理由**: (1) 実機（Quest 3等のARパススルー対応ヘッドセット）がないと動作検証不能。(2) WebXRの `immersive-vr` セッションが既に張られている状態で `immersive-ar` セッションをどう共存/切り替えするかという設計判断が必要（同時に2セッションは張れない仕様のため、既存VRセッションの終了 or 専用の入場フローが要る）。(3) 新規UI導入（設定パネル or 専用ボタン）+ 入力配線のセットが必要で、一発修正では終わらない規模。着手する場合はPlanエージェントで事前設計してから。
 
 ### C-5. `enableWebPanel` が到達不能だった（優先度: 高、Session 51 で発見・部分修正）
+
 - **対象**: `src/vr/VRApp.js`（`settings.enableWebPanel` の既定値および参照箇所: 229, 546, 1318, 1509, 2476行目付近）
 - **発見の経緯**: マルチエージェントの並行監査ワークフローが「BookmarkPanel の scrollOffset 未クランプ」「LayersSystem の XRQuadLayer リーク」「WindowManager の grab 競合」という3件の候補バグを個別に「到達可能」と判定したが、うち1件（WindowManager 競合）を担当した検証エージェントが独自に `enableWebPanel` の既定値・構築経路を追跡した結果、**この設定が day 1 から `false` 固定で、設定パネル・音声コマンド・永続化設定のどの経路からも real user が `true` にする手段が一切存在しない**ことを発見。直接確認した結果、`tabManager`/`webPanel`/`bookmarkPanel`/`windowManager` の構築（546–668行目）および `_attachLayersToPanels()`（2476行目）は全て同じ `if (this.settings.enableWebPanel)` にゲートされており、`docs/SPEC.md` が FR-1.2〜FR-1.7（URL バー・タブ・ブックマーク・Layers・ウィンドウ管理・湾曲パネル）を軒並み「✅ 実装済み」と記載しているにもかかわらず、**25セッション分（Session 25前後〜48）の機能追加・改修が実際のアプリでは一度も real user に到達したことがない**という結論に至った。この事実確認により、上記3件の候補バグのうち BookmarkPanel と LayersSystem の2件は「機能自体は本物のバグだが、現状は enableWebPanel が false のため到達不能」であり、WindowManager 競合の1件は明確に到達不能と判定された。
 - **Session 51（部分修正）**: 設定パネルに `enableWebPanel` のトグルを追加。ただし対象サブシステムの構築が `initializeSystems()`（constructor から一度だけ実行）に埋まっていたため、**トグルは「リロードが必要」と告げるだけで何もしなかった**。
@@ -139,11 +146,11 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
   - `_buildBrowsingSystems()` は冪等（二重トグルでパネルが二重生成されない）。`_teardownBrowsingSystems()` は interactable を確実に解放する（S49 のゴーストハンド・S52 の quad layer と同じ失敗モードを避けるため）。
   - i18n は `vr.msg.webPanelReloadRequired` を廃し、実際に起きたことを言う `vr.msg.webPanelOn` / `webPanelOff` に置換。
 - **「表示できません」画面を行き止まりから道標に変えた（Session 74）**: 従来のメッセージは
-「in-headset rendering is not supported」だけで、①原因（サイトが CORS を返さない）も
-②解決策（取得プロキシ）も伝えていなかった。しかもプロキシ実装後は**事実として誤り**でもあった
-（プロキシを動かせば描画できる）。現在はプロキシ設定の有無で文言を出し分ける ——
-未設定なら「このサイトは CORS ヘッダを返さない → reader proxy を動かせ（docs/PROXY.md）」、
-設定済みなら「プロキシが取得できなかった」。実測した列幅予算にも収まることを確認済み。
+  「in-headset rendering is not supported」だけで、①原因（サイトが CORS を返さない）も
+  ②解決策（取得プロキシ）も伝えていなかった。しかもプロキシ実装後は**事実として誤り**でもあった
+  （プロキシを動かせば描画できる）。現在はプロキシ設定の有無で文言を出し分ける ——
+  未設定なら「このサイトは CORS ヘッダを返さない → reader proxy を動かせ（docs/PROXY.md）」、
+  設定済みなら「プロキシが取得できなかった」。実測した列幅予算にも収まることを確認済み。
 
 **既定値は Session 74 で `true` に変更（決着）**: false を正当化していた実測条件は
 ①リーダー不在（S61 で実装）②行き止まりのエラー画面（#50 で原因+解決策を明示）
@@ -635,6 +642,7 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 ~~Voice: 失礼します/お先に/close session 別れ句II・EN 褒め句残り~~ — **Session 176 で実装**
 ~~Bug: '進められない' が navigate を実行（可能/否定形の lookahead 欠落）~~ — **Session 176 で修正**
 ~~JA 過去て尾（てきた/てきます/ていった/ておいた）~~ — **Session 175 で実装**
+
 - ~~JA 状態報告（たまま/たばかり）・傾向報告（がち）・障害報告語彙（バグった/詰まった/お手上げ/最悪）~~ — **Session 175 で実装**
 - ~~JA 二重否定・義務の実行化（なくはない/わけにはいかない/ざるを得ない）~~ — **Session 175 で実装**
 - ~~JA 婉曲不能（かねる/かねます）→help・困ってる系~~ — **Session 175 で実装**
@@ -642,6 +650,7 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~EN courtesy frames（anyway/btw/see if you can/might i trouble you）+ immediacy tails（right now/asap/if you dont mind）~~ — **Session 175 で実装**
 
 ~~JA 副詞/へッジ開放子（さあ/ほら/やっぱり/できれば/可能なら/よかったら/もしよければ/よろしければ/良ければ）~~ — **Session 174 で実装**
+
 - ~~提案疑問枠（てはどう/いかが、たらどうかな/いいか）+ てみて 尾~~ — **Session 174 で実装**
 - ~~意向報告（Xようと思って/と思う）の動詞化~~ — **Session 174 で実装**
 - ~~方言依頼尾（ておくれ、ちゃおうかな/じゃおうかな、たりして/だり）~~ — **Session 174 で実装**
@@ -679,6 +688,7 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 ~~'was it ~' 過去形質問・不確実句（dunno/かも/だっけ）~~ — **Session 168 で実装**
 ~~zoom way in/out・unzoom・brightness EN 形~~ — **Session 168 で実装**
 ~~**既定値そのもの（`false`）は依然として意図的に未変更**~~（旧記録・上記で決着）: 実測どおり一般サイトは CORS を返さないため、プロキシ無しでは大半の遷移が「表示できません」になる（J-3）。ただし**トグルがその場で効くようになったので、ユーザーはヘッドセットを外さずに1タップで有効化できる** —— 到達不能性の問題は解消済み。既定値はプロダクト判断としてユーザーの名指し待ち。
+
 - **検証済みだった残課題2件 — 両方 Session 52 で修正完了**（`enableWebPanel: true` にして初めて到達可能になるが、トグルで到達可能になったため対応した）:
   - ~~**BookmarkPanel の scrollOffset 未クランプ**~~ — **完了（Session 52）**。共有ヘルパー `_clampScroll(rowCount)` を追加し、`_draw()`・`_onSelect()`（ヒットテスト前）・`deleteRow` ケースの3経路すべてがこれを通すようにした。チロームバー☆ボタン等パネル外経路でブックマークが減っても、描画・クリック双方でスタックした offset がクランプされ、空白ページ＋全クリック死亡が起きなくなった。3テスト（`tests/bookmark-panel.test.js`、うち2件 pre-fix で fail 確認）。
   - ~~**LayersSystem の XRQuadLayer リーク**~~ — **完了（Session 52）**。`WebPanel.enableLayerMode()` に layer id と detach コールバックを渡すよう拡張し、`disableLayerMode(releaseLayer=true)`（タブ close→dispose 経路）が `VRApp._detachPanelLayer(id)` 経由で `LayersSystem.removeLayer(id, session, baseLayer)` を呼んでネイティブ層をレンダーステートから外すようにした。session-end のバルクテアダウンは `disableLayerMode(false)` を渡す（`dispose()` が層スタックごと破棄するうえ、終了中セッションへの `updateRenderState()` は throw するため）。WebPanel は XRSession を知らないまま（session/baseLayer 解決は VRApp 側）。8テスト（`tests/webpanel-states.test.js` 5件・`tests/vr-app-wiring.test.js` 2件・pre-fix で fail 確認、`removeLayer` 単体は既に `tests/layers-system.test.js` でカバー済み）。
@@ -691,19 +701,24 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 最新論文・プラットフォーム動向を調査（W3C XAUR、VR酔い軽減研究 2025、WebXR 2026 動向、VRテキスト入力、VRキャプション研究）。**実装済み機能の多くは研究と整合**しており（例: `FFRSystem` の head-motion ベース適応FFRは arXiv:2502.03419 と同方向、ヘッドロック字幕は arXiv:2210.15072 の82.5%支持と一致）、大きな欠陥は無かった。Session 46 で 2件を実装済み（適応型ビネット、字幕高さ調整）。以下は調査で挙がったが**今回実装しない**候補と根拠。
 
 ### D-1. キャプションの lag（遅延追従）オプション（優先度: 低）
+
 - Live Captions in VR (arXiv:2210.15072) は head-locked / lag / appear の3挙動を比較。ただし82.5%が単純なヘッドロック支持であり、現行のヘッドロック実装で研究上の最適解を満たしている。lag はごく一部のユーザー向けの微調整に留まるため優先度低。
 
 ### D-2. WebXR-WebGPU Binding 対応（優先度: 中、難易度: 高）
+
 - WebGPU が 2026-01 に全ブラウザ Baseline 化、WebXR-WebGPU Binding が Editor's Draft（2026-06）。Three.js の WebGPURenderer 経由で native-class 性能が得られる。`src/vr/rendering/WebGPURenderer.js` は実験的スタブのまま。レンダリングパイプライン全体に関わる大規模変更のため、Plan エージェントでの事前設計が必須。出典: https://vr.org/articles/webgpu-baseline-2026-three-js-webxr-default
 
 ### D-3. Quest Browser 40.4 の Depth API ヒットテスト（優先度: 低、難易度: 中、実機必須）
+
 - Horizon Browser 40.4 で WebXR Hit Testing が Depth API ベースになり、MR での instant placement が可能に。`src/vr/ar/MixedReality.js` に関連。ただし Quest 3/3S 実機がないと検証不能。出典: https://www.uploadvr.com/quest-browser-depth-api-webxr-hit-testing-instant-placement/
 
 ### D-4. キーボード候補表示UI — **完了（Session 48）**
+
 - 視線タイピングは 8–10 WPM が限界（Text Entry for XR Trove, arXiv:2503.11357）。予測入力・候補提示で補うのが定石。既存の `BookmarkStore.search()`（frecency ランキング、Session 18 実装済み）を流用。
 - **実装内容**: `VRJapaneseKeyboard` に `suggestionProvider` オプションと `showSuggestions()`/`_clearSuggestions()`/`_updateSuggestions()` を追加。2文字以上の入力で毎キーストローク候補を最大4件表示（漢字変換候補行と同じストリップゾーンを共有・相互排他）。候補選択で URL を直接確定（キーボードを閉じてナビゲート）。ホバーで**フルURL**をキャプション読み上げ（WCAG 1.3.3）。provider 例外はタイピングを壊さない。`compositionBuffer` は生のローマ字のまま保持されるため ASCII URL のマッチングに問題なし（変換は表示用の戻り値のみ）。VRApp 側は `suggestionProvider: (q) => this.bookmarks.search(q, 4, Date.now())` の1行配線。15テスト（全て pre-fix で fail 確認済み）。
 
 ### D-5. rest frame 研究（実装不要・確認済み）
+
 - A Rest Frame Design to Mitigate Cybersickness (arXiv:2502.15227) は周辺視野に静止フレームを置く手法。本アプリの `enableHomeEnvironment`（床+グリッド+スカイ、既定ON）が事実上の静的 rest frame として機能しており、研究知見を既に満たしている。追加実装不要。
 
 ---
@@ -713,6 +728,7 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 56セッションの改善で検証済みバグは枯渇。直近4イテレーション（Session 53-56）は「実装済みだが未配線の機能の表面化」（Sound Volume / Haptics / Clear History）に移行した。以下は現時点の正直な棚卸し。実行時のモデル使い分けは `docs/INSTRUCTIONS_OPUS.md` / `docs/INSTRUCTIONS_SONNET.md` を参照。
 
 ### 長所（維持すべきもの）
+
 - **検証規律**: 1020テスト/46スイート・lint 0エラー（84件の既存 no-console warning は不変）・build green。新テストは pre-fix で fail 確認済み（`git stash` 方式）。
 - **クロスモーダル a11y**: 全ユーザー可視イベントが caption + haptic + toast + semantic DOM を通る（`showVRToast` / `notifyCrossModal`）。
 - **i18n**: 全 UI 文字列が en+ja（`src/i18n/i18n.js`、`t()` 経由）。
@@ -720,6 +736,7 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - **公開準備完了のソース**: main（tested・release-ready・サブパス対応ビルド）。オーナー手順は `docs/PUBLISHING.md`。
 
 ### 短所（未解決）
+
 - **`enableWebPanel` 既定 false**: ただし Session 74 でトグルが**その場で効く**ようになったため、ヘッドセットを外さず1タップで有効化できる。既定値変更のみプロダクト判断（C-5）。
 - ~~**設定パネルの飽和**~~ — **Session 74 で解消**（アコーディオン化、J-0/J-1）。
 - **VRApp モノリス（~3300行）**: 分割は AccessibilityCoordinator パターンで継続可能だが未完。
@@ -729,15 +746,16 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - ~~**凍結事項 A-1/A-2**~~ — **Session 74 で削除完了**。workflow の破損は依然 403 で修正不能（K-1、オーナー作業）。
 
 ### 改善案（優先度・推奨モデル付き）
-| ID | 改善案 | 優先度 | 推奨 | 受け入れ基準 |
-|----|--------|--------|------|-------------|
-| E-1 | 設定パネルのグルーピング（=C-2） | 高 | Opus | レイアウトを pure 関数化しテスト・全設定到達可能・告知機能維持 |
-| E-2 | ~~実ブラウザ検証~~ — **部分完了（Session 68）**: `npm run verify:layout` が実 Chromium で本番の折り返し×実フォントを検証（依存ゼロ）。**残**: ページ全体のスモーク（build→preview→console error 0→Enter VR/SW）は未着手。死んでいた `test:e2e` は削除済み | 中 | Opus | スモーク側は別途 |
-| ~~E-3~~ | ~~効果音のプロシージャル生成フォールバック~~ — **完了（Session 58）**: `synthesizeToneSamples` + `SpatialAudio.registerProceduralBuffer` + VRApp で buffer/source を確保。mp3 未コミットで二重に無音だった問題を解消。 | — | — | — |
-| ~~E-4~~ | ~~Clear History の音声コマンド化~~ — **完了（Session 59）**: `clear-history` コマンド（ja/en、confirmationText 付き）を追加し `_clearBrowsingHistory()` に配線。go-to より前に登録。 | — | — | — |
-| E-5 | README/CHANGELOG の現状同期（陳腐化した主張の修正） | 低 | Sonnet | 実測に基づく数値・リンクのみ |
-| ~~E-6~~ | ~~Top Sites タイル（=C-3）~~ — **完了（Session 75）**: 新規タブ 'empty' 状態に描画 + `hitTestTopSites` で選択。タイル幾何・ヒットテスト・選択→navigate をテストで固定。 | — | — | — |
-| E-7 | MixedReality 配線（=C-4） | 中 | Opus | Plan エージェント必須・実機検証不能の制約明記 |
+
+| ID      | 改善案                                                                                                                                                                                                                                                    | 優先度 | 推奨   | 受け入れ基準                                                   |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ------ | -------------------------------------------------------------- |
+| E-1     | 設定パネルのグルーピング（=C-2）                                                                                                                                                                                                                          | 高     | Opus   | レイアウトを pure 関数化しテスト・全設定到達可能・告知機能維持 |
+| E-2     | ~~実ブラウザ検証~~ — **部分完了（Session 68）**: `npm run verify:layout` が実 Chromium で本番の折り返し×実フォントを検証（依存ゼロ）。**残**: ページ全体のスモーク（build→preview→console error 0→Enter VR/SW）は未着手。死んでいた `test:e2e` は削除済み | 中     | Opus   | スモーク側は別途                                               |
+| ~~E-3~~ | ~~効果音のプロシージャル生成フォールバック~~ — **完了（Session 58）**: `synthesizeToneSamples` + `SpatialAudio.registerProceduralBuffer` + VRApp で buffer/source を確保。mp3 未コミットで二重に無音だった問題を解消。                                    | —      | —      | —                                                              |
+| ~~E-4~~ | ~~Clear History の音声コマンド化~~ — **完了（Session 59）**: `clear-history` コマンド（ja/en、confirmationText 付き）を追加し `_clearBrowsingHistory()` に配線。go-to より前に登録。                                                                      | —      | —      | —                                                              |
+| E-5     | README/CHANGELOG の現状同期（陳腐化した主張の修正）                                                                                                                                                                                                       | 低     | Sonnet | 実測に基づく数値・リンクのみ                                   |
+| ~~E-6~~ | ~~Top Sites タイル（=C-3）~~ — **完了（Session 75）**: 新規タブ 'empty' 状態に描画 + `hitTestTopSites` で選択。タイル幾何・ヒットテスト・選択→navigate をテストで固定。                                                                                   | —      | —      | —                                                              |
+| E-7     | MixedReality 配線（=C-4）                                                                                                                                                                                                                                 | 中     | Opus   | Plan エージェント必須・実機検証不能の制約明記                  |
 
 ---
 
@@ -746,9 +764,11 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 59セッションはすべて「既存コードの監査」という枠内だった。前提を外し「ブラウザとは何のための道具か → 不可欠な原子は何か」から測り直した結果、枠内では見えなかった構造的問題が出た。**すべて grep で直接検証済み。**
 
 ### F-1. 原子②「コンテンツ表示」が構造的に存在しない（最重要）
+
 Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** → ③読む → ④操作 → ⑤戻る → ⑥保存。この製品は ①③(部分)⑤⑥ を持ち、**②が無い**。③④も②に依存するため不成立。
 
 検証事実:
+
 - `WebPanel.onDomOverlayStart()`（iframe を可視化する唯一の関数）は**呼び出し元ゼロ**
 - `dom-overlay` は VR セッションで**一度も要求されていない**。`setupVR()` は `VRButton.createButton()` 任せで sessionInit は `['local-floor','bounded-floor','hand-tracking','layers']` 固定。`dom-overlay` を要求するのは `MixedReality.js:270`（AR パス、それ自体 `startSession()` 呼び出し元ゼロ）のみ
 - コンテンツ canvas は `_build()` のローカル変数で再描画不可能だった（Session 60 で `this.contentCanvas` + `_drawContent()` に修正）
@@ -763,25 +783,28 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 **元の分析（参考）**: iframe を捨て、**取得 → 本文抽出 → canvas テキスト描画（リーダー方式）**へ転換。CORS プロキシが必要だが、**現在100%余剰の `server/`（Stripe課金739行）をコンテンツプロキシに転用すれば過剰を不足に転換できる**。描画側は本リポジトリが最も得意とする領域（字幕・ブックマーク・キーボードは全て canvas テキスト）で、抽出とレイアウトは純関数なので headless テスト可能。可読性・ズーム・リフローも自然に解決する。
 
 ### F-2. 過剰の定量 — src+server+api の 23.4% が到達不能または非中核
-| 領域 | 行数 | 状態 |
-|---|---|---|
-| `server/`（Stripe課金） | 739 | 決済UI が `src/` に皆無（grep 0ヒット）。`/subscription/:userId` 等に認証ミドルウェア無し。テスト15件 |
-| `api/`（重複決済） | 496 | 自称 SUPERSEDED、importer ゼロ |
-| `multiplayer/` | 1,384 | 既定 false + UI トグル無し + signaling URL 未設定 → 第2ピアは永久に不可能。テスト56件 |
-| `AIRecommendation` | 638 | `getRecommendations()` 呼び出し元ゼロ、全ソース `url:'#'` |
-| `WebGPURenderer` | 600 | レンダーループ未接続 |
-| `MixedReality` | 963 | 約940行が到達不能 |
-| `ObjectPool` | 404 | `src/` 消費者ゼロ、テストのみ |
-| `assets/js/`（死コード） | 119,685 | 参照ゼロ（A-1 で凍結中） |
+
+| 領域                     | 行数    | 状態                                                                                                  |
+| ------------------------ | ------- | ----------------------------------------------------------------------------------------------------- |
+| `server/`（Stripe課金）  | 739     | 決済UI が `src/` に皆無（grep 0ヒット）。`/subscription/:userId` 等に認証ミドルウェア無し。テスト15件 |
+| `api/`（重複決済）       | 496     | 自称 SUPERSEDED、importer ゼロ                                                                        |
+| `multiplayer/`           | 1,384   | 既定 false + UI トグル無し + signaling URL 未設定 → 第2ピアは永久に不可能。テスト56件                 |
+| `AIRecommendation`       | 638     | `getRecommendations()` 呼び出し元ゼロ、全ソース `url:'#'`                                             |
+| `WebGPURenderer`         | 600     | レンダーループ未接続                                                                                  |
+| `MixedReality`           | 963     | 約940行が到達不能                                                                                     |
+| `ObjectPool`             | 404     | `src/` 消費者ゼロ、テストのみ                                                                         |
+| `assets/js/`（死コード） | 119,685 | 参照ゼロ（A-1 で凍結中）                                                                              |
 
 **リポジトリの JS 全体のうち中核ループに奉仕するのは約12%。** ~25セッションが「穴の周りの内装」を磨いていたことになる。
 
 ### F-3. Session 60 で修正した信頼性の欠陥（②の判断とは独立に無条件で正しい修正）
+
 - ~~**URL オリジン偽装**~~ — **完了**: `https://www.google.com@evil.com` が「google.com」と表示されていた（`truncate` は先頭保持なので偽装部分を見せ実ホストを隠す）。長い偽装URLで実ドメインが省略消失する問題も同様。新規純モジュール `src/vr/browser/urlDisplay.js` の `parseDisplayUrl`/`elideUrlForDisplay` で**オリジンは絶対に省略しない**方式に変更（省略するのはパス側）。
 - ~~**TLS 表示なし**~~ — **完了**: `securityLevel()` + `securityIndicator()`（🔒/⚠/⌂、グリフで意味を担保しWCAG 1.4.1準拠）を chrome bar に追加。`http://` は警告色かつスキームを明示（`https://` は錠前が担うので省略）。
 - ~~**ブロックされたフレームの偽成功**~~ — **完了**: X-Frame-Options で拒否されたページは Chromium では `onerror` ではなく `onload` を発火するため、成功として履歴記録され URL バーも正常色だった。`_contentState` を導入し、ロード完了時は正直に「Page content cannot be shown in VR / navigation recorded」と表示。
 
 ### F-5. 字幕の全角幅オーバーフロー — **完了（Session 63）**
+
 - **場所**: `src/vr/accessibility/CaptionSystem.js`
 - **問題（Session 62 で発見）**: 字幕もコードポイント数で折り返しており（`WRAP_CHARS = 34`）、全角=1em / 半角≈0.5em の差を無視していた。単一行字幕はフォント 44px を使うため **全角34文字 = 1496px、canvas 1024px を46%超過**。日本語字幕だけが panel の外に流れていた。ろう・難聴ユーザーの主チャネルなので情報欠落そのもの。
 - **修正（Session 63）**: 予算を **em** で表す `MEASURE_EM = 20` に移行し、`_wrapChars()` を `_measureEm()` に置換。`wrapTextToWidth`/`truncateToWidth`（Session 62 で追加済み）を使用。
@@ -790,6 +813,7 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
   - 実測: 旧 1496px OVERFLOW(+46%) → 新 880px fits。5テスト追加（うち4件は pre-fix で失敗を確認。Latin のみのケースは元から収まるため両方で通過）。
 
 ### F-4. **Session 76 で完全解決**（5/5 + 音声タブ操作面を追加）
+
 - ~~**プライベートモード**~~ — **Session 75 で実装**: `settings.privateMode`（既定 off）。オン中に開いたタブは `panel.isPrivate`（生成時固定の incognito ウィンドウ意味論）、`navigate(url,title,panel)` が `isPrivate` を見て `addHistory` をスキップ、直列化からも除外（**private タブの URL はディスクに到達しない**）。ストリップは「PRIVATE」チップ+タブごとのドットで色以外の手がかり付き（WCAG 1.4.1）。Quest Browser private window 準拠。
 - ~~**セッション復元**~~ — **Session 75 で実装**: `tabSession.js`（`qui-browser:tabSession`）。http/https のみ・8枚上限・active クランプの検証付き。`restoreTabs` 設定（既定 on）。Wolvic 1.9 の session restore 準拠。
 - ~~**Stop（読み込み中断）**~~ — **Session 75 で実装**: `WebPanel.stop()`（reader fetch abort + iframe ハンドラ detach + 'stopped' 状態）。loading 中はリロードボタンが `✕` を描き同ゾーンで stop —— デスクトップ3ブラウザ共通の reload↔stop ペア。あわせて `iframe.onload` が描画済み 'reader' を 'unavailable' で上書きしていたレースを修正。
@@ -838,7 +862,7 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**ミュートできない**~~ — **Session 88 で実装**: OS/ハードウェアのミュートキー準拠。`onMute(want?)` フックが `_mutedVolume` に退避→masterVolume=0、解除時に復元（ミュート中の手動音量変更は退避値を破棄 → 次のミュートは実際の音量を記録）。voice `mute-toggle`（'ミュート'/'消音'/'mute'、'ミュートを解除'/'unmute' は明示 want=false で誤ミュート不可）→ 'ミュート オンです'/'ミュートを解除しました'。
 - ~~**読み上げ音声が選べない**~~ — **Session 88 で実装**: NVDA の音声選択準拠。`_voice`/`_voiceIndex` が `synthesis.getVoices()` をサイクル、選択は全発話の `utterance.voice` に適用 → voice `select-voice`（'声を変えて'/'change voice'）→ '声をXにしました'、音声0件は「読み上げ音声が利用できません」。
 - ~~**数値 stepper が音声で変えられない**~~ — **Session 89 で実装**: 汎用 `onStepper(key,delta)` フック（`VOICE_STEPPERS` 定数で panel stepper と同一 min/max/step、live apply も同一路径）→ voice `grace-time`（'グレース時間を長く/短く' — WCAG 2.2.1 の tremor/nystagmus 要石）、`snap-angle`（'スナップ角を大きく/小さく'）、`move-speed`（'移動速度を速く/遅く'）、`caption-hold`（'キャプションを長く/短く' — WCAG 2.2.1 保持時間）、`caption-height`（'キャプションを上/下に' — XAUR の位置カスタマイズ）→ 'X N単位'/境界・フック無しは「変更できません」。
-- ~~**利き手・スムーズ移動が音声で切り替えられない**~~ — **Session 89 で実装**: TOGGLE_KEYS に `southpaw`/`enableSmoothMove` を追加。voice `southpaw-toggle`（'利き手を左に/右に'/'left/right-handed' — 明示 want）→ '利き手を左/右にしました'；`smooth-move-toggle`（'スムーズ移動をオン/オフ'+EN）→ _applyToggle に enableSmoothMove ケース追加で前庭警告トーストも panel と同一路径。
+- ~~**利き手・スムーズ移動が音声で切り替えられない**~~ — **Session 89 で実装**: TOGGLE_KEYS に `southpaw`/`enableSmoothMove` を追加。voice `southpaw-toggle`（'利き手を左に/右に'/'left/right-handed' — 明示 want）→ '利き手を左/右にしました'；`smooth-move-toggle`（'スムーズ移動をオン/オフ'+EN）→ \_applyToggle に enableSmoothMove ケース追加で前庭警告トーストも panel と同一路径。
 - ~~**読み上げピッチが変えられない**~~ — **Session 89 で実装**: NVDA pitch 制御準拠。`_speechPitch` 0.5–2.0 を全発話の `utterance.pitch` に適用 → voice `speech-pitch`（'声を高く/低く'/'pitch up/down' — ±0.25）→ 'ピッチ N倍'。
 - ~~**現在のURLが読み上げられない**~~ — **Session 89 で実装**: タイトルと対の1行告知原子。voice `read-url`（'URLを教えて'/'read the url'）→ active タブ currentUrl または「URLがありません」。
 - ~~**動画をシークできない**~~ — **Session 90 で実装**: YouTube J/L キー準拠。`ImmersiveVideo.seek(deltaSec)` が currentTime を [0,duration] にクランプ → `onVideoSeek` フック → voice `video-seek`（'10秒戻る'/'30秒進む'/'動画を戻して'/'seek forward'/'rewind' — 数値キャプチャ、既定±10秒）→ 'N秒戻りました/進みました'。go-back/go-forward の loose regex より前に登録（registerDefaultCommands の先頭 — '10秒戻る' が '戻る' に吸収される衝突をテストで実測捕捉）。
@@ -870,7 +894,7 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 - ~~**何行目か分からない**~~ — **Session 98 で実装**: findStatus の行版。`lineStatus()` が scroll 位置の行番号 → voice `line-status`（'何行目'/'line number'）→ '現在N行目（全M行）'/'記事を開いていません'。
 - ~~**タブの位置が分からない**~~ — **Session 98 で実装**: tabs-list は題名を読むが位置を答えない → voice `tab-status`（'タブは何個'/'which tab'）→ 'N個のタブのM枚目を表示中'/'タブがありません'。
 - ~~**プライベート/ピン状態を聞けない**~~ — **Session 98 で実装**: voice `privacy-status`（'プライベートかどうか'/'is it private'）→ 'プライベートタブです'/'通常のタブです'、`pin-status`（'ピンがありますか'/'is it pinned'）→ 'ピン留めされています'/'いません'。**実測捕捉の衝突**: 'プライベートモードですか'/'プライベートタブですか'/'ピン留めかどうか'/'ピン留めですか' は private-mode・private-tab・pin-tab の bare パターンが所有するため、status 側の句は曖昧でない形に限定 + 共存テスト2件で既存ルートを保護。
-- ~~**ジャンプ前の場所に戻れない**~~ — **Session 99 で実装**: Vim `` `` `` マーク準拠。`scrollContentTo` がジャンプ前に `_scrollMark` へ現行位置を記録（全ジャンプ原子 — 見出し/段落/ヒット/N行目/Home/End が単一点を経由するため自動カバー。`scrollContent` の増分スクロールは意図的にマークしない）→ `jumpBack()` が scrollContentTo(mark) でトグル → voice `jump-back`（'さっきの場所'/'元の位置へ'/'ジャンプバック' — '戻る' は go-back 所有のため非採用）→ '元の場所に戻りました'/'戻る場所がありません'。新記事ロードでマークはリセット。
+- ~~**ジャンプ前の場所に戻れない**~~ — **Session 99 で実装**: Vim ` ` `` マーク準拠。`scrollContentTo`がジャンプ前に`\_scrollMark` へ現行位置を記録（全ジャンプ原子 — 見出し/段落/ヒット/N行目/Home/End が単一点を経由するため自動カバー。`scrollContent`の増分スクロールは意図的にマークしない）→`jumpBack()`が scrollContentTo(mark) でトグル → voice`jump-back`（'さっきの場所'/'元の位置へ'/'ジャンプバック' — '戻る' は go-back 所有のため非採用）→ '元の場所に戻りました'/'戻る場所がありません'。新記事ロードでマークはリセット。
 - ~~**検索ハイライトを消せない**~~ — **Session 99 で実装**: Chrome の Esc キー準拠。`clearFind()` が `_findMatches`/`_findIndex` を消去して `_markFindHits` でタグ除去 → voice `clear-find`（'検索を解除'/'ハイライトを消して'/'clear search'）→ 'ハイライトを消しました'/'検索をしていません'。
 - ~~**クリップボードの URL を開けない**~~ — **Session 99 で実装**: Chrome "Paste and go" 準拠。`onPasteGo` が `navigator.clipboard.readText` → `^https?://` 検査 → active タブで `navigate`（非 URL は 'URLがコピーされていません'、権限失敗は 'クリップボードにアクセスできません' と誠実告知）。async なので action 内 `.then` で speak — voice `paste-go`（'ペーストして開く'/'貼り付けて開く'/'paste and go'）。
 - ~~**クリップボードの中身を聞けない**~~ — **Session 100 で実装**: NVDA read-clipboard 準拠。`onReadClipboard` が `navigator.clipboard.readText` → 本文をそのまま発話（空は 'コピーされていません'、権限失敗は 'クリップボードにアクセスできません'）→ voice `read-clipboard`（'クリップボードを読み上げ'/'read clipboard'/'what's on the clipboard'）。paste-go と同じ async `.then` speak パターン。
@@ -1154,18 +1178,18 @@ Web ブラウザの既約な能力: ①URL へ移動 → **②内容を表示** 
 
 ### G-1. 修正済み（Session 69）
 
-| 面 | 修正前 | 要求 | 修正後 |
-|---|---|---|---|
-| chrome 戻る/進む 無効グリフ `#44445a` | **1.66:1** | 3:1※ | `#74788f` 3.61:1 |
-| chrome アドレスバーのプレースホルダ `#888899` | **3.94:1** | 4.5:1 | `#9aa0b8` 5.30:1 |
-| chrome アドレスバーの境界（塗りのみ） | **1.16:1** | 3:1 | `#7d88bd` の枠線 4.67:1 |
-| IME モードバッジ カタカナ 白/`#ff8844` | **2.37:1** | 3:1 | 墨字 `#0b0f1a` 8.07:1 |
-| IME モードバッジ 漢字 白/`#44cc88` | **2.05:1** | 3:1 | 墨字 `#0b0f1a` 9.33:1 |
-| リーダー 無効スクロール矢印 `#445566` | **2.12:1** | 3:1※ | `#727f96` 4.01:1 |
-| ブックマーク 無効スクロール矢印 `#445566` | **2.37:1** | 3:1※ | `#727f96` 4.28:1 |
-| 設定トグル OFF ラベル（**ホバー時**） | **2.26:1** | 3:1 | `#ccd6e4` 4.49:1 |
-| 設定トグル OFF 枠線（**ホバー時**） | **1.43:1** | 3:1 | `#ccd6e4` 4.49:1 |
-| chrome バー全体が `prefers-contrast` を無視 | — | — | `webChromeColors(hc)` で配線 |
+| 面                                            | 修正前     | 要求  | 修正後                       |
+| --------------------------------------------- | ---------- | ----- | ---------------------------- |
+| chrome 戻る/進む 無効グリフ `#44445a`         | **1.66:1** | 3:1※  | `#74788f` 3.61:1             |
+| chrome アドレスバーのプレースホルダ `#888899` | **3.94:1** | 4.5:1 | `#9aa0b8` 5.30:1             |
+| chrome アドレスバーの境界（塗りのみ）         | **1.16:1** | 3:1   | `#7d88bd` の枠線 4.67:1      |
+| IME モードバッジ カタカナ 白/`#ff8844`        | **2.37:1** | 3:1   | 墨字 `#0b0f1a` 8.07:1        |
+| IME モードバッジ 漢字 白/`#44cc88`            | **2.05:1** | 3:1   | 墨字 `#0b0f1a` 9.33:1        |
+| リーダー 無効スクロール矢印 `#445566`         | **2.12:1** | 3:1※  | `#727f96` 4.01:1             |
+| ブックマーク 無効スクロール矢印 `#445566`     | **2.37:1** | 3:1※  | `#727f96` 4.28:1             |
+| 設定トグル OFF ラベル（**ホバー時**）         | **2.26:1** | 3:1   | `#ccd6e4` 4.49:1             |
+| 設定トグル OFF 枠線（**ホバー時**）           | **1.43:1** | 3:1   | `#ccd6e4` 4.49:1             |
+| chrome バー全体が `prefers-contrast` を無視   | —          | —     | `webChromeColors(hc)` で配線 |
 
 ※ WCAG 2 は 1.4.3 / 1.4.11 とも **inactive component を明示的に免除**しているので、
 無効グリフ3件は形式上は違反ではない。それでも直したのは、1.66:1 は「無効だと分かる」ではなく
@@ -1178,20 +1202,20 @@ APCA（WCAG 3 候補）は「WCAG 2 は黒に近い明暗ペアのコントラ�
 既知の問題に対応するもので、**本アプリは全面が暗背景・明文字かつ自発光 HMD** なので該当しやすい。
 下表は**修正後**の実測値。WCAG 2 は全て通過しているが、APCA の目安（本文 Lc75 / 大 60 / 特大 45 / 非文字 30）には届かない。
 
-| 面 | WCAG 2 | APCA Lc | APCA 目安 |
-|---|---|---|---|
-| reader progress ラベル | 4.78:1 | 36.8 | 75 |
-| content state detail | 5.44:1 | 41.7 | 75 |
-| content state title | 6.67:1 | 50.3 | 60 |
-| chrome ロードエラー文言 | 6.08:1 | 49.4 | 75 |
-| chrome アドレスバー プレースホルダ | 5.30:1 | 46.7 | 75 |
-| bookmark rowUrl | 5.94:1 | 41.2 | 75 |
-| bookmark pageIndicator | 4.78:1 | 36.8 | 75 |
-| bookmark tabInactive | 5.69:1 | 44.8 | 60 |
-| bookmark emptyText | 6.68:1 | 45.9 | 60 |
-| reader 矢印 有効 | 4.58:1 | 53.2 | 60 |
-| IME 入力欄プレースホルダ | 3.88:1 | 28.6 | 45 |
-| 設定トグル OFF 枠線（非ホバー） | 4.06:1 | 29.1 | 30 |
+| 面                                 | WCAG 2 | APCA Lc | APCA 目安 |
+| ---------------------------------- | ------ | ------- | --------- |
+| reader progress ラベル             | 4.78:1 | 36.8    | 75        |
+| content state detail               | 5.44:1 | 41.7    | 75        |
+| content state title                | 6.67:1 | 50.3    | 60        |
+| chrome ロードエラー文言            | 6.08:1 | 49.4    | 75        |
+| chrome アドレスバー プレースホルダ | 5.30:1 | 46.7    | 75        |
+| bookmark rowUrl                    | 5.94:1 | 41.2    | 75        |
+| bookmark pageIndicator             | 4.78:1 | 36.8    | 75        |
+| bookmark tabInactive               | 5.69:1 | 44.8    | 60        |
+| bookmark emptyText                 | 6.68:1 | 45.9    | 60        |
+| reader 矢印 有効                   | 4.58:1 | 53.2    | 60        |
+| IME 入力欄プレースホルダ           | 3.88:1 | 28.6    | 45        |
+| 設定トグル OFF 枠線（非ホバー）    | 4.06:1 | 29.1    | 30        |
 
 **着手しない理由**: APCA は規範ではない（WCAG 3 は未勧告）。上表を満たすには
 暗背景そのものを明るくするか文字を大幅に明るくする必要があり、**欠陥修正ではなく視覚デザインの変更**になる。
@@ -1234,10 +1258,10 @@ Session 62 は*文字の可読性*についてこれを arcmin で検証した�
 
 ### 採用した閾値（外部由来・詳細は angularSize.js の docstring）
 
-| 閾値 | 出典 | 本リポジトリでの扱い |
-|---|---|---|
-| **3°** ヒットターゲット | Meta Horizon OS accessibility（22 mm / 48 dp / 「0.42 m で 3° FOV」。48 dp 未満なら**不可視の hitslop** を足せと明記） | **報告のみ**（満たすにはパネル寸法の再設計が必要） |
-| **1.5°** オブジェクト最小 / **1.0°** 間隔 / dwell 500 ms | 視線選択研究のまとめ（CasualGaze, arXiv:2408.12710） | **ハード不変条件**（gaze-dwell は本プロジェクトの主入力路） |
+| 閾値                                                     | 出典                                                                                                                   | 本リポジトリでの扱い                                        |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| **3°** ヒットターゲット                                  | Meta Horizon OS accessibility（22 mm / 48 dp / 「0.42 m で 3° FOV」。48 dp 未満なら**不可視の hitslop** を足せと明記） | **報告のみ**（満たすにはパネル寸法の再設計が必要）          |
+| **1.5°** オブジェクト最小 / **1.0°** 間隔 / dwell 500 ms | 視線選択研究のまとめ（CasualGaze, arXiv:2408.12710）                                                                   | **ハード不変条件**（gaze-dwell は本プロジェクトの主入力路） |
 
 ### H-1. 修正済み（Session 70）
 
@@ -1256,11 +1280,11 @@ Session 62 は*文字の可読性*についてこれを arcmin で検証した�
 `WindowManager` が `target.scale` を**一度も触らなかった**ため、パネルの角サイズは距離に反比例していた。
 設定ステッパー `vr.settings.panelDist` の範囲は **0.6〜6.0 m（10倍）**。修正前の実測:
 
-| 距離 | chrome ボタン | 移動バー | タブ本体 | ブックマーク行 | 判定 |
-|---|---|---|---|---|---|
-| 0.6 m（最小） | 10.1° × 7.6° | 43.6° × 3.3° | 12.0° × 6.7° | 86.3° × 8.0° | **パネル幅が 106°**（快適な中心視野 ~60° の倍） |
-| **2.0 m（既定）** | 3.0° × 2.3° | 13.7° × 3.0° | 3.6° × 2.0° | 31.4° × 2.4° | 1.5° は全通過 |
-| **6.0 m（最大）** | 1.0° × 0.76° | 4.6° × 1.0° | 1.2° × 0.67° | 10.7° × 0.81° | **全ターゲットが 1.5° 未満 = 視線では操作不能** |
+| 距離              | chrome ボタン | 移動バー     | タブ本体     | ブックマーク行 | 判定                                            |
+| ----------------- | ------------- | ------------ | ------------ | -------------- | ----------------------------------------------- |
+| 0.6 m（最小）     | 10.1° × 7.6°  | 43.6° × 3.3° | 12.0° × 6.7° | 86.3° × 8.0°   | **パネル幅が 106°**（快適な中心視野 ~60° の倍） |
+| **2.0 m（既定）** | 3.0° × 2.3°   | 13.7° × 3.0° | 3.6° × 2.0°  | 31.4° × 2.4°   | 1.5° は全通過                                   |
+| **6.0 m（最大）** | 1.0° × 0.76°  | 4.6° × 1.0°  | 1.2° × 0.67° | 10.7° × 0.81°  | **全ターゲットが 1.5° 未満 = 視線では操作不能** |
 
 **修正**: `WindowManager._applyAngularScale()` —— 管理対象を `distance / PANEL_DISTANCE_DEFAULT` で
 スケールし、**角サイズを距離に対して一定**に保つ。既定 2.0 m では scale がちょうど 1.0 なので
@@ -1305,25 +1329,25 @@ Sessions 62〜68 は**横幅**を、70〜71 は**ターゲットの角サイズ*
 
 ### 実測値（DejaVu Sans + CJK fallback、`actualBoundingBox` / `fontBoundingBox`）
 
-| 面 | px | Latin ink (em) | fontBox (em) | CJK ink (em) |
-|---|---|---|---|---|
-| reader title | 30 | 0.933 | 1.10 | 1.033 |
-| reader heading | 25 | 0.960 | 1.12 | 1.040 |
-| reader body | 20 | 0.950 | 1.10 | 1.050 |
-| caption max | 44 | 0.932 | 1.114 | 1.023 |
-| caption min | 22 | 0.955 | 1.136 | 1.045 |
+| 面             | px  | Latin ink (em) | fontBox (em) | CJK ink (em) |
+| -------------- | --- | -------------- | ------------ | ------------ |
+| reader title   | 30  | 0.933          | 1.10         | 1.033        |
+| reader heading | 25  | 0.960          | 1.12         | 1.040        |
+| reader body    | 20  | 0.950          | 1.10         | 1.050        |
+| caption max    | 44  | 0.932          | 1.114        | 1.023        |
+| caption min    | 22  | 0.955          | 1.136        | 1.045        |
 
 ### I-1. 修正済み（Session 73）: 本文の最終行がページ送りボタンの下に潜り込んでいた
 
 `visibleLineCount` は**コンテンツ領域の全高**を使って表示行数を決めていたが、その領域の下端には
 **▲▼ 矢印（y 854〜926、x 804〜1008）と進捗ラベル（baseline y 912）**が描かれる。実測:
 
-| scale | 表示行数 | 最終行 baseline | 最終行の ink | 矢印帯の開始 | 判定 |
-|---|---|---|---|---|---|
-| 1.0 | 24 | 864 | 845〜868 | 854 | **重なる** |
-| 1.3 | 19 | 888 | 863〜894 | 854 | **重なる（進捗ラベルとも）** |
-| 1.5 | 16 | 864 | 836〜871 | 854 | **重なる** |
-| 2.0 | 12 | 864 | 826〜873 | 854 | **重なる** |
+| scale | 表示行数 | 最終行 baseline | 最終行の ink | 矢印帯の開始 | 判定                         |
+| ----- | -------- | --------------- | ------------ | ------------ | ---------------------------- |
+| 1.0   | 24       | 864             | 845〜868     | 854          | **重なる**                   |
+| 1.3   | 19       | 888             | 863〜894     | 854          | **重なる（進捗ラベルとも）** |
+| 1.5   | 16       | 864             | 836〜871     | 854          | **重なる**                   |
+| 2.0   | 12       | 864             | 826〜873     | 854          | **重なる**                   |
 
 テキスト段は x 48〜976、矢印は x 804 から —— つまり**最終行が長いと文字がボタンの下を通る**。
 しかも**低視力ユーザー向けのテキスト拡大が状況を悪化させる**（1.3 では進捗ラベルにも衝突）。
@@ -1388,11 +1412,11 @@ Sessions 46/54/55/56 が1つずつコントロールを足し続けた結果、�
 **積み上げヘッダ（5行）→ 1行のタブバー**に置換。ナビゲーションの手数は変わらないまま4行が消え、
 最悪ケースは **8 行 / 1.58 m / 35.9°** —— **初めて快適視野に収まった**。
 
-| 形 | 行数 | 高さ | 垂直角 |
-|---|---|---|---|
-| フラットスタック（〜Session 73） | 19 | 3.56 m | 72.2° |
-| 全セクション展開（採用せず） | 26 | 5.00 m | 91.4° |
-| 積み上げヘッダ + アコーディオン | 12 | 2.30 m | 50.4° |
+| 形                                | 行数  | 高さ       | 垂直角       |
+| --------------------------------- | ----- | ---------- | ------------ |
+| フラットスタック（〜Session 73）  | 19    | 3.56 m     | 72.2°        |
+| 全セクション展開（採用せず）      | 26    | 5.00 m     | 91.4°        |
+| 積み上げヘッダ + アコーディオン   | 12    | 2.30 m     | 50.4°        |
 | **1行タブ + 1セクション（現行）** | **8** | **1.58 m** | **35.9° ✅** |
 
 - タブは選択状態を **● / ○ のグリフ**でも示すので色のみに依存しない（1.4.1）。選択はキャプションで告知（4.1.3）。
@@ -1405,44 +1429,17 @@ Sessions 46/54/55/56 が1つずつコントロールを足し続けた結果、�
 `enableWebPanel` を true にすべきか判断するため、実サイトが HTML ドキュメントに
 `Access-Control-Allow-Origin` を返すかを実測した:
 
-| URL | ACAO |
-|---|---|
+| URL                           | ACAO |
+| ----------------------------- | ---- |
 | `en.wikipedia.org/wiki/WebXR` | なし |
-| `developer.mozilla.org/...` | なし |
-| `example.com` | なし |
-| `www.nhk.or.jp` | なし |
+| `developer.mozilla.org/...`   | なし |
+| `example.com`                 | なし |
+| `www.nhk.or.jp`               | なし |
 
 **4/4 で無し。** つまり今 `enableWebPanel` を既定 true にすると、ほぼ全ての遷移で
 「Page content cannot be shown in VR」を出すブラウザを出荷することになる。**既定 false のままが正しい。**
 これを変えられるのは F-1 の取得プロキシ（SSRF 対策必須）だけだが、**既定の配信先が GitHub Pages（静的）**
 なので、プロキシは同梱できず「任意・自己ホスト」構成になる。ここは設計判断が必要なので独立セッションに分離。
-
----
-
-## K. オーナー作業が必要（自動化では触れない）
-
-### K-1. 5つの workflow が削除済みの `assets/js/` を参照している（**CI が壊れている**）
-
-Session 74 の削除により、`.github/workflows/` の5ファイルが存在しないパスを参照している。
-`deploy.yml` の `find assets/js ...` は **exit 1 で失敗する**（実測）。
-
-**このリポジトリの自動化は `.github/workflows/**` を push できない**（403 `without workflows permission`。
-Session 74 で**改めて実際に push を試行して再確認**）ため、オーナーの手による修正が必要。
-
-**適用可能なパッチを同梱した**: `docs/patches/0001-ci-drop-assets-js-steps.patch`
-（`origin/main` に対しクリーンに適用でき、適用後 `.github/workflows/` から `assets/js` 参照が
-**ゼロになる**ことを worktree で検証済み）。
-
-```bash
-git checkout main && git pull
-git am docs/patches/0001-ci-drop-assets-js-steps.patch
-git push
-```
-
-該当ステップはすべて「今は存在しないレガシーコードを検査するもの」なので、修正ではなく**削除**が正しい。
-
-代替として `npm ci && npm test && npm run lint && npm run ci:verify` を回せば、
-このリポジトリが実際に検証している内容がすべて走る。
 
 ---
 
@@ -1454,11 +1451,11 @@ CLAUDE.md は Session 2 で「Phase 1 Complete（i18n 配線済み）」、Sessi
 
 実測（`src/vr/browser/` の文字列リテラル走査）で判明した未翻訳:
 
-| 面 | 文字列 |
-|---|---|
+| 面                             | 文字列                                                                            |
+| ------------------------------ | --------------------------------------------------------------------------------- |
 | `urlDisplay.contentStateLines` | `Loading…` / `Failed to load` / `Enter a URL to navigate` / 「表示できません」2種 |
-| `BookmarkPanel` | タブ `Bookmarks` / `History`、空状態 `No bookmarks yet` / `No history yet` |
-| `TabManager` | `New Tab` |
+| `BookmarkPanel`                | タブ `Bookmarks` / `History`、空状態 `No bookmarks yet` / `No history yet`        |
+| `TabManager`                   | `New Tab`                                                                         |
 
 `contentStateLines` は**コンテンツ領域が表示しうる全メッセージ** —— つまり
 日本語 IME を看板機能に掲げるブラウザの**主コンテンツ面が丸ごと英語だった**。
@@ -1487,9 +1484,10 @@ WCAG 3.1.1 / 3.1.2 の観点で、Phase 1 が閉じたと記録していたの�
 **修正**: 14キーを en/ja 両方に追加し3面を配線。あわせて**日本語版が実測の列幅予算に収まることを
 テストで固定**した —— 全角は 1 em なので、英語で収まる翻訳が日本語で溢れるのは
 Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928px。
+
 - ~~**'did i bookmark this' がブックマークをトグルし、'am i muted' がミュートをトグルし、'is the mic on' がマイクを起動していた（質問形が実行していた）**~~ — **Session 156 で修正**: bookmark-page に (?<!did i )、mute-toggle に (?!d\b)、mic-on に (?<!the )…(rophone)? を付与し各 status 系へ透過（mute-status 'ミュートしてる'/'am i muted'/'are we muted'、bookmark-status 'did i bookmark'/'have i bookmarked'/'ブックマークした'、mic-status 'mic check'）。
-- ~~**'close the tab on the right/left' がアクティブタブを閉じていた**~~ — **Session 156 で修正**: close-tab の lookahead を (?!\s*(?:\d|on\b|to\b)) 化し位置句では実行しない（誤閉じより未認識が安全）。
-- ~~**'go to my email tab'/'open X tab'/'open my settings' が go-to で literal ナビゲート**~~ — **Session 156 で修正**: goToEn lookahead に settings\b と 'tab' 語尾除外を追加 → tab-by-name へ /^(go to|jump to|open) (the |my )?(.+?) tab$/、settings-toggle へ /open (my |the )?settings/・/settings please/・/^settings$/。device-apps の /(email|mail)/ が 'open my mail tab' を奪っていたのも (?!.*\btab\b) で修正。
+- ~~**'close the tab on the right/left' がアクティブタブを閉じていた**~~ — **Session 156 で修正**: close-tab の lookahead を (?!\s\*(?:\d|on\b|to\b)) 化し位置句では実行しない（誤閉じより未認識が安全）。
+- ~~**'go to my email tab'/'open X tab'/'open my settings' が go-to で literal ナビゲート**~~ — **Session 156 で修正**: goToEn lookahead に settings\b と 'tab' 語尾除外を追加 → tab-by-name へ /^(go to|jump to|open) (the |my )?(.+?) tab$/、settings-toggle へ /open (my |the )?settings/・/settings please/・/^settings$/。device-apps の /(email|mail)/ が 'open my mail tab' を奪っていたのも (?!.\*\btab\b) で修正。
 - ~~**'go forward 30 seconds'/'skip ahead 30 seconds'/'jump forward 5 minutes' が navigate または NO-MATCH**~~ — **Session 156 で実装**: video-seek へ単位付き skip/jump/go forward N sec/min 形（'skip ahead 4 paragraphs' は paragraph-skip-n 維持）+ EN minutes の分計算。
 - ~~**'close the other tabs'/'close my tabs'/'close everything' が未認識**~~ — **Session 156 で実装**: close-other-tabs の /close\s+(the |all the |all )?other tabs/ 化、close-all-tabs へ /close (all )?my tabs/・/^close everything$/。
 - ~~**'take/send/bring me back'・'forward a page'/'one page forward' が未認識**~~ — **Session 156 で実装**: back へ /(take|send|bring) me back/（両コピー）、navigate へ /forward (a|one|the) page/・/one page forward/（'go forward' は (?! \d) で維持）。
@@ -1497,7 +1495,7 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - ~~**'to the top/bottom'・'go back up'・'move it closer'/'push it away'/'shrink the window'・'read this faster'/'speed it up'/'slow down'・'press enter'/'エンターを押して'・'its not working'/'cant see anything'/'見えない'/'動いてない'・'cant hear anything' が未認識**~~ — **Session 156 で実装**: scroll-top/bottom/panel-distance/speech-faster/slower/input-methods/trouble/audio-trouble へ（'can see' 系は audio-trouble でなく trouble へ）。
 - ~~**'microphone' が (raphone)? typo で未認識**~~ — **Session 156 で修正**: mic-on/mic-off/mic-status 全4箇所を (rophone)? へ。
 - ~~**'find my tab' が 'my' を検索語にしていた**~~ — **Session 156 で修正**: tab-search の term 抽出に my/the/a 単独ストップワード除外（→ 'タブの名前を言ってください' プロンプト）。
-- ~~**'reopen my last tab' が last-tab で右端タブに切り替わり、'close the tab i just closed' がアクティブタブを閉じていた**~~ — **Session 157 で修正**: reopen-tab を /reopen(?!.*\ball\b).*\btab\b/ 化 + 'bring back my tab'/'the tab i closed'/'ctrl z'/'ctrl+z' 追加、close-tab に i\b lookahead。
+- ~~**'reopen my last tab' が last-tab で右端タブに切り替わり、'close the tab i just closed' がアクティブタブを閉じていた**~~ — **Session 157 で修正**: reopen-tab を /reopen(?!._\ball\b)._\btab\b/ 化 + 'bring back my tab'/'the tab i closed'/'ctrl z'/'ctrl+z' 追加、close-tab に i\b lookahead。
 - ~~**'今のタブを閉じて'/'幾つのタブ'/'違うタブ' が by-name の term 誤検索・未認識**~~ — **Session 157 で修正**: close-tab-by-name/tab-by-name の stoplist に 今|幾つ|何個|違う 追加 → close-tab/tab-status/next-tab へ。
 - ~~**'help please' が scoped-help で '「please」のコマンドは0個' と誤答**~~ — **Session 157 で修正**: scoped-help に (?!please\b)（既存 (?!me\b) と並置）→ polite 層経由で help へ。
 - ~~**'tomorrow'/'明日は何日'/'next week'/'来月'/'今年'/'whats the date' 等の相対日付が未認識**~~ — **Session 157 で実装**: date アクションが明日(+1)/明後日(+2)/来週(+7)/来月/来年/今年を計算して応答。
@@ -1578,11 +1576,13 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - **JA 非対象 (Session 316)**: '閉じぬこ'（まれな南方方言形）。
 
 ### R242 / Session 316（CXCVI）— 意図スキップ一覧
+
 - EN: `smash it` / `crush it` / `lose it` / `begone tab` / `leave the tab` — 処分意図不明瞭または pin 衝突 (`leave`族)
 - EN: `why wont/cant you close it` — trouble 確立ピン維持（修正試行は既存3テストの回帰で撤回）
 - JA: `閉じるべきでは` — negate 確立ピン維持
 
 ### R243 / Session 317（CXCVII）— 意図スキップ一覧
+
 - EN: `do it then` — 動詞指称なし、単独では閉じ意図不明
 - EN: `curtain call for this tab` — device-apps 誤爆するが演劇語で処分意図が曖昧 → 観察
 - EN: `end of the line for this tab` — caret-edge（End キー語）先勝ちのため維持
@@ -1591,12 +1591,14 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - JA: `閉じとくよ/ね/わ` — 話者宣言（"自分で閉じる" とも取れる）→ とく尾としてルート化済みだが実行可否は観察枠
 
 ## R244 skip-list（Session 318）
+
 - `its done here` — 「自分はここで終わり」寄りの曖昧宣言、tab-close と vr-exit の中間で観察枠（null 維持）
 - `do it then` — 先行コンテキスト依存の曖昧命令（null 維持）
 - `close out (the|this) tab` — 'close up X' と同族の名指し形 → close-tab-by-name ピンで維持
 - `閉じるのが正解` — 確立 help ピン維持（'正解でしょう' は dict で close-tab に分岐済み）
 
 ## R245 skip-list（Session 319）
+
 - `handle this`/`deal with this`/`sort this out`/`address this`/`fix this` — 'this' が曖昧目的語（'…it' 族は ack/trouble ピン済み）→ null 維持
 - `do something about|with it`, `something needs to happen to this tab` — 漠然要請で閉じ意図不明瞭 → null
 - `閉じれるかな` — 能力wonder形、依頼と質問の中間 → null 観察枠
@@ -1605,12 +1607,14 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - `begone (tab)` — R242 archaic-address ピン維持（`begone from my sight` は close-tab で分岐済み）
 
 ## R246 skip-list（Session 320）
+
 - `閉じていない`/`閉じてない(ですけど|のに|んです|んですけど|ですよ)`/`まだ|ずっと閉じてない`/`閉じてもない` — 平叙状態報告で閉じ意図が曖昧 → null ピン（んだけど系は未了訴え→trouble 一貫）
 - `閉じてないんですよ` — 変種経路で negate に落ちる誤ルート（`てない` 内の `ない`）→ 低実害のため記録のみ
 - `閉じるべきだったはず` — はず-complaint 系統に合流して trouble
 - `開きっぱなし` 族・`閉じ残したまま` — 状態報告→describe-tab ピン（'開きっぱなし' の既存ルートに統合）
 
 ## R247 skip-list（Session 321）
+
 - `do i have to spell it out close it`/`do i look like im joking close it`/`shall i repeat myself close it` — 疑問前置が help 生ヒットで先勝ち（登録順）。interrogative 規則に合わせ help ピン
 - `must i repeat close it` — `repeat` 語ヒットで say-again（実害小・記録）
 - `close it or else what` — "or else what" は挑発返しで命令確度が揺れる → null
@@ -1618,93 +1622,117 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - `閉じっぱでいい` — 「閉じたままで良い」/「閉じなくて良い」両読み → null
 
 ## R248 skip-list（Session 322）
+
 - `閉じたつもりだった` — believed-closed 状態報告 → describe-tab（のに付きは trouble）
 - `閉じてもらえましたか` — 受益もらえ形が close-tab 確立ルート（過去形でも踏襲）
 - `閉じられてなかった/閉じられてない/閉じていなかった/閉じれてなかった/閉じれてない` — passive-potential 否定報告は R246 規則で null（訴え意図不明瞭）
 - `閉じずにいる(つもり)` — 本来 'ずにおく' negate 族だが `いる` で go-to 誤爆 → negate リテラルで吸収
 
 ## R249 skip-list（Session 323）
+
 - `shut r down` — 'er 変種は曖昧のため null（'shut er down' は vr-exit 族ピン維持）
 - `close that there tab` — deictic-by-name 確立ルート踏襲
 
 ## R250 skip-list（Session 324）
+
 - `閉じ忘れたまま` — 状態報告族で describe-tab（確立ルート踏襲）
 - `閉じてたはず(だった|なのに)` — はず-未達期待規則で trouble（'閉じてるはず' 系も統合済み）
 
 ## R251 skip-list（Session 325）
+
 - `閉じられないのかしら`/`閉じないわけですか` — 既 trouble ルート緑・踏襲
 - `閉じ忘れたまま` — describe-tab 族（確立）
 
 ## R252 skip-list（Session 326）
+
 - `閉じれるわけですか` — わけ族で ack 確立ピン維持
 - `閉じまいかと思うけど/のです/た` — 「閉じない」deliberation は命令性なし → null
 
 ## R253 skip-list（Session 327）
+
 - `shut the thing down` — tab/app スコープ曖昧（'shut X down'→vr-exit 族との衝突回避）→ null
 - `let it go`/`leave it gone` — 放棄/無視の確立 negate ピン維持
 
 ## R254 skip-list（Session 328）
+
 - `閉じるほかないよ` — negate 'ないよ' 先取りを close-tab literal で解消（確立回避法）
 - そのほか残置なし（本ラウンドは全消化）
 
 ## R255 skip-list（Session 329）
+
 - `閉じるなんて/なんか/なんぞ` 系 — 曖昧感嘆（'閉じるなんかして'のみ既緑）→ null
 - `閉じる度に/たび(に)` — 習慣節・命令性なし → null
 - `閉じた覚えもない` — 記憶報告・曖昧 → null
 
 ## R256 skip-list（Session 330）
+
 - `help yourself close it` — scoped-help 先取り（登録順・確立規則；意味的にも許容）
 - `閉じないろ` — 変形ない命令 → negate 維持
 
 ## R257 skip-list（Session 331）
+
 - `should i|shall i close it` — 疑問形 → help（確立ピン）
 - `ought i close it` — 古風疑問 → null
 
 ## R258 skip-list（Session 332）
+
 - `閉じるかどうかだよね/決めよう/閉じるか閉じないかだ` — 審議節 → null
 - `閉じるかどうするか/べきか閉じないべきか/閉じるか閉じるまいか` — AかBか 確立 help ピン
 
 ## R259 skip-list（Session 333）
+
 - `閉じるかなりか` — AかBか 審議 → help 確立ピン
 
 ## R261 skip-list（Session 335）
+
 - `閉じるのはだめ(かな)?` — 「閉じるのはまずい」(close意図) との曖昧対で null 維持
 
 ## R263 skip-list（Session 337）
+
 - `閉じたんで` — describe-tab literal にすると '閉じたんだ'/'閉じたなんか' の variant を横取りするため未登録（generic variant 衝突）
 
 ## R264 skip-list（Session 338）
+
 - `poof` — 魔法/消失の感嘆詞として曖昧、未登録
 - `閉じるのは無駄` / `閉じるのが惜しい` / `閉じるのがもったいない` — 「不要」と「閉じ意図」の曖昧対（だめ系ピンと同型）で null 維持
 - `閉じたるわ` / `閉じたるぞ` — 確立 describe-tab ピン（'閉じたる'=閉じた+る parse）のため close literal 未追加
 
 ## R265 skip-list（Session 339）
+
 - `閉じてくれないの` — 「閉じてくれないの?」非難疑問 vs 「閉じてくれないの(ね)」依頼の曖昧で null 維持
 
 ## R266 skip-list（Session 340）
+
 - 特になし — 新規候補は全件ルート済み（'close that tab yonder' は位置指示のため close-tab で正当化）
 
 ## R267 skip-list（Session 341）
+
 - 特になし — 新規候補は全件ルート済み
 
 ## R268 skip-list（Session 342）
+
 - 特になし — 新規候補は全件ルート済み
 
 ## R269 skip-list（Session 343）
+
 - 特になし — 新規候補は全件ルート済み（'閉じるべからず|べからざるなり' は禁止宣言のため negate で正当化）
 
 ## R270 skip-list（Session 344）
+
 - 'close it later today' → defer（意図通り延期ルート）・'close it when done/finished' → conditional（確立ルート）
 - '閉じてはるな' → negate（てはる敬語+な禁止の合成で正当化）・'閉じておくべきでは' → negate（べきでは=禁止前置）
 
 ## R271 skip-list（Session 345）
+
 - '閉じるのが正解だ'/'閉じるが正解だ' → スキップ（'閉じるのが正解'→help 確立ピンとの曖昧対；宣言形でも判定が分かれる）
 
 ## R272 skip-list（Session 346）
+
 - 'close it why keep it'→negate 維持（'why keep it' は存続への反問で negate 収まり）
 - 'close it i repeat'→say-again 維持（'must i repeat close it' の repeat 確立ピンと整合）
 
 ## R273 skip-list（Session 347）
+
 - '閉じてない' → null 維持（平叙ステータス報告、describe/negate と曖昧 — 確立ピン）
 - '閉じてもらった'（裸形）→ close-tab 維持（受益過去形は variant 'て' で close；報告系は語尾付きのみ describe へ）
 
@@ -1734,13 +1762,13 @@ Sessions 62〜68 の欠陥ファミリーそのもの。最長でも 828px / 928
 - R282 skip: 'go pound sand' は go-to（/go / 先頭一致・登録順 go-to < negate）が先勝ち — negate literal 追加無効、拒絶意図だが navigate 誤ルート継続。'into next week'/'kick it into next week' は date ピン維持（時間読み）。
 
 - R283 skip: 'take care of it' は ack・'im done here' は vr-exit が登録順先勝ち — close 向け裸形追加は誤ルートのため不採用（'take care of that|the tab' / 'done here' / 'we are done here' は close-tab 登録済み）。
-- R283 skip: '閉じとる*' 族（とるがよ|ばい|わい|ぞよ|っちゃ）— 九州進行「閉じておる」報告にも命令にも読める曖昧形 → null 維持（'閉じとるで'→describe ピン整合のため）。
+- R283 skip: '閉じとる\*' 族（とるがよ|ばい|わい|ぞよ|っちゃ）— 九州進行「閉じておる」報告にも命令にも読める曖昧形 → null 維持（'閉じとるで'→describe ピン整合のため）。
 - R283 pin: '閉じとるけんね'→negate・'閉じなきゃいけないんだよ'→trouble・'閉じないといけないことになってる'→negate — 確立ピン維持。
 
 - R284 pin: `閉じてくれないの`→null 維持（springer 確立: 反報 vs 依頼で曖昧）。`scrub it`/`wreck it`/`crush it`→null 維持 — タブ明示形のみ登録。
 - R284 fix: `閉じんでな`→negate（'閉じな' close literal の variant 残置が開放依頼を横取りしていた — raw literal 化で先勝ち固定）。`take it out back`→close-tab（'back' で reopen に誤ルートしていた慣用句）。
 - R284 note: `閉じんなってば` は既存 close literal 維持（方言命令 vs 禁止で曖昧 — 変更は別途判断）。
-- R285 pin: `flush it`/`hang it up`→null 維持（granular 確立: 曖昧）。`閉じてんで`→describe 不採用 — `_politeVariants` の てみ→んで 変換が 閉じてみ* close ピン21形を横取りしたため（variant 残置衝突は describe 側に限定）。
+- R285 pin: `flush it`/`hang it up`→null 維持（granular 確立: 曖昧）。`閉じてんで`→describe 不採用 — `_politeVariants` の てみ→んで 変換が 閉じてみ\* close ピン21形を横取りしたため（variant 残置衝突は describe 側に限定）。
 - R286 pin: `write it off`→null 維持（granular 確立: 経理 euphemism 曖昧）。`open fire on it`→go-to 誤ルートを close 修正（'open' keyword 先勝ち → リテラル化で先勝ち固定）。`閉じるべきかと思う`→help ピン維持。
 - R312: `/version/` regex が 'aversion' に誤爆→`(?<!a)` lookbehind修正・`/call \w+/` が 'uncall' に誤爆→`(?<!un)` 修正・`unbookmark*`/`unpin*` は実義のため不採用・JA `ものか`/`もんだ`/`からな` ピン維持。
 - R311: `overturn this page *`→next-page / `開くべきではなかった*を`→go-to / `消えてほしい*`→dismiss-notify / `the call *`→device-apps ピン維持(phone意図)・`close out this tab`→close-tab-by-name ピン・`undo it*`→reopen-tab 維持。

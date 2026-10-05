@@ -42,7 +42,7 @@ npx ngrok http 5173  # then open the https://… URL on the headset
 
 ```bash
 npm run build        # outputs the static site to dist/
-npm run preview      # serve the built dist/ on http://localhost:8080
+npm run preview      # serve the built dist/ on http://localhost:4173
 ```
 
 The build is base-path aware: it defaults to root (`/`). To build for a
@@ -65,7 +65,6 @@ npm run lint         # ESLint (0 errors expected)
   comfort, and the settings panel
 - **[Setup](SETUP.md)** — deeper environment/deployment notes
 - **[Specification](SPEC.md)** — the FR/NFR feature map and status
-- **[API Reference](API.md)** — module-level reference
 
 ---
 
