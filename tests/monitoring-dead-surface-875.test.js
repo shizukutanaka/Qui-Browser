@@ -76,6 +76,32 @@ describe('monitoring.js reachable-export invariant', () => {
     expect(orphans).toEqual([]);
   });
 
+  test('every export is referenced outside monitoring.js', () => {
+    // An export nothing imports — not even a test seam — advertises a public
+    // surface that does not exist. Internally-called helpers stay unexported.
+    const others = [...srcFiles()].filter((f) => f !== MON);
+    const testDir = path.join(ROOT, 'tests');
+    for (const file of [path.join(ROOT, 'index.html'), ...fs.readdirSync(testDir).map((f) => path.join(testDir, f))]) {
+      if (fs.existsSync(file) && file.endsWith('.js')) {
+        others.push(file);
+      }
+    }
+    // Code lines only — a docstring naming the symbol is not a consumer.
+    const boundary = others
+      .flatMap((f) =>
+        fs
+          .readFileSync(f, 'utf8')
+          .split('\n')
+          .filter((line) => {
+            const t = line.trim();
+            return !t.startsWith('*') && !t.startsWith('//');
+          })
+      )
+      .join('\n');
+    const unimported = exports.filter((name) => !new RegExp(`\\b${name}\\b`).test(boundary));
+    expect(unimported).toEqual([]);
+  });
+
   test('dead tracking/reporting exports stay removed', () => {
     const dead = [
       'trackPageView',
