@@ -171,22 +171,9 @@ terser({
 
 #### Texture Compression
 
-```javascript
-// Use KTX2 for textures
-const texture = await textureManager.loadTexture('wood.ktx2', {
-  preferKTX2: true,
-  maxSize: 2048,
-  priority: 'high'
-});
-
-// Fallback to PNG/JPG if KTX2 unavailable
-```
-
-**Size Comparison:**
-
-- PNG 4K: 8MB
-- JPG 4K: 2MB
-- KTX2 4K: 512KB (-94% vs PNG)
+> **Not shipped**: the texture-loading/KTX2 pipeline was removed — the app ships no
+> texture assets. If texture assets land, KTX2 basis compression is the recommended
+> path (typically −90% vs uncompressed PNG).
 
 #### Image Optimization
 
@@ -205,15 +192,9 @@ imagemin assets/images/*.{jpg,png} --out-dir=dist/assets/images --plugin=mozjpeg
 
 #### Font Subsetting
 
-```bash
-# Extract only needed characters
-pyftsubset font.ttf --text-file=characters.txt --output-file=font-subset.woff2
-```
-
-**Results:**
-
-- Full font: 200KB
-- Subset: 20KB (-90%)
+> **Not shipped**: no font assets ship today — UI text is rendered to canvas
+> textures with system fonts. When fonts are added, subset them (e.g.
+> `pyftsubset`) and serve woff2 only.
 
 ### 5. Caching Strategy
 
@@ -227,8 +208,6 @@ const strategies = {
   // Static assets: Cache first (1 year TTL)
   '.js': 'cache-first',
   '.css': 'cache-first',
-  '.woff2': 'cache-first',
-  '.ktx2': 'cache-first',
 
   // HTML: Network first (always fresh)
   '.html': 'network-first',
@@ -323,8 +302,6 @@ self.addEventListener('activate', (event) => {
 <!-- Preload critical assets -->
 <link rel="preload" href="main.js" as="script" />
 <link rel="preload" href="main.css" as="style" />
-<link rel="preload" href="font.woff2" as="font" type="font/woff2" crossorigin />
-
 <!-- Prefetch for likely next navigations -->
 <link rel="prefetch" href="tier2-input.js" />
 ```
@@ -446,11 +423,11 @@ ls -lh dist/assets/
 
 ### Assets
 
-- [x] Images optimized (imagemin)
-- [x] Fonts subsetted (woff2)
-- [x] Textures compressed (KTX2)
-- [x] SVGs minified (svgo)
-- [x] Audio files compressed (mp3/ogg)
+- [ ] Images optimized (no imagemin pipeline configured)
+- [ ] Fonts subsetted (no font assets ship)
+- [ ] Textures compressed (KTX2 pipeline removed; no texture assets ship)
+- [ ] SVGs minified (no svgo pipeline configured)
+- [ ] Audio files compressed (no audio assets ship)
 
 ### Caching
 
@@ -525,8 +502,6 @@ Lighthouse Score: 96/100 [+33%]
     // Cache static assets for 1 year
     '*.js': { ttl: 31536000, sMaxAge: 31536000 },
     '*.css': { ttl: 31536000, sMaxAge: 31536000 },
-    '*.woff2': { ttl: 31536000, sMaxAge: 31536000 },
-    '*.ktx2': { ttl: 31536000, sMaxAge: 31536000 },
 
     // Cache HTML for 1 hour
     '*.html': { ttl: 3600, sMaxAge: 3600 },
@@ -561,7 +536,7 @@ brotli_types text/plain text/css text/xml text/javascript
              application/javascript application/json;
 
 # Cache headers
-location ~* \.(js|css|woff2|ktx2)$ {
+location ~* \.(js|css)$ {
     expires 1y;
     add_header Cache-Control "public, immutable";
 }
@@ -613,13 +588,13 @@ import * as THREE from 'three';
 
 ```javascript
 // ✅ Good: Load on demand
-async function loadTier3() {
-  const { WebGPURenderer } = await import('./WebGPURenderer.js');
-  return new WebGPURenderer();
+async function loadIME() {
+  const { JapaneseIME } = await import('./JapaneseIME.js');
+  return new JapaneseIME();
 }
 
 // ❌ Bad: Load everything upfront
-import { WebGPURenderer } from './WebGPURenderer.js';
+import { JapaneseIME } from './JapaneseIME.js';
 ```
 
 ### 4. Asset Loading
@@ -627,9 +602,9 @@ import { WebGPURenderer } from './WebGPURenderer.js';
 ```javascript
 // ✅ Good: Progressive loading with priorities
 loader.addResource({
-  url: 'texture.ktx2',
+  url: '/assets/icons/icon-512.png',
   priority: 'high',
-  type: 'texture'
+  type: 'image'
 });
 
 // ❌ Bad: Load all assets simultaneously
