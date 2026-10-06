@@ -66,7 +66,6 @@ describe('verify-documentation coverage honesty', () => {
 
   test('each exclusion carries a reason and a file that still fails', () => {
     const rows = [...EXCLUDED_DOCS.entries()];
-    expect(rows.length).toBeGreaterThan(0);
     for (const [file, reason] of rows) {
       // an exclusion without a stated reason hides a file silently
       expect(typeof reason === 'string' && reason.length > 10).toBe(true);

@@ -21,11 +21,7 @@ const PROJECT_ROOT = path.join(__dirname, '..');
 
 // Files skipped by this tool. An exclusion must carry a reason so a skipped
 // file is visible here — never silently absent from the coverage list.
-const EXCLUDED_DOCS = new Map([
-  // Contains a dead internal link to a deleted API doc; re-enable once the
-  // onboarding guide drops the reference.
-  ['docs/DEVELOPER_ONBOARDING.md', 'dead internal link (deleted at #1149)']
-]);
+const EXCLUDED_DOCS = new Map([]);
 
 // Every tracked markdown doc at the repo root and directly under docs/ is
 // checked. docs/archive stays out by design (A-1: frozen record), and .github

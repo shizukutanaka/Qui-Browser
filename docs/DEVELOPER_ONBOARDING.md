@@ -76,7 +76,6 @@ Qui-Browser/
 │   ├── dev/                      # DevTools
 │   └── vr/                       # VR ブラウザ本体
 ├── docs/                         # ドキュメント
-│   ├── API.md                    # API仕様
 │   ├── ARCHITECTURE.md           # アーキテクチャ
 │   ├── COMPATIBILITY.md          # 互換性情報
 │   └── DEVELOPER_ONBOARDING.md   # このファイル
@@ -884,9 +883,8 @@ npx localtunnel --port 5173
 
 1. **[README.md](../README.md)** - プロジェクト概要
 2. **[ARCHITECTURE.md](ARCHITECTURE.md)** - アーキテクチャ詳細
-3. **[API.md](API.md)** - API仕様
-4. **[COMPATIBILITY.md](COMPATIBILITY.md)** - 互換性情報
-5. **[TEST_COVERAGE_REPORT.md](./TESTING.md)** - テストカバレッジ
+3. **[COMPATIBILITY.md](COMPATIBILITY.md)** - 互換性情報
+4. **[TEST_COVERAGE_REPORT.md](./TESTING.md)** - テストカバレッジ
 
 ### 🌐 外部リソース
 
