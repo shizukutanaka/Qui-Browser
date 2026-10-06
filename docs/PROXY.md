@@ -80,7 +80,9 @@ Defences, in order:
 5. **Post-DNS re-check** — the hostname is resolved and **every** returned
    address is re-checked. This is the defence that actually matters:
    `evil.example.com` is an ordinary public name that may carry an A record of
-   `127.0.0.1`. Checking the URL string alone does not stop it.
+   `127.0.0.1`. Checking the URL string alone does not stop it. The socket is
+   then pinned to that validated address, so a DNS answer that changes between
+   lookups (rebinding) cannot route the connection around the check.
 6. **Redirects re-checked at every hop** — a public URL is free to redirect to
    `http://169.254.169.254/`, and a client that follows redirects automatically
    would take it. Max 3 hops.
