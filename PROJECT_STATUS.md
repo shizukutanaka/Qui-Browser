@@ -46,7 +46,6 @@ Qui Browser VR is a production-ready WebXR VR browser optimized for Meta Quest 2
 
 ### Phase 3: Documentation ✅
 
-- [x] Complete API documentation (API.md - 1,100+ lines)
 - [x] Usage guide (USAGE_GUIDE.md - 900+ lines)
 - [x] Deployment guide (DEPLOYMENT_GUIDE.md - 600+ lines)
 - [x] Build optimization guide (BUILD_OPTIMIZATION_GUIDE.md)
@@ -250,7 +249,6 @@ npm run docker:compose
 - **QUICK_START.md** (1,000+ lines) - Step-by-step setup guide
 - **USAGE_GUIDE.md** (900+ lines) - Complete feature usage guide
 - **FAQ.md** (500+ lines) - Common questions and troubleshooting
-- **API.md** (1,100+ lines) - Complete API reference
 
 ### Developer Documentation
 
@@ -269,7 +267,6 @@ npm run docker:compose
 ### Release Documentation
 
 - **CHANGELOG.md** (280+ lines) - Version history and changes
-- **RELEASE_NOTES_v2.0.0.md** (500+ lines) - v2.0.0 release notes
 - **PROJECT_STATUS.md** (This file) - Current project status
 
 **Total Documentation:** ~7,340+ lines across 12 files
