@@ -604,25 +604,6 @@ export class SpatialAudio {
   }
 
   /**
-   * Fade volume over time
-   */
-  fadeVolume(sourceName, targetVolume, duration) {
-    const source = this.sources.get(sourceName);
-    if (!source || !source.gain) {
-      return;
-    }
-
-    const startTime = this.context.currentTime;
-    const endTime = startTime + duration;
-
-    source.gain.gain.cancelScheduledValues(startTime);
-    source.gain.gain.setValueAtTime(source.gain.gain.value, startTime);
-    source.gain.gain.linearRampToValueAtTime(targetVolume * this.settings.masterVolume, endTime);
-
-    source.volume = targetVolume;
-  }
-
-  /**
    * Get audio statistics
    */
   getStats() {
@@ -688,7 +669,4 @@ export class SpatialAudio {
  * function render() {
  *   audio.updateListenerFromCamera(camera);
  * }
- *
- * // Fade out
- * audio.fadeVolume('environment', 0, 2); // Fade out over 2 seconds
  */
