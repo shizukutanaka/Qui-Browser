@@ -43,13 +43,13 @@ git config user.email noreply@anthropic.com && git config user.name Claude
 
 ## 4. Sonnet 担当タスク（仕様が明確・小〜中規模）
 
-### S-1. 効果音のプロシージャル生成フォールバック（E-3、優先度: 中）
+### ~~S-1. 効果音のプロシージャル生成フォールバック~~（E-3 — **Session 58 で完了**: `synthesizeToneSamples` + `SpatialAudio.registerProceduralBuffer` + VRApp 配線済み）
 
 - **問題**: `assets/sounds/*.mp3`（click/hover/success/error）はリポジトリに存在せず、`src/vr/VRApp.js` `loadAudioAssets()` が graceful 404 で音声を無効化している。
 - **方針**: mp3 が読めない場合、`SpatialAudio` に WebAudio `OscillatorNode`/`GainNode` による短いプロシージャル効果音（click=短い高音、error=低い二重音 等）を生成させるフォールバックを追加。**既存の graceful 404 挙動を壊さない**こと（mp3 があればそちらを優先）。
 - **受け入れ基準**: モックした AudioContext で「バッファ未取得時にプロシージャル生成に切り替わる」ことをテスト。`tests/spatial-audio.test.js` の既存モック（`createGain`/`createPanner`）を再利用。
 
-### S-2. Clear History の音声コマンド化（E-4、優先度: 低）
+### ~~S-2. Clear History の音声コマンド化~~（E-4 — **Session 59 で完了**: `clear-history` コマンド ja/en・confirmationText 付き、`onClearHistory` → `_clearBrowsingHistory()` 配線済み）
 
 - **背景**: Session 56 で「Clear History」設定アクションを追加（`VRApp._clearBrowsingHistory()`）。音声からも到達できると a11y 一貫性が上がる。
 - **方針**: `src/vr/input/VoiceCommands.js` `connectBrowser()` に `onClearHistory` コールバックを既存の分離パターン（`onGoTo`/`onTopSites` と同型）で追加し、`履歴を消去`/`clear history` 等のフレーズを登録。VRApp 側で `_clearBrowsingHistory()` に配線。`confirmationText` を付けてクロスモーダル確認（Session 18 の go-to 事例参照）。
@@ -67,5 +67,5 @@ git config user.email noreply@anthropic.com && git config user.name Claude
 ## 5. 進め方のコツ
 
 - 1セッション = 1つの well-scoped 改善 + テスト + ドキュメント + PR マージ。欲張らない。
-- 「未配線の tested capability を UI に出す」は安全で価値が高い定番（Session 48/54/55/56）。ただし高価値なものは概ね消化済み（audio volume / haptics / clear history）。残りは上記 S-1〜S-4。
+- 「未配線の tested capability を UI に出す」は安全で価値が高い定番（Session 48/54/55/56）。ただし高価値なものは概ね消化済み（audio volume / haptics / clear history）。残りは上記 S-3〜S-4（S-1・S-2 は Session 58/59 で消化済み）。
 - 迷ったら Explore エージェントで「その public メソッドに定義ファイル外の呼び出し元があるか」を grep 確認してから着手。
