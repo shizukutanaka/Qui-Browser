@@ -3,12 +3,12 @@
 The VR reader can fetch pages itself **only from origins that send
 `Access-Control-Allow-Origin`**. That was measured, not assumed:
 
-| site | ACAO on the HTML document |
-|---|---|
-| `en.wikipedia.org/wiki/WebXR` | none |
-| `developer.mozilla.org/…` | none |
-| `example.com` | none |
-| `www.nhk.or.jp` | none |
+| site                          | ACAO on the HTML document |
+| ----------------------------- | ------------------------- |
+| `en.wikipedia.org/wiki/WebXR` | none                      |
+| `developer.mozilla.org/…`     | none                      |
+| `example.com`                 | none                      |
+| `www.nhk.or.jp`               | none                      |
 
 **4 of 4 send none.** So without a proxy the reader reaches only CORS-enabled
 origins; for anything else the viewport explains the cause and points here.
@@ -35,10 +35,10 @@ Zero dependencies — Node's own `http`/`https`/`dns`.
 
 Endpoints:
 
-| | |
-|---|---|
+|                            |                                                                       |
+| -------------------------- | --------------------------------------------------------------------- |
 | `GET /fetch?url=<encoded>` | returns the page's markup as `text/plain`, or `400 {"error": reason}` |
-| `GET /health` | `200 {"ok":true}` |
+| `GET /health`              | `200 {"ok":true}`                                                     |
 
 ## Pointing the app at it
 
