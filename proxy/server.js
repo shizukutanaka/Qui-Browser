@@ -84,7 +84,7 @@ async function resolveSafely(hostname) {
  * @param {object} [headers]
  * @returns {Promise<{ok: true, status: number, contentType: string, body: string, finalUrl: string} | {ok: false, reason: string}>}
  */
-async function fetchThroughGuard(target, headers = {}) {
+export async function fetchThroughGuard(target, headers = {}) {
   let current = target;
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     const check = assertRequestAllowed(current);
@@ -104,7 +104,18 @@ async function fetchThroughGuard(target, headers = {}) {
         {
           method: 'GET',
           headers: { ...safeUpstreamHeaders(headers), host: url.host },
-          timeout: UPSTREAM_TIMEOUT_MS
+          timeout: UPSTREAM_TIMEOUT_MS,
+          // Pin the socket to the address resolveSafely just validated.
+          // Without this the connect re-resolves the hostname — a second,
+          // unchecked DNS answer — so a record that changes between lookups
+          // (rebinding) would route the socket past the guard.
+          lookup: (_hostname, options, cb) => {
+            if (options.all) {
+              cb(null, [{ address: dns.address, family: dns.family }]);
+            } else {
+              cb(null, dns.address, dns.family);
+            }
+          }
         },
         (r) => resolve({ kind: 'response', r })
       );

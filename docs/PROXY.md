@@ -3,12 +3,12 @@
 The VR reader can fetch pages itself **only from origins that send
 `Access-Control-Allow-Origin`**. That was measured, not assumed:
 
-| site | ACAO on the HTML document |
-|---|---|
-| `en.wikipedia.org/wiki/WebXR` | none |
-| `developer.mozilla.org/…` | none |
-| `example.com` | none |
-| `www.nhk.or.jp` | none |
+| site                          | ACAO on the HTML document |
+| ----------------------------- | ------------------------- |
+| `en.wikipedia.org/wiki/WebXR` | none                      |
+| `developer.mozilla.org/…`     | none                      |
+| `example.com`                 | none                      |
+| `www.nhk.or.jp`               | none                      |
 
 **4 of 4 send none.** So without a proxy the reader reaches only CORS-enabled
 origins; for anything else the viewport explains the cause and points here.
@@ -35,10 +35,10 @@ Zero dependencies — Node's own `http`/`https`/`dns`.
 
 Endpoints:
 
-| | |
-|---|---|
+|                            |                                                                       |
+| -------------------------- | --------------------------------------------------------------------- |
 | `GET /fetch?url=<encoded>` | returns the page's markup as `text/plain`, or `400 {"error": reason}` |
-| `GET /health` | `200 {"ok":true}` |
+| `GET /health`              | `200 {"ok":true}`                                                     |
 
 ## Pointing the app at it
 
@@ -80,7 +80,9 @@ Defences, in order:
 5. **Post-DNS re-check** — the hostname is resolved and **every** returned
    address is re-checked. This is the defence that actually matters:
    `evil.example.com` is an ordinary public name that may carry an A record of
-   `127.0.0.1`. Checking the URL string alone does not stop it.
+   `127.0.0.1`. Checking the URL string alone does not stop it. The socket is
+   then pinned to that validated address, so a DNS answer that changes between
+   lookups (rebinding) cannot route the connection around the check.
 6. **Redirects re-checked at every hop** — a public URL is free to redirect to
    `http://169.254.169.254/`, and a client that follows redirects automatically
    would take it. Max 3 hops.
