@@ -228,7 +228,7 @@ This guide covers the complete CI/CD pipeline and production monitoring setup fo
 - Deploy to Pages
 ```
 
-**URL:** `https://shizukutanaka.github.io/qui-browser/`
+**URL (deploy target — not live yet):** `https://shizukutanaka.github.io/qui-browser/`
 
 #### 3. Deploy to Netlify (10 min)
 

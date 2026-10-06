@@ -14,13 +14,16 @@ headset. Version 2.0.0.
   secure; to reach a dev server from a headset on your LAN, front it with an
   HTTPS tunnel (e.g. `ngrok http 5173`).
 
-## Try it online
+## Hosted build (deploy target)
 
-Open the hosted build on your headset browser:
+The GitHub Pages deploy target is configured (the `deploy-github-pages` job
+in `.github/workflows/cd.yml`), but no deploy has published it yet — the
+URL currently returns 404:
 
-- **GitHub Pages**: https://shizukutanaka.github.io/Qui-Browser/
+- **GitHub Pages**: https://shizukutanaka.github.io/Qui-Browser/ (deploy target — not live yet)
 
-Tap **Enter VR** on the landing page to start an immersive session.
+Once a deploy lands, open it on your headset browser and tap **Enter VR**
+on the landing page to start an immersive session.
 
 ## Run locally
 
