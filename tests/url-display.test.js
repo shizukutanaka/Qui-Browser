@@ -124,8 +124,6 @@ describe('securityLevel', () => {
   });
 });
 
-const { setLanguage } = require('../src/i18n/i18n.js');
-
 describe('contentStateLines — the viewport states honestly what it can show', () => {
   test('empty panel invites a URL', () => {
     expect(contentStateLines('empty').title).toMatch(/Enter a URL/i);

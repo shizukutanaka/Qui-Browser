@@ -5,7 +5,7 @@
  * dead surface), and the wasm-build workflow (whose entire crate was deleted
  * at PR #633) must be gone.
  */
-const { readFileSync, readdirSync, existsSync, statSync } = require('fs');
+const { readFileSync, readdirSync, existsSync } = require('fs');
 const { join } = require('path');
 
 const root = join(__dirname, '..');

@@ -567,7 +567,7 @@ export class SpatialAudio {
       if (source.gain) {
         source.gain.disconnect();
       }
-    } catch (e) {
+    } catch {
       /* ignore disconnect errors */
     }
 
