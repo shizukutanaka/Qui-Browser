@@ -360,12 +360,11 @@ git tag -a v2.0.0 -m "Release v2.0.0 - Production Ready"
 git push origin v2.0.0
 
 # 3. Monitor CD pipeline
-# Watch at: https://github.com/your-username/qui-browser-vr/actions
+# Watch at: https://github.com/shizukutanaka/qui-browser/actions
 
 # 4. Verify deployments
-# - GitHub Pages: https://your-username.github.io/qui-browser-vr/
-# - Netlify: https://qui-browser-vr.netlify.app/
-# - Vercel: https://qui-browser-vr.vercel.app/
+# - GitHub Pages: https://shizukutanaka.github.io/qui-browser/
+# - Netlify / Vercel: optional deploy targets, no public URL assigned
 ```
 
 ### Post-Deployment Verification
@@ -480,16 +479,15 @@ git push origin v2.0.0
 
 ### Community
 
-- **Issues:** https://github.com/your-username/qui-browser-vr/issues
-- **Discussions:** https://github.com/your-username/qui-browser-vr/discussions
+- **Issues:** https://github.com/shizukutanaka/qui-browser/issues
+- **Discussions:** https://github.com/shizukutanaka/qui-browser/discussions
 - **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md)
 - **Security:** [SECURITY.md](SECURITY.md)
 
 ### Contact
 
-- **General Support:** support@qui-browser.example.com
-- **Security Reports:** security@qui-browser.example.com
-- **Business Inquiries:** business@qui-browser.example.com
+- **General Support:** https://github.com/shizukutanaka/qui-browser/issues
+- **Security Reports:** [SECURITY.md](SECURITY.md)
 
 ---
 
@@ -537,7 +535,7 @@ git push origin v2.0.0
 
 **Version:** 2.0.0 | **Status:** ✅ Production Ready | **License:** MIT
 
-[Get Started](docs/QUICK_START.md) • [Documentation](docs/) • [GitHub](https://github.com/your-username/qui-browser-vr)
+[Get Started](docs/QUICK_START.md) • [Documentation](docs/) • [GitHub](https://github.com/shizukutanaka/qui-browser)
 
 </div>
 

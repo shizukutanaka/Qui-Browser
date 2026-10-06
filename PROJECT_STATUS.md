@@ -445,8 +445,8 @@ We welcome contributions! Please read our [CONTRIBUTING.md](CONTRIBUTING.md) for
 - **Documentation:** [docs/](docs/)
 - **Issues:** [GitHub Issues](https://github.com/shizukutanaka/Qui-Browser/issues)
 - **Discussions:** [GitHub Discussions](https://github.com/shizukutanaka/Qui-Browser/discussions)
-- **Email:** support@qui-browser.example.com
-- **Security:** security@qui-browser.example.com
+- **Support:** [GitHub Issues](https://github.com/shizukutanaka/Qui-Browser/issues)
+- **Security:** [SECURITY.md](SECURITY.md)
 
 ---
 

@@ -336,15 +336,14 @@ git push origin v2.0.0
    - Wait for all jobs to complete
    - Check deployment URLs:
      - [ ] GitHub Pages: https://shizukutanaka.github.io/qui-browser/
-     - [ ] Netlify: https://qui-browser-vr.netlify.app/
-     - [ ] Vercel: https://qui-browser-vr.vercel.app/
+     - [ ] Netlify / Vercel (optional deploy targets — see DEPLOYMENT_GUIDE)
 
 3. **Docker image verification**
 
    ```bash
    # Pull and test Docker image
-   docker pull ghcr.io/shizukutanaka/Qui-Browser:2.0.0
-   docker run -d -p 8080:80 ghcr.io/shizukutanaka/Qui-Browser:2.0.0
+   docker pull ghcr.io/shizukutanaka/qui-browser:2.0.0
+   docker run -d -p 8080:80 ghcr.io/shizukutanaka/qui-browser:2.0.0
 
    # Test in browser
    curl http://localhost:8080/
@@ -365,13 +364,9 @@ git push origin v2.0.0
      ```bash
      curl -I https://shizukutanaka.github.io/qui-browser/
      ```
-   - Netlify:
+   - Netlify / Vercel (if deployed to those targets):
      ```bash
-     curl -I https://qui-browser-vr.netlify.app/
-     ```
-   - Vercel:
-     ```bash
-     curl -I https://qui-browser-vr.vercel.app/
+     curl -I <your-netlify-or-vercel-url>
      ```
 
 2. **VR device testing**
@@ -500,9 +495,9 @@ If critical issues are discovered post-release:
 
 4. **Docker**
    ```bash
-   docker pull ghcr.io/shizukutanaka/Qui-Browser:1.x.x
-   docker tag ghcr.io/shizukutanaka/Qui-Browser:1.x.x ghcr.io/shizukutanaka/Qui-Browser:latest
-   docker push ghcr.io/shizukutanaka/Qui-Browser:latest
+   docker pull ghcr.io/shizukutanaka/qui-browser:1.x.x
+   docker tag ghcr.io/shizukutanaka/qui-browser:1.x.x ghcr.io/shizukutanaka/qui-browser:latest
+   docker push ghcr.io/shizukutanaka/qui-browser:latest
    ```
 
 ### Option 3: Disable Problematic Feature (< 1 hour)
@@ -596,8 +591,8 @@ watch -n 5 'gh run list --limit 1'
 **Questions or Issues:**
 
 - Technical: Open GitHub Issue
-- Security: Email security@qui-browser.example.com
-- General: Email support@qui-browser.example.com
+- Security: See [SECURITY.md](SECURITY.md)
+- General: Open a GitHub Discussion
 
 ---
 
