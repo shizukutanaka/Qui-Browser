@@ -25,7 +25,5 @@ jest.config.js @shizukutanaka
 package.json @shizukutanaka
 public/manifest.json @shizukutanaka
 
-# Examples
-
 # Security
 SECURITY.md @shizukutanaka
