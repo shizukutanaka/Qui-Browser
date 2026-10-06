@@ -73,6 +73,26 @@ async function resolveSafely(hostname) {
 }
 
 /**
+ * Parse a redirect's Location header. Those bytes come from the upstream,
+ * not from our caller — and `new URL` throws on malformed input, which would
+ * reject fetchThroughGuard inside the async request handler (the socket then
+ * never answers, and under Node's default unhandled-rejection policy the
+ * process dies). `assertRequestAllowed` guards the initial target the same
+ * way; redirect hops need the guard too.
+ *
+ * @param {string} location
+ * @param {URL} base
+ * @returns {URL | null}
+ */
+function redirectTarget(location, base) {
+  try {
+    return new URL(location, base);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Fetch a URL with the full guard applied at every hop.
  *
  * Redirects are followed manually rather than by a library, because each hop is
@@ -134,7 +154,11 @@ export async function fetchThroughGuard(target, headers = {}) {
 
     if (r.statusCode >= 300 && r.statusCode < 400 && r.headers.location) {
       r.resume(); // drain
-      current = new URL(r.headers.location, url).toString();
+      const next = redirectTarget(r.headers.location, url);
+      if (!next) {
+        return { ok: false, reason: 'invalid-redirect-location' };
+      }
+      current = next.toString();
       continue;
     }
 
