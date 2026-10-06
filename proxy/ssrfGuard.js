@@ -71,6 +71,44 @@ function parseV4(host) {
 }
 
 /**
+ * Expand an IPv6 address to its eight 16-bit pieces, or null if malformed.
+ * '::' must compress at least one piece; a trailing dotted-quad counts as
+ * two pieces (RFC 4291 §2.2) and may appear nowhere else.
+ */
+function parseV6Pieces(host) {
+  const sides = host.split('::');
+  if (sides.length > 2) {
+    return null;
+  }
+  const left = sides[0] === '' ? [] : sides[0].split(':');
+  const right = sides.length === 2 ? (sides[1] === '' ? [] : sides[1].split(':')) : [];
+  const groups = [...left, ...right];
+  const pieces = [];
+  for (const g of groups) {
+    const v4 = parseV4(g);
+    if (v4) {
+      if (g !== groups[groups.length - 1]) {
+        return null;
+      }
+      pieces.push((v4[0] << 8) | v4[1], (v4[2] << 8) | v4[3]);
+    } else {
+      if (!/^[0-9a-f]{1,4}$/.test(g)) {
+        return null;
+      }
+      pieces.push(parseInt(g, 16));
+    }
+  }
+  if (sides.length === 1) {
+    return pieces.length === 8 ? pieces : null;
+  }
+  const zeros = 8 - pieces.length;
+  if (zeros < 1) {
+    return null;
+  }
+  return [...pieces.slice(0, left.length), ...Array(zeros).fill(0), ...pieces.slice(left.length)];
+}
+
+/**
  * Is this a literal IP address the proxy must refuse?
  *
  * Call this twice: once on the URL's hostname (catches a literal address) and
@@ -81,7 +119,9 @@ function parseV4(host) {
  * @returns {{blocked: boolean, reason?: string}}
  */
 export function isBlockedAddress(address) {
-  const raw = String(address === null || address === undefined ? '' : address).trim().toLowerCase();
+  const raw = String(address === null || address === undefined ? '' : address)
+    .trim()
+    .toLowerCase();
   if (!raw) {
     return { blocked: true, reason: 'empty-host' };
   }
@@ -99,24 +139,56 @@ export function isBlockedAddress(address) {
   }
 
   if (host.includes(':')) {
-    // IPv6. Reject loopback, unspecified, unique-local (fc00::/7) and
-    // link-local (fe80::/10) outright, plus any v4-mapped form, which would
-    // otherwise smuggle a private v4 address past the check above.
-    if (host === '::1' || host === '::') {
+    // IPv6. Classify structurally — expand the address to its 8 pieces and
+    // test those. String-matching a few canonical spellings ('::1', a dotted
+    // ::ffff:a.b.c.d) is the classic way this check fails: hex pairs,
+    // expanded forms and other transition prefixes sail through while Node
+    // happily connects them to the private target they name.
+    const pieces = parseV6Pieces(host);
+    if (!pieces) {
+      return { blocked: true, reason: 'ipv6-malformed' };
+    }
+    if (pieces.every((p) => p === 0)) {
+      return { blocked: true, reason: 'ipv6-unspecified' };
+    }
+    if (pieces.slice(0, 7).every((p) => p === 0) && pieces[7] === 1) {
       return { blocked: true, reason: 'ipv6-loopback' };
     }
-    const mapped = /::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/.exec(host);
-    if (mapped) {
-      return isBlockedAddress(mapped[1]).blocked
-        ? { blocked: true, reason: 'ipv4-mapped-private' }
-        : { blocked: false };
+    // Forms that smuggle an IPv4 inside an IPv6 tuple. Whichever notation
+    // wrote it, the socket reaches the embedded v4 — so run the same range
+    // table on it. Public embedded v4 (e.g. ::ffff:8.8.8.8) stays allowed.
+    const embeddedAt =
+      pieces.slice(0, 5).every((p) => p === 0) && pieces[5] === 0xffff
+        ? 6 // ::ffff:/96
+        : pieces.slice(0, 6).every((p) => p === 0)
+          ? 6 // ::/96 compatible
+          : pieces[0] === 0x0064 && pieces[1] === 0xff9b && pieces.slice(2, 6).every((p) => p === 0)
+            ? 6 // NAT64 64:ff9b::/96
+            : pieces[0] === 0x2002
+              ? 1 // 6to4 2002::/16
+              : null;
+    if (embeddedAt !== null) {
+      const o = [
+        pieces[embeddedAt] >> 8,
+        pieces[embeddedAt] & 0xff,
+        pieces[embeddedAt + 1] >> 8,
+        pieces[embeddedAt + 1] & 0xff
+      ];
+      const hit = V4_BLOCKED.find((range) => range.test(o));
+      // 'ipv4-mapped-private' is the established reason name for any v4 that
+      // arrives wearing a v6 costume, whichever transition form wrote it.
+      return hit ? { blocked: true, reason: 'ipv4-mapped-private' } : { blocked: false };
     }
-    const head = host.split(':')[0];
-    if (/^f[cd]/.test(head)) {
+    const first = pieces[0];
+    if (first >= 0xfc00 && first <= 0xfdff) {
       return { blocked: true, reason: 'ipv6-unique-local' };
     }
-    if (/^fe[89ab]/.test(head)) {
+    if (first >= 0xfe00 && first <= 0xfeff) {
+      // fe80::/10 link-local plus the deprecated fec0::/10 site-local space.
       return { blocked: true, reason: 'ipv6-link-local' };
+    }
+    if (first >= 0xff00) {
+      return { blocked: true, reason: 'ipv6-multicast' };
     }
     return { blocked: false };
   }
@@ -158,7 +230,7 @@ export function assertRequestAllowed(target) {
   if (url.username || url.password) {
     return { ok: false, reason: 'credentials-in-url' };
   }
-  const port = url.port ? Number(url.port) : (url.protocol === 'https:' ? 443 : 80);
+  const port = url.port ? Number(url.port) : url.protocol === 'https:' ? 443 : 80;
   if (!ALLOWED_PORTS.includes(port)) {
     return { ok: false, reason: `port-not-allowed:${port}` };
   }
@@ -199,7 +271,5 @@ export function safeUpstreamHeaders(headers = {}) {
  */
 export function isReadableContentType(contentType) {
   const ct = String(contentType || '').toLowerCase();
-  return ct.startsWith('text/html')
-    || ct.startsWith('application/xhtml+xml')
-    || ct.startsWith('text/plain');
+  return ct.startsWith('text/html') || ct.startsWith('application/xhtml+xml') || ct.startsWith('text/plain');
 }
