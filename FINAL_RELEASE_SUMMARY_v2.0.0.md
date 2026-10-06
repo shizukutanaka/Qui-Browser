@@ -2,7 +2,7 @@
 
 **Release Date:** 2025-10-19
 **Version:** 2.0.0
-**Status:** ✅ **PRODUCTION READY**
+**Status:** ⚠️ **Planned release, never executed** — no v2.0.0 tag exists on origin. Claims below are the 2025-10-19 snapshot; ~~struck~~ rows name surface removed or never created since.
 
 ---
 
@@ -12,12 +12,12 @@ Qui Browser VR v2.0.0 is a **production-ready WebXR VR browser** with **17 advan
 
 ### Key Achievements
 
-- ✅ **17 Features Complete** - All Tier 1, 2, and 3 features implemented and tested
-- ✅ **90-120 FPS Performance** - Exceeds targets on Quest 3 (90-120 FPS), Quest 2 (72-90 FPS)
-- ✅ **Complete CI/CD** - 9 CI jobs, 9 CD jobs, automated testing and deployment
-- ✅ **Production Monitoring** - Sentry, GA4, Web Vitals fully integrated
-- ✅ **Comprehensive Docs** - 12 documentation files, 7,340+ lines
-- ✅ **Multi-Platform Deploy** - GitHub Pages, Netlify, Vercel, Docker automated
+- ⚠️ ~~**17 Features Complete**~~ — 9 of the 19 listed module files were later removed (see struck rows)
+- ✅ **90-120 FPS Performance** - snapshot claim (Quest 3 90-120 FPS, Quest 2 72-90 FPS); not re-verified since
+- ✅ **CI/CD** - 7 CI jobs + 9 CD jobs defined (the table below previously counted 2 phantom CI jobs)
+- ⚠️ **Monitoring** - code wired (`monitoring.js`), but no Sentry DSN / GA4 ID is provisioned — init no-ops
+- ✅ **Docs** - documentation suite present (API.md deleted, RELEASE_NOTES never created)
+- ⚠️ **Multi-Platform Deploy** - pipelines configured; no public deploy is live (Pages returns 404)
 
 ---
 
@@ -31,8 +31,8 @@ Qui Browser VR v2.0.0 is a **production-ready WebXR VR browser** with **17 advan
 | **Documentation**   | 12       | ~7,340       | User, developer, operations docs     |
 | **Tests**           | 10+      | ~2,000       | Unit, integration, performance tests |
 | **Configuration**   | 20+      | ~1,500       | Build, CI/CD, deployment configs     |
-| **Examples**        | 4        | ~600         | Usage examples and demos             |
-| **Tools**           | 2        | ~700         | Benchmarking and performance tools   |
+| ~~**Examples**~~    | 0        | —            | Removed (#1148)                      |
+| **Tools**           | 7        | —            | Verification and utility scripts     |
 | **CI/CD Workflows** | 3        | ~500         | Automated testing and deployment     |
 | **TOTAL**           | **120+** | **~34,300+** | **Complete production system**       |
 
@@ -58,43 +58,43 @@ Qui Browser VR v2.0.0 is a **production-ready WebXR VR browser** with **17 advan
 
 ## 🚀 Feature Summary
 
-### Tier 1: Performance Optimizations (5/5 Complete) ✅
+### Tier 1: Performance Optimizations (3/5 still present)
 
-| #   | Feature                            | File                | Lines | Impact                  | Status |
-| --- | ---------------------------------- | ------------------- | ----- | ----------------------- | ------ |
-| 1   | **Fixed Foveated Rendering (FFR)** | FFRSystem.js        | 580   | +15-20 FPS              | ✅     |
-| 2   | **Comfort System**                 | ComfortSystem.js    | 620   | Reduced motion sickness | ✅     |
-| 3   | **Object Pooling**                 | ObjectPoolSystem.js | 450   | -40% GC pauses          | ✅     |
-| 4   | **KTX2 Texture Compression**       | TextureLoader.js    | 380   | -94% texture memory     | ✅     |
-| 5   | **Service Worker Offline**         | service-worker.js   | 290   | 100% offline capability | ✅     |
+| #   | Feature                            | File                    | Lines | Impact                  | Status |
+| --- | ---------------------------------- | ----------------------- | ----- | ----------------------- | ------ |
+| 1   | **Fixed Foveated Rendering (FFR)** | FFRSystem.js            | 580   | +15-20 FPS              | ✅     |
+| 2   | **Comfort System**                 | ComfortSystem.js        | 620   | Reduced motion sickness | ✅     |
+| 3   | ~~**Object Pooling**~~             | ~~ObjectPoolSystem.js~~ | —     | removed                 | ❌     |
+| 4   | ~~**KTX2 Texture Compression**~~   | ~~TextureLoader.js~~    | —     | removed (#1121)         | ❌     |
+| 5   | **Service Worker Offline**         | service-worker.js       | 290   | 100% offline capability | ✅     |
 
-**Total:** 2,320 lines of optimized performance code
+**Total (snapshot):** 2,320 lines — 2 of 5 modules since removed
 
-### Tier 2: Enhanced Features (6/6 Complete) ✅
+### Tier 2: Enhanced Features (4/6 still present)
 
-| #   | Feature                       | File                  | Lines | User Impact                 | Status |
-| --- | ----------------------------- | --------------------- | ----- | --------------------------- | ------ |
-| 6   | **Japanese IME**              | JapaneseIME.js        | 680   | Native Japanese input       | ✅     |
-| 7   | **Advanced Hand Tracking**    | HandTracking.js       | 720   | Controller-free interaction | ✅     |
-| 8   | **3D Spatial Audio**          | SpatialAudio.js       | 540   | Immersive sound             | ✅     |
-| 9   | **MR Passthrough**            | PassthroughManager.js | 420   | Real-world integration      | ✅     |
-| 10  | **Progressive Image Loading** | ProgressiveLoader.js  | 380   | -60% initial load time      | ✅     |
-| 11  | **Offline Support**           | OfflineManager.js     | 320   | Works without internet      | ✅     |
+| #   | Feature                       | File                      | Lines | User Impact                         | Status |
+| --- | ----------------------------- | ------------------------- | ----- | ----------------------------------- | ------ |
+| 6   | **Japanese IME**              | JapaneseIME.js            | 680   | Native Japanese input               | ✅     |
+| 7   | **Advanced Hand Tracking**    | HandTracking.js           | 720   | Controller-free interaction         | ✅     |
+| 8   | **3D Spatial Audio**          | SpatialAudio.js           | 540   | Immersive sound                     | ✅     |
+| 9   | ~~**MR Passthrough**~~        | ~~PassthroughManager.js~~ | —     | removed                             | ❌     |
+| 10  | **Progressive Image Loading** | ProgressiveLoader.js      | 380   | -60% initial load time              | ✅     |
+| 11  | ~~**Offline Support**~~       | ~~OfflineManager.js~~     | —     | removed; offline via service worker | ❌     |
 
-**Total:** 3,060 lines of enhanced features
+**Total (snapshot):** 3,060 lines — 2 of 6 modules since removed
 
-### Tier 3: Advanced Features (6/6 Complete) ✅
+### Tier 3: Advanced Features (3/6 still present)
 
-| #   | Feature                | File                 | Lines | Innovation                 | Status |
-| --- | ---------------------- | -------------------- | ----- | -------------------------- | ------ |
-| 12  | **WebGPU Rendering**   | WebGPURenderer.js    | 840   | 2x rendering performance   | ✅     |
-| 13  | **Multiplayer System** | MultiplayerSystem.js | 760   | Real-time collaboration    | ✅     |
-| 14  | **AI Recommendations** | AIRecommendation.js  | 560   | Personalized content       | ✅     |
-| 15  | **Voice Commands**     | VoiceCommands.js     | 480   | Hands-free control         | ✅     |
-| 16  | **Haptic Feedback**    | HapticFeedback.js    | 420   | Enhanced immersion         | ✅     |
-| 17  | **WebCodecs Video**    | VideoPlayer.js       | 380   | Hardware-accelerated video | ✅     |
+| #   | Feature                    | File                                                            | Lines | Innovation         | Status |
+| --- | -------------------------- | --------------------------------------------------------------- | ----- | ------------------ | ------ |
+| 12  | ~~**WebGPU Rendering**~~   | ~~WebGPURenderer.js~~                                           | —     | removed            | ❌     |
+| 13  | ~~**Multiplayer System**~~ | ~~MultiplayerSystem.js~~                                        | —     | removed            | ❌     |
+| 14  | ~~**AI Recommendations**~~ | ~~AIRecommendation.js~~                                         | —     | removed            | ❌     |
+| 15  | **Voice Commands**         | VoiceCommands.js                                                | 480   | Hands-free control | ✅     |
+| 16  | **Haptic Feedback**        | HapticFeedback.js                                               | 420   | Enhanced immersion | ✅     |
+| 17  | ~~**WebCodecs Video**~~    | ~~VideoPlayer.js~~ — never existed; video = `ImmersiveVideo.js` | —     | —                  | ❌     |
 
-**Total:** 3,440 lines of advanced features
+**Total (snapshot):** 3,440 lines — 3 of 6 modules since removed
 
 ### Development Tools (2/2 Complete) ✅
 
@@ -111,19 +111,19 @@ Qui Browser VR v2.0.0 is a **production-ready WebXR VR browser** with **17 advan
 
 ### CI/CD Pipeline
 
-#### Continuous Integration (ci.yml) - 9 Jobs, ~25 min
+#### Continuous Integration (ci.yml) - 7 Jobs, ~25 min
 
-| Job                       | Duration | Purpose                          | Status |
-| ------------------------- | -------- | -------------------------------- | ------ |
-| **1. Code Quality**       | 10 min   | ESLint, Prettier, security audit | ✅     |
-| **2. Unit Tests**         | 15 min   | Jest with coverage, Codecov      | ✅     |
-| **3. Integration Tests**  | 15 min   | Tier system integration          | ✅     |
-| **4. Performance Tests**  | 20 min   | Benchmarks + regression          | ✅     |
-| **5. Build Verification** | 15 min   | Multi-version (Node 16/18/20)    | ✅     |
-| **6. Lighthouse CI**      | 15 min   | Performance audits               | ✅     |
-| **7. Docker Build**       | 20 min   | Container build test             | ✅     |
-| **8. Security Scan**      | 15 min   | Trivy vulnerability scan         | ✅     |
-| **9. CI Summary**         | 1 min    | Aggregate results                | ✅     |
+| Job                          | Duration | Purpose                          | Status |
+| ---------------------------- | -------- | -------------------------------- | ------ |
+| **1. Code Quality**          | 10 min   | ESLint, Prettier, security audit | ✅     |
+| **2. Unit Tests**            | 15 min   | Jest with coverage, Codecov      | ✅     |
+| ~~**3. Integration Tests**~~ | —        | No such job exists               | ❌     |
+| ~~**4. Performance Tests**~~ | —        | No such job exists               | ❌     |
+| **5. Build Verification**    | 15 min   | Multi-version (Node 18/20)       | ✅     |
+| **6. Lighthouse CI**         | 15 min   | Performance audits               | ✅     |
+| **7. Docker Build**          | 20 min   | Container build test             | ✅     |
+| **8. Security Scan**         | 15 min   | Trivy vulnerability scan         | ✅     |
+| **9. CI Summary**            | 1 min    | Aggregate results                | ✅     |
 
 #### Continuous Deployment (cd.yml) - 9 Jobs, ~40 min
 
@@ -141,13 +141,13 @@ Qui Browser VR v2.0.0 is a **production-ready WebXR VR browser** with **17 advan
 
 ### Testing Infrastructure
 
-| Test Type             | Suites  | Tests     | Coverage | Status |
-| --------------------- | ------- | --------- | -------- | ------ |
-| **Unit Tests**        | 34      | 100+      | 50%+     | ✅     |
-| **Integration Tests** | 8       | 30+       | -        | ✅     |
-| **Performance Tests** | 5       | 15+       | -        | ✅     |
-| **Regression Tests**  | -       | Automated | -        | ✅     |
-| **E2E Tests**         | Planned | Planned   | -        | 📅     |
+| Test Type                 | Suites  | Tests     | Coverage | Status  |
+| ------------------------- | ------- | --------- | -------- | ------- |
+| **Unit Tests**            | 34      | 100+      | 50%+     | ✅      |
+| ~~**Integration Tests**~~ | —       | —         | —        | removed |
+| ~~**Performance Tests**~~ | —       | —         | —        | removed |
+| **Regression Tests**      | -       | Automated | -        | ✅      |
+| **E2E Tests**             | Planned | Planned   | -        | 📅      |
 
 **Total Test Coverage:** 60%+ target (current: 50%+, improving)
 
@@ -169,13 +169,13 @@ Qui Browser VR v2.0.0 is a **production-ready WebXR VR browser** with **17 advan
 
 ### Deployment Platforms
 
-| Platform         | Status       | Automation        | Performance          | Notes      |
-| ---------------- | ------------ | ----------------- | -------------------- | ---------- |
-| **GitHub Pages** | ✅ Live      | Auto on main push | Fast (GitHub CDN)    | Primary    |
-| **Netlify**      | ✅ Live      | Auto on main push | Very Fast (edge CDN) | Secondary  |
-| **Vercel**       | ✅ Live      | Auto on main push | Very Fast (edge)     | Secondary  |
-| **Docker Hub**   | ✅ Published | Auto on tag       | Self-hosted          | Enterprise |
-| **Custom Nginx** | ✅ Ready     | Manual deploy     | Depends on server    | Enterprise |
+| Platform             | Status        | Automation                        | Performance          | Notes      |
+| -------------------- | ------------- | --------------------------------- | -------------------- | ---------- |
+| **GitHub Pages**     | ⚠️ Not live   | Auto on main push (configured)    | Fast (GitHub CDN)    | Primary    |
+| **Netlify**          | ⚠️ Not live   | `deploy:netlify` script           | Very Fast (edge CDN) | Secondary  |
+| **Vercel**           | ⚠️ Not live   | `deploy:vercel` script            | Very Fast (edge)     | Secondary  |
+| **Docker (ghcr.io)** | ⚠️ Configured | cd.yml on tag                     | Self-hosted          | Enterprise |
+| **Custom Nginx**     | ⚠️ Configured | Manual deploy (docker/nginx.conf) | Depends on server    | Enterprise |
 
 ---
 
@@ -194,12 +194,12 @@ Qui Browser VR v2.0.0 is a **production-ready WebXR VR browser** with **17 advan
 
 #### Developer Documentation (2,200+ lines)
 
-| File                   | Lines  | Purpose                     | Status |
-| ---------------------- | ------ | --------------------------- | ------ |
-| **API.md**             | 1,100+ | Complete API reference      | ✅     |
-| **ARCHITECTURE.md**    | 900+   | System architecture, design | ✅     |
-| **CONTRIBUTING.md**    | 600+   | Contribution guidelines     | ✅     |
-| **CODE_OF_CONDUCT.md** | 200+   | Community standards         | ✅     |
+| File                   | Lines | Purpose                     | Status |
+| ---------------------- | ----- | --------------------------- | ------ |
+| ~~API.md~~             | —     | Deleted (#1149)             | ❌     |
+| **ARCHITECTURE.md**    | 900+  | System architecture, design | ✅     |
+| **CONTRIBUTING.md**    | 600+  | Contribution guidelines     | ✅     |
+| **CODE_OF_CONDUCT.md** | 200+  | Community standards         | ✅     |
 
 #### Operations Documentation (2,000+ lines)
 
@@ -215,18 +215,18 @@ Qui Browser VR v2.0.0 is a **production-ready WebXR VR browser** with **17 advan
 | File                        | Lines | Purpose                    | Status |
 | --------------------------- | ----- | -------------------------- | ------ |
 | **CHANGELOG.md**            | 280+  | Version history            | ✅     |
-| **RELEASE_NOTES_v2.0.0.md** | 500+  | v2.0.0 release notes       | ✅     |
+| ~~RELEASE_NOTES_v2.0.0.md~~ | —     | Never created              | ❌     |
 | **PROJECT_STATUS.md**       | 600+  | Current project status     | ✅ New |
 | **RELEASE_CHECKLIST.md**    | 800+  | Complete release checklist | ✅ New |
 | **SECURITY.md**             | 400+  | Security policy            | ✅     |
 
-**Total:** 12 files, ~7,340+ lines of comprehensive documentation
+**Total (snapshot):** 12 files claimed — 1 deleted (API.md), 1 never created (RELEASE_NOTES_v2.0.0.md)
 
 ---
 
 ## 🔧 NPM Scripts Reference
 
-### 30+ Production-Ready Scripts
+### NPM Scripts Reference (the listed subset that exists today)
 
 ```bash
 # Development (3 scripts)
@@ -234,13 +234,10 @@ npm run dev                   # Start Vite dev server
 npm run build                 # Build for production
 npm run preview               # Preview production build
 
-# Testing (6 scripts)
+# Testing (3 scripts)
 npm test                      # Run all tests
 npm run test:watch            # Watch mode
 npm run test:coverage         # Tests with coverage
-npm run test:tier             # Tier integration tests
-npm run test:integration      # Integration tests
-npm run test:e2e              # E2E tests (Playwright)
 
 # Code Quality (4 scripts)
 npm run lint                  # Lint JavaScript
@@ -248,16 +245,9 @@ npm run lint:fix              # Auto-fix linting
 npm run format                # Format code (Prettier)
 npm run format:check          # Check formatting
 
-# Performance (4 scripts)
-npm run benchmark             # Run benchmarks
-npm run benchmark:all         # Benchmark all modules
-npm run benchmark:report      # Generate report
-npm run benchmark:regression  # Check regressions
-
-# CI/CD (4 scripts)
+# CI/CD (3 scripts)
 npm run ci:lint               # Lint + format check
 npm run ci:test               # Tests with coverage
-npm run ci:benchmark          # Benchmark + regression
 npm run ci:all                # Complete CI suite
 
 # Docker (6 scripts)
@@ -268,8 +258,7 @@ npm run docker:compose        # Docker Compose up
 npm run docker:compose:down   # Docker Compose down
 npm run docker:logs           # View logs
 
-# Deployment (3 scripts)
-npm run deploy:gh-pages       # Deploy to GitHub Pages
+# Deployment (2 scripts)
 npm run deploy:netlify        # Deploy to Netlify
 npm run deploy:vercel         # Deploy to Vercel
 
@@ -307,43 +296,45 @@ npm run clean:install         # Clean + fresh install
 
 #### Documentation ✅
 
-- [x] All 12 documentation files complete
-- [x] README.md updated with v2.0.0
+- [x] Documentation suite present
+- [x] README.md updated
 - [x] CHANGELOG.md updated
-- [x] API docs complete
-- [x] Examples verified
+- [ ] ~~API docs complete~~ — API.md deleted (#1149)
+- [ ] ~~Examples verified~~ — examples/ removed (#1148)
 
 #### Infrastructure ✅
 
-- [x] CI pipeline (9 jobs) passing
+- [x] CI pipeline (7 jobs) defined
 - [x] CD pipeline (9 jobs) configured
-- [x] Multi-platform deployment tested
-- [x] Docker multi-arch builds working
-- [x] Monitoring systems integrated
+- [ ] ~~Multi-platform deployment tested~~ — no live deploy exists
+- [x] Docker multi-arch build configured (cd.yml)
+- [ ] ~~Monitoring systems integrated~~ — DSN/measurement IDs unprovisioned
 
 #### Testing ✅
 
-- [x] Unit tests complete (100+ tests)
-- [x] Integration tests passing
-- [x] Performance benchmarks running
-- [x] Device testing completed
-- [x] Regression detection active
+- [x] Unit tests exist (jest suite)
+- [ ] ~~Integration tests passing~~ — `test:integration` removed (#1177)
+- [ ] ~~Performance benchmarks running~~ — benchmark scripts removed
+- [ ] ~~Device testing completed~~ — no device-test harness exists
+- [ ] ~~Regression detection active~~ — no benchmark/regression tooling exists
 
 ---
 
 ## 🎮 Device Compatibility Matrix
 
-| Device             | Support      | Performance | Features | Tested |
-| ------------------ | ------------ | ----------- | -------- | ------ |
-| **Meta Quest 2**   | ✅ Full      | 72-90 FPS   | All 17   | ✅     |
-| **Meta Quest 3**   | ✅ Full      | 90-120 FPS  | All 17   | ✅     |
-| **Meta Quest Pro** | ✅ Full      | 90 FPS      | All 17   | ✅     |
-| **Pico 4**         | ✅ Full      | 90 FPS      | All 17   | ✅     |
-| **Pico Neo 3**     | ✅ Supported | 72-90 FPS   | 15/17    | ✅     |
-| **HTC Vive Focus** | ⚠️ Partial   | 72 FPS      | 12/17    | ⚠️     |
-| **PC VR Headsets** | ⚠️ Partial   | Varies      | Varies   | ⚠️     |
+| Device             | Support      | Performance | Features | Tested        |
+| ------------------ | ------------ | ----------- | -------- | ------------- |
+| **Meta Quest 2**   | ✅ Full      | 72-90 FPS   | All 17   | ⚠️ unverified |
+| **Meta Quest 3**   | ✅ Full      | 90-120 FPS  | All 17   | ⚠️ unverified |
+| **Meta Quest Pro** | ✅ Full      | 90 FPS      | All 17   | ⚠️ unverified |
+| **Pico 4**         | ✅ Full      | 90 FPS      | All 17   | ⚠️ unverified |
+| **Pico Neo 3**     | ✅ Supported | 72-90 FPS   | 15/17    | ⚠️ unverified |
+| **HTC Vive Focus** | ⚠️ Partial   | 72 FPS      | 12/17    | ⚠️ unverified |
+| **PC VR Headsets** | ⚠️ Partial   | Varies      | Varies   | ⚠️ unverified |
 
-**Primary Targets:** Meta Quest 2/3, Pico 4 (100% compatibility)
+**Primary Targets:** Meta Quest 2/3, Pico 4
+
+_"Tested" marked unverified: no device-test harness exists in the repo._
 
 ---
 
@@ -363,7 +354,7 @@ git push origin v2.0.0
 # Watch at: https://github.com/shizukutanaka/qui-browser/actions
 
 # 4. Verify deployments
-# - GitHub Pages: https://shizukutanaka.github.io/qui-browser/
+# - GitHub Pages: https://shizukutanaka.github.io/qui-browser/ (deploy target — currently 404)
 # - Netlify / Vercel: optional deploy targets, no public URL assigned
 ```
 
@@ -493,20 +484,17 @@ git push origin v2.0.0
 
 ## 🏆 Final Status
 
-### ✅ READY FOR PRODUCTION RELEASE
+### ⚠️ PLANNED — RELEASE NEVER EXECUTED
 
-**All systems verified and operational:**
+**Snapshot claims from 2025-10-19 (no v2.0.0 tag was ever pushed):**
 
-- ✅ **Code:** 34,300+ lines, 120+ files
-- ✅ **Features:** 17/17 complete (100%)
-- ✅ **Tests:** 34 suites, 100+ tests passing
-- ✅ **Documentation:** 12 files, 7,340+ lines
-- ✅ **Performance:** All targets exceeded
-- ✅ **CI/CD:** 18 jobs automated
-- ✅ **Monitoring:** Full observability
-- ✅ **Deployment:** Multi-platform ready
-- ✅ **Security:** Enterprise-grade
-- ✅ **Quality:** Lighthouse 96/100
+- ✅ **Code:** modules as listed; 9 of the 19 named files were later removed
+- ⚠️ **Features:** 12/19 listed modules still exist (see struck rows)
+- ✅ **Tests:** jest suite present
+- ✅ **Documentation:** docs suite present (API.md deleted, RELEASE_NOTES never created)
+- ⚠️ **CI/CD:** 16 jobs defined (7 CI + 9 CD)
+- ⚠️ **Monitoring:** code wired; credentials unprovisioned (init no-ops)
+- ⚠️ **Deployment:** pipelines configured; nothing is live (Pages 404s)
 
 ### 🚀 Next Steps
 
@@ -529,11 +517,11 @@ git push origin v2.0.0
 
 <div align="center">
 
-# 🎉 Qui Browser VR v2.0.0 is Production Ready! 🎉
+# Qui Browser VR v2.0.0 — prepared, never released
 
-**17 Features** | **90-120 FPS** | **Complete CI/CD** | **Enterprise Monitoring**
+**WebXR VR Browser** | **Quest 2/3 · Pico 4** | **CI/CD configured**
 
-**Version:** 2.0.0 | **Status:** ✅ Production Ready | **License:** MIT
+**Version:** 2.0.0 (planned) | **Status:** ⚠️ Never released — no tag | **License:** MIT
 
 [Get Started](docs/QUICK_START.md) • [Documentation](docs/) • [GitHub](https://github.com/shizukutanaka/qui-browser)
 

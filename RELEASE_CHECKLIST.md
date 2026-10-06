@@ -3,7 +3,7 @@
 **Release Version:** 2.0.0
 **Target Date:** 2025-10-19
 **Release Type:** Major Release
-**Status:** ✅ Ready for Release
+**Status:** ⚠️ **Planned, never executed** — no v2.0.0 tag was ever created or pushed (§6 stays unchecked). Checkmarks describe the 2025-10-19 plan; ~~struck~~ rows name surface removed or never created since.
 
 ---
 
@@ -18,7 +18,7 @@
   - [x] No failing tests in CI pipeline
 
 - [x] **Code quality checks**
-  - [x] ESLint: No errors, warnings resolved
+  - [x] ESLint: No errors (warnings remain at baseline)
   - [x] Prettier: All files formatted
   - [x] No console.log statements in production code
   - [x] TypeScript types (if applicable) validated
@@ -43,7 +43,7 @@
   - [x] QUICK_START.md verified and tested
   - [x] USAGE_GUIDE.md covers all 17 features
   - [x] FAQ.md answers common questions
-  - [x] API.md documents all public APIs
+  - [ ] ~~API.md documents all public APIs~~ — file deleted (#1149)
 
 - [x] **Developer documentation complete**
   - [x] ARCHITECTURE.md explains system design
@@ -59,7 +59,7 @@
 
 - [x] **Release documentation**
   - [x] CHANGELOG.md updated with v2.0.0 changes
-  - [x] RELEASE_NOTES_v2.0.0.md created
+  - [ ] ~~RELEASE_NOTES_v2.0.0.md created~~ — file never created
   - [x] PROJECT_STATUS.md reflects current state
   - [x] RELEASE_CHECKLIST.md (this file) complete
 
@@ -90,9 +90,9 @@
   - [x] Health checks pass
 
 - [x] **Deployment platforms configured**
-  - [x] GitHub Pages: Repository settings configured
-  - [x] Netlify: Site created, environment variables set
-  - [x] Vercel: Project linked, settings configured
+  - [ ] GitHub Pages: not live — shizukutanaka.github.io/qui-browser/ returns 404
+  - [ ] ~~Netlify: Site created~~ — deploy script + secrets exist; no live site assigned
+  - [ ] ~~Vercel: Project linked~~ — deploy script + secrets exist; no live site assigned
   - [x] Docker Registry: ghcr.io access configured
 
 ### 4. CI/CD Pipeline ✅
@@ -100,14 +100,14 @@
 - [x] **GitHub Actions workflows**
   - [x] ci.yml: All jobs passing
   - [x] cd.yml: Deployment workflow tested
-  - [x] benchmark.yml: Performance monitoring active
+  - [ ] ~~benchmark.yml: Performance monitoring active~~ — workflow removed (#1139)
   - [x] Workflow permissions configured correctly
 
 - [x] **GitHub repository settings**
   - [x] Branch protection rules enabled (main)
   - [x] Required status checks configured
   - [x] Merge restrictions in place
-  - [x] GitHub Pages enabled
+  - [ ] GitHub Pages enabled — no site is live (404)
 
 - [x] **Secrets and environment variables**
   - [x] NETLIFY_AUTH_TOKEN set
@@ -115,28 +115,28 @@
   - [x] VERCEL_TOKEN set
   - [x] VERCEL_ORG_ID set
   - [x] VERCEL_PROJECT_ID set
-  - [x] SENTRY_DSN set (optional)
-  - [x] GA_MEASUREMENT_ID set (optional)
+  - [ ] ~~SENTRY_DSN set~~ — nothing consumes this name; the app reads `VITE_SENTRY_DSN` at build time and CI sets neither
+  - [ ] ~~GA_MEASUREMENT_ID set~~ — nothing consumes this name; the app reads `VITE_GA_MEASUREMENT_ID` at build time and CI sets neither
 
 ### 5. Monitoring & Analytics ✅
 
-- [x] **Error tracking (Sentry)**
-  - [x] Project created in Sentry
-  - [x] DSN configured in environment
-  - [x] Error filtering rules set
-  - [x] Alert rules configured
+- [ ] **Error tracking (Sentry)** — `monitoring.js` is wired but no DSN is provisioned; `initSentry` no-ops
+  - [ ] Project created in Sentry
+  - [ ] DSN configured in environment
+  - [ ] Error filtering rules set
+  - [ ] Alert rules configured
 
-- [x] **Analytics (Google Analytics 4)**
-  - [x] GA4 property created
-  - [x] Measurement ID configured
-  - [x] Privacy settings configured (GDPR compliant)
-  - [x] Custom events defined
+- [ ] **Analytics (Google Analytics 4)** — `VITE_GA_MEASUREMENT_ID` unset; `initGoogleAnalytics` no-ops
+  - [ ] GA4 property created
+  - [ ] Measurement ID configured
+  - [ ] Privacy settings configured (GDPR compliant)
+  - [ ] Custom events defined
 
 - [x] **Performance monitoring**
   - [x] Web Vitals tracking enabled
-  - [x] Custom VR metrics tracked
-  - [x] Performance thresholds defined
-  - [x] Alerts configured for degradation
+  - [x] Custom VR metrics tracked (`PerformanceMonitor`)
+  - [ ] Performance thresholds defined
+  - [ ] Alerts configured for degradation
 
 ### 6. Version Management ✅
 
@@ -163,52 +163,52 @@
 
 - [x] FFR System: Foveated rendering working
 - [x] Comfort System: Motion comfort features active
-- [x] Object Pooling: Memory management optimized
-- [x] KTX2 Textures: Texture compression working
-- [x] Service Worker: Offline functionality verified
+- ~~[x] Object Pooling: Memory management optimized~~ — `ObjectPoolSystem.js` removed
+- ~~[x] KTX2 Textures: Texture compression working~~ — `TextureLoader.js` removed (#1121)
+- [x] Service Worker: Offline functionality verified (`public/service-worker.js`)
 
 #### Tier 2: Enhanced Features
 
 - [x] Japanese IME: Input working correctly
 - [x] Hand Tracking: Gestures recognized
 - [x] Spatial Audio: 3D sound positioned correctly
-- [x] MR Passthrough: Real-world view working
-- [x] Progressive Loading: Images load progressively
-- [x] Offline Support: App works offline
+- ~~[x] MR Passthrough: Real-world view working~~ — `PassthroughManager.js` removed
+- [x] Progressive Loading: Images load progressively (`ProgressiveLoader.js`)
+- ~~[x] Offline Support: App works offline~~ — `OfflineManager.js` removed; offline = service worker only
 
 #### Tier 3: Advanced Features
 
-- [x] WebGPU: Hardware acceleration working (with fallback)
-- [x] Multiplayer: Peer connections established
-- [x] AI Recommendations: Content suggestions working
+- ~~[x] WebGPU: Hardware acceleration working (with fallback)~~ — `WebGPURenderer.js` removed
+- ~~[x] Multiplayer: Peer connections established~~ — `MultiplayerSystem.js` removed
+- ~~[x] AI Recommendations: Content suggestions working~~ — `AIRecommendation.js` removed
 - [x] Voice Commands: Speech recognition active
 - [x] Haptic Feedback: Vibration effects working
-- [x] WebCodecs: Video playback optimized
+- ~~[x] WebCodecs: Video playback optimized~~ — `VideoPlayer.js` never existed; video = `ImmersiveVideo.js`
 
 #### Development Tools
 
 - [x] Performance Monitor: Real-time metrics displayed
 - [x] DevTools: In-VR debugging functional
 
-### 8. Device Testing ✅
+### 8. Device Testing ⚠️ — claimed at snapshot; no device-test harness exists in the repo
 
-- [x] **Meta Quest 2**
-  - [x] App loads and runs
-  - [x] FPS targets achieved (72-90)
-  - [x] All features functional
-  - [x] No critical bugs
+- [ ] **Meta Quest 2**
+  - [ ] App loads and runs
+  - [ ] FPS targets achieved (72-90)
+  - [ ] All features functional
+  - [ ] No critical bugs
 
-- [x] **Meta Quest 3**
-  - [x] App loads and runs
-  - [x] FPS targets achieved (90-120)
-  - [x] All features functional
-  - [x] MR passthrough working
+- [ ] **Meta Quest 3**
+  - [ ] App loads and runs
+  - [ ] FPS targets achieved (90-120)
+  - [ ] All features functional
+  - [ ] MR passthrough working
 
-- [x] **Pico 4**
-  - [x] App loads and runs
-  - [x] FPS targets achieved (90)
-  - [x] Basic features functional
-  - [x] Compatibility verified
+- [ ] **Pico 4**
+  - [ ] App loads and runs
+  - [ ] FPS targets achieved (90)
+  - [ ] Basic features functional
+  - [ ] Compatibility verified
 
 - [ ] **Desktop browsers** (fallback mode)
   - [ ] Chrome: Basic functionality
@@ -239,8 +239,8 @@
 - [x] **Support channels**
   - [x] GitHub Issues enabled
   - [x] GitHub Discussions enabled
-  - [x] Support email configured
-  - [x] Security contact email configured
+  - [ ] ~~Support email configured~~ — no mailbox exists; support = Issues/Discussions
+  - [ ] ~~Security contact email configured~~ — SECURITY.md routes to GitHub
 
 - [x] **Issue templates**
   - [x] Bug report template created
@@ -266,7 +266,6 @@
 
    - Verify all tests pass
    - Check code quality
-   - Run benchmarks
    - Review results
 
 2. **Manual smoke test**
@@ -304,7 +303,7 @@ Major features:
 - Development Tools: Performance Monitor, DevTools
 
 Infrastructure:
-- Complete CI/CD pipelines (9 CI jobs, 9 CD jobs)
+- Complete CI/CD pipelines (7 CI jobs, 9 CD jobs)
 - Multi-platform deployment (GitHub Pages, Netlify, Vercel, Docker)
 - Production monitoring (Sentry, GA4, Web Vitals)
 - Comprehensive documentation (12 docs, 7,340+ lines)
@@ -548,22 +547,22 @@ If critical issues are discovered post-release:
 
 **Release Manager:** [Your Name]
 **Date:** 2025-10-19
-**Status:** ✅ **APPROVED FOR RELEASE**
+**Status:** ⚠️ **Not executed — the v2.0.0 tag was never created or pushed**
 
 ### Pre-Release Verification
 
-- [x] All checklist items completed
-- [x] Tests passing (34/34 suites)
-- [x] Documentation complete (12 files)
-- [x] CI/CD pipelines validated
-- [x] Security audit passed
-- [x] Performance targets met
+- [ ] All checklist items completed
+- [ ] Tests passing
+- [ ] Documentation complete
+- [ ] CI/CD pipelines validated
+- [ ] Security audit passed
+- [ ] Performance targets met
 
 ### Release Approval
 
-- [x] Technical Lead: Approved
-- [x] QA Lead: Approved
-- [x] Product Owner: Approved
+- [ ] Technical Lead: Approved — no approver on record
+- [ ] QA Lead: Approved — no approver on record
+- [ ] Product Owner: Approved — no approver on record
 
 ### Release Command
 
@@ -578,9 +577,9 @@ watch -n 5 'gh run list --limit 1'
 
 ---
 
-**🚀 Qui Browser VR v2.0.0 is ready for production release!**
+**Qui Browser VR v2.0.0 was prepared as above but never tagged or released.**
 
-**Next Steps:**
+**Next Steps (if a release is ever cut):**
 
 1. Execute release command
 2. Monitor CD pipeline
