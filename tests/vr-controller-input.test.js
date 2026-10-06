@@ -228,8 +228,6 @@ describe('VRControllerInput.read — buttons', () => {
 
   test('justReleased is true on the frame button is released', () => {
     const srcPressed = makeSource(['oculus-touch-v3'], 'right', makeButtons(7, [4]), [0, 0, 0, 0]);
-    const srcReleased = { ...srcPressed, gamepad: { buttons: makeButtons(7, []), axes: [0, 0, 0, 0] } };
-
     // Need same object reference for WeakMap.
     ci.read(srcPressed); // frame 1: justPressed
     ci.read(srcPressed); // frame 2: held
