@@ -433,9 +433,9 @@ We welcome contributions! Please read our [CONTRIBUTING.md](CONTRIBUTING.md) for
 
 ### Quick Links
 
-- **Bug Reports:** [GitHub Issues](https://github.com/your-username/qui-browser-vr/issues)
-- **Feature Requests:** [GitHub Discussions](https://github.com/your-username/qui-browser-vr/discussions)
-- **Pull Requests:** [GitHub PRs](https://github.com/your-username/qui-browser-vr/pulls)
+- **Bug Reports:** [GitHub Issues](https://github.com/shizukutanaka/Qui-Browser/issues)
+- **Feature Requests:** [GitHub Discussions](https://github.com/shizukutanaka/Qui-Browser/discussions)
+- **Pull Requests:** [GitHub PRs](https://github.com/shizukutanaka/Qui-Browser/pulls)
 - **Security Reports:** [SECURITY.md](SECURITY.md)
 
 ---
@@ -443,8 +443,8 @@ We welcome contributions! Please read our [CONTRIBUTING.md](CONTRIBUTING.md) for
 ## 📞 Support
 
 - **Documentation:** [docs/](docs/)
-- **Issues:** [GitHub Issues](https://github.com/your-username/qui-browser-vr/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/your-username/qui-browser-vr/discussions)
+- **Issues:** [GitHub Issues](https://github.com/shizukutanaka/Qui-Browser/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/shizukutanaka/Qui-Browser/discussions)
 - **Email:** support@qui-browser.example.com
 - **Security:** security@qui-browser.example.com
 
