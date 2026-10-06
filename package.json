@@ -3,13 +3,13 @@
   "version": "2.0.0",
   "description": "Qui Browser VR - a WebXR VR browser for Meta Quest 2/3 and Pico 4, focused on accessibility equity: cross-modal captions + haptic + toast feedback, gaze-dwell selection, hand tracking, Japanese IME and voice commands, spatial audio, and a comfort system.",
   "private": true,
-  "homepage": "https://github.com/shizukutanaka/qui-browser#readme",
+  "homepage": "https://github.com/shizukutanaka/Qui-Browser#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/shizukutanaka/qui-browser.git"
+    "url": "git+https://github.com/shizukutanaka/Qui-Browser.git"
   },
   "bugs": {
-    "url": "https://github.com/shizukutanaka/qui-browser/issues"
+    "url": "https://github.com/shizukutanaka/Qui-Browser/issues"
   },
   "scripts": {
     "dev": "vite",
