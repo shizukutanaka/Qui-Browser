@@ -38,7 +38,7 @@ describe('HandTracking dead surface removed', () => {
   });
 
   test('write-only stats accumulator removed with getStats', () => {
-    const ht = new HandTracking({}, scene);
+    const ht = new HandTracking(scene);
     expect(ht.stats).toBeUndefined();
   });
 });
@@ -62,7 +62,7 @@ describe('live surface stays pinned', () => {
   });
 
   test('HandTracking real API intact', () => {
-    const ht = new HandTracking({}, scene);
+    const ht = new HandTracking(scene);
     expect(typeof ht.detectGesture).toBe('function');
     expect(typeof ht.getPinchPosition).toBe('function');
     expect(typeof ht.isFingerExtended).toBe('function');

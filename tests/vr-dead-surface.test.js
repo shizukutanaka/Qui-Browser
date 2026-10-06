@@ -122,7 +122,7 @@ describe('dead diagnostic surface is gone', () => {
   });
 
   test('ComfortSystem exposes no getStatus (zero call sites)', () => {
-    const comfort = new ComfortSystem(null, { fov: 90 }, null);
+    const comfort = new ComfortSystem({ fov: 90 });
     expect(comfort.getStatus).toBeUndefined();
   });
 
