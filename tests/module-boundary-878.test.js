@@ -23,7 +23,7 @@ const OWNED_FILES = [
 ];
 
 function trackedJsFiles() {
-  const out = execSync('git ls-files "*.js"', { cwd: ROOT, encoding: 'utf8' });
+  const out = execSync('git ls-files "*.js" "*.mjs"', { cwd: ROOT, encoding: 'utf8' });
   return out
     .split('\n')
     .map((p) => p.trim())

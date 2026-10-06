@@ -40,6 +40,13 @@ describe('tools: chrome probe covers the platform install paths', () => {
     expect(src).toMatch(/DisplayLink|display_link/);
   });
 
+  // verify-text-layout.mjs consumes layout exports via namespace access; a
+  // consumer scan limited to *.js reports them dead. Keep .mjs in scope.
+  test('module-boundary-878 scans .mjs consumers too', () => {
+    const src = fs.readFileSync(path.join(ROOT, 'tests/module-boundary-878.test.js'), 'utf8');
+    expect(src).toContain('"*.mjs"');
+  });
+
   for (const file of TOOLS) {
     test(`${file} keeps CHROME_PATH env override first`, () => {
       expect(candidates(file).indexOf('process.env.CHROME_PATH')).toBeLessThan(
