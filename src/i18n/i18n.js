@@ -34,6 +34,7 @@ const CATALOG = {
     'a11y.largeText': 'Toggle large text',
     'a11y.language': 'Toggle language',
     'app.loading': 'Loading Qui Browser VR v2.0.0...',
+    'app.title': 'Qui Browser VR v2.0.0 — WebXR Browser for Meta Quest & Pico',
     // VR Settings Panel Labels (Accessibility)
     'settings.section.a11y': 'Accessibility',
     'settings.section.locomotion': 'Movement & Comfort',
@@ -223,6 +224,7 @@ const CATALOG = {
     'a11y.largeText': '大きな文字を切り替え',
     'a11y.language': '言語を切り替え',
     'app.loading': 'Qui Browser VR v2.0.0 を読み込み中...',
+    'app.title': 'Qui Browser VR v2.0.0 — Meta Quest・Pico 対応 WebXR ブラウザ',
     // VR Settings Panel Labels (Accessibility)
     'settings.section.a11y': 'アクセシビリティ',
     'settings.section.locomotion': '移動と快適性',
