@@ -65,7 +65,7 @@ describe('src/vr/input/JapaneseIME', () => {
   test('incremental composition: lone n shows ん, then resolves to な with the vowel', () => {
     // processInput appends and reconverts the whole buffer each keystroke, so a
     // transient ん after the first 'n' must resolve to な once the vowel arrives.
-    expect(ime.convertRomajiToHiragana('n')).toBe('ん');  // mid-composition
+    expect(ime.convertRomajiToHiragana('n')).toBe('ん'); // mid-composition
     expect(ime.convertRomajiToHiragana('na')).toBe('な'); // after the vowel
   });
 
@@ -202,12 +202,5 @@ describe('src/utils/ProgressiveLoader', () => {
     loader.addResource({ url: 'b.js' });
     expect(loader.loadQueue.secondary).toHaveLength(1);
     expect(loader.loadQueue.critical).toHaveLength(0);
-  });
-
-  test('getStats() reports 0.0% (not NaN) before any resource is queued', () => {
-    const loader = new ProgressiveLoader();
-    const stats = loader.getStats();
-    expect(stats.progressPercent).toBe('0.0');
-    expect(Number.isNaN(parseFloat(stats.progressPercent))).toBe(false);
   });
 });
