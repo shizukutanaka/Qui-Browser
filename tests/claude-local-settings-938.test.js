@@ -6,7 +6,7 @@
  * `.claude/settings.json`; the `*.local.json` file is a personal cache —
  * nothing in this repo (CI, tests, tooling, docs) reads it, and the copy that
  * was committed in `bc3a4366` carried 38 stale Bash-permission entries naming
- * long-deleted files (vercel.json, deploy.yml, release.yml, API.md,
+ * long-deleted files (vercel.json, deploy.yml, release.yml, the deleted API doc,
  * assets/sounds/.gitkeep, tests/vr-modules.test.js, ...). A stale allowlist
  * prescribing work on deleted files is dead surface, not project config.
  *
