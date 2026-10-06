@@ -1,8 +1,7 @@
 {
   "name": "qui-browser-vr",
   "version": "2.0.0",
-  "description": "Qui Browser VR v2.0.0 - Production-ready VR browser with 17 features (Tier 1-3), complete CI/CD automation, and enterprise monitoring. Optimized for Meta Quest 2/3 with 90-120 FPS, Japanese IME, hand tracking, spatial audio, WebGPU, multiplayer, AI recommendations, and more.",
-  "main": "dist/index.html",
+  "description": "Qui Browser VR - a WebXR VR browser for Meta Quest 2/3 and Pico 4, focused on accessibility equity: cross-modal captions + haptic + toast feedback, gaze-dwell selection, hand tracking, Japanese IME and voice commands, spatial audio, and a comfort system.",
   "private": true,
   "homepage": "https://github.com/shizukutanaka/qui-browser#readme",
   "repository": {

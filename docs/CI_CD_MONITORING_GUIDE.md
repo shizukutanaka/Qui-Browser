@@ -590,7 +590,8 @@ vercel link
 
 ### Sentry Dashboard
 
-**URL:** `https://sentry.io/organizations/your-org/issues/`
+**URL:** the Sentry project dashboard — the org and project are the ones
+configured via `VITE_SENTRY_DSN`
 
 **Widgets:**
 

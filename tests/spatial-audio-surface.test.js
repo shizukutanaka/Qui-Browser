@@ -19,9 +19,10 @@ describe('SpatialAudio dead surface is gone', () => {
     expect(audio.simulateDoppler).toBeUndefined();
   });
 
-  test('exposes no setSourceVolume / createReverb (zero call sites)', () => {
+  test('exposes no setSourceVolume / createReverb / fadeVolume (zero call sites)', () => {
     expect(audio.setSourceVolume).toBeUndefined();
     expect(audio.createReverb).toBeUndefined();
+    expect(audio.fadeVolume).toBeUndefined();
   });
 });
 
@@ -32,7 +33,6 @@ describe('SpatialAudio live surface is intact', () => {
     'stop',
     'setSourcePosition',
     'setMasterVolume',
-    'fadeVolume',
     'updateListenerFromCamera',
     'getStats'
   ])('still exposes %s', (name) => {

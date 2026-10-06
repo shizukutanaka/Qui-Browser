@@ -690,20 +690,6 @@ export class JapaneseIME {
   }
 
   /**
-   * Get current state
-   */
-  getState() {
-    return {
-      isActive: this.isActive,
-      mode: this.inputMode,
-      buffer: this.compositionBuffer,
-      candidates: this.candidates,
-      selectedIndex: this.selectedIndex,
-      stats: this.stats
-    };
-  }
-
-  /**
    * Activate IME
    */
   activate() {
@@ -1471,13 +1457,6 @@ export class VRJapaneseKeyboard {
       this._onConfirmCallback = null; // clear before calling to prevent re-entrancy
       cb(text);
     }
-  }
-
-  /**
-   * Get statistics
-   */
-  getStats() {
-    return this.ime.getState().stats;
   }
 
   dispose() {

@@ -491,7 +491,7 @@ describe('VRApp.updateSystems — gaze-dwell activation glue (FR-13.1)', () => {
     const gazeInteraction = { enabled: true, update: jest.fn(() => activatedMesh) };
     const app = makeSystemsApp({ gazeInteraction });
 
-    VRApp.prototype.updateSystems.call(app, 0, null, 0.016);
+    VRApp.prototype.updateSystems.call(app, null, 0.016);
 
     expect(gazeInteraction.update).toHaveBeenCalledWith(app.interactables, 16);
     expect(app.hapticFeedback.playPatternBothHands).toHaveBeenCalledWith('click');
@@ -503,7 +503,7 @@ describe('VRApp.updateSystems — gaze-dwell activation glue (FR-13.1)', () => {
     const gazeInteraction = { enabled: true, update: jest.fn(() => null) };
     const app = makeSystemsApp({ gazeInteraction });
 
-    VRApp.prototype.updateSystems.call(app, 0, null, 0.016);
+    VRApp.prototype.updateSystems.call(app, null, 0.016);
 
     expect(app.hapticFeedback.playPatternBothHands).not.toHaveBeenCalled();
     expect(app.spatialAudio.play).not.toHaveBeenCalled();
@@ -513,21 +513,21 @@ describe('VRApp.updateSystems — gaze-dwell activation glue (FR-13.1)', () => {
     const gazeInteraction = { enabled: false, update: jest.fn() };
     const app = makeSystemsApp({ gazeInteraction });
 
-    VRApp.prototype.updateSystems.call(app, 0, null, 0.016);
+    VRApp.prototype.updateSystems.call(app, null, 0.016);
 
     expect(gazeInteraction.update).not.toHaveBeenCalled();
   });
 
   test('does not throw when gazeInteraction has not been created', () => {
     const app = makeSystemsApp({ gazeInteraction: null });
-    expect(() => VRApp.prototype.updateSystems.call(app, 0, null, 0.016)).not.toThrow();
+    expect(() => VRApp.prototype.updateSystems.call(app, null, 0.016)).not.toThrow();
   });
 
   test('activation feedback is null-safe without haptic or spatial audio wired', () => {
     const activatedMesh = { getWorldPosition: jest.fn((v) => v) };
     const gazeInteraction = { enabled: true, update: jest.fn(() => activatedMesh) };
     const app = makeSystemsApp({ gazeInteraction, hapticFeedback: null, spatialAudio: null });
-    expect(() => VRApp.prototype.updateSystems.call(app, 0, null, 0.016)).not.toThrow();
+    expect(() => VRApp.prototype.updateSystems.call(app, null, 0.016)).not.toThrow();
   });
 });
 
@@ -536,7 +536,7 @@ describe('VRApp.updateSystems — caption aging', () => {
     const captionSystem = { enabled: true, update: jest.fn(), show: jest.fn() };
     const app = makeSystemsApp({ captionSystem });
 
-    VRApp.prototype.updateSystems.call(app, 0, null, 0.016);
+    VRApp.prototype.updateSystems.call(app, null, 0.016);
 
     expect(captionSystem.update).toHaveBeenCalledWith(16);
   });
@@ -545,7 +545,7 @@ describe('VRApp.updateSystems — caption aging', () => {
     const captionSystem = { enabled: false, update: jest.fn(), show: jest.fn() };
     const app = makeSystemsApp({ captionSystem });
 
-    VRApp.prototype.updateSystems.call(app, 0, null, 0.016);
+    VRApp.prototype.updateSystems.call(app, null, 0.016);
 
     expect(captionSystem.update).not.toHaveBeenCalled();
   });

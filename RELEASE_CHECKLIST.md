@@ -328,7 +328,7 @@ git push origin v2.0.0
 ### Step 3: Monitor CD Pipeline (40 min)
 
 1. **Watch GitHub Actions**
-   - Go to: https://github.com/shizukutanaka/qui-browser/actions
+   - Go to: https://github.com/shizukutanaka/Qui-Browser/actions
    - Watch CD workflow progress
    - Monitor all 9 jobs
 
@@ -350,7 +350,7 @@ git push origin v2.0.0
    ```
 
 4. **GitHub Release verification**
-   - Check GitHub release created: https://github.com/shizukutanaka/qui-browser/releases/tag/v2.0.0
+   - Check GitHub release created: https://github.com/shizukutanaka/Qui-Browser/releases/tag/v2.0.0
    - Verify artifacts:
      - [ ] qui-browser-vr-v2.0.0.zip
      - [ ] qui-browser-vr-v2.0.0.tar.gz
@@ -386,7 +386,8 @@ git push origin v2.0.0
 ### Step 5: Monitor Metrics (24 hours)
 
 1. **Error tracking (Sentry)**
-   - Check for new errors: https://sentry.io/your-org/qui-browser-vr/
+   - Check for new errors in the Sentry project dashboard (org and project
+     are set via `VITE_SENTRY_DSN`)
    - Verify error rate is acceptable (< 1%)
    - Review error patterns
 

@@ -477,17 +477,17 @@ docker rm qui-browser
 ### Push to Registry
 
 ```bash
-# Tag image
-docker tag qui-browser-vr:2.0.0 shizukutanaka/qui-browser:2.0.0
-docker tag qui-browser-vr:2.0.0 shizukutanaka/qui-browser:latest
+# Tag image (published to GHCR by cd.yml on every tag)
+docker tag qui-browser-vr:2.0.0 ghcr.io/shizukutanaka/qui-browser:2.0.0
+docker tag qui-browser-vr:2.0.0 ghcr.io/shizukutanaka/qui-browser:latest
 
-# Push to Docker Hub
-docker push shizukutanaka/qui-browser:2.0.0
-docker push shizukutanaka/qui-browser:latest
+# Push to GitHub Container Registry
+docker push ghcr.io/shizukutanaka/qui-browser:2.0.0
+docker push ghcr.io/shizukutanaka/qui-browser:latest
 
 # Pull and run on another server
-docker pull shizukutanaka/qui-browser:latest
-docker run -d -p 8080:80 shizukutanaka/qui-browser:latest
+docker pull ghcr.io/shizukutanaka/qui-browser:latest
+docker run -d -p 8080:80 ghcr.io/shizukutanaka/qui-browser:latest
 ```
 
 ---
@@ -521,8 +521,8 @@ sudo apt install -y certbot python3-certbot-nginx
 
 ```bash
 # Clone repository
-git clone https://github.com/shizukutanaka/qui-browser.git
-cd qui-browser-vr
+git clone https://github.com/shizukutanaka/Qui-Browser.git
+cd Qui-Browser
 
 # Install dependencies
 npm ci --only=production

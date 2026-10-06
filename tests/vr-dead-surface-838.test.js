@@ -42,6 +42,9 @@ describe('dead public surface — JapaneseIME', () => {
   test('deactivate is gone', () => {
     expect(JapaneseIME.prototype.deactivate).toBeUndefined();
   });
+  test('getState is gone (round 933 — zero callers after getStats wrapper went)', () => {
+    expect(JapaneseIME.prototype.getState).toBeUndefined();
+  });
 });
 
 describe('live surface pins', () => {
@@ -66,7 +69,7 @@ describe('live surface pins', () => {
   });
   test('JapaneseIME live methods remain', () => {
     const proto = JapaneseIME.prototype;
-    for (const m of ['activate', 'dispose', 'getState', 'processInput', 'selectCandidate']) {
+    for (const m of ['activate', 'dispose', 'processInput', 'selectCandidate']) {
       expect(typeof proto[m]).toBe('function');
     }
   });
