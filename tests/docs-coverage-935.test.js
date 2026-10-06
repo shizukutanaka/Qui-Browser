@@ -80,7 +80,7 @@ describe('verify-documentation coverage honesty', () => {
     for (const t of ['.+?', '(?:x|y)', '?:もらう|いただく|くれ', 'a|b']) {
       expect(isPlausibleLinkTarget(t)).toBe(false);
     }
-    for (const t of ['API.md', './SETUP.md', 'docs/PROXY.md', '../x/y.md']) {
+    for (const t of ['USAGE_GUIDE.md', './SETUP.md', 'docs/PROXY.md', '../x/y.md']) {
       expect(isPlausibleLinkTarget(t)).toBe(true);
     }
   });
