@@ -30,6 +30,10 @@ const CATALOG = {
     'feat.ai.title': 'AI Recommendations',
     'feat.ai.desc': 'Personalized content suggestions with machine learning',
     'a11y.enterVR': 'Enter VR mode',
+    'a11y.highContrast': 'Toggle high contrast',
+    'a11y.largeText': 'Toggle large text',
+    'a11y.language': 'Toggle language',
+    'app.loading': 'Loading Qui Browser VR v2.0.0...',
     // VR Settings Panel Labels (Accessibility)
     'settings.section.a11y': 'Accessibility',
     'settings.section.locomotion': 'Movement & Comfort',
@@ -215,6 +219,10 @@ const CATALOG = {
     'feat.ai.title': 'AIレコメンド',
     'feat.ai.desc': '機械学習によるパーソナライズされたコンテンツ提案',
     'a11y.enterVR': 'VRモードに入る',
+    'a11y.highContrast': 'ハイコントラストを切り替え',
+    'a11y.largeText': '大きな文字を切り替え',
+    'a11y.language': '言語を切り替え',
+    'app.loading': 'Qui Browser VR v2.0.0 を読み込み中...',
     // VR Settings Panel Labels (Accessibility)
     'settings.section.a11y': 'アクセシビリティ',
     'settings.section.locomotion': '移動と快適性',
