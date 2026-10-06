@@ -24,14 +24,9 @@ const trackedFiles = () =>
     .map((f) => f.replace(/^"(.*)"$/, '$1'));
 
 describe('deleted assets/js tree has no live references', () => {
-  test('assets/js/ references are confined to files already fixed by open PRs', () => {
-    // Remaining offenders and the PR that removes each:
-    //   .github/CODEOWNERS            -> #1147 (dead owner glob)
-    //   .github/workflows/wasm-build.yml -> #1139 (workflow deleted)
-    //   netlify.toml                  -> #1143 (re-pointed to dist/)
-    const IN_FLIGHT = new Set(['.github/CODEOWNERS', '.github/workflows/wasm-build.yml', 'netlify.toml']);
+  test('no tracked live file references the deleted assets/js tree', () => {
     const offenders = trackedFiles().filter((f) => {
-      if (f.startsWith('docs/') || f.startsWith('tests/') || f.endsWith('.md') || IN_FLIGHT.has(f)) {
+      if (f.startsWith('docs/') || f.startsWith('tests/') || f.endsWith('.md')) {
         return false;
       }
       return read(f).includes('assets/js/');
