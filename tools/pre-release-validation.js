@@ -35,8 +35,7 @@ async function main() {
   const results = {
     passed: [],
     failed: [],
-    warnings: [],
-    skipped: []
+    warnings: []
   };
 
   // Run all validation checks
@@ -209,8 +208,8 @@ async function checkPackageJson(results) {
     }
 
     if (scriptsOk) {
-      results.passed.push('All required scripts present');
-      console.log(`  ✅ All required scripts present (30+ scripts)`);
+      results.passed.push(`All ${requiredScripts.length} required scripts present`);
+      console.log(`  ✅ All ${requiredScripts.length} required scripts present`);
     }
 
     console.log('');
@@ -381,7 +380,7 @@ async function checkCICDWorkflows(results) {
     const workflowPath = path.join(PROJECT_ROOT, workflow);
     if (fs.existsSync(workflowPath)) {
       const content = fs.readFileSync(workflowPath, 'utf-8');
-      const jobs = (content.match(/^\s{2}\w+:/gm) || []).length;
+      const jobs = countJobs(content);
 
       results.passed.push(`${workflow} exists with ${jobs} jobs`);
       console.log(`  ✅ ${path.basename(workflow)} (${jobs} jobs)`);
@@ -443,6 +442,22 @@ async function checkSecurityFiles(results) {
 // ============================================================================
 
 /**
+ * Count jobs declared inside the jobs: mapping of a GitHub Actions workflow.
+ * Job keys live at exactly two-space indent under `jobs:`; the count stops at
+ * the next top-level key. Trigger names (on:) and env vars are never jobs.
+ */
+function countJobs(yaml) {
+  const marker = yaml.match(/^jobs:\s*$/m);
+  if (!marker) {
+    return 0;
+  }
+  const after = yaml.slice(yaml.indexOf(marker[0]) + marker[0].length);
+  const end = after.search(/^\S/m);
+  const body = end === -1 ? after : after.slice(0, end);
+  return (body.match(/^ {2}[\w-]+:/gm) || []).length;
+}
+
+/**
  * Get all files recursively
  */
 function getAllFiles(dir, ext = '') {
@@ -482,7 +497,6 @@ function printSummary(results) {
   console.log(`✅ Passed: ${results.passed.length}`);
   console.log(`❌ Failed: ${results.failed.length}`);
   console.log(`⚠️  Warnings: ${results.warnings.length}`);
-  console.log(`⏭️  Skipped: ${results.skipped.length}`);
   console.log('');
 
   if (results.failed.length > 0) {
@@ -548,5 +562,6 @@ if (require.main === module) {
 }
 
 module.exports = {
-  main
+  main,
+  countJobs
 };
