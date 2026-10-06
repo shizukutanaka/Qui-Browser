@@ -19,24 +19,30 @@ const path = require('path');
 
 const PROJECT_ROOT = path.join(__dirname, '..');
 
+// Files skipped by this tool. An exclusion must carry a reason so a skipped
+// file is visible here — never silently absent from the coverage list.
+const EXCLUDED_DOCS = new Map([
+  // Contains a dead internal link to a deleted API doc; re-enable once the
+  // onboarding guide drops the reference.
+  ['docs/DEVELOPER_ONBOARDING.md', 'dead internal link (deleted at #1149)']
+]);
+
+// Every tracked markdown doc at the repo root and directly under docs/ is
+// checked. docs/archive stays out by design (A-1: frozen record), and .github
+// templates live outside the doc corpus.
 const DOCUMENTATION_FILES = [
-  'README.md',
-  'CHANGELOG.md',
-  'CONTRIBUTING.md',
-  'CODE_OF_CONDUCT.md',
-  'SECURITY.md',
-  'PROJECT_STATUS.md',
-  'RELEASE_CHECKLIST.md',
-  'FINAL_RELEASE_SUMMARY_v2.0.0.md',
-  'docs/USAGE_GUIDE.md',
-  'docs/DEPLOYMENT_GUIDE.md',
-  'docs/BUILD_OPTIMIZATION_GUIDE.md',
-  'docs/CI_CD_MONITORING_GUIDE.md',
-  'docs/TESTING.md',
-  'docs/ARCHITECTURE.md',
-  'docs/FAQ.md',
-  'docs/QUICK_START.md'
-];
+  ...fs.readdirSync(PROJECT_ROOT).filter((f) => f.endsWith('.md')),
+  ...fs
+    .readdirSync(path.join(PROJECT_ROOT, 'docs'))
+    .filter((f) => f.endsWith('.md'))
+    .map((f) => `docs/${f}`)
+]
+  .filter((f) => !EXCLUDED_DOCS.has(f))
+  .sort();
+
+// Link targets that cannot be file paths — regex literals like `(.+?)` or
+// `(?:a|b)` inside pattern documentation — are skipped, not reported broken.
+const isPlausibleLinkTarget = (target) => !/[\s|+?()[\]{}\\^$]/.test(target);
 
 const REQUIRED_SECTIONS = {
   'README.md': [
@@ -164,6 +170,11 @@ function main() {
 
       // Skip anchor links
       if (linkTarget.startsWith('#')) {
+        continue;
+      }
+
+      // Skip regex literals embedded in prose (e.g. `(.+?)` patterns)
+      if (!isPlausibleLinkTarget(linkTarget)) {
         continue;
       }
 
@@ -369,5 +380,8 @@ if (require.main === module) {
 }
 
 module.exports = {
-  main
+  main,
+  DOCUMENTATION_FILES,
+  EXCLUDED_DOCS,
+  isPlausibleLinkTarget
 };
