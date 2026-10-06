@@ -5,12 +5,25 @@ This directory contains visual assets for the Qui Browser VR project.
 ## Structure
 
 ```
-assets/images/
-├── logo/           - Project logos in various formats
-├── screenshots/    - Application screenshots
-├── icons/          - Icon sets (favicons, app icons)
-└── banners/        - Marketing and social media banners
+assets/
+├── images/         - Social-share images (this directory)
+└── icons/          - PWA / favicon icons (sibling directory)
 ```
+
+## Current Assets
+
+The following files are shipped and wired into `index.html`:
+
+- `og-image.png` - Open Graph image (1200x630), referenced by `og:image`
+- `twitter-card.png` - Twitter card image (1200x630), referenced by `twitter:image`
+
+Icons are shipped in the sibling `assets/icons/` directory:
+
+- `favicon-16x16.png`, `favicon-32x32.png` - Browser favicons (`index.html`)
+- `apple-touch-icon.png` - iOS home-screen icon (`index.html`)
+- `icon-72.png`, `icon-96.png`, `icon-128.png`, `icon-144.png`,
+  `icon-192.png`, `icon-384.png`, `icon-512.png`, `icon.svg` - PWA
+  icons (`manifest.json`)
 
 ## Logo Files (to be added)
 
@@ -29,13 +42,6 @@ assets/images/
 - `screenshots/hand-tracking.png` - Hand tracking demo
 - `screenshots/environment-space.png` - Space environment
 - `screenshots/settings-ui.png` - Settings interface
-
-## Icons (to be added)
-
-- `icons/favicon.ico` - Browser favicon
-- `icons/icon-192x192.png` - PWA icon (small)
-- `icons/icon-512x512.png` - PWA icon (large)
-- `icons/apple-touch-icon.png` - iOS home screen icon
 
 ## Banners (to be added)
 
@@ -115,7 +121,3 @@ When adding new visual assets:
 3. Add entry to this README
 4. Update manifest.json if adding PWA icons
 5. Ensure images are appropriate and professional
-
-## Current Assets
-
-*No assets currently in this directory. Images will be added progressively.*
