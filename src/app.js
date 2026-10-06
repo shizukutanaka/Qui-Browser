@@ -158,7 +158,5 @@ if (document.readyState === 'loading') {
 
 // Export for debugging
 window.QuiBrowser = {
-  getApp: () => vrApp,
-  getStats: () => (vrApp ? vrApp.getPerformanceStats() : null),
-  version: '2.0.0'
+  getApp: () => vrApp
 };
