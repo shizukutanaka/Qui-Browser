@@ -82,7 +82,7 @@ GitHub Pages deploys are handled by the release workflow at
 1. Repository Settings → Pages
 2. Source: **GitHub Actions**
 
-**Live site:** `https://shizukutanaka.github.io/Qui-Browser/`
+**Deploy target:** `https://shizukutanaka.github.io/Qui-Browser/` (not live yet — Pages returns 404 until the first successful deploy)
 
 ---
 

@@ -108,11 +108,13 @@ A WebXR **VR shell** targeting Meta Quest 2/3 and Pico devices, featuring Japane
 
 ## 📦 Quick Start
 
-### Option 1: Try Online (Recommended)
+### Option 1: Hosted Build
 
-Visit the live demo on your VR device:
+GitHub Pages is a configured deploy target (the `deploy-github-pages` job in
+`.github/workflows/cd.yml`), but no deploy has published it yet — the URL
+currently returns 404:
 
-- **GitHub Pages**: https://shizukutanaka.github.io/qui-browser/
+- **GitHub Pages**: https://shizukutanaka.github.io/qui-browser/ (deploy target — not live yet)
 
 Netlify and Vercel are also wired as deploy targets (see
 [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)); no public URL is
