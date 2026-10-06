@@ -109,7 +109,13 @@ export async function fetchThroughGuard(target, headers = {}) {
           // Without this the connect re-resolves the hostname — a second,
           // unchecked DNS answer — so a record that changes between lookups
           // (rebinding) would route the socket past the guard.
-          lookup: (_hostname, _options, cb) => cb(null, dns.address, dns.family)
+          lookup: (_hostname, options, cb) => {
+            if (options.all) {
+              cb(null, [{ address: dns.address, family: dns.family }]);
+            } else {
+              cb(null, dns.address, dns.family);
+            }
+          }
         },
         (r) => resolve({ kind: 'response', r })
       );

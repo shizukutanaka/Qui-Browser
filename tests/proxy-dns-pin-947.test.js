@@ -89,6 +89,27 @@ describe('fetchThroughGuard DNS pinning', () => {
     expect(captured[0].opts.headers.host).toBe('example.com');
   });
 
+  test.each([
+    { address: PUBLIC_IP, family: 4 },
+    { address: '2606:4700:4700::1111', family: 6 }
+  ])('pinning supports both lookup callback forms for IPv$family', async (address) => {
+    lookup.mockResolvedValue([address]);
+    const captured = [];
+    httpsRequest.mockImplementation(
+      fakeRequest(captured, { statusCode: 200, headers: { 'content-type': 'text/html' }, body: 'ok' })
+    );
+
+    expect((await fetchThroughGuard('https://example.com/article')).ok).toBe(true);
+    const pin = captured[0].opts.lookup;
+    const cb = jest.fn();
+    pin('example.com', { all: true }, cb);
+    expect(cb).toHaveBeenCalledWith(null, [address]);
+    cb.mockClear();
+    pin('example.com', { all: false }, cb);
+    expect(cb).toHaveBeenCalledWith(null, address.address, address.family);
+    expect(lookup).toHaveBeenCalledTimes(1);
+  });
+
   test('every redirect hop pins its own freshly-validated address', async () => {
     const SECOND_IP = '93.184.216.35';
     lookup
