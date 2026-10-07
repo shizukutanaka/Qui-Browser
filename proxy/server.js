@@ -93,6 +93,28 @@ function redirectTarget(location, base) {
 }
 
 /**
+ * Decode an upstream body using the charset the response declared. A missing
+ * or unsupported label falls back to UTF-8 — the WHATWG fetch default — rather
+ * than throwing. Node's TextDecoder knows the full label set (shift_jis,
+ * euc-jp, windows-125x, …), which matters here: non-UTF-8 pages are still
+ * common on the Japanese web this product targets, and decoding them as UTF-8
+ * returned U+FFFD mojibake.
+ *
+ * @param {Buffer} buffer
+ * @param {string} [contentType]
+ * @returns {string}
+ */
+function decodeBody(buffer, contentType) {
+  const m = /charset\s*=\s*"?([^\s";]+)"?/i.exec(String(contentType || ''));
+  const label = m ? m[1] : 'utf-8';
+  try {
+    return new TextDecoder(label).decode(buffer);
+  } catch {
+    return new TextDecoder('utf-8').decode(buffer);
+  }
+}
+
+/**
  * Fetch a URL with the full guard applied at every hop.
  *
  * Redirects are followed manually rather than by a library, because each hop is
@@ -179,7 +201,7 @@ export async function fetchThroughGuard(target, headers = {}) {
         }
         chunks.push(c);
       });
-      r.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+      r.on('end', () => resolve(Buffer.concat(chunks)));
       r.on('error', () => resolve(null));
     });
     if (body === null) {
@@ -189,7 +211,7 @@ export async function fetchThroughGuard(target, headers = {}) {
       ok: true,
       status: r.statusCode,
       contentType: r.headers['content-type'] || '',
-      body,
+      body: decodeBody(body, r.headers['content-type']),
       finalUrl: url.toString()
     };
   }
