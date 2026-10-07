@@ -1636,6 +1636,11 @@ export class VRApp {
           }
         }
         break;
+      case 'enableComfort':
+        if (this.comfortSystem) {
+          this.comfortSystem.setEnabled(v);
+        }
+        break;
       case 'enableGazeDwell':
         if (this.gazeInteraction) {
           this.gazeInteraction.setEnabled(v);
@@ -1680,8 +1685,8 @@ export class VRApp {
         }
         break;
       default:
-        // Locomotion-read settings (snap turn, teleport, comfort vignette)
-        // have no live apply — the setting is consulted at move time.
+        // Locomotion-read settings (snap turn, teleport) have no live
+        // apply — the setting is consulted at move time.
         break;
     }
   }
@@ -1751,7 +1756,13 @@ export class VRApp {
           }
         }
       ],
-      [t('vr.settings.comfort'), 'enableComfort', null],
+      [
+        t('vr.settings.comfort'),
+        'enableComfort',
+        (v) => {
+          this._applyToggle('enableComfort', v);
+        }
+      ],
       [
         t('vr.settings.foveation'),
         'enableFFR',
