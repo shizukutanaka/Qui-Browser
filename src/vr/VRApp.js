@@ -198,11 +198,12 @@ export class VRApp {
     // teardown; BufferGeometry.dispose() is idempotent so the scene.traverse
     // teardown disposing them again is harmless.
     this._sharedGeometries = new Map();
-    // Outstanding showVRToast() auto-dismiss timers. Tracked so dispose() can
-    // clear them and stop a delayed callback from touching a torn-down VRApp
-    // (this.camera nulled, GPU resources already freed). Each timer self-
-    // removes from the Set when it fires normally.
-    this._toastTimers = new Set();
+    // Outstanding showVRToast() auto-dismiss timers, mapped to the mesh each
+    // owns. dispose() both clears the timers and releases the mesh resources
+    // they would have freed — otherwise a still-pending toast leaks its
+    // CanvasTexture and stays parented to the camera. Each timer removes its
+    // own entry when it fires normally.
+    this._toastTimers = new Map();
 
     // Performance monitoring
     this.performanceMonitor = {
@@ -837,9 +838,10 @@ export class VRApp {
     mesh.renderOrder = 999; // always on top
     this.camera.add(mesh);
 
-    // Track the auto-dismiss timer so dispose() can clear it; otherwise the
-    // callback fires later against a torn-down VRApp (null camera, freed GPU
-    // resources) and produces a console error in tests / hot-reload / SPA nav.
+    // Track the auto-dismiss timer (keyed to the mesh it owns) so dispose()
+    // can clear it and release the same resources; otherwise the callback
+    // fires later against a torn-down VRApp (null camera, freed GPU resources)
+    // and produces a console error in tests / hot-reload / SPA nav.
     const timer = setTimeout(() => {
       this._toastTimers.delete(timer);
       if (this.camera) {
@@ -849,7 +851,7 @@ export class VRApp {
       tex.dispose();
       mesh.material.dispose();
     }, duration);
-    this._toastTimers.add(timer);
+    this._toastTimers.set(timer, mesh);
 
     // Accessibility equity: a toast must never be conveyed by sight alone, so
     // mirror it onto every available non-visual channel (haptic + captions).
@@ -4449,10 +4451,21 @@ export class VRApp {
 
     // Clear pending toast auto-dismiss timers so their callbacks don't fire
     // against a torn-down VRApp (this.camera nulled, GPU resources already
-    // freed below). Without this the timer holds a closure over `this` and
-    // surfaces as a console error or a test-leak warning after teardown.
+    // freed below) — then release each toast's resources ourselves, since
+    // cancelling the timer also cancels the only detach/free path the toast
+    // had. The CanvasTexture needs an explicit dispose(): Material.dispose()
+    // does not touch material.map, and the scene.traverse sweep below never
+    // reaches it.
     if (this._toastTimers) {
-      this._toastTimers.forEach((t) => clearTimeout(t));
+      this._toastTimers.forEach((mesh, t) => {
+        clearTimeout(t);
+        if (this.camera) {
+          this.camera.remove(mesh);
+        }
+        mesh.geometry.dispose();
+        mesh.material.map.dispose();
+        mesh.material.dispose();
+      });
       this._toastTimers.clear();
     }
 

@@ -82,7 +82,7 @@ function makeVRAppLike(overrides = {}) {
     tabManager: null,
     webPanel: null,
     _grabController: null,
-    _toastTimers: new Set(),
+    _toastTimers: new Map(),
     playerRig: null,
     // Empty settings keeps _persistTabSession a no-op unless a fixture opts in.
     settings: {},
