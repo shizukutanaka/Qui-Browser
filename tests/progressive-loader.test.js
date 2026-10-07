@@ -1,14 +1,18 @@
 /**
  * Unit tests for ProgressiveLoader — pure logic, no network calls made.
- * Covers: resource queuing, strategy adjustment, stats, and dispose.
+ * Covers: resource queuing, strategy adjustment, and dispose.
  */
 
 const { ProgressiveLoader } = require('../src/utils/ProgressiveLoader.js');
 
 describe('ProgressiveLoader queue management', () => {
   let loader;
-  beforeEach(() => { loader = new ProgressiveLoader(); });
-  afterEach(() => { loader.dispose(); });
+  beforeEach(() => {
+    loader = new ProgressiveLoader();
+  });
+  afterEach(() => {
+    loader.dispose();
+  });
 
   test('addResource adds to the secondary queue by default', () => {
     loader.addResource({ url: '/a.js', name: 'a' });
@@ -44,21 +48,25 @@ describe('ProgressiveLoader queue management', () => {
 
 describe('ProgressiveLoader.adjustStrategy', () => {
   let loader;
-  beforeEach(() => { loader = new ProgressiveLoader(); });
-  afterEach(() => { loader.dispose(); });
+  beforeEach(() => {
+    loader = new ProgressiveLoader();
+  });
+  afterEach(() => {
+    loader.dispose();
+  });
 
-  test('slow-2g reduces parallelLimit to 2 and disables preload', () => {
+  test('slow-2g reduces parallelLimit to 2', () => {
     loader.network.effectiveType = 'slow-2g';
     loader.adjustStrategy();
     expect(loader.strategy.parallelLimit).toBe(2);
-    expect(loader.strategy.preloadNext).toBe(false);
+    expect(loader.strategy.adaptiveQuality).toBe(true);
   });
 
-  test('3g sets parallelLimit to 4 and enables preload', () => {
+  test('3g sets parallelLimit to 4', () => {
     loader.network.effectiveType = '3g';
     loader.adjustStrategy();
     expect(loader.strategy.parallelLimit).toBe(4);
-    expect(loader.strategy.preloadNext).toBe(true);
+    expect(loader.strategy.adaptiveQuality).toBe(true);
   });
 
   test('4g sets parallelLimit to 6', () => {
@@ -67,39 +75,11 @@ describe('ProgressiveLoader.adjustStrategy', () => {
     expect(loader.strategy.parallelLimit).toBe(6);
   });
 
-  test('saveData disables preloadNext regardless of network type', () => {
+  test('saveData enables adaptiveQuality regardless of network type', () => {
     loader.network.effectiveType = '4g';
     loader.network.saveData = true;
     loader.adjustStrategy();
-    expect(loader.strategy.preloadNext).toBe(false);
     expect(loader.strategy.adaptiveQuality).toBe(true);
-  });
-});
-
-describe('ProgressiveLoader.getStats', () => {
-  let loader;
-  beforeEach(() => { loader = new ProgressiveLoader(); });
-  afterEach(() => { loader.dispose(); });
-
-  test('returns object with expected keys', () => {
-    const s = loader.getStats();
-    expect(s).toHaveProperty('progressPercent');
-    expect(s).toHaveProperty('loadedBytes');
-    expect(s).toHaveProperty('itemsLoaded');
-  });
-
-  test('progressPercent is "0.0" initially', () => {
-    const s = loader.getStats();
-    expect(s.progressPercent).toBe('0.0');
-  });
-
-  test('no NaN in stats before any loads', () => {
-    const s = loader.getStats();
-    for (const val of Object.values(s)) {
-      if (typeof val === 'number') {
-        expect(Number.isNaN(val)).toBe(false);
-      }
-    }
   });
 });
 

@@ -10,13 +10,11 @@ export class ProgressiveLoader {
     this.loadQueue = {
       critical: [], // Must load before interaction
       primary: [], // Load immediately after critical
-      secondary: [], // Load in background
-      lazy: [] // Load on demand only
+      secondary: [] // Load in background
     };
 
     this.loaded = new Map();
     this.pending = new Map();
-    this.failed = new Map();
 
     // Loading strategy
     this.strategy = {
@@ -24,8 +22,7 @@ export class ProgressiveLoader {
       retryAttempts: 3, // Retry failed loads
       retryDelay: 1000, // Delay between retries
       timeout: 30000, // Request timeout
-      adaptiveQuality: true, // Adjust quality based on connection
-      preloadNext: true // Preload anticipated resources
+      adaptiveQuality: true // Adjust quality based on connection
     };
 
     // Network detection
@@ -49,9 +46,7 @@ export class ProgressiveLoader {
 
     // Callbacks
     this.callbacks = {
-      onProgress: null,
-      onComplete: null,
-      onError: null
+      onProgress: null
     };
 
     this.detectNetwork();
@@ -112,27 +107,23 @@ export class ProgressiveLoader {
       case '2g':
         this.strategy.parallelLimit = 2;
         this.strategy.adaptiveQuality = true;
-        this.strategy.preloadNext = false;
         break;
 
       case '3g':
         this.strategy.parallelLimit = 4;
         this.strategy.adaptiveQuality = true;
-        this.strategy.preloadNext = true;
         break;
 
       case '4g':
       default:
         this.strategy.parallelLimit = 6;
         this.strategy.adaptiveQuality = false;
-        this.strategy.preloadNext = true;
         break;
     }
 
     // Respect save data
     if (this.network.saveData) {
       this.strategy.adaptiveQuality = true;
-      this.strategy.preloadNext = false;
       console.debug('ProgressiveLoader: Data saver mode enabled');
     }
   }
@@ -172,11 +163,6 @@ export class ProgressiveLoader {
     // Phase 1: Critical resources (blocking)
     await this.loadPhase('critical');
 
-    // Signal critical complete
-    if (this.callbacks.onCriticalComplete) {
-      this.callbacks.onCriticalComplete();
-    }
-
     // Phase 2: Primary resources (non-blocking)
     this.loadPhase('primary').catch(console.warn);
 
@@ -184,8 +170,6 @@ export class ProgressiveLoader {
     requestIdleCallback(() => {
       this.loadPhase('secondary').catch(console.warn);
     });
-
-    // Phase 4: Lazy resources loaded on-demand only
 
     return true;
   }
@@ -251,7 +235,6 @@ export class ProgressiveLoader {
       }
 
       // Failed after retries
-      this.failed.set(item.name, error);
       this.onResourceFailed(item, error);
       throw error;
     }
@@ -495,13 +478,6 @@ export class ProgressiveLoader {
    */
   onResourceFailed(item, error) {
     console.error(`ProgressiveLoader: Failed to load ${item.name}`, error);
-
-    if (this.callbacks.onError) {
-      this.callbacks.onError({
-        item: item,
-        error: error
-      });
-    }
   }
 
   /**
@@ -516,10 +492,6 @@ export class ProgressiveLoader {
       time: `${this.stats.loadTime.toFixed(0)}ms`,
       speed: `${(((this.stats.loadedBytes / this.stats.loadTime) * 1000) / 1024).toFixed(0)} KB/s`
     });
-
-    if (this.callbacks.onComplete) {
-      this.callbacks.onComplete(this.stats);
-    }
   }
 
   /**
@@ -527,32 +499,6 @@ export class ProgressiveLoader {
    */
   get(name) {
     return this.loaded.get(name);
-  }
-
-  /**
-   * Load resource on demand
-   */
-  async loadOnDemand(resource) {
-    const item = this.addResource(resource, 'lazy');
-    return this.loadResource(item);
-  }
-
-  /**
-   * Preload anticipated resources
-   */
-  preload(resources) {
-    if (!this.strategy.preloadNext) {
-      return;
-    }
-
-    resources.forEach((resource) => {
-      this.addResource(resource, 'secondary');
-    });
-
-    // Load in background
-    requestIdleCallback(() => {
-      this.loadPhase('secondary').catch(console.warn);
-    });
   }
 
   /**
@@ -574,23 +520,6 @@ export class ProgressiveLoader {
   }
 
   /**
-   * Get statistics
-   */
-  getStats() {
-    return {
-      ...this.stats,
-      network: this.network,
-      failed: this.failed.size,
-      pending: this.pending.size,
-      // Guard against NaN when getStats() is called before any resource is
-      // queued (itemsTotal === 0).
-      progressPercent: (this.stats.itemsTotal > 0 ? (this.stats.itemsLoaded / this.stats.itemsTotal) * 100 : 0).toFixed(
-        1
-      )
-    };
-  }
-
-  /**
    * Dispose
    */
   dispose() {
@@ -603,11 +532,9 @@ export class ProgressiveLoader {
     this.loadQueue.critical = [];
     this.loadQueue.primary = [];
     this.loadQueue.secondary = [];
-    this.loadQueue.lazy = [];
 
     this.loaded.clear();
     this.pending.clear();
-    this.failed.clear();
   }
 }
 
