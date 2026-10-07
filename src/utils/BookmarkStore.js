@@ -94,18 +94,22 @@ export class BookmarkStore {
   /**
    * Add or update a bookmark.  If the URL already exists the title is updated
    * and `addedAt` is refreshed.
+   * @returns {?object} the stored entry, or null when the write could not
+   *   persist — callers must not claim a bookmark that isn't durable.
    */
   addBookmark(url, title = url) {
     const list = this.getBookmarks().filter((b) => b.url !== url);
     list.unshift({ url, title, addedAt: Date.now() });
-    writeJSON(BOOKMARKS_KEY, list);
-    return list[0];
+    return writeJSON(BOOKMARKS_KEY, list) ? list[0] : null;
   }
 
-  /** Remove a bookmark by URL. */
+  /**
+   * Remove a bookmark by URL.
+   * @returns {boolean} true when the removal persisted.
+   */
   removeBookmark(url) {
     const list = this.getBookmarks().filter((b) => b.url !== url);
-    writeJSON(BOOKMARKS_KEY, list);
+    return writeJSON(BOOKMARKS_KEY, list);
   }
 
   /** Return true when the URL is bookmarked. */
@@ -115,15 +119,14 @@ export class BookmarkStore {
 
   /**
    * Toggle a bookmark: removes it if present, adds it otherwise.
-   * @returns {boolean} the new bookmarked state (true = now bookmarked).
+   * @returns {?boolean} the new bookmarked state (true = now bookmarked), or
+   *   null when the write could not persist and the state is unchanged.
    */
   toggleBookmark(url, title = url) {
     if (this.isBookmarked(url)) {
-      this.removeBookmark(url);
-      return false;
+      return this.removeBookmark(url) ? false : null;
     }
-    this.addBookmark(url, title);
-    return true;
+    return this.addBookmark(url, title) ? true : null;
   }
 
   // ── History ─────────────────────────────────────────────────────────────────
@@ -180,9 +183,12 @@ export class BookmarkStore {
     return all[0];
   }
 
-  /** Wipe all history. */
+  /**
+   * Wipe all history.
+   * @returns {boolean} true when the wipe persisted.
+   */
   clearHistory() {
-    writeJSON(HISTORY_KEY, []);
+    return writeJSON(HISTORY_KEY, []);
   }
 
   /**

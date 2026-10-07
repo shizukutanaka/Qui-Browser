@@ -1038,7 +1038,7 @@ describe('VRApp._clearBrowsingHistory (privacy action)', () => {
 
   test('clears the store and fires a cross-modal confirmation', () => {
     const camera = { add: jest.fn(), remove: jest.fn() };
-    const bookmarks = { clearHistory: jest.fn() };
+    const bookmarks = { clearHistory: jest.fn(() => true) };
     const app = makeVRAppLike({
       isVREnabled: true,
       camera,
@@ -1055,7 +1055,7 @@ describe('VRApp._clearBrowsingHistory (privacy action)', () => {
 
   test('refreshes an open bookmark/history panel so the cleared list shows', () => {
     const camera = { add: jest.fn(), remove: jest.fn() };
-    const bookmarks = { clearHistory: jest.fn() };
+    const bookmarks = { clearHistory: jest.fn(() => true) };
     const bookmarkPanel = { visible: true, _draw: jest.fn() };
     const app = makeVRAppLike({
       isVREnabled: true,
