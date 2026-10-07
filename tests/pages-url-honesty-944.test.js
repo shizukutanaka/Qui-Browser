@@ -16,7 +16,7 @@ const PAGES_URL = /shizukutanaka\.github\.io\/(Qui-Browser|qui-browser)\/?/;
 
 describe('GitHub Pages URL is documented as a deploy target, not a live site', () => {
   it('no live claim remains near the Pages URL', () => {
-    for (const [file, doc] of Object.entries(DOCS)) {
+    for (const [, doc] of Object.entries(DOCS)) {
       const lines = doc.split('\n');
       const hits = lines.filter((l) => PAGES_URL.test(l));
       expect(hits.length).toBeGreaterThan(0);

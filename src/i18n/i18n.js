@@ -401,7 +401,7 @@ function detectLanguage() {
         return saved;
       }
     }
-  } catch (e) {
+  } catch {
     /* ignore */
   }
   // NOTE: the `&&` chain yields `false` (a boolean) when navigator is absent —
@@ -443,7 +443,7 @@ export function setLanguage(lang, root) {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, lang);
     }
-  } catch (e) {
+  } catch {
     /* ignore */
   }
   if (typeof document !== 'undefined') {

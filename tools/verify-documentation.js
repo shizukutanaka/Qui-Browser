@@ -156,7 +156,6 @@ function main() {
     let match;
 
     while ((match = linkPattern.exec(content)) !== null) {
-      const linkText = match[1];
       const linkTarget = match[2];
 
       // Skip external links
@@ -213,11 +212,9 @@ function main() {
     'public/service-worker.js'
   ];
 
-  let criticalFilesFound = 0;
   for (const file of criticalFiles) {
     const filePath = path.join(PROJECT_ROOT, file);
     if (fs.existsSync(filePath)) {
-      criticalFilesFound++;
       console.log(`  ✅ ${file}`);
     } else {
       results.warnings.push(`Critical file missing: ${file}`);
