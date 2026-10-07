@@ -45,7 +45,8 @@ const CHROME_CANDIDATES = [
   '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
   '/usr/bin/chromium',
   '/usr/bin/chromium-browser',
-  '/usr/bin/google-chrome'
+  '/usr/bin/google-chrome',
+  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 ].filter(Boolean);
 
 const MIME = {
@@ -162,7 +163,8 @@ async function main() {
     .split('\n')
     .filter((l) => /\b(ERROR|Uncaught|SyntaxError|TypeError|ReferenceError|Failed to load)\b/.test(l))
     // These are environment artefacts of headless-without-a-display, not app bugs.
-    .filter((l) => !/dbus|GPU|gpu_|Fontconfig|DevTools|sandbox|libva|Vulkan|udev|bluetooth|CreatePlatform/i.test(l));
+    .filter((l) => !/dbus|GPU|gpu_|Fontconfig|DevTools|sandbox|libva|Vulkan|udev|bluetooth/i.test(l))
+    .filter((l) => !/CreatePlatform|DisplayLink|display_link|task_policy/i.test(l));
   for (const line of noisy) {
     failures.push(`page error: ${line.trim()}`);
   }
