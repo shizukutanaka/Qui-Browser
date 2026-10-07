@@ -7,7 +7,6 @@
 
 export class PerformanceMonitor {
   constructor() {
-    this.enabled = true;
     this.visible = false;
 
     // Metrics
@@ -29,7 +28,6 @@ export class PerformanceMonitor {
 
     // Frame timing
     this.frameStartTime = 0;
-    this.lastFrameTime = 0;
     this.frameCount = 0;
     this.fpsUpdateInterval = 1000; // Update FPS every second
     this.lastFpsUpdate = 0;
@@ -50,15 +48,6 @@ export class PerformanceMonitor {
     this.container = null;
     this.graphCanvas = null;
     this.graphCtx = null;
-
-    // Statistics
-    this.stats = {
-      totalFrames: 0,
-      totalTime: 0,
-      alertsGenerated: 0,
-      worstFrame: { time: 0, timestamp: 0 },
-      bestFrame: { time: 999, timestamp: 0 }
-    };
   }
 
   /**
@@ -205,20 +194,9 @@ export class PerformanceMonitor {
    */
   endFrame(renderer) {
     const frameTime = performance.now() - this.frameStartTime;
-    this.lastFrameTime = frameTime;
 
     // Update frame count
     this.frameCount++;
-    this.stats.totalFrames++;
-    this.stats.totalTime += frameTime;
-
-    // Track best/worst frames
-    if (frameTime < this.stats.bestFrame.time) {
-      this.stats.bestFrame = { time: frameTime, timestamp: performance.now() };
-    }
-    if (frameTime > this.stats.worstFrame.time) {
-      this.stats.worstFrame = { time: frameTime, timestamp: performance.now() };
-    }
 
     // Update FPS
     const now = performance.now();
@@ -352,8 +330,6 @@ export class PerformanceMonitor {
     if (this.alerts.length > this.maxAlerts) {
       this.alerts.pop();
     }
-
-    this.stats.alertsGenerated++;
 
     console.warn(`[${level.toUpperCase()}] ${message}`);
   }
