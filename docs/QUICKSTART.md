@@ -31,7 +31,7 @@ your LAN, front it with HTTPS (e.g. `npx ngrok http 5173`).
 
 ```bash
 npm run build        # static site → dist/  (base '/')
-npm run preview      # serve the built dist/ on http://localhost:4173
+npm run preview      # serve the built dist/ on http://localhost:8080
 ```
 
 For a GitHub Pages subpath deployment:

@@ -7,7 +7,7 @@ headset. Version 2.0.0.
 
 ## Requirements
 
-- **Node.js** 20+ and npm (for local development / building)
+- **Node.js** 18+ and npm (for local development / building)
 - **A WebXR headset browser**: Meta Quest 2/3/Pro (Meta Quest Browser),
   Pico 4, or any WebXR-compatible browser
 - **HTTPS** — WebXR only runs over a secure context. `localhost` counts as
@@ -45,7 +45,7 @@ npx ngrok http 5173  # then open the https://… URL on the headset
 
 ```bash
 npm run build        # outputs the static site to dist/
-npm run preview      # serve the built dist/ on http://localhost:4173
+npm run preview      # serve the built dist/ on http://localhost:8080
 ```
 
 The build is base-path aware: it defaults to root (`/`). To build for a
