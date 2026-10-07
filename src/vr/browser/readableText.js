@@ -112,15 +112,18 @@ function stripNonContent(html) {
  * to the whole document, which is why boilerplate stripping runs first.
  */
 function mainRegion(html) {
+  // Group 1 captures the tag name so the close tag can be a backreference —
+  // a free `</[a-z]+>` would end the lazy region at the first inner closing
+  // tag and return a truncated, unclosed fragment.
   const candidates = [
-    /<article\b[^>]*>([\s\S]*?)<\/article\s*>/i,
-    /<main\b[^>]*>([\s\S]*?)<\/main\s*>/i,
-    /<[a-z]+\b[^>]*\srole\s*=\s*["']main["'][^>]*>([\s\S]*?)<\/[a-z]+\s*>/i
+    /<(article)\b[^>]*>([\s\S]*?)<\/\1\s*>/i,
+    /<(main)\b[^>]*>([\s\S]*?)<\/\1\s*>/i,
+    /<([a-z]+)\b[^>]*\srole\s*=\s*["']main["'][^>]*>([\s\S]*?)<\/\1\s*>/i
   ];
   for (const re of candidates) {
     const m = html.match(re);
-    if (m && m[1] && textOf(m[1]).length > 200) {
-      return m[1];
+    if (m && m[2] && textOf(m[2]).length > 200) {
+      return m[2];
     }
   }
   return html;
