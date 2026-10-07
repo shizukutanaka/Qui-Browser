@@ -409,6 +409,7 @@ export class DevTools {
     row.style.cssText = 'cursor: pointer; padding: 2px;';
     row.style.paddingLeft = level * 16 + 'px';
     row.textContent = `${object.type || 'Object'} "${object.name || 'unnamed'}"`;
+    row.onclick = () => this.showObjectProperties(object);
     frag.appendChild(row);
 
     if (object.children && object.children.length > 0) {
@@ -418,6 +419,53 @@ export class DevTools {
     }
 
     return frag;
+  }
+
+  /**
+   * Fill the Object Properties pane for the tree row the user clicked.
+   * Values go through textContent — object names are not HTML.
+   */
+  showObjectProperties(object) {
+    const propsDiv = document.getElementById('object-properties');
+    if (!propsDiv) {
+      return;
+    }
+    propsDiv.textContent = '';
+
+    const frag = document.createDocumentFragment();
+    const addProp = (name, value) => {
+      const row = document.createElement('div');
+      row.style.cssText = 'padding: 3px 0; border-bottom: 1px solid #2d2d30;';
+      const key = document.createElement('span');
+      key.style.color = '#9cdcfe';
+      key.textContent = `${name}: `;
+      row.appendChild(key);
+      row.appendChild(document.createTextNode(String(value)));
+      frag.appendChild(row);
+    };
+
+    const vec = (v) => `${v.x.toFixed(2)}, ${v.y.toFixed(2)}, ${v.z.toFixed(2)}`;
+
+    addProp('name', object.name || 'unnamed');
+    addProp('type', object.type || 'Object');
+    if (object.uuid) {
+      addProp('uuid', object.uuid);
+    }
+    if (object.visible !== undefined) {
+      addProp('visible', object.visible);
+    }
+    if (object.position && typeof object.position.x === 'number') {
+      addProp('position', vec(object.position));
+    }
+    if (object.rotation && typeof object.rotation.x === 'number') {
+      addProp('rotation', vec(object.rotation));
+    }
+    if (object.material && object.material.type) {
+      addProp('material', object.material.type);
+    }
+    addProp('children', object.children ? object.children.length : 0);
+
+    propsDiv.appendChild(frag);
   }
 
   /**
