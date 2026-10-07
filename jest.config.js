@@ -7,10 +7,10 @@ module.exports = {
   testEnvironment: 'node',
 
   // テストファイルのパターン
-  testMatch: ['**/tests/**/*.test.js', '**/__tests__/**/*.js'],
+  testMatch: ['**/tests/**/*.test.js'],
 
   // カバレッジ収集対象
-  collectCoverageFrom: ['src/**/*.js', '!**/node_modules/**'],
+  collectCoverageFrom: ['src/**/*.js'],
 
   // カバレッジディレクトリ
   coverageDirectory: 'coverage',
@@ -18,8 +18,7 @@ module.exports = {
   // カバレッジレポーター
   coverageReporters: ['text', 'text-summary', 'html', 'lcov'],
 
-  // カバレッジ閾値 — raised from 0 after adding test suites for TextureManager,
-  // ComfortSystem, HapticFeedback, and monitoring. Current baseline: ~28% lines.
+  // カバレッジ閾値 — enforced by CI (ci.yml runs npm test -- --coverage).
   coverageThreshold: {
     global: {
       branches: 20,
@@ -43,14 +42,8 @@ module.exports = {
   // セットアップファイル
   setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
 
-  // グローバル変数
-  globals: {
-    NODE_ENV: 'test',
-    VR_BROWSER_VERSION: '2.0.0'
-  },
-
   // 無視するパス
-  testPathIgnorePatterns: ['/node_modules/', '/dist/', '/build/', '/.git/'],
+  testPathIgnorePatterns: ['/node_modules/', '/dist/', '/.git/'],
 
   // トランスフォーム
   transform: {
