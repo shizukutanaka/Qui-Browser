@@ -60,9 +60,6 @@ jest.mock('three', () => ({
   }
 }));
 
-// Stub requestAnimationFrame so animateSnapTurn doesn't blow up.
-global.requestAnimationFrame = jest.fn();
-
 // Stub window.innerWidth / innerHeight used by WebGLRenderTarget.
 global.window = global.window || {};
 global.window.innerWidth = 1280;
@@ -262,111 +259,35 @@ describe('ComfortSystem', () => {
     system.setPreset('disabled');
     expect(system.settings.vignette.enabled).toBe(false);
     expect(system.settings.fov.enabled).toBe(false);
-    expect(system.settings.snapTurn.enabled).toBe(false);
 
     system.setPreset('sensitive');
     expect(system.settings.vignette.enabled).toBe(true);
     expect(system.settings.fov.enabled).toBe(true);
-    expect(system.settings.snapTurn.enabled).toBe(true);
     // …and the protective values are applied, not just re-enabled.
     expect(system.settings.vignette.intensity).toBeCloseTo(0.8, 5);
-    expect(system.settings.snapTurn.angle).toBe(15);
   });
 
-  test('every non-disabled preset explicitly enables all three effects', () => {
+  test('every non-disabled preset explicitly enables both effects', () => {
     for (const preset of ['sensitive', 'moderate', 'tolerant']) {
       system.setPreset('disabled'); // force all effects off first
       system.setPreset(preset); // then switch in
       expect(system.settings.vignette.enabled).toBe(true);
       expect(system.settings.fov.enabled).toBe(true);
-      expect(system.settings.snapTurn.enabled).toBe(true);
     }
-  });
-
-  // ── snap turn ─────────────────────────────────────────────────────────────────
-  test('handleSnapTurn triggers requestAnimationFrame', () => {
-    system.handleSnapTurn(1);
-    expect(global.requestAnimationFrame).toHaveBeenCalled();
-  });
-
-  test('smooth turn when snapTurn disabled', () => {
-    system.settings.snapTurn.enabled = false;
-    const before = camera.rotation.y;
-    system.handleSnapTurn(1);
-    expect(camera.rotation.y).not.toBe(before);
   });
 });
 
-describe('ComfortSystem — prefers-reduced-motion', () => {
-  // ── animateSnapTurn ───────────────────────────────────────────────────────────
-  test('default: snap-turn animation defers rotation to rAF (not synchronous)', () => {
-    const cam = makeCamera();
-    const cs = new ComfortSystem(cam);
-    cam.rotation.y = 0;
-    global.requestAnimationFrame.mockClear();
-    cs.animateSnapTurn(Math.PI / 2);
-    // The first rAF tick lerps by t=0, so rotation stays at startRotation.
-    expect(cam.rotation.y).toBe(0);
-    expect(global.requestAnimationFrame).toHaveBeenCalled();
-  });
-
-  test('reduceMotion=true: snap turn applies immediately, no rAF queued', () => {
-    const cam = makeCamera();
-    const cs = new ComfortSystem(cam, { reduceMotion: true });
-    cam.rotation.y = 0;
-    global.requestAnimationFrame.mockClear();
-    cs.animateSnapTurn(Math.PI / 2);
-    expect(cam.rotation.y).toBeCloseTo(Math.PI / 2, 10);
-    expect(global.requestAnimationFrame).not.toHaveBeenCalled();
-  });
-
-  test('reduceMotion=true: negative snap applies immediately', () => {
-    const cam = makeCamera();
-    const cs = new ComfortSystem(cam, { reduceMotion: true });
-    cam.rotation.y = Math.PI;
-    cs.animateSnapTurn(-Math.PI / 4);
-    expect(cam.rotation.y).toBeCloseTo(Math.PI - Math.PI / 4, 10);
-  });
-
-  // ── updateFOV ─────────────────────────────────────────────────────────────────
-  // FOV reduction (tunnelling) is a comfort aid that LOWERS sickness, so it must
-  // stay enabled for reduced-motion users — they benefit most. Only the eased
-  // snap-turn rotation is suppressed, never the comfort FOV.
-  test('reduceMotion=true: FOV reduction stays ON while moving (comfort aid)', () => {
+describe('ComfortSystem — updateFOV', () => {
+  // FOV reduction (tunnelling) is a comfort aid that LOWERS sickness, so it is
+  // unconditional: it narrows the FOV whenever the user is moving.
+  test('FOV narrows while moving (comfort aid)', () => {
     const cam = makeCamera(90);
-    const cs = new ComfortSystem(cam, { reduceMotion: true });
+    const cs = new ComfortSystem(cam);
     cs.isMoving = true;
     cs.currentFOV = 90;
     cs.updateFOV(0.016);
-    // Tunnelling must still narrow the FOV for the vestibular-sensitive cohort.
     expect(cam.fov).toBeLessThan(90);
     expect(cam.updateProjectionMatrix).toHaveBeenCalled();
-  });
-
-  // A mid-session OS "Reduce Motion" toggle (e.g. from the headset's system
-  // Quick Settings) previously never reached an already-constructed
-  // ComfortSystem — reduceMotion was a plain constructor-only field. VRApp
-  // now live-propagates via this setter (WCAG 2.3.3).
-  test('setReducedMotion(true) makes snap-turn apply immediately without rAF', () => {
-    const cam = makeCamera();
-    const cs = new ComfortSystem(cam);
-    cs.setReducedMotion(true);
-    cam.rotation.y = 0;
-    global.requestAnimationFrame.mockClear();
-    cs.animateSnapTurn(Math.PI / 2);
-    expect(cam.rotation.y).toBeCloseTo(Math.PI / 2, 10);
-    expect(global.requestAnimationFrame).not.toHaveBeenCalled();
-  });
-
-  test('setReducedMotion(false) restores the eased rAF snap-turn animation', () => {
-    const cam = makeCamera();
-    const cs = new ComfortSystem(cam, { reduceMotion: true });
-    cs.setReducedMotion(false);
-    cam.rotation.y = 0;
-    global.requestAnimationFrame.mockClear();
-    cs.animateSnapTurn(Math.PI / 2);
-    expect(cam.rotation.y).toBe(0); // t=0 on the first rAF tick, not applied yet
-    expect(global.requestAnimationFrame).toHaveBeenCalled();
   });
 });
 

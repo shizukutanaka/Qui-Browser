@@ -10,9 +10,8 @@ import { t } from '../../i18n/i18n.js';
 import * as THREE from 'three';
 
 export class ComfortSystem {
-  constructor(camera, { reduceMotion = false } = {}) {
+  constructor(camera) {
     this.camera = camera;
-    this.reduceMotion = reduceMotion;
 
     // External motion signal (smooth locomotion moves the rig, not the head, so
     // head-delta detection alone would miss it). OR'd into isMoving each frame.
@@ -40,11 +39,6 @@ export class ComfortSystem {
         baseFOV: camera.fov || 90,
         reductionAmount: 25, // Degrees to reduce during motion
         smoothing: 0.1 // Transition speed
-      },
-      snapTurn: {
-        enabled: true,
-        angle: 30, // Degrees per snap
-        duration: 0.2 // Seconds for animation
       }
     };
 
@@ -218,14 +212,13 @@ export class ComfortSystem {
   /**
    * Update FOV based on motion.
    *
-   * NOTE: intentionally NOT gated on reduceMotion. Dynamic FOV reduction
-   * (tunnelling vision) is a *comfort* technique that lowers peripheral optical
-   * flow during locomotion — it reduces motion sickness rather than causing it.
-   * The prefers-reduced-motion cohort is the vestibular-sensitive group that
-   * benefits most, so this stays on for them. WCAG 2.3.3 exempts motion that is
-   * essential to functionality; comfort tunnelling qualifies. (Contrast with
-   * animateSnapTurn, where the eased rotation IS the nausea trigger and is
-   * therefore suppressed.)
+   * NOTE: intentionally unconditional — it is not gated on any
+   * prefers-reduced-motion signal. Dynamic FOV reduction (tunnelling vision)
+   * is a *comfort* technique that lowers peripheral optical flow during
+   * locomotion — it reduces motion sickness rather than causing it. The
+   * prefers-reduced-motion cohort is the vestibular-sensitive group that
+   * benefits most, so this stays on for them. WCAG 2.3.3 exempts motion that
+   * is essential to functionality; comfort tunnelling qualifies.
    */
   updateFOV(_deltaTime) {
     // Target FOV based on motion
@@ -244,75 +237,11 @@ export class ComfortSystem {
   }
 
   /**
-   * Handle snap turning
-   */
-  /**
-   * Live-update the reduced-motion preference (WCAG 2.3.3). Read once at
-   * construction from the OS signal; this lets a mid-session OS preference
-   * change (e.g. toggled from the headset's system Quick Settings without
-   * reloading the page) take effect immediately instead of staying frozen
-   * for the rest of the page's lifetime.
-   * @param {boolean} value
-   */
-  setReducedMotion(value) {
-    this.reduceMotion = !!value;
-  }
-
-  handleSnapTurn(direction) {
-    if (!this.settings.snapTurn.enabled) {
-      // Smooth turning
-      this.camera.rotation.y += direction * 0.02;
-      return;
-    }
-
-    // Calculate snap angle
-    const snapAngle = Math.sign(direction) * THREE.MathUtils.degToRad(this.settings.snapTurn.angle);
-
-    // Animate rotation
-    this.animateSnapTurn(snapAngle);
-  }
-
-  /**
-   * Animate snap turn with easing.
-   * Under prefers-reduced-motion the eased rAF loop is replaced with an
-   * immediate assignment — the turn still happens, the animation does not.
-   */
-  animateSnapTurn(targetAngle) {
-    const startRotation = this.camera.rotation.y;
-    const endRotation = startRotation + targetAngle;
-
-    if (this.reduceMotion) {
-      this.camera.rotation.y = endRotation;
-      return;
-    }
-
-    const duration = this.settings.snapTurn.duration * 1000; // Convert to ms
-    const startTime = Date.now();
-
-    const animate = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-
-      // Ease-out cubic
-      const eased = 1 - Math.pow(1 - progress, 3);
-
-      // Apply rotation
-      this.camera.rotation.y = THREE.MathUtils.lerp(startRotation, endRotation, eased);
-
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      }
-    };
-
-    animate();
-  }
-
-  /**
    * Apply comfort preset
    */
   setPreset(preset) {
-    // Each preset explicitly sets `enabled` on all three effects. This is
-    // required because settings are merged with Object.assign: switching FROM
+    // Each preset explicitly sets `enabled` on all effects. This is required
+    // because settings are merged with Object.assign: switching FROM
     // 'disabled' (which sets enabled:false) TO a protective preset must
     // re-enable the effects. Omitting `enabled: true` here would leave a user
     // who picked 'disabled' and then switched to 'sensitive' with NO comfort
@@ -320,23 +249,19 @@ export class ComfortSystem {
     const presets = {
       sensitive: {
         vignette: { enabled: true, intensity: 0.8, powerFactor: 1.2 },
-        fov: { enabled: true, reductionAmount: 35 },
-        snapTurn: { enabled: true, angle: 15 }
+        fov: { enabled: true, reductionAmount: 35 }
       },
       moderate: {
         vignette: { enabled: true, intensity: 0.4, powerFactor: 1.5 },
-        fov: { enabled: true, reductionAmount: 25 },
-        snapTurn: { enabled: true, angle: 30 }
+        fov: { enabled: true, reductionAmount: 25 }
       },
       tolerant: {
         vignette: { enabled: true, intensity: 0.2, powerFactor: 2.0 },
-        fov: { enabled: true, reductionAmount: 15 },
-        snapTurn: { enabled: true, angle: 45 }
+        fov: { enabled: true, reductionAmount: 15 }
       },
       disabled: {
         vignette: { enabled: false },
-        fov: { enabled: false },
-        snapTurn: { enabled: false }
+        fov: { enabled: false }
       }
     };
 
@@ -348,7 +273,6 @@ export class ComfortSystem {
     // Apply preset settings
     Object.assign(this.settings.vignette, presetSettings.vignette);
     Object.assign(this.settings.fov, presetSettings.fov);
-    Object.assign(this.settings.snapTurn, presetSettings.snapTurn);
 
     this.settings.preset = preset;
   }
