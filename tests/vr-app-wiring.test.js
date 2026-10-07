@@ -469,6 +469,9 @@ function makeSystemsApp(overrides = {}) {
     updateButtonInput: jest.fn(),
     updateTeleport: jest.fn(),
     updateHover: jest.fn(),
+    // The per-frame fault boundary that updateSystems() routes every update
+    // through — bind the real prototype method like the other wiring helpers.
+    _runPerFrame: VRApp.prototype._runPerFrame,
     comfortSystem: null,
     ffrSystem: null,
     handTracking: null,
