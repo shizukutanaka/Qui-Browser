@@ -10,10 +10,8 @@ import { t } from '../../i18n/i18n.js';
 import * as THREE from 'three';
 
 export class ComfortSystem {
-  constructor(scene, camera, renderer, { reduceMotion = false } = {}) {
-    this.scene = scene;
+  constructor(camera, { reduceMotion = false } = {}) {
     this.camera = camera;
-    this.renderer = renderer;
     this.reduceMotion = reduceMotion;
 
     // External motion signal (smooth locomotion moves the rig, not the head, so
