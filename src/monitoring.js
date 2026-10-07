@@ -154,7 +154,11 @@ export function captureMessage(message, level = 'info', context = {}) {
  * Initialize Google Analytics 4
  */
 export function initGoogleAnalytics() {
-  if (!MONITORING_CONFIG.enabled || !MONITORING_CONFIG.analytics.measurementId) {
+  if (
+    !MONITORING_CONFIG.enabled ||
+    !MONITORING_CONFIG.analytics.enabled ||
+    !MONITORING_CONFIG.analytics.measurementId
+  ) {
     console.debug('GA4: Disabled (no measurement ID or not in production)');
     return;
   }
@@ -193,7 +197,7 @@ export function initGoogleAnalytics() {
  * Track custom event
  */
 export function trackEvent(eventName, parameters = {}) {
-  if (!MONITORING_CONFIG.enabled || !window.gtag) {
+  if (!MONITORING_CONFIG.enabled || !MONITORING_CONFIG.analytics.enabled || !window.gtag) {
     return;
   }
 
