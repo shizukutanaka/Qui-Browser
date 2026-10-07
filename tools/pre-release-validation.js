@@ -543,10 +543,18 @@ function printSummary(results) {
  * Get score emoji
  */
 function getScoreEmoji(score) {
-  if (score === 100) return '🏆';
-  if (score >= 95) return '✅';
-  if (score >= 85) return '👍';
-  if (score >= 70) return '⚠️';
+  if (score === 100) {
+    return '🏆';
+  }
+  if (score >= 95) {
+    return '✅';
+  }
+  if (score >= 85) {
+    return '👍';
+  }
+  if (score >= 70) {
+    return '⚠️';
+  }
   return '❌';
 }
 
