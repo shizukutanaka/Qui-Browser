@@ -203,8 +203,8 @@ export class SpatialAudio {
       gain: null,
       position: { x: 0, y: 0, z: 0 },
       loop: options.loop || false,
-      volume: options.volume || 1.0,
-      playbackRate: options.playbackRate || 1.0,
+      volume: options.volume ?? 1.0,
+      playbackRate: options.playbackRate ?? 1.0,
       startTime: 0,
       isPlaying: false
     };
@@ -213,15 +213,18 @@ export class SpatialAudio {
     source.panner = this.context.createPanner();
     source.panner.panningModel = this.settings.enableHRTF ? 'HRTF' : 'equalpower';
     source.panner.distanceModel = this.settings.distanceModel;
-    source.panner.refDistance = options.refDistance || this.settings.refDistance;
-    source.panner.maxDistance = options.maxDistance || this.settings.maxDistance;
-    source.panner.rolloffFactor = options.rolloffFactor || this.settings.rolloffFactor;
+    // `??` — 0 is a meaningful value for every numeric option (volume 0 mutes,
+    // rolloffFactor 0 disables distance attenuation), so `||` would silently
+    // clobber explicit requests.
+    source.panner.refDistance = options.refDistance ?? this.settings.refDistance;
+    source.panner.maxDistance = options.maxDistance ?? this.settings.maxDistance;
+    source.panner.rolloffFactor = options.rolloffFactor ?? this.settings.rolloffFactor;
 
     // Set cone parameters (directional sound)
     if (options.directional) {
-      source.panner.coneInnerAngle = options.coneInnerAngle || 60;
-      source.panner.coneOuterAngle = options.coneOuterAngle || 120;
-      source.panner.coneOuterGain = options.coneOuterGain || 0.3;
+      source.panner.coneInnerAngle = options.coneInnerAngle ?? 60;
+      source.panner.coneOuterAngle = options.coneOuterAngle ?? 120;
+      source.panner.coneOuterGain = options.coneOuterGain ?? 0.3;
     }
 
     // Create gain node for volume control
