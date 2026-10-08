@@ -78,7 +78,9 @@ describe('static surface honesty', () => {
       read(path.join('public', 'service-worker.js')) +
       read(path.join('public', 'manifest.json')) +
       read(path.join('public', 'offline.html')) +
-      read(path.join('src', 'main.js'));
+      read(path.join('src', 'main.js')) +
+      // VRApp's asset-loader manifest is the runtime referrer for public/assets/sounds.
+      read(path.join('src', 'vr', 'VRApp.js'));
     const unreferenced = listFiles('public').filter((rel) => {
       const name = path.basename(rel);
       if (name === '.gitkeep') {
