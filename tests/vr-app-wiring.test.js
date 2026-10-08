@@ -82,7 +82,7 @@ function makeVRAppLike(overrides = {}) {
     tabManager: null,
     webPanel: null,
     _grabController: null,
-    _toastTimers: new Set(),
+    _toastTimers: new Map(),
     playerRig: null,
     // Empty settings keeps _persistTabSession a no-op unless a fixture opts in.
     settings: {},
@@ -469,6 +469,9 @@ function makeSystemsApp(overrides = {}) {
     updateButtonInput: jest.fn(),
     updateTeleport: jest.fn(),
     updateHover: jest.fn(),
+    // The per-frame fault boundary that updateSystems() routes every update
+    // through — bind the real prototype method like the other wiring helpers.
+    _runPerFrame: VRApp.prototype._runPerFrame,
     comfortSystem: null,
     ffrSystem: null,
     handTracking: null,

@@ -73,33 +73,38 @@ import('./app.js')
 
     // Check WebXR support
     if ('xr' in navigator) {
-      navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
-        if (supported) {
-          const vrButton = document.getElementById('vrFloatingButton');
-          if (vrButton) {
-            vrButton.style.display = 'flex';
-          }
+      navigator.xr
+        .isSessionSupported('immersive-vr')
+        .then((supported) => {
+          if (supported) {
+            const vrButton = document.getElementById('vrFloatingButton');
+            if (vrButton) {
+              vrButton.style.display = 'flex';
+            }
 
-          // FR-10.2: PWA immediate immersion.
-          // When launched from the home screen (standalone mode) on a
-          // device that supports VR, fire enter-vr automatically so the
-          // user enters the experience without a manual click.  Quest
-          // Browser treats the PWA launch as a user-gesture context, so
-          // requestSession is permitted.  If the browser rejects it
-          // (SecurityError on desktop) the user can still press the
-          // button — this is a best-effort optimisation.
-          const isStandalone =
-            window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; // iOS Safari
-          if (isStandalone) {
-            console.debug('PWA standalone launch detected — auto-entering VR');
-            // Small delay so VRApp finishes registering its enter-vr
-            // listener before we fire the event.
-            setTimeout(() => {
-              window.dispatchEvent(new CustomEvent('enter-vr'));
-            }, 200);
+            // FR-10.2: PWA immediate immersion.
+            // When launched from the home screen (standalone mode) on a
+            // device that supports VR, fire enter-vr automatically so the
+            // user enters the experience without a manual click.  Quest
+            // Browser treats the PWA launch as a user-gesture context, so
+            // requestSession is permitted.  If the browser rejects it
+            // (SecurityError on desktop) the user can still press the
+            // button — this is a best-effort optimisation.
+            const isStandalone =
+              window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; // iOS Safari
+            if (isStandalone) {
+              console.debug('PWA standalone launch detected — auto-entering VR');
+              // Small delay so VRApp finishes registering its enter-vr
+              // listener before we fire the event.
+              setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('enter-vr'));
+              }, 200);
+            }
           }
-        }
-      });
+        })
+        // A rejected probe can't prove support — degrade to "unsupported":
+        // the floating button stays hidden, same as supported === false.
+        .catch(() => {});
     }
   })
   .catch((error) => {
@@ -204,8 +209,10 @@ if ('serviceWorker' in navigator) {
       .then((registration) => {
         console.debug('Service Worker registered:', registration);
         // Periodically check for updates so long-lived sessions
-        // pick up new releases without a manual reload.
-        setInterval(() => registration.update(), 60000);
+        // pick up new releases without a manual reload. The update check is
+        // best-effort — offline/update failures are routine and must not
+        // surface as unhandled rejections every interval.
+        setInterval(() => registration.update().catch(() => {}), 60000);
       })
       .catch((error) => {
         console.error('Service Worker registration failed:', error);

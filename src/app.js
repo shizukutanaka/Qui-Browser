@@ -30,8 +30,11 @@ async function initializeApp() {
     return;
   }
 
-  // Check for VR support
-  const isVRSupported = await navigator.xr.isSessionSupported('immersive-vr');
+  // Check for VR support. The probe itself can reject (transient XR runtime
+  // failure) — degrade to "unsupported" like DeviceCompatibility.check() does,
+  // so a probe error lands on the same warn/landing path, not an unhandled
+  // rejection that skips app initialization entirely.
+  const isVRSupported = await navigator.xr.isSessionSupported('immersive-vr').catch(() => false);
   if (!isVRSupported) {
     console.warn('Immersive VR not supported on this device; landing page only.');
     return;

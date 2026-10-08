@@ -68,6 +68,17 @@ function readJSON(key, fallback) {
 }
 
 /**
+ * readJSON for the keys that hold arrays. Stored JSON is untrusted input — a
+ * version skew or a user debugging in devtools can leave a valid non-array
+ * payload under our keys — so a parsed non-array is treated as missing,
+ * not passed through for callers to TypeError on.
+ */
+function readJSONArray(key) {
+  const value = readJSON(key, []);
+  return Array.isArray(value) ? value : [];
+}
+
+/**
  * Persist `value` as JSON under `key`.
  * @returns {boolean} true on success, false if storage was unavailable or full.
  */
@@ -88,7 +99,7 @@ export class BookmarkStore {
 
   /** Return all bookmarks as `[{ url, title, addedAt }]` sorted by addedAt desc. */
   getBookmarks() {
-    return readJSON(BOOKMARKS_KEY, []);
+    return readJSONArray(BOOKMARKS_KEY);
   }
 
   /**
@@ -133,7 +144,7 @@ export class BookmarkStore {
 
   /** Return the most recent `limit` history entries (default 50). */
   getHistory(limit = 50) {
-    const all = readJSON(HISTORY_KEY, []);
+    const all = readJSONArray(HISTORY_KEY);
     return all.slice(0, limit);
   }
 
@@ -142,7 +153,7 @@ export class BookmarkStore {
    * with an incremented `visits` counter.
    */
   addHistory(url, title = url) {
-    const all = readJSON(HISTORY_KEY, []);
+    const all = readJSONArray(HISTORY_KEY);
     // Dedupe by URL across the WHOLE history, not just the most-recent entry.
     // Revisiting a site seen earlier (the common A → B → A case) must bump its
     // visit count and move it to the front — not append a duplicate. The old
@@ -212,7 +223,7 @@ export class BookmarkStore {
    * @returns {Array<{url:string,title:string,host:string,visits:number,score:number}>}
    */
   getTopSites(limit = 8, now = Date.now(), exclude = []) {
-    const history = readJSON(HISTORY_KEY, []);
+    const history = readJSONArray(HISTORY_KEY);
     // Normalise the exclude list the same way as entry hosts (lowercase +
     // www-fold) so e.g. 'www.google.com' matches the folded 'google.com' key.
     const skip = new Set((exclude || []).map((h) => stripWww(String(h).toLowerCase())));
@@ -282,8 +293,8 @@ export class BookmarkStore {
     // so a Japanese user who just typed a title gets zero suggestions despite
     // the page being in history. ASCII is unaffected.
     const q = String(query).normalize('NFC').toLowerCase();
-    const history = readJSON(HISTORY_KEY, []);
-    const bookmarks = readJSON(BOOKMARKS_KEY, []);
+    const history = readJSONArray(HISTORY_KEY);
+    const bookmarks = readJSONArray(BOOKMARKS_KEY);
 
     // Case- and NFC-insensitive substring test over an entry's url + title.
     // Both sides are coerced with String() so a malformed/legacy entry whose

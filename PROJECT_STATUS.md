@@ -9,21 +9,20 @@
 
 ## 📊 Project Overview
 
-Qui Browser VR is a production-ready WebXR VR browser optimized for Meta Quest 2/3 and Pico devices, featuring 17 advanced features across 3 tiers, comprehensive CI/CD automation, and enterprise-grade monitoring.
+Qui Browser VR is a production-ready WebXR VR browser optimized for Meta Quest 2/3 and Pico devices, featuring voice commands, Japanese IME, hand tracking, spatial audio, and a comfort system, with CI/CD automation and runtime monitoring.
 
 ### Key Statistics
 
 | Metric                  | Value                    |
 | ----------------------- | ------------------------ |
-| **Total Files**         | 120+                     |
-| **Total Lines of Code** | ~34,300+                 |
-| **VR Modules**          | 35 files (~23,000 lines) |
-| **Documentation**       | 12 files (~6,000 lines)  |
-| **Tests**               | 10+ files (~2,000 lines) |
-| **Configuration**       | 20+ files (~1,500 lines) |
-| **Examples**            | 4 files (~600 lines)     |
-| **Tools**               | 2 files (~700 lines)     |
-| **CI/CD Workflows**     | 3 files (~500 lines)     |
+| **Total Files**         | 760+                     |
+| **Total Lines of Code** | ~174,000+                |
+| **VR Modules**          | 41 files (~89,600 lines) |
+| **Documentation**       | 33 files                 |
+| **Tests**               | 490+ files               |
+| **Configuration**       | ~20 files                |
+| **Tools**               | 7 files                  |
+| **CI/CD Workflows**     | 2 files                  |
 
 ---
 
@@ -37,36 +36,33 @@ Qui Browser VR is a production-ready WebXR VR browser optimized for Meta Quest 2
 - [x] Input handling (controllers, hand tracking)
 - [x] Development tools and debugging
 
-### Phase 2: VR Modules (35+ modules) ✅
+### Phase 2: VR Modules (41 files) ✅
 
-- [x] **Tier 1 (5 features):** FFR, Comfort, Object Pooling, KTX2 Textures, Service Worker
-- [x] **Tier 2 (6 features):** Japanese IME, Hand Tracking, Spatial Audio, MR Passthrough, Progressive Loading, Offline Support
-- [x] **Tier 3 (6 features):** WebGPU, Multiplayer, AI Recommendations, Voice Commands, Haptic Feedback, WebCodecs
+- [x] **Performance:** FFR, Comfort System, Service Worker, Progressive Loading
+- [x] **Input & accessibility:** Japanese IME, Hand Tracking, Voice Commands, Haptic Feedback, gaze-dwell selection, captions
+- [x] **Browsing:** web panels, tab management, bookmarks, reader mode, immersive video
 - [x] **Development Tools:** Performance Monitor, DevTools
 
 ### Phase 3: Documentation ✅
 
-- [x] Usage guide (USAGE_GUIDE.md - 900+ lines)
-- [x] Deployment guide (DEPLOYMENT_GUIDE.md - 600+ lines)
+- [x] Usage guide (USAGE_GUIDE.md)
+- [x] Deployment guide (DEPLOYMENT_GUIDE.md)
 - [x] Build optimization guide (BUILD_OPTIMIZATION_GUIDE.md)
 - [x] CI/CD monitoring guide (CI_CD_MONITORING_GUIDE.md)
-- [x] Architecture documentation (ARCHITECTURE.md - 900+ lines)
-- [x] FAQ (FAQ.md - 500+ lines)
-- [x] Quick start guide (QUICK_START.md - 1,000+ lines)
+- [x] Architecture documentation (ARCHITECTURE.md)
+- [x] FAQ (FAQ.md)
+- [x] Quick start guide (QUICK_START.md)
 
 ### Phase 4: Development Infrastructure ✅
 
-- [x] Comprehensive test suite (34 test suites)
-- [x] CI/CD pipelines (9 CI jobs, 9 CD jobs)
-- [x] Performance benchmarking tools
-- [x] Performance regression detection
+- [x] Comprehensive test suite (491 test files)
+- [x] CI/CD pipelines (7 CI jobs, 9 CD jobs)
 - [x] Production monitoring (Sentry, GA4, Web Vitals)
 - [x] Docker multi-platform builds
 - [x] Multi-platform deployment automation
 
-### Phase 5: Examples & Assets ✅
+### Phase 5: Assets ✅
 
-- [x] Example implementations (4 files)
 - [x] Asset directories (images, sounds)
 - [x] Community guidelines (CONTRIBUTING.md, CODE_OF_CONDUCT.md)
 - [x] Security policy (SECURITY.md)
@@ -75,68 +71,53 @@ Qui Browser VR is a production-ready WebXR VR browser optimized for Meta Quest 2
 
 ## 🚀 Feature Completion Status
 
-### Tier 1: Performance Optimizations (5/5 Complete)
+### Performance Optimizations
 
-| Feature                            | Status      | File                | Lines | Performance Impact      |
-| ---------------------------------- | ----------- | ------------------- | ----- | ----------------------- |
-| **FFR (Fixed Foveated Rendering)** | ✅ Complete | FFRSystem.js        | 580   | +15-20 FPS              |
-| **Comfort System**                 | ✅ Complete | ComfortSystem.js    | 620   | Reduced motion sickness |
-| **Object Pooling**                 | ✅ Complete | ObjectPoolSystem.js | 450   | -40% GC pauses          |
-| **KTX2 Texture Compression**       | ✅ Complete | TextureLoader.js    | 380   | -94% texture memory     |
-| **Service Worker**                 | ✅ Complete | service-worker.js   | 290   | 100% offline capability |
+| Feature                            | Status      | File              | Impact                  |
+| ---------------------------------- | ----------- | ----------------- | ----------------------- |
+| **FFR (Fixed Foveated Rendering)** | ✅ Complete | FFRSystem.js      | Foveated rendering      |
+| **Comfort System**                 | ✅ Complete | ComfortSystem.js  | Reduced motion sickness |
+| **Service Worker**                 | ✅ Complete | service-worker.js | Offline capability      |
 
-### Tier 2: Enhanced Features (6/6 Complete)
+### Enhanced Features
 
-| Feature                       | Status      | File                  | Lines | User Impact                 |
-| ----------------------------- | ----------- | --------------------- | ----- | --------------------------- |
-| **Japanese IME**              | ✅ Complete | JapaneseIME.js        | 680   | Native Japanese input       |
-| **Advanced Hand Tracking**    | ✅ Complete | HandTracking.js       | 720   | Controller-free interaction |
-| **3D Spatial Audio**          | ✅ Complete | SpatialAudio.js       | 540   | Immersive sound             |
-| **MR Passthrough**            | ✅ Complete | PassthroughManager.js | 420   | Real-world integration      |
-| **Progressive Image Loading** | ✅ Complete | ProgressiveLoader.js  | 380   | -60% initial load time      |
-| **Offline Support**           | ✅ Complete | OfflineManager.js     | 320   | Works without internet      |
+| Feature                       | Status      | File                             | User Impact                 |
+| ----------------------------- | ----------- | -------------------------------- | --------------------------- |
+| **Japanese IME**              | ✅ Complete | JapaneseIME.js                   | Native Japanese input       |
+| **Advanced Hand Tracking**    | ✅ Complete | HandTracking.js                  | Controller-free interaction |
+| **3D Spatial Audio**          | ✅ Complete | SpatialAudio.js                  | Immersive sound             |
+| **Progressive Image Loading** | ✅ Complete | ProgressiveLoader.js             | Faster initial load         |
+| **Offline Support**           | ✅ Complete | offline.html + service-worker.js | Works without internet      |
 
-### Tier 3: Advanced Features (6/6 Complete)
+### Advanced Features
 
-| Feature                | Status      | File                 | Lines | Innovation                 |
-| ---------------------- | ----------- | -------------------- | ----- | -------------------------- |
-| **WebGPU Rendering**   | ✅ Complete | WebGPURenderer.js    | 840   | 2x rendering performance   |
-| **Multiplayer System** | ✅ Complete | MultiplayerSystem.js | 760   | Real-time collaboration    |
-| **AI Recommendations** | ✅ Complete | AIRecommendation.js  | 560   | Personalized content       |
-| **Voice Commands**     | ✅ Complete | VoiceCommands.js     | 480   | Hands-free control         |
-| **Haptic Feedback**    | ✅ Complete | HapticFeedback.js    | 420   | Enhanced immersion         |
-| **WebCodecs Video**    | ✅ Complete | VideoPlayer.js       | 380   | Hardware-accelerated video |
+| Feature             | Status      | File              | Innovation         |
+| ------------------- | ----------- | ----------------- | ------------------ |
+| **Voice Commands**  | ✅ Complete | VoiceCommands.js  | Hands-free control |
+| **Haptic Feedback** | ✅ Complete | HapticFeedback.js | Enhanced immersion |
 
-### Development Tools (2/2 Complete)
+### Development Tools
 
-| Tool                    | Status      | File                  | Lines | Purpose                       |
-| ----------------------- | ----------- | --------------------- | ----- | ----------------------------- |
-| **Performance Monitor** | ✅ Complete | PerformanceMonitor.js | 520   | Real-time FPS/memory tracking |
-| **VR DevTools**         | ✅ Complete | DevTools.js           | 600   | In-VR debugging interface     |
+| Tool                    | Status      | File                  | Purpose                       |
+| ----------------------- | ----------- | --------------------- | ----------------------------- |
+| **Performance Monitor** | ✅ Complete | PerformanceMonitor.js | Real-time FPS/memory tracking |
+| **VR DevTools**         | ✅ Complete | DevTools.js           | In-VR debugging interface     |
 
 ---
 
 ## 📈 Performance Metrics
 
-### Optimization Results
-
-| Metric                  | Before | After   | Improvement |
-| ----------------------- | ------ | ------- | ----------- |
-| **Bundle Size**         | 2.4 MB | 1.08 MB | -55%        |
-| **Initial Load Time**   | 5.2s   | 2.4s    | -54%        |
-| **Time to Interactive** | 7.1s   | 2.8s    | -61%        |
-| **First Paint**         | 2.4s   | 0.8s    | -67%        |
-| **Lighthouse Score**    | 72     | 96      | +33%        |
+Lighthouse audits run per PR in CI (`ci.yml`); the production `dist/` bundle currently measures ~3.0 MB.
 
 ### VR Performance Targets
 
-| Target           | Quest 2  | Quest 3  | Status         |
-| ---------------- | -------- | -------- | -------------- |
-| **Target FPS**   | 72-90    | 90-120   | ✅ Achieved    |
-| **Frame Time**   | 11.1ms   | 8.3ms    | ✅ Achieved    |
-| **Memory Limit** | 2GB      | 4GB      | ✅ Under limit |
-| **Startup Time** | <3s      | <2s      | ✅ Achieved    |
-| **Module Load**  | <5ms avg | <3ms avg | ✅ ~0.8ms avg  |
+| Target           | Quest 2  | Quest 3  |
+| ---------------- | -------- | -------- |
+| **Target FPS**   | 72-90    | 90-120   |
+| **Frame Time**   | 11.1ms   | 8.3ms    |
+| **Memory Limit** | 2GB      | 4GB      |
+| **Startup Time** | <3s      | <2s      |
+| **Module Load**  | <5ms avg | <3ms avg |
 
 ---
 
@@ -145,15 +126,14 @@ Qui Browser VR is a production-ready WebXR VR browser optimized for Meta Quest 2
 ### Core Technologies
 
 - **WebXR Device API** - VR/AR immersive experiences
-- **Three.js r152** - 3D graphics and rendering
+- **Three.js 0.181** - 3D graphics and rendering
 - **Web Audio API** - Spatial audio and HRTF
 - **Service Worker** - Offline support and caching
-- **WebGPU** - Next-gen GPU acceleration (Tier 3)
 
 ### Build & Development
 
-- **Vite 4.x** - Fast development and optimized builds
-- **Jest 29.x** - Unit and integration testing
+- **Vite 5.x** - Fast development and optimized builds
+- **Jest 29.x** - Unit testing
 - **Babel 7.x** - JavaScript transpilation
 - **ESLint + Prettier** - Code quality and formatting
 
@@ -208,24 +188,20 @@ npm run docker:compose
 
 ### Test Suite Coverage
 
-| Test Type             | Files   | Suites | Tests | Coverage Target |
-| --------------------- | ------- | ------ | ----- | --------------- |
-| **Unit Tests**        | 10+     | 34     | 100+  | 60%+            |
-| **Integration Tests** | 3       | 8      | 30+   | 50%+            |
-| **Performance Tests** | 2       | 5      | 15+   | N/A             |
-| **E2E Tests**         | Planned | -      | -     | -               |
+| Test Type      | Files | Suites | Tests  | Coverage Target |
+| -------------- | ----- | ------ | ------ | --------------- |
+| **Unit Tests** | 490+  | 490+   | 6,400+ | 60%+            |
+| **E2E Tests**  | -     | -      | -      | Planned         |
 
-### CI Pipeline (9 Jobs, ~25 min)
+### CI Pipeline (7 Jobs)
 
-1. **Code Quality & Linting** (10 min) - ESLint, Prettier, security audit
-2. **Unit Tests** (15 min) - Jest with coverage, Codecov upload
-3. **Integration Tests** (15 min) - Tier system integration
-4. **Performance Tests** (20 min) - Benchmarks with regression detection
-5. **Build Verification** (15 min) - Multi-version Node (16/18/20)
-6. **Lighthouse CI** (15 min) - Performance audits
-7. **Docker Build Test** (20 min) - Container build validation
-8. **Security Scanning** (15 min) - Trivy vulnerability scanner
-9. **CI Summary** - Aggregate results and notifications
+1. **Code Quality & Linting** - ESLint + Prettier changed-files check
+2. **Unit Tests** - Jest with coverage artifact upload
+3. **Build Verification** - Multi-version Node (18/20)
+4. **Lighthouse CI** - Performance audits
+5. **Docker Build Test** - Container build validation
+6. **Security Scanning** - Trivy vulnerability scanner
+7. **CI Summary** - Aggregate results
 
 ### CD Pipeline (9 Jobs, ~40 min)
 
@@ -245,31 +221,31 @@ npm run docker:compose
 
 ### User Documentation
 
-- **README.md** (260+ lines) - Project overview and quick start
-- **QUICK_START.md** (1,000+ lines) - Step-by-step setup guide
-- **USAGE_GUIDE.md** (900+ lines) - Complete feature usage guide
-- **FAQ.md** (500+ lines) - Common questions and troubleshooting
+- **README.md** - Project overview and quick start
+- **QUICK_START.md** - Step-by-step setup guide
+- **USAGE_GUIDE.md** - Complete feature usage guide
+- **FAQ.md** - Common questions and troubleshooting
 
 ### Developer Documentation
 
-- **ARCHITECTURE.md** (900+ lines) - System architecture and design
-- **CONTRIBUTING.md** (600+ lines) - Contribution guidelines
-- **CODE_OF_CONDUCT.md** (200+ lines) - Community standards
-- **SECURITY.md** (400+ lines) - Security policy and reporting
+- **ARCHITECTURE.md** - System architecture and design
+- **CONTRIBUTING.md** - Contribution guidelines
+- **CODE_OF_CONDUCT.md** - Community standards
+- **SECURITY.md** - Security policy and reporting
 
 ### Operations Documentation
 
-- **DEPLOYMENT_GUIDE.md** (600+ lines) - Multi-platform deployment
+- **DEPLOYMENT_GUIDE.md** - Multi-platform deployment
 - **BUILD_OPTIMIZATION_GUIDE.md** - Build optimization strategies
 - **CI_CD_MONITORING_GUIDE.md** - CI/CD and monitoring setup
-- **TESTING.md** (800+ lines) - Testing strategies and examples
+- **TESTING.md** - Testing strategies and examples
 
 ### Release Documentation
 
-- **CHANGELOG.md** (280+ lines) - Version history and changes
+- **CHANGELOG.md** - Version history and changes
 - **PROJECT_STATUS.md** (This file) - Current project status
 
-**Total Documentation:** ~7,340+ lines across 12 files
+**Total:** 14 files
 
 ---
 
@@ -328,9 +304,6 @@ npm run serve            # Serve production build
 npm test                 # Run all tests
 npm run test:watch       # Run tests in watch mode
 npm run test:coverage    # Run tests with coverage
-npm run test:tier        # Run tier integration tests
-npm run test:integration # Run integration tests
-npm run test:e2e         # Run E2E tests (Playwright)
 ```
 
 ### Code Quality
@@ -342,21 +315,11 @@ npm run format           # Format all files
 npm run format:check     # Check formatting
 ```
 
-### Benchmarking
-
-```bash
-npm run benchmark                # Run benchmark tool
-npm run benchmark:all            # Benchmark all modules
-npm run benchmark:report         # Generate Markdown report
-npm run benchmark:regression     # Check for regressions
-```
-
 ### CI/CD
 
 ```bash
 npm run ci:lint          # Lint + format check
 npm run ci:test          # Tests with coverage
-npm run ci:benchmark     # Benchmark + regression check
 npm run ci:all           # Complete CI suite
 ```
 
@@ -374,7 +337,6 @@ npm run docker:logs      # View container logs
 ### Deployment
 
 ```bash
-npm run deploy:gh-pages  # Deploy to GitHub Pages
 npm run deploy:netlify   # Deploy to Netlify
 npm run deploy:vercel    # Deploy to Vercel
 ```
@@ -398,7 +360,7 @@ npm run clean:install    # Clean + fresh install
 
 ## 🎯 Future Roadmap
 
-### v2.1.0 (Planned - Q1 2025)
+### v2.1.0 (Planned)
 
 - [ ] Enhanced AI recommendations with collaborative filtering
 - [ ] Advanced multiplayer features (voice chat, shared sessions)
@@ -406,7 +368,7 @@ npm run clean:install    # Clean + fresh install
 - [ ] WebXR Layers API integration
 - [ ] Advanced gesture recognition with ML
 
-### v2.2.0 (Planned - Q2 2025)
+### v2.2.0 (Planned)
 
 - [ ] WebGPU compute shaders for advanced effects
 - [ ] Browser extension support
@@ -414,7 +376,7 @@ npm run clean:install    # Clean + fresh install
 - [ ] Advanced analytics dashboard
 - [ ] Mobile companion app
 
-### v3.0.0 (Planned - Q4 2025)
+### v3.0.0 (Planned)
 
 - [ ] Full AR mode support
 - [ ] Neural rendering for upscaling
