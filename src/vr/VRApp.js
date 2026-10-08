@@ -1605,13 +1605,13 @@ export class VRApp {
    * bookmark/history panel is open, refresh it so the cleared list shows.
    */
   _clearBrowsingHistory() {
-    if (this.bookmarks) {
-      this.bookmarks.clearHistory();
-    }
+    const cleared = this.bookmarks ? this.bookmarks.clearHistory() : false;
     if (this.bookmarkPanel && this.bookmarkPanel.visible) {
       this.bookmarkPanel._draw();
     }
-    this.showVRToast(t('vr.msg.historyCleared'), { type: 'info' });
+    this.showVRToast(t(cleared ? 'vr.msg.historyCleared' : 'vr.error.storageWriteFailed'), {
+      type: cleared ? 'info' : 'warn'
+    });
   }
 
   /**
@@ -3759,10 +3759,15 @@ export class VRApp {
     // 12. DevTools (development builds only; hidden until toggled with F12).
     // Dynamically imported so it is dropped from production bundles.
     if (import.meta.env && import.meta.env.DEV) {
-      const { DevTools } = await import('../dev/DevTools.js');
-      this.devTools = new DevTools(this);
-      this.devTools.initialize();
-      console.debug('VRApp: DevTools ready (F12 to toggle)');
+      try {
+        const { DevTools } = await import('../dev/DevTools.js');
+        this.devTools = new DevTools(this);
+        this.devTools.initialize();
+        console.debug('VRApp: DevTools ready (F12 to toggle)');
+      } catch (e) {
+        console.error('VRApp: DevTools init failed', e);
+        this.devTools = null;
+      }
     }
 
     const loadTime = performance.now() - startTime;
@@ -3959,33 +3964,45 @@ export class VRApp {
 
     // Initialize hand tracking
     if (this.handTracking && session) {
-      await this.handTracking.initialize(session);
+      try {
+        const handsReady = await this.handTracking.initialize(session);
+        if (!handsReady) {
+          throw new Error('hand tracking unavailable for this session');
+        }
 
-      // Register gesture callbacks
-      this.handTracking.onGesture('pinch', (hand, _gesture) => {
-        console.debug(`${hand} hand pinch detected`);
-        // Play spatial sound at pinch position
-        if (this.spatialAudio) {
-          const pos = this.handTracking.getPinchPosition(hand);
-          if (pos) {
-            this.spatialAudio.play('click', 'click', pos);
+        // Register gesture callbacks
+        this.handTracking.onGesture('pinch', (hand, _gesture) => {
+          console.debug(`${hand} hand pinch detected`);
+          // Play spatial sound at pinch position
+          if (this.spatialAudio) {
+            const pos = this.handTracking.getPinchPosition(hand);
+            if (pos) {
+              this.spatialAudio.play('click', 'click', pos);
+            }
           }
-        }
-        // Haptic confirmation on pinch (lightweight click feel).
-        if (this.hapticFeedback) {
-          this.hapticFeedback.playPattern(hand, 'click');
-        }
-      });
+          // Haptic confirmation on pinch (lightweight click feel).
+          if (this.hapticFeedback) {
+            this.hapticFeedback.playPattern(hand, 'click');
+          }
+        });
 
-      this.handTracking.onGesture('grab', (hand) => {
-        if (this.hapticFeedback) {
-          this.hapticFeedback.playPattern(hand, 'impact');
-        }
-      });
+        this.handTracking.onGesture('grab', (hand) => {
+          if (this.hapticFeedback) {
+            this.hapticFeedback.playPattern(hand, 'impact');
+          }
+        });
 
-      this.handTracking.onGesture('point', (hand, _gesture) => {
-        console.debug(`${hand} hand pointing`);
-      });
+        this.handTracking.onGesture('point', (hand, _gesture) => {
+          console.debug(`${hand} hand pointing`);
+        });
+      } catch (e) {
+        console.error('VRApp: Hand tracking session init failed', e);
+        this.showVRToast(t('vr.error.handTrackingUnavailable'), { type: 'warn' });
+        // initialize() may have attached the inputsourceschange listener or
+        // created the joint meshes before failing — dispose() undoes both.
+        this.handTracking.dispose();
+        this.handTracking = null;
+      }
     }
 
     // Adjust render settings for VR
@@ -4459,6 +4476,12 @@ export class VRApp {
    */
   _toggleBookmark(url, title) {
     const nowBookmarked = this.bookmarks.toggleBookmark(url, title);
+    if (nowBookmarked === null) {
+      // The write didn't persist — state is unchanged, so don't claim
+      // "Bookmarked"/"Removed" for a mutation storage refused.
+      this.showVRToast(t('vr.error.storageWriteFailed'), { type: 'warn' });
+      return null;
+    }
     if (this.captionSystem && this.captionSystem.enabled) {
       this.captionSystem.show(nowBookmarked ? t('vr.msg.bookmarked') : t('vr.msg.bookmarkRemoved'));
     }
