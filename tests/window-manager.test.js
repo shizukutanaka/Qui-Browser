@@ -367,7 +367,10 @@ describe('WindowManager — constant apparent size across the distance range', (
     const panel = makeNode();
     wm.attach(panel);
     wm.setFollow(true);
-    wm.update(1000); // large dt → lerp completes, panel lands at `distance`
+    // A few large-dt settles → lerp converges to `distance` within float noise.
+    for (let i = 0; i < 3; i++) {
+      wm.update(1000);
+    }
     return { wm, panel };
   };
 
@@ -432,5 +435,32 @@ describe('WindowManager — constant apparent size across the distance range', (
     wm.setFollow(true);
     wm.update(1000);
     expect(panel.scale.x).toBe(1);
+  });
+
+  // The follow lerp is labelled "frame-rate-independent": its convergence must
+  // depend on elapsed time, not on how many frames that time is sliced into.
+  describe('follow-mode smoothing is frame-rate independent', () => {
+    const residualAfterOneSecond = (dtMs, frames) => {
+      const wm = new WindowManager(makeNode(), { distance: 2, followLerp: 0.15 });
+      const panel = makeNode([4, 0, 0]); // 4.47 m off the (0,0,-2) target point
+      wm.attach(panel);
+      wm.setFollow(true);
+      for (let i = 0; i < frames; i++) {
+        wm.update(dtMs);
+      }
+      return panel.position.distanceTo(new V3(0, 0, -2));
+    };
+
+    test.each([
+      [60, 1000 / 60],
+      [90, 1000 / 90],
+      [120, 1000 / 120]
+    ])('1 s of updates converges to the same residual at %i Hz', (fps, dtMs) => {
+      const baseline = residualAfterOneSecond(1000 / 60, 60);
+      const measured = residualAfterOneSecond(dtMs, fps);
+      // Fps-invariant convergence: a 120 Hz headset must not end a second of
+      // tracking measurably further from the target than a 60 Hz one.
+      expect(measured).toBeCloseTo(baseline, 8);
+    });
   });
 });
