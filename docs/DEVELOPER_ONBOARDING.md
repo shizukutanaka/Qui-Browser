@@ -884,7 +884,7 @@ npx localtunnel --port 5173
 1. **[README.md](../README.md)** - プロジェクト概要
 2. **[ARCHITECTURE.md](ARCHITECTURE.md)** - アーキテクチャ詳細
 3. **[COMPATIBILITY.md](COMPATIBILITY.md)** - 互換性情報
-4. **[TEST_COVERAGE_REPORT.md](./TESTING.md)** - テストカバレッジ
+4. **[TESTING.md](./TESTING.md)** - テストカバレッジ
 
 ### 🌐 外部リソース
 
