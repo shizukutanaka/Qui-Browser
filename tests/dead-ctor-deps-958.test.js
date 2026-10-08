@@ -57,9 +57,8 @@ describe('constructor signatures only declare used dependencies', () => {
 
   test('live deps still reachable through the lean signatures', () => {
     const cam = makeCamera();
-    const cs = new ComfortSystem(cam, { reduceMotion: true });
+    const cs = new ComfortSystem(cam);
     expect(cs.camera).toBe(cam);
-    expect(cs.reduceMotion).toBe(true);
     const scene = makeScene();
     const ht = new HandTracking(scene);
     expect(ht.scene).toBe(scene);

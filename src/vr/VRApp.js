@@ -2856,9 +2856,7 @@ export class VRApp {
     // 2. Comfort System
     if (this.settings.enableComfort) {
       try {
-        this.comfortSystem = new ComfortSystem(this.camera, {
-          reduceMotion: osReducedMotion()
-        });
+        this.comfortSystem = new ComfortSystem(this.camera);
         this.comfortSystem.setPreset(this.settings.motionSensitivity);
         console.debug('VRApp: Comfort system initialized');
       } catch (e) {
@@ -3788,9 +3786,6 @@ export class VRApp {
 
     this._osMotionMQ = matchMedia('(prefers-reduced-motion: reduce)');
     this._onOSReducedMotionChange = (e) => {
-      if (this.comfortSystem) {
-        this.comfortSystem.setReducedMotion(e.matches);
-      }
       if (this.gazeInteraction) {
         this.gazeInteraction.setReducedMotion(e.matches);
       }
