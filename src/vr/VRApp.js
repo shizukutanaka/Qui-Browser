@@ -3150,11 +3150,12 @@ export class VRApp {
             this._applyPrivateMode(next);
           },
           // volume-up/down commands drive the same masterVolume setting the
-          // audio stepper owns — persist + apply + announce, clamped 0-100.
+          // audio stepper owns — persist + apply + announce, clamped 0-100;
+          // returns the applied level, null at the boundary (command announces it).
           onVolume: (delta) => {
             const next = Math.min(100, Math.max(0, Math.round(this.settings.masterVolume + delta * 100)));
             if (next === this.settings.masterVolume) {
-              return;
+              return null;
             }
             // Manual volume change invalidates a stored mute level.
             this._mutedVolume = undefined;
@@ -3165,6 +3166,7 @@ export class VRApp {
             if (this.captionSystem && this.captionSystem.enabled) {
               this.captionSystem.show(`${t('vr.msg.volumeLabel')}: ${next}%`);
             }
+            return next;
           },
           // Settings-by-voice: the caption-size and gaze-dwell steppers are
           // the flagship a11y knobs and a voice-only user can't reach the
@@ -3192,7 +3194,7 @@ export class VRApp {
             }
             return next;
           },
-          // "What's the volume" — onVolume(0) returns undefined (no change),
+          // "What's the volume" — onVolume(0) returns null (no change),
           // so the status command reads the persisted setting directly.
           onVolumeStatus: () => this.settings.masterVolume,
           // Mute — the hardware/OS mute-key atom. The pre-mute level is kept
