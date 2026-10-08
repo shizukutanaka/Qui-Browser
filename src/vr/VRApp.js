@@ -386,8 +386,9 @@ export class VRApp {
 
   /**
    * Load persisted settings overrides from localStorage. Returns {} when none
-   * exist or storage is unavailable. Only known keys are accepted so stale or
-   * malformed entries cannot inject arbitrary fields.
+   * exist or storage is unavailable. Only known keys whose stored value matches
+   * the declared default's type are accepted, so stale or malformed entries
+   * cannot inject arbitrary fields or wrong-typed values.
    */
   loadPersistedSettings() {
     try {
@@ -404,8 +405,17 @@ export class VRApp {
       }
       const allowed = {};
       for (const key of Object.keys(this.settings)) {
-        if (key in parsed) {
-          allowed[key] = parsed[key];
+        if (!(key in parsed)) {
+          continue;
+        }
+        const value = parsed[key];
+        const def = this.settings[key];
+        // The stored value must match the declared type — a hand-edited or
+        // legacy-format entry of the wrong type poisons feature flags and
+        // layout math (e.g. a string distance becomes NaN downstream).
+        const typeOk = Array.isArray(def) ? Array.isArray(value) : typeof value === typeof def;
+        if (typeOk) {
+          allowed[key] = value;
         }
       }
       return allowed;
