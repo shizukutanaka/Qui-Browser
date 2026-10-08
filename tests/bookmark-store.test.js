@@ -577,3 +577,46 @@ describe('BookmarkStore.search — Unicode normalization (NFC/NFD)', () => {
     expect(store.search(SEARCH_GA_NFD, 5, now)).toEqual(store.search(SEARCH_GA_NFC, 5, now));
   });
 });
+
+describe('BookmarkStore — corrupt stored shape', () => {
+  let store;
+
+  beforeEach(() => {
+    localStorage.clear();
+    store = new BookmarkStore();
+  });
+
+  // localStorage is untrusted input: another app on the origin, a debugging
+  // user, or a version skew can leave a non-array JSON payload under our keys.
+  // The parsers already guard malformed JSON — but a VALID non-array payload
+  // (object, scalar) passed straight through and threw TypeError inside
+  // isBookmarked()/search()/getTopSites()/addHistory() — and isBookmarked()
+  // runs inside WebPanel's chrome-bar repaint, so one corrupt key broke panel
+  // rendering on every frame.
+
+  test('non-array bookmarks payload reads as empty instead of throwing', () => {
+    localStorage.setItem('quiBrowser_bookmarks', JSON.stringify({ url: 'x' }));
+    expect(store.getBookmarks()).toEqual([]);
+    expect(store.isBookmarked('https://example.com')).toBe(false);
+  });
+
+  test('scalar bookmarks payload does not throw in the star render path', () => {
+    localStorage.setItem('quiBrowser_bookmarks', '42');
+    expect(() => store.isBookmarked('https://example.com')).not.toThrow();
+    expect(() => store.toggleBookmark('https://example.com')).not.toThrow();
+  });
+
+  test('non-array history payload reads as empty and recovers on next write', () => {
+    localStorage.setItem('quiBrowser_history', JSON.stringify('not-history'));
+    expect(store.getHistory()).toEqual([]);
+    store.addHistory('https://example.com');
+    expect(store.getHistory()).toHaveLength(1);
+  });
+
+  test('corrupt payloads do not break getTopSites or search', () => {
+    localStorage.setItem('quiBrowser_bookmarks', '42');
+    localStorage.setItem('quiBrowser_history', '42');
+    expect(store.getTopSites()).toEqual([]);
+    expect(store.search('example')).toEqual([]);
+  });
+});
