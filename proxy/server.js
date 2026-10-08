@@ -196,6 +196,25 @@ export async function fetchThroughGuard(target, headers = {}) {
   return { ok: false, reason: 'too-many-redirects' };
 }
 
+/**
+ * Parse the inbound request-target. A target that is legal per HTTP —
+ * anything starting with '/' passes llhttp's origin-form check — can still
+ * fail WHATWG URL parsing: `//` means an empty authority, `//[]` a malformed
+ * one. A bare `new URL` throws inside the async handler, which rejects and
+ * kills the process under Node's default unhandled-rejection policy, so the
+ * inbound target gets the same guard the upstream ones do.
+ *
+ * @param {string} target
+ * @returns {URL | null}
+ */
+function parseRequestTarget(target) {
+  try {
+    return new URL(target, 'http://localhost');
+  } catch {
+    return null;
+  }
+}
+
 function cors(res) {
   res.setHeader('access-control-allow-origin', ALLOW_ORIGIN);
   res.setHeader('access-control-allow-methods', 'GET, OPTIONS');
@@ -213,7 +232,13 @@ function createProxyServer() {
       res.writeHead(405, { 'content-type': 'application/json' }).end(JSON.stringify({ error: 'method-not-allowed' }));
       return;
     }
-    const url = new URL(req.url, 'http://localhost');
+    const url = parseRequestTarget(req.url);
+    if (!url) {
+      res
+        .writeHead(400, { 'content-type': 'application/json' })
+        .end(JSON.stringify({ error: 'malformed-request-target' }));
+      return;
+    }
     if (url.pathname === '/health') {
       res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ ok: true }));
       return;
