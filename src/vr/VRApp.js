@@ -4179,14 +4179,16 @@ export class VRApp {
       this._runPerFrame('ffrSystem', () => {
         // Use the shared frame dt — no per-system timer needed.
         this.ffrSystem.trackHeadPose(this.camera.quaternion, dt);
-        this.ffrSystem.updatePredictedGazeFoveation();
+        this.ffrSystem.updatePredictedGazeFoveation(dt);
 
-        // Also coarse-adjust based on frame-budget pressure.
+        // Also coarse-adjust based on frame-budget pressure. The nudge is
+        // authored per 60 fps-equivalent frame, so scale by the real delta —
+        // a bare ±0.01 per frame would walk twice as fast at 120 Hz.
         const targetFrameTime = 1000 / this.settings.targetFPS;
         if (this.performanceMonitor.frameTime > targetFrameTime) {
-          this.ffrSystem.adjustIntensity(0.01);
+          this.ffrSystem.adjustIntensity(0.01 * dt * 60);
         } else {
-          this.ffrSystem.adjustIntensity(-0.01);
+          this.ffrSystem.adjustIntensity(-0.01 * dt * 60);
         }
       });
     }
