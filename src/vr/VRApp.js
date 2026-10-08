@@ -3627,8 +3627,10 @@ export class VRApp {
             if (!snapshot || !snapshot.tabs.length) {
               return 0;
             }
-            saveTabSession(snapshot);
-            return snapshot.tabs.length;
+            // Report the write result, not the tab count — when storage is
+            // full or blocked the snapshot silently drops, and announcing
+            // "saved N tabs" would promise a restore that cannot happen.
+            return saveTabSession(snapshot) ? snapshot.tabs.length : 0;
           },
           // clear-session's discard twin — honest false when nothing saved.
           onSessionClear: () => {
