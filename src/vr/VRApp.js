@@ -137,6 +137,11 @@ export class VRApp {
     this.container = container || document.body;
     this.isVREnabled = false;
     this.frameCount = 0;
+    // Accumulates real seconds toward the next adjustQuality() evaluation —
+    // the check was authored at ~1 s cadence (every 60 frames at 60 fps), so
+    // it must run on wall time, not frame count (120 Hz would fire it 2× as
+    // often).
+    this._qualityClock = 0;
 
     // Core Three.js components
     this.scene = null;
@@ -4152,15 +4157,17 @@ export class VRApp {
 
     // Track performance
     const frameTime = performance.now() - frameStart;
-    this.updatePerformanceMonitor(frameTime);
+    this.updatePerformanceMonitor(frameTime, dt);
 
     // Rich perf monitor — end-frame metrics + UI.
     if (this.perfMonitorUI) {
       this.perfMonitorUI.endFrame(this.renderer);
     }
 
-    // Dynamic quality adjustment (every 60 frames)
-    if (this.frameCount % 60 === 0) {
+    // Dynamic quality adjustment (~once per second at any render rate)
+    this._qualityClock += dt;
+    if (this._qualityClock >= 1) {
+      this._qualityClock = 0;
       this.adjustQuality();
     }
   }
@@ -4320,11 +4327,18 @@ export class VRApp {
 
   /**
    * Update performance monitor
+   * @param {number} frameTime - measured wall-time cost of this frame, ms
+   * @param {number} dtSeconds - elapsed seconds since the previous frame
    */
-  updatePerformanceMonitor(frameTime) {
-    // Exponential moving average for smooth values
-    const alpha = 0.1;
-    this.performanceMonitor.frameTime = this.performanceMonitor.frameTime * (1 - alpha) + frameTime * alpha;
+  updatePerformanceMonitor(frameTime, dtSeconds = 1 / 60) {
+    // Exponential moving average for smooth values. The 0.1 sample weight is
+    // calibrated per 60 fps-equivalent frame; normalise the DECAY side
+    // (0.9^(dt*60)) so the estimate keeps its authored time constant on
+    // 90/120 Hz headsets — otherwise the frame-time estimate and everything
+    // downstream (FFR budget pressure, adjustQuality) gets twitchier the
+    // faster the display refreshes.
+    const decay = Math.pow(0.9, dtSeconds * 60);
+    this.performanceMonitor.frameTime = this.performanceMonitor.frameTime * decay + frameTime * (1 - decay);
 
     this.performanceMonitor.fps = 1000 / this.performanceMonitor.frameTime;
 
