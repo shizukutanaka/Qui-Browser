@@ -206,7 +206,8 @@ const CATALOG = {
     'vr.error.videoLoadFailed': 'Could not load video (check URL / CORS)',
     'vr.error.panelLoadFailed': 'Failed to load',
     'vr.error.smoothMoveWarning': 'Smooth move may cause motion sickness',
-    'vr.error.subsystemFailed': 'A VR feature stopped working'
+    'vr.error.subsystemFailed': 'A VR feature stopped working',
+    'vr.error.storageWriteFailed': 'Could not save — storage unavailable'
   },
   ja: {
     'hero.title': 'VRブラウジングの未来を体験',
@@ -403,7 +404,8 @@ const CATALOG = {
     'vr.error.videoLoadFailed': '動画を読み込めませんでした（URL / CORS を確認してください）',
     'vr.error.panelLoadFailed': '読み込みに失敗しました',
     'vr.error.smoothMoveWarning': 'スムーズ移動は乗り物酔いを引き起こす可能性があります',
-    'vr.error.subsystemFailed': 'VRの一部の機能が停止しました'
+    'vr.error.subsystemFailed': 'VRの一部の機能が停止しました',
+    'vr.error.storageWriteFailed': '保存できませんでした — ストレージが利用できません'
   }
 };
 

@@ -1605,13 +1605,13 @@ export class VRApp {
    * bookmark/history panel is open, refresh it so the cleared list shows.
    */
   _clearBrowsingHistory() {
-    if (this.bookmarks) {
-      this.bookmarks.clearHistory();
-    }
+    const cleared = this.bookmarks ? this.bookmarks.clearHistory() : false;
     if (this.bookmarkPanel && this.bookmarkPanel.visible) {
       this.bookmarkPanel._draw();
     }
-    this.showVRToast(t('vr.msg.historyCleared'), { type: 'info' });
+    this.showVRToast(t(cleared ? 'vr.msg.historyCleared' : 'vr.error.storageWriteFailed'), {
+      type: cleared ? 'info' : 'warn'
+    });
   }
 
   /**
@@ -4481,6 +4481,12 @@ export class VRApp {
    */
   _toggleBookmark(url, title) {
     const nowBookmarked = this.bookmarks.toggleBookmark(url, title);
+    if (nowBookmarked === null) {
+      // The write didn't persist — state is unchanged, so don't claim
+      // "Bookmarked"/"Removed" for a mutation storage refused.
+      this.showVRToast(t('vr.error.storageWriteFailed'), { type: 'warn' });
+      return null;
+    }
     if (this.captionSystem && this.captionSystem.enabled) {
       this.captionSystem.show(nowBookmarked ? t('vr.msg.bookmarked') : t('vr.msg.bookmarkRemoved'));
     }

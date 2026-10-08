@@ -258,8 +258,7 @@ export class BookmarkPanel {
       }
       case 'deleteRow': {
         const entry = rows[this.scrollOffset + action.index];
-        if (entry && entry.url) {
-          this.store.removeBookmark(entry.url);
+        if (entry && entry.url && this.store.removeBookmark(entry.url)) {
           // After deletion the list shrinks; clamp scroll offset so we don't show a blank page.
           this._clampScroll(this._rows().length);
           this._draw();
