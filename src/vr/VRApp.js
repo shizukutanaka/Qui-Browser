@@ -3481,59 +3481,48 @@ export class VRApp {
             tab.scrollContentTo(line);
             return { percent: pct };
           },
-          // Clipboard twins of read-line / read-aloud — same best-effort
-          // write discipline as onCopyUrl (permissions may reject silently).
-          onCopyLine: () => {
+          // Clipboard twins of read-line / read-aloud. Resolves to the
+          // text only when the write landed — a denied/absent clipboard
+          // rejects so the command can announce the real outcome.
+          onCopyLine: async () => {
             const text = this.tabManager?.getActiveTab?.()?.currentLine?.();
             if (!text) {
               return null;
             }
-            const p = navigator.clipboard?.writeText?.(text);
-            if (p && p.catch) {
-              p.catch(() => {});
-            }
+            await navigator.clipboard.writeText(text);
             return text;
           },
-          onCopyArticle: () => {
+          onCopyArticle: async () => {
             const blocks = this.tabManager?.getActiveTab?.()?._readerBlocks;
             if (!blocks || !blocks.length) {
               return null;
             }
             const text = blocks.map((b) => (Array.isArray(b.text) ? b.text.join(' ') : b.text)).join('\n');
-            const p = navigator.clipboard?.writeText?.(text);
-            if (p && p.catch) {
-              p.catch(() => {});
-            }
+            await navigator.clipboard.writeText(text);
             return text.length;
           },
           // Saved-list readouts (tabs-list parity): the voice layer owns the
           // counting + truncation; the hooks just hand over title arrays.
           onBookmarkList: () => (this.bookmarks.getBookmarks() || []).map((b) => b.title || b.url),
           onHistoryList: () => (this.bookmarks.getHistory(MAX_HISTORY) || []).map((h) => h.title || h.url),
-          // Share/copy atom: clipboard may be absent or reject (permissions,
-          // non-secure context) — the write is best-effort, the announce
-          // still honest because the URL itself is what was handed over.
-          onCopyUrl: () => {
+          // Share/copy atom: resolves to the URL only when the write
+          // landed — a denied/absent clipboard rejects so the command
+          // announces the real outcome, never a phantom copy.
+          onCopyUrl: async () => {
             const url = this.tabManager?.getActiveTab?.()?.currentUrl;
             if (!url) {
               return null;
             }
-            const p = navigator.clipboard?.writeText?.(url);
-            if (p && p.catch) {
-              p.catch(() => {});
-            }
+            await navigator.clipboard.writeText(url);
             return url;
           },
-          // Same clipboard discipline for the page title (copy-url's pair).
-          onCopyTitle: () => {
+          // Same contract for the page title (copy-url's pair).
+          onCopyTitle: async () => {
             const title = this.tabManager?.getActiveTab?.()?.currentTitle;
             if (!title) {
               return null;
             }
-            const p = navigator.clipboard?.writeText?.(title);
-            if (p && p.catch) {
-              p.catch(() => {});
-            }
+            await navigator.clipboard.writeText(title);
             return title;
           },
           // Read-from-here (NVDA read-from-current-position parity): chunks
