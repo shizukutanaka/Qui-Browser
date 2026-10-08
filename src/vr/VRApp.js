@@ -3834,6 +3834,12 @@ export class VRApp {
     console.debug('VRApp: VR session started');
     this.isVREnabled = true;
 
+    // Per-frame fault circuit-breakers reset each session: a subsystem that
+    // threw on a session-boundary transient gets a second chance on re-entry.
+    if (this._frameFaults) {
+      this._frameFaults.clear();
+    }
+
     // Get XR session
     const session = this.renderer.xr.getSession();
 
@@ -4059,8 +4065,9 @@ export class VRApp {
     // Update systems
     this.updateSystems(xrFrame, dt);
 
-    // Render scene
-    this.renderer.render(this.scene, this.camera);
+    // Render scene — bounded like the subsystem updates: a draw throw (e.g. a
+    // material disposed mid-frame) must not kill the animation loop.
+    this._runPerFrame('renderer', () => this.renderer.render(this.scene, this.camera));
 
     // Track performance
     const frameTime = performance.now() - frameStart;
@@ -4083,93 +4090,134 @@ export class VRApp {
   updateSystems(xrFrame, dt = 0.016) {
     // Update comfort system (vignette, FOV)
     if (this.comfortSystem && this.settings.enableComfort) {
-      this.comfortSystem.update(dt);
+      this._runPerFrame('comfortSystem', () => this.comfortSystem.update(dt));
     }
 
     // Update FFR based on performance and predicted gaze (FR-4.2).
     if (this.ffrSystem && this.isVREnabled) {
-      // Use the shared frame dt — no per-system timer needed.
-      this.ffrSystem.trackHeadPose(this.camera.quaternion, dt);
-      this.ffrSystem.updatePredictedGazeFoveation();
+      this._runPerFrame('ffrSystem', () => {
+        // Use the shared frame dt — no per-system timer needed.
+        this.ffrSystem.trackHeadPose(this.camera.quaternion, dt);
+        this.ffrSystem.updatePredictedGazeFoveation();
 
-      // Also coarse-adjust based on frame-budget pressure.
-      const targetFrameTime = 1000 / this.settings.targetFPS;
-      if (this.performanceMonitor.frameTime > targetFrameTime) {
-        this.ffrSystem.adjustIntensity(0.01);
-      } else {
-        this.ffrSystem.adjustIntensity(-0.01);
-      }
+        // Also coarse-adjust based on frame-budget pressure.
+        const targetFrameTime = 1000 / this.settings.targetFPS;
+        if (this.performanceMonitor.frameTime > targetFrameTime) {
+          this.ffrSystem.adjustIntensity(0.01);
+        } else {
+          this.ffrSystem.adjustIntensity(-0.01);
+        }
+      });
     }
 
     // Update hand tracking
     if (this.handTracking && xrFrame) {
-      const referenceSpace = this.renderer.xr.getReferenceSpace();
-      this.handTracking.update(xrFrame, referenceSpace);
+      this._runPerFrame('handTracking', () => {
+        const referenceSpace = this.renderer.xr.getReferenceSpace();
+        this.handTracking.update(xrFrame, referenceSpace);
+      });
     }
 
     // Refresh gamepad list for haptic routing (safe no-op when no gamepads).
     if (this.hapticFeedback) {
-      this.hapticFeedback.update();
+      this._runPerFrame('hapticFeedback', () => this.hapticFeedback.update());
     }
 
     // Update spatial audio listener position
     if (this.spatialAudio) {
-      this.spatialAudio.updateListenerFromCamera(this.camera);
+      this._runPerFrame('spatialAudio', () => this.spatialAudio.updateListenerFromCamera(this.camera));
     }
 
     // FR-1.5: per-frame quad-layer canvas blit (only when dirty).
     if (this.layersSystem && this.layersSystem.isSupported && xrFrame) {
-      const refSpace = this.renderer.xr.getReferenceSpace();
-      const pose = refSpace ? xrFrame.getViewerPose(refSpace) : null;
-      const views = pose ? pose.views : [];
-      if (views.length > 0) {
-        const panels = this.tabManager ? this.tabManager.tabs : this.webPanel ? [this.webPanel] : [];
-        for (const panel of panels) {
-          panel.updateLayer(xrFrame, views);
+      this._runPerFrame('layersSystem', () => {
+        const refSpace = this.renderer.xr.getReferenceSpace();
+        const pose = refSpace ? xrFrame.getViewerPose(refSpace) : null;
+        const views = pose ? pose.views : [];
+        if (views.length > 0) {
+          const panels = this.tabManager ? this.tabManager.tabs : this.webPanel ? [this.webPanel] : [];
+          for (const panel of panels) {
+            panel.updateLayer(xrFrame, views);
+          }
         }
-      }
+      });
     }
 
     // Update locomotion input (snap turn), face-button actions, teleport, and hover.
-    this.updateLocomotion(dt);
-    this.updateButtonInput();
-    this.updateTeleport();
-    this.updateHover();
+    this._runPerFrame('locomotion', () => this.updateLocomotion(dt));
+    this._runPerFrame('buttonInput', () => this.updateButtonInput());
+    this._runPerFrame('teleport', () => this.updateTeleport());
+    this._runPerFrame('hover', () => this.updateHover());
 
     // FR-13.1: gaze-dwell selection (hands-free). dt is seconds; pass ms.
     if (this.gazeInteraction && this.gazeInteraction.enabled) {
-      const activated = this.gazeInteraction.update(this.interactables, dt * 1000);
-      if (activated) {
-        // Parity with controller/pinch selection: confirm a hands-free gaze
-        // activation on the non-visual channels too — a haptic click on any held
-        // controller and a spatial click — so it isn't signalled by sight alone.
-        if (this.hapticFeedback) {
-          this.hapticFeedback.playPatternBothHands('click');
+      this._runPerFrame('gazeInteraction', () => {
+        const activated = this.gazeInteraction.update(this.interactables, dt * 1000);
+        if (activated) {
+          // Parity with controller/pinch selection: confirm a hands-free gaze
+          // activation on the non-visual channels too — a haptic click on any held
+          // controller and a spatial click — so it isn't signalled by sight alone.
+          if (this.hapticFeedback) {
+            this.hapticFeedback.playPatternBothHands('click');
+          }
+          if (this.spatialAudio) {
+            const pos = activated.getWorldPosition(new THREE.Vector3());
+            this.spatialAudio.play('click', 'click', pos);
+          }
         }
-        if (this.spatialAudio) {
-          const pos = activated.getWorldPosition(new THREE.Vector3());
-          this.spatialAudio.play('click', 'click', pos);
-        }
-      }
+      });
     }
 
     // FR-13.1: age out in-VR captions.
     if (this.captionSystem && this.captionSystem.enabled) {
-      this.captionSystem.update(dt * 1000);
+      this._runPerFrame('captionSystem', () => this.captionSystem.update(dt * 1000));
     }
 
     // Spatial window management: keep the active panel followed.
     if (this.windowManager && (this.windowManager.followMode || this.windowManager.isGrabbing)) {
-      // The managed target is TabManager's rootGroup, which does not change
-      // with the active tab — so this only has to cover the case where the
-      // browser window was built after the manager.
-      this._attachManagedWindow();
-      this.windowManager.update(dt * 1000);
+      this._runPerFrame('windowManager', () => {
+        // The managed target is TabManager's rootGroup, which does not change
+        // with the active tab — so this only has to cover the case where the
+        // browser window was built after the manager.
+        this._attachManagedWindow();
+        this.windowManager.update(dt * 1000);
+      });
     }
 
     // Keep the immersive video sphere centred on the head while it plays.
     if (this.immersiveVideo) {
-      this.immersiveVideo.update(dt);
+      this._runPerFrame('immersiveVideo', () => this.immersiveVideo.update(dt));
+    }
+  }
+
+  /**
+   * Per-frame fault boundary for one subsystem's update.
+   *
+   * Three.js's WebGLAnimation re-arms requestAnimationFrame only AFTER the
+   * animation-loop callback returns, so an exception escaping render()/
+   * updateSystems() permanently kills the render loop — one faulting
+   * subsystem would freeze the whole scene with zero notification. Isolating
+   * each update keeps the siblings and the draw alive, circuit-breaks the
+   * faulting label (first throw wins; later frames skip it, so a persistent
+   * fault can't spam the console 90 times a second), and surfaces the
+   * degradation as a status message (WCAG 4.1.3).
+   *
+   * @param {string} label — subsystem name, used for the circuit breaker + log
+   * @param {Function} fn  — the update to run this frame
+   */
+  _runPerFrame(label, fn) {
+    if (!this._frameFaults) {
+      this._frameFaults = new Set();
+    }
+    if (this._frameFaults.has(label)) {
+      return;
+    }
+    try {
+      fn();
+    } catch (e) {
+      this._frameFaults.add(label);
+      console.error(`VRApp: per-frame update failed for ${label} — disabled until next session`, e);
+      this.showVRToast(t('vr.error.subsystemFailed'), { type: 'warn' });
     }
   }
 
