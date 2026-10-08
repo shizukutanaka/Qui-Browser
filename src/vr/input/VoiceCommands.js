@@ -72081,10 +72081,13 @@ export class VoiceCommands {
     }
 
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = options.lang || this.language;
-    utterance.rate = options.rate || this._speechRate;
-    utterance.pitch = options.pitch || this._speechPitch;
-    utterance.volume = options.volume || 1.0;
+    // `??` so explicit-but-falsy options survive: volume 0 = silent utterance,
+    // pitch 0 and lang '' are valid SpeechSynthesis spec values, and honoring
+    // the caller's words beats second-guessing them.
+    utterance.lang = options.lang ?? this.language;
+    utterance.rate = options.rate ?? this._speechRate;
+    utterance.pitch = options.pitch ?? this._speechPitch;
+    utterance.volume = options.volume ?? 1.0;
     if (this._voice) {
       utterance.voice = this._voice;
     }
