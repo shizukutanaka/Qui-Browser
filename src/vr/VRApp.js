@@ -198,11 +198,12 @@ export class VRApp {
     // teardown; BufferGeometry.dispose() is idempotent so the scene.traverse
     // teardown disposing them again is harmless.
     this._sharedGeometries = new Map();
-    // Outstanding showVRToast() auto-dismiss timers. Tracked so dispose() can
-    // clear them and stop a delayed callback from touching a torn-down VRApp
-    // (this.camera nulled, GPU resources already freed). Each timer self-
-    // removes from the Set when it fires normally.
-    this._toastTimers = new Set();
+    // Outstanding showVRToast() auto-dismiss timers, mapped to the mesh each
+    // owns. dispose() both clears the timers and releases the mesh resources
+    // they would have freed — otherwise a still-pending toast leaks its
+    // CanvasTexture and stays parented to the camera. Each timer removes its
+    // own entry when it fires normally.
+    this._toastTimers = new Map();
 
     // Performance monitoring
     this.performanceMonitor = {
@@ -386,8 +387,9 @@ export class VRApp {
 
   /**
    * Load persisted settings overrides from localStorage. Returns {} when none
-   * exist or storage is unavailable. Only known keys are accepted so stale or
-   * malformed entries cannot inject arbitrary fields.
+   * exist or storage is unavailable. Only known keys whose stored value matches
+   * the declared default's type are accepted, so stale or malformed entries
+   * cannot inject arbitrary fields or wrong-typed values.
    */
   loadPersistedSettings() {
     try {
@@ -404,8 +406,17 @@ export class VRApp {
       }
       const allowed = {};
       for (const key of Object.keys(this.settings)) {
-        if (key in parsed) {
-          allowed[key] = parsed[key];
+        if (!(key in parsed)) {
+          continue;
+        }
+        const value = parsed[key];
+        const def = this.settings[key];
+        // The stored value must match the declared type — a hand-edited or
+        // legacy-format entry of the wrong type poisons feature flags and
+        // layout math (e.g. a string distance becomes NaN downstream).
+        const typeOk = Array.isArray(def) ? Array.isArray(value) : typeof value === typeof def;
+        if (typeOk) {
+          allowed[key] = value;
         }
       }
       return allowed;
@@ -585,34 +596,40 @@ export class VRApp {
     // Immersive 360°/180° video player. Lightweight until play() is called
     // (no video element or sphere is created up front), so it is always
     // available and launched on demand from the settings panel.
-    this.immersiveVideo = new ImmersiveVideo(this.scene, this.camera, this.renderer, {
-      registerInteractable: (m, h) => this.registerInteractable(m, h),
-      unregisterInteractable: (m) => this.unregisterInteractable(m),
-      onError: (msg) => this.showVRToast(msg, { type: 'error' }),
-      onPlaybackChange: (state) => {
-        // Guard: session-end cleanup calls stop() with isVREnabled=false; those
-        // are not user-initiated actions and should not produce status messages.
-        if (!this.isVREnabled) {
-          return;
-        }
-        if (this.captionSystem && this.captionSystem.enabled) {
-          let label;
-          if (state === 'playing') {
-            label = t('vr.msg.videoPlaying');
-          } else if (state === 'stopped') {
-            label = t('vr.msg.videoStopped');
-          } else {
-            label = t('vr.msg.videoPaused');
+    try {
+      this.immersiveVideo = new ImmersiveVideo(this.scene, this.camera, this.renderer, {
+        registerInteractable: (m, h) => this.registerInteractable(m, h),
+        unregisterInteractable: (m) => this.unregisterInteractable(m),
+        onError: (msg) => this.showVRToast(msg, { type: 'error' }),
+        onPlaybackChange: (state) => {
+          // Guard: session-end cleanup calls stop() with isVREnabled=false; those
+          // are not user-initiated actions and should not produce status messages.
+          if (!this.isVREnabled) {
+            return;
           }
-          this.captionSystem.show(label);
+          if (this.captionSystem && this.captionSystem.enabled) {
+            let label;
+            if (state === 'playing') {
+              label = t('vr.msg.videoPlaying');
+            } else if (state === 'stopped') {
+              label = t('vr.msg.videoStopped');
+            } else {
+              label = t('vr.msg.videoPaused');
+            }
+            this.captionSystem.show(label);
+          }
+        },
+        onHoverCaption: (label) => {
+          if (this.captionSystem?.enabled && this.settings.enableGazeDwell) {
+            this.captionSystem.show(label);
+          }
         }
-      },
-      onHoverCaption: (label) => {
-        if (this.captionSystem?.enabled && this.settings.enableGazeDwell) {
-          this.captionSystem.show(label);
-        }
-      }
-    });
+      });
+    } catch (e) {
+      console.error('VRApp: Immersive video init failed', e);
+      this.showVRToast(t('vr.error.videoUnavailable'), { type: 'warn' });
+      this.immersiveVideo = null;
+    }
 
     // In-VR settings panel (toggle buttons wired to the persisted settings).
     this.settingsPanel = this.createSettingsPanel();
@@ -837,9 +854,10 @@ export class VRApp {
     mesh.renderOrder = 999; // always on top
     this.camera.add(mesh);
 
-    // Track the auto-dismiss timer so dispose() can clear it; otherwise the
-    // callback fires later against a torn-down VRApp (null camera, freed GPU
-    // resources) and produces a console error in tests / hot-reload / SPA nav.
+    // Track the auto-dismiss timer (keyed to the mesh it owns) so dispose()
+    // can clear it and release the same resources; otherwise the callback
+    // fires later against a torn-down VRApp (null camera, freed GPU resources)
+    // and produces a console error in tests / hot-reload / SPA nav.
     const timer = setTimeout(() => {
       this._toastTimers.delete(timer);
       if (this.camera) {
@@ -849,7 +867,7 @@ export class VRApp {
       tex.dispose();
       mesh.material.dispose();
     }, duration);
-    this._toastTimers.add(timer);
+    this._toastTimers.set(timer, mesh);
 
     // Accessibility equity: a toast must never be conveyed by sight alone, so
     // mirror it onto every available non-visual channel (haptic + captions).
@@ -1636,6 +1654,11 @@ export class VRApp {
           }
         }
         break;
+      case 'enableComfort':
+        if (this.comfortSystem) {
+          this.comfortSystem.setEnabled(v);
+        }
+        break;
       case 'enableGazeDwell':
         if (this.gazeInteraction) {
           this.gazeInteraction.setEnabled(v);
@@ -1680,8 +1703,8 @@ export class VRApp {
         }
         break;
       default:
-        // Locomotion-read settings (snap turn, teleport, comfort vignette)
-        // have no live apply — the setting is consulted at move time.
+        // Locomotion-read settings (snap turn, teleport) have no live
+        // apply — the setting is consulted at move time.
         break;
     }
   }
@@ -1751,7 +1774,13 @@ export class VRApp {
           }
         }
       ],
-      [t('vr.settings.comfort'), 'enableComfort', null],
+      [
+        t('vr.settings.comfort'),
+        'enableComfort',
+        (v) => {
+          this._applyToggle('enableComfort', v);
+        }
+      ],
       [
         t('vr.settings.foveation'),
         'enableFFR',
@@ -2826,73 +2855,92 @@ export class VRApp {
 
     // 2. Comfort System
     if (this.settings.enableComfort) {
-      this.comfortSystem = new ComfortSystem(this.camera, {
-        reduceMotion: osReducedMotion()
-      });
-      this.comfortSystem.setPreset(this.settings.motionSensitivity);
-      console.debug('VRApp: Comfort system initialized');
+      try {
+        this.comfortSystem = new ComfortSystem(this.camera, {
+          reduceMotion: osReducedMotion()
+        });
+        this.comfortSystem.setPreset(this.settings.motionSensitivity);
+        console.debug('VRApp: Comfort system initialized');
+      } catch (e) {
+        console.error('VRApp: Comfort system init failed', e);
+        this.showVRToast(t('vr.error.comfortUnavailable'), { type: 'warn' });
+        this.comfortSystem = null;
+      }
     }
 
     // === TIER 2 SYSTEMS ===
 
     // 5. Japanese IME — pass interactable hooks so the 3D keyboard keys can be
     // selected with a controller ray.
-    this.japaneseIME = new JapaneseIME();
-    this.vrKeyboard = new VRJapaneseKeyboard(this.scene, this.japaneseIME, {
-      registerInteractable: (m, h) => this.registerInteractable(m, h),
-      unregisterInteractable: (m) => this.unregisterInteractable(m),
-      // Larger keys (bigger targets) for the large-text accessibility preference.
-      scale: largeTextScale(getPrefs().largeText),
-      onHoverCaption: (label) => {
-        if (this.captionSystem?.enabled && this.settings.enableGazeDwell) {
-          this.captionSystem.show(label);
-        }
-      },
-      onCancel: () => {
-        if (this.captionSystem && this.captionSystem.enabled) {
-          this.captionSystem.show(t('vr.msg.keyboardCancelled'));
-        }
-      },
-      // Frecency-ranked history/bookmark suggestions while typing (gaze-dwell
-      // typing is ~8-10 WPM, so jumping to a known destination after a couple
-      // of characters is the single biggest text-entry speedup available).
-      suggestionProvider: (query) => this.bookmarks.search(query, 4, Date.now())
-    });
-    console.debug('VRApp: Japanese IME ready');
+    try {
+      this.japaneseIME = new JapaneseIME();
+      this.vrKeyboard = new VRJapaneseKeyboard(this.scene, this.japaneseIME, {
+        registerInteractable: (m, h) => this.registerInteractable(m, h),
+        unregisterInteractable: (m) => this.unregisterInteractable(m),
+        // Larger keys (bigger targets) for the large-text accessibility preference.
+        scale: largeTextScale(getPrefs().largeText),
+        onHoverCaption: (label) => {
+          if (this.captionSystem?.enabled && this.settings.enableGazeDwell) {
+            this.captionSystem.show(label);
+          }
+        },
+        onCancel: () => {
+          if (this.captionSystem && this.captionSystem.enabled) {
+            this.captionSystem.show(t('vr.msg.keyboardCancelled'));
+          }
+        },
+        // Frecency-ranked history/bookmark suggestions while typing (gaze-dwell
+        // typing is ~8-10 WPM, so jumping to a known destination after a couple
+        // of characters is the single biggest text-entry speedup available).
+        suggestionProvider: (query) => this.bookmarks.search(query, 4, Date.now())
+      });
+      console.debug('VRApp: Japanese IME ready');
+    } catch (e) {
+      console.error('VRApp: VR keyboard init failed', e);
+      this.showVRToast(t('vr.error.keyboardUnavailable'), { type: 'warn' });
+      this.vrKeyboard = null;
+      this.japaneseIME = null;
+    }
 
     // 6. Hand Tracking
-    this.handTracking = new HandTracking(this.scene);
-    // WCAG 4.1.3: announce hand-tracking state changes so users who rely on
-    // hand input know when it becomes unavailable. Brief flickers are common,
-    // so each hand's announcement is debounced: only fire if the state holds
-    // for 600 ms, preventing a storm of "lost"/"regained" captions.
-    // Tracked on `this` (not a closure-local) so dispose() can clear a pending
-    // timer — otherwise a flicker just before teardown fires this callback
-    // 600 ms later against a disposed captionSystem (same teardown-leak class
-    // as the toast auto-dismiss timers and the TTS utterance).
-    this._handTrackingTimers = {};
-    this.handTracking.onTrackingChange((hand, tracked) => {
-      clearTimeout(this._handTrackingTimers[hand]);
-      this._handTrackingTimers[hand] = setTimeout(() => {
-        if (this.captionSystem && this.captionSystem.enabled) {
-          // Four explicit keys rather than composing "<hand> hand <state>":
-          // word order and particles differ by language, so composition would
-          // produce broken Japanese.
-          this.captionSystem.show(
-            t(
-              hand === 'left'
-                ? tracked
-                  ? 'vr.msg.leftHandTracked'
-                  : 'vr.msg.leftHandLost'
-                : tracked
-                  ? 'vr.msg.rightHandTracked'
-                  : 'vr.msg.rightHandLost'
-            )
-          );
-        }
-      }, 600);
-    });
-    console.debug('VRApp: Hand tracking ready');
+    try {
+      this.handTracking = new HandTracking(this.scene);
+      // WCAG 4.1.3: announce hand-tracking state changes so users who rely on
+      // hand input know when it becomes unavailable. Brief flickers are common,
+      // so each hand's announcement is debounced: only fire if the state holds
+      // for 600 ms, preventing a storm of "lost"/"regained" captions.
+      // Tracked on `this` (not a closure-local) so dispose() can clear a pending
+      // timer — otherwise a flicker just before teardown fires this callback
+      // 600 ms later against a disposed captionSystem (same teardown-leak class
+      // as the toast auto-dismiss timers and the TTS utterance).
+      this._handTrackingTimers = {};
+      this.handTracking.onTrackingChange((hand, tracked) => {
+        clearTimeout(this._handTrackingTimers[hand]);
+        this._handTrackingTimers[hand] = setTimeout(() => {
+          if (this.captionSystem && this.captionSystem.enabled) {
+            // Four explicit keys rather than composing "<hand> hand <state>":
+            // word order and particles differ by language, so composition would
+            // produce broken Japanese.
+            this.captionSystem.show(
+              t(
+                hand === 'left'
+                  ? tracked
+                    ? 'vr.msg.leftHandTracked'
+                    : 'vr.msg.leftHandLost'
+                  : tracked
+                    ? 'vr.msg.rightHandTracked'
+                    : 'vr.msg.rightHandLost'
+              )
+            );
+          }
+        }, 600);
+      });
+      console.debug('VRApp: Hand tracking ready');
+    } catch (e) {
+      console.error('VRApp: Hand tracking init failed', e);
+      this.showVRToast(t('vr.error.handTrackingUnavailable'), { type: 'warn' });
+      this.handTracking = null;
+    }
 
     // 6a. Haptic Feedback — wired to hand-tracking gesture callbacks in
     // onVRSessionStart() once a session and gamepads are available.
@@ -2911,16 +2959,22 @@ export class VRApp {
 
     // 6b. Gaze-dwell interaction (FR-13.1, accessibility). Created always so it
     // can be toggled live from the settings panel; only active when enabled.
-    this.gazeInteraction = new GazeInteraction(this.camera, {
-      dwellTime: this.settings.gazeDwellTime,
-      graceTime: this.settings.gazeGraceTime,
-      // Honour the OS reduced-motion preference: static activation cue, no fade.
-      reduceMotion: osReducedMotion(),
-      // Honour high-contrast: full-opacity ring for visibility (WCAG 1.4.11).
-      highContrast: prefersHighContrast()
-    });
-    this.gazeInteraction.setEnabled(this.settings.enableGazeDwell);
-    console.debug('VRApp: Gaze-dwell interaction ready');
+    try {
+      this.gazeInteraction = new GazeInteraction(this.camera, {
+        dwellTime: this.settings.gazeDwellTime,
+        graceTime: this.settings.gazeGraceTime,
+        // Honour the OS reduced-motion preference: static activation cue, no fade.
+        reduceMotion: osReducedMotion(),
+        // Honour high-contrast: full-opacity ring for visibility (WCAG 1.4.11).
+        highContrast: prefersHighContrast()
+      });
+      this.gazeInteraction.setEnabled(this.settings.enableGazeDwell);
+      console.debug('VRApp: Gaze-dwell interaction ready');
+    } catch (e) {
+      console.error('VRApp: Gaze-dwell interaction init failed', e);
+      this.showVRToast(t('vr.error.gazeDwellUnavailable'), { type: 'warn' });
+      this.gazeInteraction = null;
+    }
 
     // 6c. Semantic DOM overlay (2D / screen-reader accessibility, Phase 2).
     // A hidden ARIA-live region mirroring captions/toasts/settings state for
@@ -2939,15 +2993,21 @@ export class VRApp {
     // toggled live; only renders when enabled and lines are present.
     // Honour the user's accessibility preferences so low-vision users get
     // bigger, higher-contrast captions (reuses the same signals as the 2D layer).
-    this.captionSystem = new CaptionSystem(this.camera, {
-      scale: this.settings.captionScale,
-      highContrast: prefersHighContrast(),
-      lineDuration: this.settings.captionDuration * 1000,
-      verticalOffset: this.settings.captionHeight,
-      onShow: (text) => this.semanticDOM?.announceCaption(text)
-    });
-    this.captionSystem.setEnabled(this.settings.enableCaptions);
-    console.debug('VRApp: Caption system ready');
+    try {
+      this.captionSystem = new CaptionSystem(this.camera, {
+        scale: this.settings.captionScale,
+        highContrast: prefersHighContrast(),
+        lineDuration: this.settings.captionDuration * 1000,
+        verticalOffset: this.settings.captionHeight,
+        onShow: (text) => this.semanticDOM?.announceCaption(text)
+      });
+      this.captionSystem.setEnabled(this.settings.enableCaptions);
+      console.debug('VRApp: Caption system ready');
+    } catch (e) {
+      console.error('VRApp: Caption system init failed', e);
+      this.showVRToast(t('vr.error.captionsUnavailable'), { type: 'warn' });
+      this.captionSystem = null;
+    }
 
     // 6e. Live-subscribe to OS accessibility signal changes (WCAG 2.3.3 /
     // 1.4.11). osReducedMotion()/prefersHighContrast() were otherwise only
@@ -2975,8 +3035,15 @@ export class VRApp {
 
     // 10. Voice Commands
     if (this.settings.enableVoice) {
-      this.voiceCommands = new VoiceCommands();
-      const voiceReady = await this.voiceCommands.initialize();
+      let voiceReady = false;
+      try {
+        this.voiceCommands = new VoiceCommands();
+        voiceReady = await this.voiceCommands.initialize();
+      } catch (e) {
+        console.error('VRApp: Voice commands init failed', e);
+        this.showVRToast(t('vr.error.voiceUnavailable'), { type: 'warn' });
+        this.voiceCommands = null;
+      }
       if (voiceReady) {
         // FR-13.1: caption recognized speech so it is visible in VR.
         this.voiceCommands.callbacks.onTranscript = (transcript, confidence, isFinal) => {
@@ -3562,8 +3629,10 @@ export class VRApp {
             if (!snapshot || !snapshot.tabs.length) {
               return 0;
             }
-            saveTabSession(snapshot);
-            return snapshot.tabs.length;
+            // Report the write result, not the tab count — when storage is
+            // full or blocked the snapshot silently drops, and announcing
+            // "saved N tabs" would promise a restore that cannot happen.
+            return saveTabSession(snapshot) ? snapshot.tabs.length : 0;
           },
           // clear-session's discard twin — honest false when nothing saved.
           onSessionClear: () => {
@@ -3839,6 +3908,12 @@ export class VRApp {
     console.debug('VRApp: VR session started');
     this.isVREnabled = true;
 
+    // Per-frame fault circuit-breakers reset each session: a subsystem that
+    // threw on a session-boundary transient gets a second chance on re-entry.
+    if (this._frameFaults) {
+      this._frameFaults.clear();
+    }
+
     // Get XR session
     const session = this.renderer.xr.getSession();
 
@@ -4076,8 +4151,9 @@ export class VRApp {
     // Update systems
     this.updateSystems(xrFrame, dt);
 
-    // Render scene
-    this.renderer.render(this.scene, this.camera);
+    // Render scene — bounded like the subsystem updates: a draw throw (e.g. a
+    // material disposed mid-frame) must not kill the animation loop.
+    this._runPerFrame('renderer', () => this.renderer.render(this.scene, this.camera));
 
     // Track performance
     const frameTime = performance.now() - frameStart;
@@ -4100,93 +4176,134 @@ export class VRApp {
   updateSystems(xrFrame, dt = 0.016) {
     // Update comfort system (vignette, FOV)
     if (this.comfortSystem && this.settings.enableComfort) {
-      this.comfortSystem.update(dt);
+      this._runPerFrame('comfortSystem', () => this.comfortSystem.update(dt));
     }
 
     // Update FFR based on performance and predicted gaze (FR-4.2).
     if (this.ffrSystem && this.isVREnabled) {
-      // Use the shared frame dt — no per-system timer needed.
-      this.ffrSystem.trackHeadPose(this.camera.quaternion, dt);
-      this.ffrSystem.updatePredictedGazeFoveation();
+      this._runPerFrame('ffrSystem', () => {
+        // Use the shared frame dt — no per-system timer needed.
+        this.ffrSystem.trackHeadPose(this.camera.quaternion, dt);
+        this.ffrSystem.updatePredictedGazeFoveation();
 
-      // Also coarse-adjust based on frame-budget pressure.
-      const targetFrameTime = 1000 / this.settings.targetFPS;
-      if (this.performanceMonitor.frameTime > targetFrameTime) {
-        this.ffrSystem.adjustIntensity(0.01);
-      } else {
-        this.ffrSystem.adjustIntensity(-0.01);
-      }
+        // Also coarse-adjust based on frame-budget pressure.
+        const targetFrameTime = 1000 / this.settings.targetFPS;
+        if (this.performanceMonitor.frameTime > targetFrameTime) {
+          this.ffrSystem.adjustIntensity(0.01);
+        } else {
+          this.ffrSystem.adjustIntensity(-0.01);
+        }
+      });
     }
 
     // Update hand tracking
     if (this.handTracking && xrFrame) {
-      const referenceSpace = this.renderer.xr.getReferenceSpace();
-      this.handTracking.update(xrFrame, referenceSpace);
+      this._runPerFrame('handTracking', () => {
+        const referenceSpace = this.renderer.xr.getReferenceSpace();
+        this.handTracking.update(xrFrame, referenceSpace);
+      });
     }
 
     // Refresh gamepad list for haptic routing (safe no-op when no gamepads).
     if (this.hapticFeedback) {
-      this.hapticFeedback.update();
+      this._runPerFrame('hapticFeedback', () => this.hapticFeedback.update());
     }
 
     // Update spatial audio listener position
     if (this.spatialAudio) {
-      this.spatialAudio.updateListenerFromCamera(this.camera);
+      this._runPerFrame('spatialAudio', () => this.spatialAudio.updateListenerFromCamera(this.camera));
     }
 
     // FR-1.5: per-frame quad-layer canvas blit (only when dirty).
     if (this.layersSystem && this.layersSystem.isSupported && xrFrame) {
-      const refSpace = this.renderer.xr.getReferenceSpace();
-      const pose = refSpace ? xrFrame.getViewerPose(refSpace) : null;
-      const views = pose ? pose.views : [];
-      if (views.length > 0) {
-        const panels = this.tabManager ? this.tabManager.tabs : this.webPanel ? [this.webPanel] : [];
-        for (const panel of panels) {
-          panel.updateLayer(xrFrame, views);
+      this._runPerFrame('layersSystem', () => {
+        const refSpace = this.renderer.xr.getReferenceSpace();
+        const pose = refSpace ? xrFrame.getViewerPose(refSpace) : null;
+        const views = pose ? pose.views : [];
+        if (views.length > 0) {
+          const panels = this.tabManager ? this.tabManager.tabs : this.webPanel ? [this.webPanel] : [];
+          for (const panel of panels) {
+            panel.updateLayer(xrFrame, views);
+          }
         }
-      }
+      });
     }
 
     // Update locomotion input (snap turn), face-button actions, teleport, and hover.
-    this.updateLocomotion(dt);
-    this.updateButtonInput();
-    this.updateTeleport();
-    this.updateHover();
+    this._runPerFrame('locomotion', () => this.updateLocomotion(dt));
+    this._runPerFrame('buttonInput', () => this.updateButtonInput());
+    this._runPerFrame('teleport', () => this.updateTeleport());
+    this._runPerFrame('hover', () => this.updateHover());
 
     // FR-13.1: gaze-dwell selection (hands-free). dt is seconds; pass ms.
     if (this.gazeInteraction && this.gazeInteraction.enabled) {
-      const activated = this.gazeInteraction.update(this.interactables, dt * 1000);
-      if (activated) {
-        // Parity with controller/pinch selection: confirm a hands-free gaze
-        // activation on the non-visual channels too — a haptic click on any held
-        // controller and a spatial click — so it isn't signalled by sight alone.
-        if (this.hapticFeedback) {
-          this.hapticFeedback.playPatternBothHands('click');
+      this._runPerFrame('gazeInteraction', () => {
+        const activated = this.gazeInteraction.update(this.interactables, dt * 1000);
+        if (activated) {
+          // Parity with controller/pinch selection: confirm a hands-free gaze
+          // activation on the non-visual channels too — a haptic click on any held
+          // controller and a spatial click — so it isn't signalled by sight alone.
+          if (this.hapticFeedback) {
+            this.hapticFeedback.playPatternBothHands('click');
+          }
+          if (this.spatialAudio) {
+            const pos = activated.getWorldPosition(new THREE.Vector3());
+            this.spatialAudio.play('click', 'click', pos);
+          }
         }
-        if (this.spatialAudio) {
-          const pos = activated.getWorldPosition(new THREE.Vector3());
-          this.spatialAudio.play('click', 'click', pos);
-        }
-      }
+      });
     }
 
     // FR-13.1: age out in-VR captions.
     if (this.captionSystem && this.captionSystem.enabled) {
-      this.captionSystem.update(dt * 1000);
+      this._runPerFrame('captionSystem', () => this.captionSystem.update(dt * 1000));
     }
 
     // Spatial window management: keep the active panel followed.
     if (this.windowManager && (this.windowManager.followMode || this.windowManager.isGrabbing)) {
-      // The managed target is TabManager's rootGroup, which does not change
-      // with the active tab — so this only has to cover the case where the
-      // browser window was built after the manager.
-      this._attachManagedWindow();
-      this.windowManager.update(dt * 1000);
+      this._runPerFrame('windowManager', () => {
+        // The managed target is TabManager's rootGroup, which does not change
+        // with the active tab — so this only has to cover the case where the
+        // browser window was built after the manager.
+        this._attachManagedWindow();
+        this.windowManager.update(dt * 1000);
+      });
     }
 
     // Keep the immersive video sphere centred on the head while it plays.
     if (this.immersiveVideo) {
-      this.immersiveVideo.update(dt);
+      this._runPerFrame('immersiveVideo', () => this.immersiveVideo.update(dt));
+    }
+  }
+
+  /**
+   * Per-frame fault boundary for one subsystem's update.
+   *
+   * Three.js's WebGLAnimation re-arms requestAnimationFrame only AFTER the
+   * animation-loop callback returns, so an exception escaping render()/
+   * updateSystems() permanently kills the render loop — one faulting
+   * subsystem would freeze the whole scene with zero notification. Isolating
+   * each update keeps the siblings and the draw alive, circuit-breaks the
+   * faulting label (first throw wins; later frames skip it, so a persistent
+   * fault can't spam the console 90 times a second), and surfaces the
+   * degradation as a status message (WCAG 4.1.3).
+   *
+   * @param {string} label — subsystem name, used for the circuit breaker + log
+   * @param {Function} fn  — the update to run this frame
+   */
+  _runPerFrame(label, fn) {
+    if (!this._frameFaults) {
+      this._frameFaults = new Set();
+    }
+    if (this._frameFaults.has(label)) {
+      return;
+    }
+    try {
+      fn();
+    } catch (e) {
+      this._frameFaults.add(label);
+      console.error(`VRApp: per-frame update failed for ${label} — disabled until next session`, e);
+      this.showVRToast(t('vr.error.subsystemFailed'), { type: 'warn' });
     }
   }
 
@@ -4466,10 +4583,21 @@ export class VRApp {
 
     // Clear pending toast auto-dismiss timers so their callbacks don't fire
     // against a torn-down VRApp (this.camera nulled, GPU resources already
-    // freed below). Without this the timer holds a closure over `this` and
-    // surfaces as a console error or a test-leak warning after teardown.
+    // freed below) — then release each toast's resources ourselves, since
+    // cancelling the timer also cancels the only detach/free path the toast
+    // had. The CanvasTexture needs an explicit dispose(): Material.dispose()
+    // does not touch material.map, and the scene.traverse sweep below never
+    // reaches it.
     if (this._toastTimers) {
-      this._toastTimers.forEach((t) => clearTimeout(t));
+      this._toastTimers.forEach((mesh, t) => {
+        clearTimeout(t);
+        if (this.camera) {
+          this.camera.remove(mesh);
+        }
+        mesh.geometry.dispose();
+        mesh.material.map.dispose();
+        mesh.material.dispose();
+      });
       this._toastTimers.clear();
     }
 
