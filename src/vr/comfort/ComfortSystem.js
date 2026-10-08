@@ -16,6 +16,9 @@ export class ComfortSystem {
     // External motion signal (smooth locomotion moves the rig, not the head, so
     // head-delta detection alone would miss it). OR'd into isMoving each frame.
     this.externalMotion = false;
+    // Master switch for the comfort effects (the settings panel's Comfort
+    // toggle). When false the effects stay inert and the rest state is kept.
+    this.enabled = true;
     // Intensity of the external motion, 0..1 (normalized stick deflection).
     // Drives a speed-proportional vignette: restricting the FOV more than the
     // current optical flow warrants is itself a comfort/usability cost, so the
@@ -144,15 +147,19 @@ export class ComfortSystem {
 
     // Update vignette effect; keep the overlay hidden while the effect is off
     // so a 'disabled' preset never leaves a stale ring on screen.
-    if (this.settings.vignette.enabled) {
+    if (this.enabled && this.settings.vignette.enabled) {
       this.updateVignette(deltaTime);
     } else if (this.vignetteMesh) {
       this.vignetteMesh.visible = false;
     }
 
-    // Update FOV
-    if (this.settings.fov.enabled) {
+    // Update FOV; a disabled tunnel must still hand the camera its base field
+    // of view back — without this the last reduced value sticks for the rest
+    // of the session.
+    if (this.enabled && this.settings.fov.enabled) {
       this.updateFOV(deltaTime);
+    } else {
+      this._restoreBaseFOV();
     }
   }
 
@@ -234,6 +241,41 @@ export class ComfortSystem {
     // Apply to camera
     this.camera.fov = this.currentFOV;
     this.camera.updateProjectionMatrix();
+  }
+
+  /**
+   * Put the camera's field of view back to the configured base value.
+   * Shared by the disabled-preset path in update() and by setEnabled(false).
+   */
+  _restoreBaseFOV() {
+    this.currentFOV = this.settings.fov.baseFOV;
+    if (this.camera && this.camera.fov !== this.currentFOV) {
+      this.camera.fov = this.currentFOV;
+      this.camera.updateProjectionMatrix();
+    }
+  }
+
+  /**
+   * Master on/off for the comfort effects (the settings panel's Comfort
+   * toggle and the voice 'comfort' switch). Disabling restores the rest
+   * state immediately — the caller gates update() on this flag too, so it
+   * cannot rely on another update tick to fade the effects out. Enabling
+   * simply re-engages on the next update, with the configured preset intact.
+   * @param {boolean} enabled
+   */
+  setEnabled(enabled) {
+    this.enabled = enabled !== false;
+    if (this.enabled) {
+      return;
+    }
+    this.currentVignette = 0;
+    if (this.vignetteMaterial) {
+      this.vignetteMaterial.uniforms.intensity.value = 0;
+    }
+    if (this.vignetteMesh) {
+      this.vignetteMesh.visible = false;
+    }
+    this._restoreBaseFOV();
   }
 
   /**

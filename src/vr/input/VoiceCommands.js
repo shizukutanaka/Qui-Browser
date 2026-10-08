@@ -275,9 +275,13 @@ export class VoiceCommands {
     if (isFinal) {
       this.processCommand(transcript, confidence);
 
-      // Reset wake state after command
+      // Reset wake state after command — a sliding window: each processed
+      // command re-arms the single timer. Without clearing, rapid commands
+      // stack timers and the first one still fires mid-conversation, putting
+      // the mic back to sleep while the user is still talking.
       if (this.settings.requireWakeWord) {
-        setTimeout(() => {
+        clearTimeout(this._wakeTimer);
+        this._wakeTimer = setTimeout(() => {
           this.isAwake = false;
         }, 5000); // 5 second timeout
       }
@@ -72050,6 +72054,8 @@ export class VoiceCommands {
     if (this.synthesis) {
       this.synthesis.cancel();
     }
+    clearTimeout(this._wakeTimer);
+    this._wakeTimer = null;
     this.recognition = null;
     this.synthesis = null;
   }
@@ -72075,10 +72081,13 @@ export class VoiceCommands {
     }
 
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = options.lang || this.language;
-    utterance.rate = options.rate || this._speechRate;
-    utterance.pitch = options.pitch || this._speechPitch;
-    utterance.volume = options.volume || 1.0;
+    // `??` so explicit-but-falsy options survive: volume 0 = silent utterance,
+    // pitch 0 and lang '' are valid SpeechSynthesis spec values, and honoring
+    // the caller's words beats second-guessing them.
+    utterance.lang = options.lang ?? this.language;
+    utterance.rate = options.rate ?? this._speechRate;
+    utterance.pitch = options.pitch ?? this._speechPitch;
+    utterance.volume = options.volume ?? 1.0;
     if (this._voice) {
       utterance.voice = this._voice;
     }
