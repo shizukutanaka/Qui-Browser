@@ -7250,8 +7250,9 @@ export class VoiceCommands {
    *                                         no reader open, 'out' = past the end
    * @param {Function} [opts.onBookmarkList] () => string[] — bookmark titles
    * @param {Function} [opts.onHistoryList] () => string[] — history titles
-   * @param {Function} [opts.onCopyTitle] () => string|null — copy the page
-   *                                         title; null = nothing to copy
+   * @param {Function} [opts.onCopyTitle] () => string|null|Promise — copy the
+   *                                         page title; null = nothing to
+   *                                         copy, a rejecting write = failure
    * @param {Function} [opts.onReadHere] () => string[]|null — narration
    *                                         chunks from the reader's scroll
    *                                         position (read-aloud's pair)
@@ -7301,11 +7302,13 @@ export class VoiceCommands {
    *                                         active tab pinned?
    * @param {Function} [opts.onJumpBack] () => boolean — Vim `` mark toggle
    * @param {Function} [opts.onClearFind] () => boolean — dismiss find hits
-   * @param {Function} [opts.onCopyLine] () => string|null — write the
-   *                                         current reader line to the
-   *                                         clipboard and return it
-   * @param {Function} [opts.onCopyArticle] () => number|null — write the
-   *                                         article text, return char count
+   * @param {Function} [opts.onCopyLine] () => string|null|Promise — write the
+   *                                         current reader line; resolves to
+   *                                         the text on success, rejects on
+   *                                         failure, null = nothing to copy
+   * @param {Function} [opts.onCopyArticle] () => number|null|Promise — write
+   *                                         the article text; resolves to the
+   *                                         char count, rejects on failure
    * @param {Function} [opts.onReaderPercent] (pct) => {percent}|null —
    *                                         jump the reader to pct %
    * @param {Function} [opts.onReaderScaleStatus] () => number — the current
@@ -7346,8 +7349,9 @@ export class VoiceCommands {
    *   toggle immersive-video playback; null = no video is active.
    * @param {Function} [opts.onVideoStop] () => boolean — stop the immersive
    *   video; false = nothing was playing.
-   * @param {Function} [opts.onCopyUrl] () => string|null — write the active
-   *   tab's URL to the clipboard and return it; null = nothing to copy.
+   * @param {Function} [opts.onCopyUrl] () => string|null|Promise — write the
+   *   active tab's URL; resolves to it on success, rejects on failure,
+   *   null = nothing to copy.
    * @param {Function} [opts.onBookmarkPage] () => void — bookmark/unbookmark the
    *                                         active page (Ctrl+D); host toggles the
    *                                         store + announces cross-modally
@@ -64802,8 +64806,12 @@ export class VoiceCommands {
       ],
       action: () => {
         const url = onCopyUrl ? onCopyUrl() : null;
-        this.speak(url ? 'URLをコピーしました' : 'コピーするURLがありません');
-        return { action: 'copy-url', url };
+        this._announceCopy(url, {
+          copied: () => 'URLをコピーしました',
+          empty: 'コピーするURLがありません',
+          failed: 'コピーできませんでした'
+        });
+        return { action: 'copy-url', url: url && typeof url.then === 'function' ? null : url };
       },
       description: 'Copy the active page URL to the clipboard'
     });
@@ -68123,8 +68131,12 @@ export class VoiceCommands {
       patterns: ['この行をコピー', '行をコピーして', /copy (this |the )?line/i],
       action: () => {
         const text = this._onCopyLine ? this._onCopyLine() : null;
-        this.speak(text ? '行をコピーしました' : 'コピーする行がありません');
-        return { action: 'copy-line', copied: !!text };
+        this._announceCopy(text, {
+          copied: () => '行をコピーしました',
+          empty: 'コピーする行がありません',
+          failed: 'コピーできませんでした'
+        });
+        return { action: 'copy-line', copied: !!(text && typeof text.then !== 'function') };
       },
       description: 'Copy the current reader line'
     });
@@ -68178,8 +68190,12 @@ export class VoiceCommands {
       ],
       action: () => {
         const chars = this._onCopyArticle ? this._onCopyArticle() : null;
-        this.speak(chars ? `記事をコピーしました（${chars}文字）` : 'コピーする記事がありません');
-        return { action: 'copy-article', chars };
+        this._announceCopy(chars, {
+          copied: (n) => `記事をコピーしました（${n}文字）`,
+          empty: 'コピーする記事がありません',
+          failed: 'コピーできませんでした'
+        });
+        return { action: 'copy-article', chars: chars && typeof chars.then === 'function' ? null : chars };
       },
       description: 'Copy the article text'
     });
@@ -68607,8 +68623,12 @@ export class VoiceCommands {
       ],
       action: () => {
         const title = this._onCopyTitle ? this._onCopyTitle() : null;
-        this.speak(title ? 'タイトルをコピーしました' : 'コピーするタイトルがありません');
-        return { action: 'copy-title', title: title || null };
+        this._announceCopy(title, {
+          copied: () => 'タイトルをコピーしました',
+          empty: 'コピーするタイトルがありません',
+          failed: 'コピーできませんでした'
+        });
+        return { action: 'copy-title', title: title && typeof title.then === 'function' ? null : title };
       },
       description: 'Copy the page title to the clipboard'
     });
@@ -72058,6 +72078,25 @@ export class VoiceCommands {
     this._wakeTimer = null;
     this.recognition = null;
     this.synthesis = null;
+  }
+
+  /**
+   * Announce a copy hook's real outcome. A clipboard write is async, so a
+   * hook may return a Promise: resolved content announces `copied`, a
+   * resolved null announces `empty`, and a rejection announces `failed` —
+   * a fire-and-forget write must never claim success. Sync results keep
+   * the immediate announce for backward compatibility.
+   * `copied` is a function so counts/details land in the message.
+   */
+  _announceCopy(result, { copied, empty, failed }) {
+    if (result && typeof result.then === 'function') {
+      result.then(
+        (v) => this.speak(v ? copied(v) : empty),
+        () => this.speak(failed)
+      );
+      return;
+    }
+    this.speak(result ? copied(result) : empty);
   }
 
   /**
