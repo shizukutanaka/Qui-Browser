@@ -142,7 +142,8 @@ describe('alias pass III', () => {
   test('"vr mode" enters VR', () => {
     const { vc, spoken } = makeVC();
     vc.processCommand('vr mode');
-    expect(spoken[0]).toBe('VRモードを開始します');
+    // No XR session is running in a headless test — the honest announce.
+    expect(spoken[0]).toBe('VRモードを開始できません');
   });
   test.each(['文字を大きく', '拡大して', 'もっと大きく'])('"%s" grows reader text', (phrase) => {
     const onReaderScale = jest.fn(() => 1.25);

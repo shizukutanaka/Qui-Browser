@@ -153,13 +153,15 @@ describe('VR enter/exit aliases', () => {
     const { vc, spoken } = makeVC();
     vc.processCommand(phrase);
     expect(vc.lastCommand.key).toBe('vr-enter');
-    expect(spoken[0]).toBe('VRモードを開始します');
+    // No XR session is running in a headless test — the honest announce.
+    expect(spoken[0]).toBe('VRモードを開始できません');
   });
   test.each(['VRを終了', 'VRをやめる', 'VRを出る'])('"%s" exits VR', (phrase) => {
     const { vc, spoken } = makeVC();
     vc.processCommand(phrase);
     expect(vc.lastCommand.key).toBe('vr-exit');
-    expect(spoken[0]).toBe('VRモードを終了します');
+    // No XR session is running in a headless test — the honest announce.
+    expect(spoken[0]).toBe('VRモードではありません');
   });
 });
 

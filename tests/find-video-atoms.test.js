@@ -325,7 +325,7 @@ describe('bulk close voice commands', () => {
     const vc = makeSpeakingVC({ tabManager: tm });
     vc.processCommand('他のタブを閉じて');
     expect(tm.closeOtherTabs).toHaveBeenCalled();
-    expect(vc._spoken).toContain('他のタブを閉じます');
+    expect(vc._spoken).toContain('2個のタブを閉じました');
   });
 
   test('"close tabs to the right" routes to closeTabsToRight', () => {
@@ -334,6 +334,6 @@ describe('bulk close voice commands', () => {
     const vc = makeSpeakingVC({ tabManager: tm });
     vc.processCommand('close tabs to the right');
     expect(tm.closeTabsToRight).toHaveBeenCalled();
-    expect(vc._spoken).toContain('右側のタブを閉じます');
+    expect(vc._spoken).toContain('1個のタブを閉じました');
   });
 });

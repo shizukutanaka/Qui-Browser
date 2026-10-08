@@ -1612,6 +1612,7 @@ export class VRApp {
     this.showVRToast(t(cleared ? 'vr.msg.historyCleared' : 'vr.error.storageWriteFailed'), {
       type: cleared ? 'info' : 'warn'
     });
+    return cleared;
   }
 
   /**
@@ -3095,7 +3096,8 @@ export class VRApp {
           },
           // Top Sites: jump to the most-used destination (frecency-ranked from
           // history). Fewest-dwell navigation for hands-free users; announced
-          // cross-modally so it's perceivable without sight.
+          // cross-modally so it's perceivable without sight. Returns whether a
+          // navigation started so the command announces the real outcome.
           onTopSites: () => {
             // Exclude search-engine result pages so the user's actual
             // destinations win the slot, not their search engine.
@@ -3109,6 +3111,7 @@ export class VRApp {
             } else if (this.captionSystem && this.captionSystem.enabled) {
               this.captionSystem.show(t('vr.msg.noTopSites'));
             }
+            return !!(top && active);
           },
           // Go-to: look up the extracted site name in frecency-ranked
           // history/bookmarks. A history hit navigates directly (fewest dwells
@@ -3137,6 +3140,18 @@ export class VRApp {
           },
           // Hands-free equivalent of the "Clear History" settings action.
           onClearHistory: () => this._clearBrowsingHistory(),
+          // Voice is not a trusted user gesture for XR session entry, so
+          // vr-enter only reports state; vr-exit ends the live session for
+          // real — a hands-free way out, parity with the controller menu.
+          onVREnter: () => !!this.renderer?.xr?.getSession?.(),
+          onVRExit: () => {
+            const session = this.renderer?.xr?.getSession?.();
+            if (!session) {
+              return false;
+            }
+            session.end();
+            return true;
+          },
           // Scroll the active panel's reader viewport (the fetched article
           // text), which is what "下にスクロール" can actually move in VR.
           onScrollContent: (delta) => {

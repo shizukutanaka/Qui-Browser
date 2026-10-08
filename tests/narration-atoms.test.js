@@ -195,6 +195,7 @@ describe('speech-rate voice commands', () => {
 describe('pause/resume voice commands', () => {
   test('"読み上げを一時停止" pauses without cancelling', () => {
     const vc = makeSpeakingVC({});
+    vc.synthesis.speaking = true; // narrating — the command should pause, not claim otherwise
     vc.processCommand('読み上げを一時停止');
     expect(vc.synthesis.pause).toHaveBeenCalled();
     expect(vc.synthesis.cancel).not.toHaveBeenCalled();
@@ -203,6 +204,7 @@ describe('pause/resume voice commands', () => {
 
   test('"読み上げを再開" resumes the queue', () => {
     const vc = makeSpeakingVC({});
+    vc.synthesis.paused = true; // a paused narration — the command should resume it
     vc.processCommand('読み上げを再開');
     expect(vc.synthesis.resume).toHaveBeenCalled();
     expect(vc._spoken).toContain('読み上げを再開します');

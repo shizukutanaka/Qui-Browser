@@ -259,6 +259,7 @@ describe('refresh/scroll forms', () => {
     'リフレッシュして', '再読み込みして'])('"%s" reloads', (phrase) => {
     const { vc, tm } = makeVC();
     tm.getActiveTab().reload = jest.fn();
+    tm.getActiveTab().currentUrl = 'https://x.jp';
     vc.processCommand(phrase);
     expect(vc.lastCommand.key).toBe('refresh');
     expect(tm.getActiveTab().reload).toHaveBeenCalled();

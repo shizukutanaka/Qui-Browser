@@ -138,7 +138,7 @@ describe('describeLocation', () => {
 describe('say-again voice command', () => {
   test('"もう一度" replays the last spoken message', () => {
     const tm = makeManager();
-    const vc = makeSpeakingVC({ tabManager: tm });
+    const vc = makeSpeakingVC({ tabManager: tm, onTopSites: () => true });
     vc.processCommand('トップサイト'); // speaks 'よく使うサイトを開きます'
     vc.processCommand('もう一度');
     expect(vc._spoken[vc._spoken.length - 1]).toBe('よく使うサイトを開きます');
@@ -152,7 +152,7 @@ describe('say-again voice command', () => {
 
   test('the repeat itself becomes repeatable', () => {
     const tm = makeManager();
-    const vc = makeSpeakingVC({ tabManager: tm });
+    const vc = makeSpeakingVC({ tabManager: tm, onTopSites: () => true });
     vc.processCommand('トップサイト');
     vc.processCommand('もう一度');
     vc.processCommand('もう一度');

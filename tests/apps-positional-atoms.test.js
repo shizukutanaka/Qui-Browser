@@ -42,8 +42,14 @@ function makeVC(opts = {}) {
       }
     ],
     activeIndex: 0,
-    nextTab: jest.fn(),
-    prevTab: jest.fn(),
+    nextTab: jest.fn(function () {
+      this.activeIndex = Math.min(this.activeIndex + 1, this.tabs.length - 1);
+      return this.activeIndex;
+    }),
+    prevTab: jest.fn(function () {
+      this.activeIndex = Math.max(this.activeIndex - 1, 0);
+      return this.activeIndex;
+    }),
     setActive: jest.fn(function (i) {
       this.activeIndex = i;
     }),

@@ -178,7 +178,7 @@ describe('battery charging + vr-exit + close-window aliases', () => {
     delete navigator.getBattery;
   });
   test.each(['ブラウザを終了', 'アプリを終了', 'quit', 'exit the app'])('"%s" exits the session', (phrase) => {
-    const { vc, spoken } = makeVC();
+    const { vc, spoken } = makeVC({ onVRExit: () => true });
     vc.processCommand(phrase);
     expect(spoken[0]).toContain('終了');
     expect(vc.lastCommand.key).toBe('vr-exit');

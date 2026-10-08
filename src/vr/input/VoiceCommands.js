@@ -126,6 +126,9 @@ export class VoiceCommands {
     this.isAwake = !this.settings.requireWakeWord;
     // late-bound at connectBrowser — hoisted status queries read it, never capture it
     this._tabManager = null;
+    this._vrKeyboard = null;
+    this._onVREnter = null;
+    this._onVRExit = null;
 
     // Callbacks
     this.callbacks = {
@@ -3456,10 +3459,12 @@ export class VoiceCommands {
         /(?<!(?:exit|leave|quit|stop) )full ?screen/i
       ],
       action: () => {
-        // Would trigger VR mode
-        return { action: 'vr', enabled: true };
+        // Voice is not a trusted user gesture, so entry can't be scripted —
+        // the host only reports whether a session is already running.
+        const inVR = this._onVREnter ? this._onVREnter() : false;
+        this.speak(inVR ? 'すでにVRモードです' : 'VRモードを開始できません');
+        return { action: 'vr', enabled: inVR };
       },
-      confirmationText: 'VRモードを開始します',
       description: 'Enter VR mode'
     });
 
@@ -3667,10 +3672,12 @@ export class VoiceCommands {
         /exit full ?screen/i
       ],
       action: () => {
-        // Would exit VR mode
-        return { action: 'vr', enabled: false };
+        // Ends the live XR session for real (session.end()); false when no
+        // session is running — the announce then matches reality.
+        const ok = this._onVRExit ? this._onVRExit() : false;
+        this.speak(ok ? 'VRモードを終了します' : 'VRモードではありません');
+        return { action: 'vr', enabled: false, exited: ok };
       },
-      confirmationText: 'VRモードを終了します',
       description: 'Exit VR mode'
     });
 
@@ -4427,10 +4434,21 @@ export class VoiceCommands {
     this.registerCommand('ime-toggle', {
       patterns: ['日本語入力', '日本語モード', '入力切り替え'],
       action: () => {
-        // Would toggle IME
-        return { action: 'ime', enabled: true };
+        // Toggles the Japanese VR keyboard for real — opening it activates
+        // JapaneseIME input (same path the 'keyboard' command runs).
+        const kb = this._vrKeyboard;
+        if (!kb) {
+          this.speak('キーボードが利用できません');
+        } else {
+          if (kb.visible) {
+            kb.hide();
+          } else {
+            kb.show();
+          }
+          this.speak(kb.visible ? '日本語入力モードです' : '日本語入力を閉じます');
+        }
+        return { action: 'ime', enabled: !!(kb && kb.visible) };
       },
-      confirmationText: '日本語入力モードです',
       description: 'Toggle Japanese IME'
     });
 
@@ -7442,7 +7460,9 @@ export class VoiceCommands {
     onDwellTimeStatus,
     onSessionSave,
     onDismissNotify,
-    onReadNotify
+    onReadNotify,
+    onVREnter,
+    onVRExit
   } = {}) {
     // EN ordinal + cardinal words shared by the positional tab commands
     // (select/close/pin/move/mute-by-position and their by-name exclusions).
@@ -7450,6 +7470,7 @@ export class VoiceCommands {
       'first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth' +
       '|last|one|two|three|four|five|six|seven|eight|nine|ten';
     this._tabManager = tabManager || null;
+    this._vrKeyboard = vrKeyboard || null;
     if (onVolume) {
       this._onVolume = onVolume;
     }
@@ -7623,6 +7644,12 @@ export class VoiceCommands {
     }
     if (onReadNotify) {
       this._onReadNotify = onReadNotify;
+    }
+    if (onVREnter) {
+      this._onVREnter = onVREnter;
+    }
+    if (onVRExit) {
+      this._onVRExit = onVRExit;
     }
     if (onSessionClear) {
       this._onSessionClear = onSessionClear;
@@ -8064,12 +8091,12 @@ export class VoiceCommands {
         '今話題'
       ],
       action: () => {
-        if (onTopSites) {
-          onTopSites();
-        }
-        return { action: 'top-sites' };
+        // The host reports whether a navigation actually started — an empty
+        // history shows a 'noTopSites' caption, so a static confirm would lie.
+        const ok = onTopSites ? onTopSites() : false;
+        this.speak(ok ? 'よく使うサイトを開きます' : 'よく使うサイトがありません');
+        return { action: 'top-sites', opened: ok };
       },
-      confirmationText: 'よく使うサイトを開きます',
       description: 'Open most-used site'
     });
 
@@ -8246,10 +8273,14 @@ export class VoiceCommands {
         /^restart(\s+the)?\s+(browser|page)$/i
       ],
       action: () => {
-        tabManager?.getActiveTab?.()?.reload?.();
-        return { action: 'refresh' };
+        const panel = tabManager?.getActiveTab?.();
+        const ok = !!(panel && panel.reload && panel.currentUrl);
+        if (ok) {
+          panel.reload();
+        }
+        this.speak(ok ? '更新します' : 'ページを更新できません');
+        return { action: 'refresh', reloaded: ok };
       },
-      confirmationText: '更新します',
       description: 'Refresh page'
     });
 
@@ -8295,12 +8326,12 @@ export class VoiceCommands {
         /delete\s+history/i
       ],
       action: () => {
-        if (onClearHistory) {
-          onClearHistory();
-        }
-        return { action: 'clear-history' };
+        // onClearHistory reports whether the write actually persisted — a
+        // failed save (quota/blocked) must not announce a successful clear.
+        const ok = onClearHistory ? onClearHistory() : false;
+        this.speak(ok ? '履歴を消去します' : '履歴を消去できませんでした');
+        return { action: 'clear-history', cleared: ok };
       },
-      confirmationText: '履歴を消去します',
       description: 'Clear browsing history',
       example: '履歴を消去'
     });
@@ -8310,17 +8341,20 @@ export class VoiceCommands {
       patterns: [/検索[：:]\s*(.+)/, /さが[すせ][：:]\s*(.+)/, /サーチ[：:]\s*(.+)/],
       action: (transcript) => {
         const match = transcript.match(/[：:]\s*(.+)/);
-        if (match && match[1]) {
-          const query = match[1].trim();
-          if (onSearch) {
-            onSearch(query);
-          } else {
-            tabManager?.getActiveTab?.()?.navigate?.(query);
-          }
-          return { action: 'search', query };
+        if (!(match && match[1])) {
+          return { action: 'search', query: null, ok: false };
         }
+        const query = match[1].trim();
+        const panel = tabManager?.getActiveTab?.();
+        const ok = !!(onSearch || (panel && panel.navigate));
+        if (onSearch) {
+          onSearch(query);
+        } else {
+          panel?.navigate?.(query);
+        }
+        this.speak(ok ? '検索します' : '検索できません');
+        return { action: 'search', query, ok };
       },
-      confirmationText: '検索します',
       description: 'Search web',
       example: '検索：てんき'
     });
@@ -8599,10 +8633,10 @@ export class VoiceCommands {
         /new\s+window/i
       ],
       action: () => {
-        tabManager?.newTab?.();
-        return { action: 'new-tab' };
+        const panel = tabManager?.newTab?.() ?? null;
+        this.speak(panel ? '新しいタブを開きます' : 'タブを開けません');
+        return { action: 'new-tab', opened: !!panel };
       },
-      confirmationText: '新しいタブを開きます',
       description: 'Open a new tab'
     });
 
@@ -60357,10 +60391,12 @@ export class VoiceCommands {
         'その次のやつ'
       ],
       action: () => {
-        tabManager?.nextTab?.();
-        return { action: 'next-tab' };
+        const before = tabManager?.activeIndex;
+        const after = tabManager?.nextTab?.();
+        const ok = before !== undefined && after !== undefined && before !== after;
+        this.speak(ok ? '次のタブに切り替えます' : '次のタブはありません');
+        return { action: 'next-tab', switched: ok };
       },
-      confirmationText: '次のタブに切り替えます',
       description: 'Activate next tab'
     });
 
@@ -60387,10 +60423,12 @@ export class VoiceCommands {
         '前のタブもどって'
       ],
       action: () => {
-        tabManager?.prevTab?.();
-        return { action: 'prev-tab' };
+        const before = tabManager?.activeIndex;
+        const after = tabManager?.prevTab?.();
+        const ok = before !== undefined && after !== undefined && before !== after;
+        this.speak(ok ? '前のタブに切り替えます' : '前のタブはありません');
+        return { action: 'prev-tab', switched: ok };
       },
-      confirmationText: '前のタブに切り替えます',
       description: 'Activate previous tab'
     });
 
@@ -63536,9 +63574,12 @@ export class VoiceCommands {
       ],
       action: () => {
         const url = tabManager?.reopenClosedTab?.() || null;
+        // Announce inside the action: reopenClosedTab returns null when the
+        // closed-stack is empty or newTab refuses (MAX_TABS) — a static
+        // confirmationText would claim a reopen that never happened.
+        this.speak(url ? '閉じたタブを開き直します' : '開き直せるタブがありません');
         return { action: 'reopen-tab', url };
       },
-      confirmationText: '閉じたタブを開き直します',
       description: 'Reopen the most recently closed tab'
     });
 
@@ -63557,10 +63598,12 @@ export class VoiceCommands {
         /stop (the )?page/i
       ],
       action: () => {
-        tabManager?.getActiveTab?.()?.stop?.();
-        return { action: 'stop-loading' };
+        const panel = tabManager?.getActiveTab?.();
+        const busy = !!(panel && (panel.loading || panel._loadController));
+        panel?.stop?.();
+        this.speak(busy ? '読み込みを中止します' : '読み込んでいません');
+        return { action: 'stop-loading', wasLoading: busy };
       },
-      confirmationText: '読み込みを中止します',
       description: 'Stop loading the active page'
     });
 
@@ -63611,12 +63654,13 @@ export class VoiceCommands {
         /(?<!exit )incognito(?!\s+tabs?)/i
       ],
       action: () => {
-        if (onTogglePrivateMode) {
+        const ok = !!onTogglePrivateMode;
+        if (ok) {
           onTogglePrivateMode();
         }
-        return { action: 'private-mode' };
+        this.speak(ok ? 'プライベートモードを切り替えます' : 'プライベートモードを切り替えられません');
+        return { action: 'private-mode', toggled: ok };
       },
-      confirmationText: 'プライベートモードを切り替えます',
       description: 'Toggle private mode'
     });
 
@@ -63700,10 +63744,10 @@ export class VoiceCommands {
         '天井まで'
       ],
       action: () => {
-        tabManager?.getActiveTab?.()?.scrollToTop?.();
-        return { action: 'scroll-top' };
+        const ok = !!tabManager?.getActiveTab?.()?.scrollToTop?.();
+        this.speak(ok ? '先頭へ移動します' : 'スクロールできません');
+        return { action: 'scroll-top', scrolled: ok };
       },
-      confirmationText: '先頭へ移動します',
       description: 'Jump to the top of the article'
     });
 
@@ -63764,10 +63808,10 @@ export class VoiceCommands {
         'どん底まで'
       ],
       action: () => {
-        tabManager?.getActiveTab?.()?.scrollToBottom?.();
-        return { action: 'scroll-bottom' };
+        const ok = !!tabManager?.getActiveTab?.()?.scrollToBottom?.();
+        this.speak(ok ? '末尾へ移動します' : 'スクロールできません');
+        return { action: 'scroll-bottom', scrolled: ok };
       },
-      confirmationText: '末尾へ移動します',
       description: 'Jump to the bottom of the article'
     });
 
@@ -63803,10 +63847,10 @@ export class VoiceCommands {
         '次のページいって'
       ],
       action: () => {
-        tabManager?.getActiveTab?.()?.scrollContentPage?.(1);
-        return { action: 'next-page' };
+        const ok = !!tabManager?.getActiveTab?.()?.scrollContentPage?.(1);
+        this.speak(ok ? '次のページへ進みます' : 'スクロールできません');
+        return { action: 'next-page', scrolled: ok };
       },
-      confirmationText: '次のページへ進みます',
       description: 'Scroll the article one page down'
     });
 
@@ -63834,10 +63878,10 @@ export class VoiceCommands {
         '前のページいって'
       ],
       action: () => {
-        tabManager?.getActiveTab?.()?.scrollContentPage?.(-1);
-        return { action: 'prev-page' };
+        const ok = !!tabManager?.getActiveTab?.()?.scrollContentPage?.(-1);
+        this.speak(ok ? '前のページへ戻ります' : 'スクロールできません');
+        return { action: 'prev-page', scrolled: ok };
       },
-      confirmationText: '前のページへ戻ります',
       description: 'Scroll the article one page up'
     });
 
@@ -64093,10 +64137,13 @@ export class VoiceCommands {
         /^stop (it|this|that)$/i
       ],
       action: () => {
+        // cancel() is a no-op when nothing is narrating — announce the real
+        // state instead of a static 'stopping' claim.
+        const was = !!(this.synthesis && (this.synthesis.speaking || this.synthesis.pending));
         this.stopSpeaking();
-        return { action: 'stop-reading' };
+        this.speak(was ? '読み上げを止めます' : '読み上げていません');
+        return { action: 'stop-reading', wasReading: was };
       },
-      confirmationText: '読み上げを止めます',
       description: 'Stop reading the article aloud'
     });
 
@@ -64177,10 +64224,15 @@ export class VoiceCommands {
         /^pause (it|this)$/i
       ],
       action: () => {
+        const s = this.synthesis;
+        const playing = !!(s && s.speaking && !s.paused);
+        const wasPaused = !!(s && s.paused);
         this.pauseSpeaking();
-        return { action: 'pause-reading' };
+        this.speak(
+          playing ? '読み上げを一時停止します' : wasPaused ? 'すでに一時停止しています' : '読み上げていません'
+        );
+        return { action: 'pause-reading', paused: playing };
       },
-      confirmationText: '読み上げを一時停止します',
       description: 'Pause the article narration'
     });
 
@@ -64269,10 +64321,11 @@ export class VoiceCommands {
         /where (did i|i left) (leave|stop|left)/i
       ],
       action: () => {
+        const wasPaused = !!(this.synthesis && this.synthesis.paused);
         this.resumeSpeaking();
-        return { action: 'resume-reading' };
+        this.speak(wasPaused ? '読み上げを再開します' : '一時停止していません');
+        return { action: 'resume-reading', resumed: wasPaused };
       },
-      confirmationText: '読み上げを再開します',
       description: 'Resume the paused narration'
     });
 
@@ -64835,15 +64888,16 @@ export class VoiceCommands {
         /show me (?:the )?history/i
       ],
       action: () => {
-        if (bookmarkPanel) {
+        const ok = !!bookmarkPanel;
+        if (ok) {
           bookmarkPanel.setMode?.('history');
           if (!bookmarkPanel.visible) {
             bookmarkPanel.show?.();
           }
         }
-        return { action: 'history' };
+        this.speak(ok ? '履歴を開きます' : '履歴を開けません');
+        return { action: 'history', opened: ok };
       },
-      confirmationText: '履歴を開きます',
       description: 'Open the browsing history'
     });
 
@@ -65222,10 +65276,10 @@ export class VoiceCommands {
         /close\s+(?:every|all(?:\s+the)?)\s+tabs?\s+(?:apart from|other than)\s+this(?: one)?/i
       ],
       action: () => {
-        tabManager?.closeOtherTabs?.();
-        return { action: 'close-other-tabs' };
+        const n = tabManager?.closeOtherTabs?.() ?? 0;
+        this.speak(n ? `${n}個のタブを閉じました` : '他のタブはありません');
+        return { action: 'close-other-tabs', closed: n };
       },
-      confirmationText: '他のタブを閉じます',
       description: 'Close every tab except the active one'
     });
 
@@ -65243,10 +65297,10 @@ export class VoiceCommands {
         '右にあるタブ閉じて'
       ],
       action: () => {
-        tabManager?.closeTabsToRight?.();
-        return { action: 'close-tabs-right' };
+        const n = tabManager?.closeTabsToRight?.() ?? 0;
+        this.speak(n ? `${n}個のタブを閉じました` : '右側にタブはありません');
+        return { action: 'close-tabs-right', closed: n };
       },
-      confirmationText: '右側のタブを閉じます',
       description: 'Close every tab to the right of the active one'
     });
 
@@ -65266,10 +65320,10 @@ export class VoiceCommands {
         /close\s+tabs?\s+on\s+the\s+left/i
       ],
       action: () => {
-        tabManager?.closeTabsToLeft?.();
-        return { action: 'close-tabs-left' };
+        const n = tabManager?.closeTabsToLeft?.() ?? 0;
+        this.speak(n ? `${n}個のタブを閉じました` : '左側にタブはありません');
+        return { action: 'close-tabs-left', closed: n };
       },
-      confirmationText: '左側のタブを閉じます',
       description: 'Close every tab to the left of the active one'
     });
 
@@ -65388,10 +65442,10 @@ export class VoiceCommands {
         /open a duplicate/i
       ],
       action: () => {
-        tabManager?.duplicateTab?.();
-        return { action: 'duplicate-tab' };
+        const panel = tabManager?.duplicateTab?.() ?? null;
+        this.speak(panel ? 'タブを複製します' : 'タブを複製できません');
+        return { action: 'duplicate-tab', duplicated: !!panel };
       },
-      confirmationText: 'タブを複製します',
       description: 'Duplicate the active tab'
     });
 
@@ -65449,12 +65503,13 @@ export class VoiceCommands {
         /dont lose (this|it)/i
       ],
       action: () => {
-        if (onBookmarkPage) {
+        const ok = !!onBookmarkPage;
+        if (ok) {
           onBookmarkPage();
         }
-        return { action: 'bookmark-page' };
+        this.speak(ok ? 'ブックマークを切り替えます' : 'ブックマークできません');
+        return { action: 'bookmark-page', toggled: ok };
       },
-      confirmationText: 'ブックマークを切り替えます',
       description: 'Bookmark or unbookmark the active page'
     });
 
@@ -65470,10 +65525,17 @@ export class VoiceCommands {
         'お気に入りを閉じて'
       ],
       action: () => {
+        const ok = !!bookmarkPanel;
         bookmarkPanel?.toggle?.();
-        return { action: 'bookmarks' };
+        this.speak(
+          ok
+            ? bookmarkPanel.visible
+              ? 'ブックマークを開きます'
+              : 'ブックマークを閉じます'
+            : 'ブックマークを開けません'
+        );
+        return { action: 'bookmarks', opened: !!(ok && bookmarkPanel.visible) };
       },
-      confirmationText: 'ブックマークパネルを開きます',
       description: 'Toggle bookmarks panel'
     });
 
@@ -65519,15 +65581,16 @@ export class VoiceCommands {
         /my (bookmarks|favorites)/i
       ],
       action: () => {
-        if (bookmarkPanel) {
+        const ok = !!bookmarkPanel;
+        if (ok) {
           bookmarkPanel.setMode?.('bookmarks');
           if (!bookmarkPanel.visible) {
             bookmarkPanel.show?.();
           }
         }
-        return { action: 'bookmarks-open' };
+        this.speak(ok ? 'ブックマークを開きます' : 'ブックマークを開けません');
+        return { action: 'bookmarks-open', opened: ok };
       },
-      confirmationText: 'ブックマークを開きます',
       description: 'Open the bookmarks panel'
     });
 
@@ -65596,12 +65659,14 @@ export class VoiceCommands {
         /^keyboard$/i
       ],
       action: () => {
-        if (vrKeyboard) {
+        if (!vrKeyboard) {
+          this.speak('キーボードが利用できません');
+        } else {
           vrKeyboard.visible ? vrKeyboard.hide() : vrKeyboard.show();
+          this.speak(vrKeyboard.visible ? 'キーボードを開きます' : 'キーボードを閉じます');
         }
-        return { action: 'keyboard' };
+        return { action: 'keyboard', enabled: !!(vrKeyboard && vrKeyboard.visible) };
       },
-      confirmationText: 'キーボードを切り替えます',
       description: 'Toggle VR keyboard'
     });
 
@@ -65876,16 +65941,16 @@ export class VoiceCommands {
         const jpMatch = t.match(goToJp);
         const enMatch = t.match(goToEn);
         const query = ((jpMatch && jpMatch[1]) || (enMatch && enMatch[1]) || '').trim();
-        if (onGoTo && query) {
+        const ok = !!(onGoTo && query);
+        if (ok) {
           onGoTo(query);
         }
-        return { action: 'go-to', query: query || null };
+        // Immediate "command understood" cue, like search/navigate/top-sites —
+        // spoken before navigation resolves, but only when the command could
+        // actually dispatch (a query was captured and a host handler exists).
+        this.speak(ok ? '開きます' : '開けませんでした');
+        return { action: 'go-to', query: query || null, ok };
       },
-      // Immediate "command understood" cue, like search/navigate/top-sites.
-      // Spoken via TTS (blind users) and mirrored to captions via onSpeak
-      // (deaf/HoH) the moment the command matches — before navigation, and
-      // independent of whether a frecency hit is found (WCAG 4.1.3).
-      confirmationText: '開きます',
       description: 'Open site by name from history/bookmarks, fall back to search',
       example: 'githubを開く'
     });
