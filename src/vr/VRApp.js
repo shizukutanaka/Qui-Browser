@@ -3813,22 +3813,27 @@ export class VRApp {
    * Load audio assets progressively
    */
   async loadAudioAssets() {
-    // Add audio files to progressive loader
+    // The four files are consumed by name immediately below, so they are
+    // 'critical' — the only priority start() actually awaits (primary is
+    // fire-and-forget, secondary is deferred to requestIdleCallback; at any
+    // lower priority get() would still be undefined here and the real mp3s
+    // would never decode).
     const audioFiles = [
-      { url: '/assets/sounds/click.mp3', name: 'click', type: 'audio', priority: 'primary' },
-      { url: '/assets/sounds/hover.mp3', name: 'hover', type: 'audio', priority: 'secondary' },
-      { url: '/assets/sounds/success.mp3', name: 'success', type: 'audio', priority: 'secondary' },
-      { url: '/assets/sounds/error.mp3', name: 'error', type: 'audio', priority: 'secondary' }
+      { url: '/assets/sounds/click.mp3', name: 'click', type: 'audio', priority: 'critical' },
+      { url: '/assets/sounds/hover.mp3', name: 'hover', type: 'audio', priority: 'critical' },
+      { url: '/assets/sounds/success.mp3', name: 'success', type: 'audio', priority: 'critical' },
+      { url: '/assets/sounds/error.mp3', name: 'error', type: 'audio', priority: 'critical' }
     ];
 
     for (const file of audioFiles) {
       this.progressiveLoader.addResource(file, file.priority);
     }
 
-    // Start progressive loading
+    // Start progressive loading (blocks on the critical phase — all of it)
     await this.progressiveLoader.start();
 
-    // Load into spatial audio system
+    // Load into spatial audio system; a file whose fetch failed simply has no
+    // entry in loaded and is covered by the procedural fallback below.
     for (const file of audioFiles) {
       const audio = this.progressiveLoader.get(file.name);
       if (audio) {
@@ -3836,12 +3841,11 @@ export class VRApp {
       }
     }
 
-    // Procedural fallback: the packaged .mp3 files are not committed to the
-    // repo, so every interaction sound was doubly dead — no decoded buffer AND
-    // no source (play('click','click') needs both). Synthesize a short tone for
-    // any name still missing a buffer, and ensure a source exists, so click/
-    // hover/success/error feedback actually plays. Real files, when present,
-    // win (registerProceduralBuffer no-ops if a buffer for that name loaded).
+    // Procedural fallback: synthesize a short tone for any name still missing
+    // a buffer, and ensure a source exists, so click/hover/success/error
+    // feedback actually plays even when a file 404s or can't decode
+    // (play('click','click') needs both buffer AND source). Real files win —
+    // registerProceduralBuffer no-ops if a buffer for that name loaded.
     if (this.spatialAudio) {
       const PROCEDURAL = {
         click: { freq: 880, duration: 0.06, decay: 45 },
