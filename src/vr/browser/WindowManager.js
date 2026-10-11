@@ -135,7 +135,7 @@ export class WindowManager {
     if (this.followMode) {
       this._targetPos.copy(this._camPos).addScaledVector(this._forward, this.distance);
       // Frame-rate-independent smoothing.
-      const t = Math.min(1, this.followLerp * (dtMs / 16.6667));
+      const t = Math.min(1, 1 - Math.pow(1 - this.followLerp, dtMs / 16.6667));
       this.target.position.lerp(this._targetPos, t);
       this._faceUser();
       this._applyAngularScale();
