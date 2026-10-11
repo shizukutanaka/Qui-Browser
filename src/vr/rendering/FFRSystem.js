@@ -127,7 +127,12 @@ export class FFRSystem {
       const angleDelta = 2 * Math.acos(Math.min(1, dot));
       const angularVelocity = angleDelta / dtSeconds;
       // Smooth with an EMA (fast rise, slow decay) to avoid flickering.
-      this._headVelocity = this._headVelocity * 0.8 + angularVelocity * 0.2;
+      // The 0.8 decay is calibrated per 60 fps-equivalent frame; normalise it
+      // to the real delta (0.8^(dt*60)) so two 120 Hz frames land where one
+      // 60 Hz frame did — without this the estimate decays ~2x faster on a
+      // 120 Hz headset and the foveation flickers.
+      const decay = Math.pow(0.8, dtSeconds * 60);
+      this._headVelocity = this._headVelocity * decay + angularVelocity * (1 - decay);
       this.predictedGazeEnabled = true;
     }
     // Mutate the stored quaternion in place to avoid a per-frame allocation.
@@ -146,8 +151,10 @@ export class FFRSystem {
    * resolution).  Moving head → low intensity (user may be scanning the edge).
    *
    * Intended to be called after trackHeadPose() in the same frame.
+   *
+   * @param {number} dtSeconds - Elapsed seconds since last frame
    */
-  updatePredictedGazeFoveation() {
+  updatePredictedGazeFoveation(dtSeconds = 1 / 60) {
     if (!this.predictedGazeEnabled || !this.projectionLayer) {
       return;
     }
@@ -158,7 +165,10 @@ export class FFRSystem {
 
     // Still head (t=0) → intensity 0.8; fast head (t=1) → intensity 0.2.
     const target = 0.8 - 0.6 * t;
-    this.intensity += (target - this.intensity) * 0.1;
+    // Same Hz-invariant normalisation as the EMA in trackHeadPose: the
+    // authored 0.1 fraction is per 60 fps-equivalent frame.
+    const step = 1 - Math.pow(1 - 0.1, dtSeconds * 60);
+    this.intensity += (target - this.intensity) * step;
     this.projectionLayer.fixedFoveation = Math.max(0, Math.min(1, this.intensity));
   }
 
