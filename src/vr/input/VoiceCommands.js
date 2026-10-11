@@ -3681,8 +3681,10 @@ export class VoiceCommands {
     // connectBrowser registration always won once it ran).
 
     // Volume control — drives the host's onVolume handler once wired
-    // (master-volume stepper); without a handler the commands still confirm
-    // but move nothing, same as before.
+    // (master-volume stepper). The handler returns the applied level, or
+    // null when nothing changed (at the 0/100 boundary or unwired), so the
+    // announce can say so instead of claiming a change that never happened —
+    // same contract as the caption-size steppers.
     this.registerCommand('volume-up', {
       patterns: [
         '音量上げる',
@@ -3781,12 +3783,10 @@ export class VoiceCommands {
         /volume (up|raise|increase|louder)/i
       ],
       action: () => {
-        if (this._onVolume) {
-          this._onVolume(0.1);
-        }
-        return { action: 'volume', change: 0.1 };
+        const v = this._onVolume ? this._onVolume(0.1) : null;
+        this.speak(v === null ? '音量はこれ以上上げられません' : `音量は${v}%です`);
+        return { action: 'volume', change: 0.1, volume: v };
       },
-      confirmationText: '音量を上げます',
       description: 'Increase volume'
     });
 
@@ -3897,17 +3897,15 @@ export class VoiceCommands {
         /volume (down|lower|decrease|quieter)/i
       ],
       action: () => {
-        if (this._onVolume) {
-          this._onVolume(-0.1);
-        }
-        return { action: 'volume', change: -0.1 };
+        const v = this._onVolume ? this._onVolume(-0.1) : null;
+        this.speak(v === null ? '音量はこれ以上下げられません' : `音量は${v}%です`);
+        return { action: 'volume', change: -0.1, volume: v };
       },
-      confirmationText: '音量を下げます',
       description: 'Decrease volume'
     });
 
     // Volume status — "what's the volume" atom. onVolume(0) returns
-    // undefined (no change), so the host exposes a dedicated getter.
+    // null (no change), so the host exposes a dedicated getter.
     this.registerCommand('volume-status', {
       patterns: [
         '音量は',
