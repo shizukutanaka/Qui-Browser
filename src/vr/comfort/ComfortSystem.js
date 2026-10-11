@@ -199,13 +199,18 @@ export class ComfortSystem {
    * smooth locomotion contributes proportionally to externalMotionLevel
    * (normalized stick deflection set per-frame by VRApp.updateLocomotion()).
    */
-  updateVignette(_deltaTime) {
+  updateVignette(deltaTime) {
     const externalLevel = this.externalMotion ? Math.max(0, Math.min(1, this.externalMotionLevel)) : 0;
     const motionLevel = Math.max(this._headMoving || this.isRotating ? 1 : 0, externalLevel);
     const targetVignette = this.settings.vignette.intensity * motionLevel;
 
-    // Smooth transition
-    this.currentVignette += (targetVignette - this.currentVignette) * this.settings.vignette.smoothing;
+    // Smooth transition — smoothing is calibrated as the fraction of remaining
+    // distance closed per 60 fps-equivalent frame; convert it to a per-frame
+    // step that composes exactly across Hz (1-(1-s)^(dt*60): two 120 Hz frames
+    // land exactly where one 60 Hz frame did). Without this the tunnel fades
+    // ~1.5× faster on a 90 Hz headset.
+    const step = 1 - Math.pow(1 - this.settings.vignette.smoothing, deltaTime * 60);
+    this.currentVignette += (targetVignette - this.currentVignette) * step;
 
     // Drive the overlay: fade in only once the effect is meaningfully on.
     if (this.vignetteMaterial) {
@@ -227,7 +232,7 @@ export class ComfortSystem {
    * benefits most, so this stays on for them. WCAG 2.3.3 exempts motion that
    * is essential to functionality; comfort tunnelling qualifies.
    */
-  updateFOV(_deltaTime) {
+  updateFOV(deltaTime) {
     // Target FOV based on motion
     let targetFOV = this.settings.fov.baseFOV;
 
@@ -235,8 +240,11 @@ export class ComfortSystem {
       targetFOV = this.settings.fov.baseFOV - this.settings.fov.reductionAmount;
     }
 
-    // Smooth transition
-    this.currentFOV += (targetFOV - this.currentFOV) * this.settings.fov.smoothing;
+    // Smooth transition — same Hz-invariant normalisation as updateVignette,
+    // so the tunnel opens/closes at the authored rate on every headset
+    // instead of tracking the render Hz.
+    const step = 1 - Math.pow(1 - this.settings.fov.smoothing, deltaTime * 60);
+    this.currentFOV += (targetFOV - this.currentFOV) * step;
 
     // Apply to camera
     this.camera.fov = this.currentFOV;
