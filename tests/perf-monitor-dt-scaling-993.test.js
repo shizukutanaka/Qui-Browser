@@ -58,13 +58,15 @@ describe('round 993 — performance-monitor Hz coupling', () => {
   });
 
   test('adjustQuality fires at the authored ~1 s cadence at 120 Hz, not 2× as often', () => {
-    const nowSpy = jest.spyOn(performance, 'now');
+    // Node 18's performance.now is non-writable, so spyOn throws there; swap
+    // the global for a stub clock instead.
+    const realPerformance = globalThis.performance;
+    let t = 1000;
+    globalThis.performance = { now: () => t };
     try {
-      let t = 1000;
       // render() calls performance.now() once per frame for dt, then once
       // more for frameTime — but the second call goes to the stubbed
       // updatePerformanceMonitor? No: render() itself calls it twice.
-      nowSpy.mockImplementation(() => t);
 
       const runFrames = (app, count, dtMs) => {
         for (let i = 0; i < count; i += 1) {
@@ -81,7 +83,7 @@ describe('round 993 — performance-monitor Hz coupling', () => {
       runFrames(b, 121, 1000 / 120); // ~1 s at 120 Hz — same wall time
       expect(b.adjustQuality).toHaveBeenCalledTimes(1);
     } finally {
-      nowSpy.mockRestore();
+      globalThis.performance = realPerformance;
     }
   });
 });
