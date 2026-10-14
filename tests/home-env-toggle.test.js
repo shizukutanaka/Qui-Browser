@@ -165,7 +165,7 @@ describe('enableHomeEnvironment reachability', () => {
   });
 
   it('is placed inside the display section', () => {
-    const displaySection = VRAPP_SRC.match(/byKey\(items, \[([^\]]*enableFFR[^\]]*)\]\)/);
+    const displaySection = VRAPP_SRC.match(/toggles: \[([^\]]*enableFFR[^\]]*)\]/);
     expect(displaySection).not.toBeNull();
     expect(displaySection[1]).toContain("'enableHomeEnvironment'");
   });

@@ -78,7 +78,7 @@ import {
   shouldAnnounceSettingsButton,
   cycleOptionLabel
 } from './settingsStepper.js';
-import { layoutSettingsPanel, PANEL_W as SETTINGS_PANEL_W } from './ui/settingsLayout.js';
+import { assignSettingsSections, layoutSettingsPanel, PANEL_W as SETTINGS_PANEL_W } from './ui/settingsLayout.js';
 
 // localStorage key for persisted user settings overrides.
 const SETTINGS_KEY = 'qui-browser:settings';
@@ -2059,63 +2059,43 @@ export class VRApp {
     // half was effectively out of view and every new setting made it worse.
     // Sections are keyed by what the user is trying to do, and only the open
     // one occupies rows (see src/vr/ui/settingsLayout.js).
-    const byKey = (list, keys) => keys.map((k) => list.find((e) => e[1] === k)).filter(Boolean);
-    const actionByLabel = (label) => actions.filter((a) => a[0] === label);
-
     const SECTIONS = [
-      [
-        'settings.section.a11y',
-        byKey(items, ['enableCaptions', 'enableGazeDwell', 'enableVoice', 'highContrast', 'enableHaptics']),
-        byKey(steppers, ['captionDuration', 'captionScale', 'captionHeight', 'gazeDwellTime', 'gazeGraceTime']),
-        [],
-        []
-      ],
-      [
-        'settings.section.locomotion',
-        byKey(items, ['enableTeleport', 'enableSnapTurn', 'enableSmoothMove', 'southpaw', 'enableComfort']),
-        byKey(steppers, ['snapTurnAngle', 'smoothMoveSpeed', 'controllerDeadZone']),
-        cycles.filter((c) => c[1] === 'motionSensitivity'),
-        []
-      ],
-      [
-        'settings.section.display',
-        byKey(items, ['enableFFR', 'enableCurvedPanel', 'enableWindowFollow', 'enableHomeEnvironment']),
-        byKey(steppers, ['windowDistance']),
-        [],
-        []
-      ],
-      [
-        'settings.section.browsing',
-        byKey(items, ['enableWebPanel', 'privateMode', 'restoreTabs']),
-        byKey(steppers, ['readerTextScale']),
-        cycles.filter((c) => c[1] === 'searchEngine'),
-        actionByLabel(t('vr.settings.clearHistory'))
-          .concat(actionByLabel(t('vr.settings.readerProxy')))
-          .concat(actionByLabel(t('vr.settings.bookmarks')))
-      ],
-      ['settings.section.audio', [], byKey(steppers, ['masterVolume']), [], actionByLabel(t('vr.settings.video360'))]
+      {
+        id: 'settings.section.a11y',
+        toggles: ['enableCaptions', 'enableGazeDwell', 'enableVoice', 'highContrast', 'enableHaptics'],
+        steppers: ['captionDuration', 'captionScale', 'captionHeight', 'gazeDwellTime', 'gazeGraceTime']
+      },
+      {
+        id: 'settings.section.locomotion',
+        toggles: ['enableTeleport', 'enableSnapTurn', 'enableSmoothMove', 'southpaw', 'enableComfort'],
+        steppers: ['snapTurnAngle', 'smoothMoveSpeed', 'controllerDeadZone'],
+        cycles: ['motionSensitivity']
+      },
+      {
+        id: 'settings.section.display',
+        toggles: ['enableFFR', 'enableCurvedPanel', 'enableWindowFollow', 'enableHomeEnvironment'],
+        steppers: ['windowDistance']
+      },
+      {
+        id: 'settings.section.browsing',
+        toggles: ['enableWebPanel', 'privateMode', 'restoreTabs'],
+        steppers: ['readerTextScale'],
+        cycles: ['searchEngine'],
+        actions: [t('vr.settings.clearHistory'), t('vr.settings.readerProxy'), t('vr.settings.bookmarks')]
+      },
+      {
+        id: 'settings.section.audio',
+        steppers: ['masterVolume'],
+        actions: [t('vr.settings.video360')]
+      }
     ];
-
-    // Anything not explicitly placed still has to appear — a control that
-    // silently vanished because a key was mistyped would be worse than a long
-    // panel. Collected into a trailing section rather than dropped.
-    const placed = new Set(SECTIONS.flatMap(([, tg, st, cy]) => [...tg, ...st, ...cy].map((e) => e[1])));
-    const placedActions = new Set(SECTIONS.flatMap(([, , , , ac]) => ac.map((a) => a[0])));
-    const leftover = [
-      items.filter((e) => !placed.has(e[1])),
-      steppers.filter((e) => !placed.has(e[1])),
-      cycles.filter((e) => !placed.has(e[1])),
-      actions.filter((a) => !placedActions.has(a[0]))
-    ];
-    if (leftover.some((l) => l.length)) {
-      SECTIONS.push(['settings.section.other', ...leftover]);
-    }
+    const assigned = assignSettingsSections(SECTIONS, { toggles: items, steppers, cycles, actions });
 
     // Build the pure layout description, then render from it.
-    const sections = SECTIONS.map(([id, tg, st, cy, ac]) => ({
+    const sections = assigned.map(({ id, toggles, steppers: st, cycles: cy, actions: ac }) => ({
       id,
       controls: [
-        ...tg.map((e) => ({ wide: false, make: () => this.makeCompactToggleButton(e[0], e[1], e[2]) })),
+        ...toggles.map((e) => ({ wide: false, make: () => this.makeCompactToggleButton(e[0], e[1], e[2]) })),
         ...st.map((e) => ({ wide: true, make: () => this.makeStepperButton(e[0], e[1], e[2]) })),
         ...cy.map((e) => ({ wide: true, make: () => this.makeCycleButton(e[0], e[1], e[2], e[3]) })),
         ...ac.map((a) => ({ wide: true, make: () => this.makeActionButton(a[0], a[1]) }))
