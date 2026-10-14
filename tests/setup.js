@@ -34,3 +34,11 @@ if (typeof localStorage === 'undefined') {
 if (typeof navigator === 'undefined') {
   global.navigator = {};
 }
+
+// ── console.debug sink ────────────────────────────────────────────────────────
+// src/ logs one console.debug per voice-command registration and dispatch.
+// Without --silent (CI runs `npm test -- --coverage`), Jest buffers every call
+// with a stack trace: ~1.2 GB of output and 16/518 suites in 15 min, so the
+// Unit Tests job always hit timeout-minutes. Tests that assert on debug output
+// still work via jest.spyOn(console, 'debug').
+console.debug = () => {};
