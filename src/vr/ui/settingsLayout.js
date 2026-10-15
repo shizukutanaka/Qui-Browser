@@ -129,3 +129,60 @@ export function layoutSettingsPanel(sections, openIds = []) {
 
   return { rows, height: rows * ROW_H + PAD, placements };
 }
+
+/** Section that collects any control a spec forgot to place. */
+const LEFTOVER_SECTION_ID = 'settings.section.other';
+
+const POOLS = ['toggles', 'steppers', 'cycles', 'actions'];
+
+// Controls are `[label, key, ...]` tuples; actions are `[label, onClick]` and
+// have no settings key, so their label is their identity.
+const keyOf = (pool, entry) => (pool === 'actions' ? entry[0] : entry[1]);
+
+/**
+ * Assign the panel's controls to sections — the "what goes where" phase,
+ * split out of `VRApp.createSettingsPanel()` so it can be tested without
+ * Three.js (Fowler, *Refactoring* 2nd ed., "Split Phase").
+ *
+ * Each spec entry lists keys per pool; a key with no matching control (e.g.
+ * the bookmarks action while the web panel is off) is skipped. Any control no
+ * spec placed is collected into a trailing `LEFTOVER_SECTION_ID` section
+ * instead of being dropped — a control that silently vanished because a key
+ * was mistyped would be worse than a long panel.
+ *
+ * @param {Array<{id: string, toggles?: string[], steppers?: string[], cycles?: string[], actions?: string[]}>} spec
+ * @param {{toggles?: Array, steppers?: Array, cycles?: Array, actions?: Array}} pools
+ * @returns {Array<{id: string, toggles: Array, steppers: Array, cycles: Array, actions: Array}>}
+ */
+export function assignSettingsSections(spec, pools) {
+  const all = {};
+  for (const pool of POOLS) {
+    all[pool] = Array.isArray(pools && pools[pool]) ? pools[pool] : [];
+  }
+
+  const placed = {};
+  for (const pool of POOLS) {
+    placed[pool] = new Set();
+  }
+
+  const sections = (Array.isArray(spec) ? spec : []).map((s) => {
+    const out = { id: s.id };
+    for (const pool of POOLS) {
+      out[pool] = (s[pool] || []).map((k) => all[pool].find((e) => keyOf(pool, e) === k)).filter(Boolean);
+      for (const e of out[pool]) {
+        placed[pool].add(keyOf(pool, e));
+      }
+    }
+    return out;
+  });
+
+  const leftover = { id: LEFTOVER_SECTION_ID };
+  for (const pool of POOLS) {
+    leftover[pool] = all[pool].filter((e) => !placed[pool].has(keyOf(pool, e)));
+  }
+  if (POOLS.some((pool) => leftover[pool].length)) {
+    sections.push(leftover);
+  }
+
+  return sections;
+}

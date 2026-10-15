@@ -77,7 +77,7 @@ describe('settings-panel reachability', () => {
   });
 
   test('locomotion section includes the dead-zone stepper', () => {
-    expect(SRC).toMatch(/byKey\(steppers,\s*\['snapTurnAngle',\s*'smoothMoveSpeed',\s*'controllerDeadZone'\]\)/);
+    expect(SRC).toMatch(/steppers:\s*\['snapTurnAngle',\s*'smoothMoveSpeed',\s*'controllerDeadZone'\]/);
   });
 });
 
