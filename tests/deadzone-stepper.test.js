@@ -54,7 +54,7 @@ const path = require('path');
 const { VRApp } = require('../src/vr/VRApp.js');
 const { setLanguage, t } = require('../src/i18n/i18n.js');
 
-const SRC = fs.readFileSync(path.join(__dirname, '../src/vr/VRApp.js'), 'utf8');
+const SRC = fs.readFileSync(path.join(__dirname, '../src/vr/ui/settingsControls.js'), 'utf8');
 
 afterEach(() => setLanguage('en'));
 
@@ -73,7 +73,7 @@ describe('_onDeadZoneChanged', () => {
 
 describe('settings-panel reachability', () => {
   test('steppers array has a controllerDeadZone entry wired to the live-apply callback', () => {
-    expect(SRC).toMatch(/'controllerDeadZone',\s*\{[^}]*apply:\s*\(v\)\s*=>\s*this\._onDeadZoneChanged\(v\)/);
+    expect(SRC).toMatch(/'controllerDeadZone',\s*\{[^}]*apply:\s*\(v\)\s*=>\s*app\._onDeadZoneChanged\(v\)/);
   });
 
   test('locomotion section includes the dead-zone stepper', () => {
