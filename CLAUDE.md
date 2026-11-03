@@ -4015,3 +4015,11 @@ wait|so yeah|ok then|alright then` — 'id like it closed'→close-tab、'wait c
 - 🐛 **実害**: `private-mode` は発話内容に関係なく無条件トグルだったため、すでにプライベートモードの状態で「プライベートモードにして」「private mode on」と言うと逆にオフになってしまう（設定トグル系 `toggleCmd` は `onOff(transcript)` で方向を解釈済みだったが、private-mode だけ未対応だった）。
 - 🔧 **修正**: `private-mode` のアクションが `onOff(transcript)` と `tabManager._privateMode` を読み、方向指定が現在値と一致する場合はトグルせず「すでにオン/オフです」と正直に応答。トグル後は `_privateMode` の新値を発話する。また共有 `onOff` の ON パターンに方向句 `にして` を追加（'オフにして' は OFF 判定が先なので安全）。
 - ✅ **テスト +3（git stash で3件赤確認）**: 'プライベートモードにして'/'private mode on'（既on→非トグル）、bare 'プライベートモード'（従来通りトグル＋結果発話）。Total 62,089 tests; lint 0 errors（警告136=baseline）; build green。
+
+### Session 390: 音声ブックマーク系の方向性バグ修正 — 追加系フレーズが削除を実行／「閉じて」が閉状態で開く
+
+外部基準: Chrome Ctrl+D（追加のみ、削除は別操作）と前回 Session 389 `private-mode` 冪等化の同設計（片方向ツイン化）。
+
+- 🐛 **実害2件**: ①`bookmark-page` は全パターンが「追加/保存」意味なのに内部はトグル → 既保存ページで「このページを保存して」と言うとブックマークが**削除されていた**。②`bookmarks` パネルトグルのパターンに「を閉じて」系が同居 → パネルが閉じた状態で「ブックマークを閉じて」と言うと**開いてしまっていた**。あわせて固定確認文の誤案内（`bookmark-page` の「切り替えます」、`bookmarks` の「開きます」）も除去し、実行後の実状態を発話する形に統一。
+- 🔧 **修正**: `bookmark-page` を追加専用に（`isBookmarked` 事前読取、`unbookmark-page` が削除を担う既存設計に整合）。「を閉じて」系フレーズは `bookmarks` コマンド内で方向判定（`private-mode-off` と同じ片方向設計、非可視時は「開いていません」と正直応答）。
+- ✅ **テスト +13（git stash で12件赤確認）**: bookmark-page（追加系3フレーズ×add/already-bookmarked+no-page）・bookmarks（閉じ系で非可視時非トグル正直応答・可視時close・bare toggle実状態発話）を新規 tests/voice-direction-atoms.test.js に集約。既存テスト無変更で通過。Total 62,102 tests; lint 0 errors（警告136=baseline）; build green。

@@ -78,6 +78,14 @@ All notable changes to Qui Browser VR will be documented in this file.
   / 'private mode on' while private mode is already on no longer toggles it
   back off, and the command now announces the resulting state. The shared
   on/off parser also recognises the directional suffix 'にして'.
+- Voice command `bookmark-page` is now add-only (Chrome Ctrl+D parity):
+  every pattern means "save this", so an already-bookmarked page is no
+  longer un-bookmarked — the command answers 'すでにブックマークされています'
+  instead, and removal stays with `unbookmark-page`.
+- Voice command `bookmarks` panel toggle is now direction-aware:
+  'ブックマークを閉じて' / 'close the bookmarks' while the panel is already
+  closed answers honestly instead of opening it. The toggle's fixed
+  '開きます' confirmation was also replaced by the actual post-toggle state.
 
 ### Changed
 

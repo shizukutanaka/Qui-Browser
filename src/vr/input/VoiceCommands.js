@@ -65365,16 +65365,28 @@ export class VoiceCommands {
         /dont lose (this|it)/i
       ],
       action: () => {
+        const active = tabManager?.getActiveTab?.();
+        // Add-only, like Chrome's Ctrl+D: every pattern means 'save this',
+        // so an already-bookmarked page must never be un-bookmarked — the
+        // 'unbookmark-page' command owns removal.
+        if (active?.isBookmarked?.(active.currentUrl)) {
+          this.speak('すでにブックマークされています');
+          return { action: 'bookmark-page', added: false };
+        }
         if (onBookmarkPage) {
           onBookmarkPage();
         }
-        return { action: 'bookmark-page' };
+        this.speak(active ? 'ブックマークを追加しました' : 'ページを開いていません');
+        return { action: 'bookmark-page', added: !!active };
       },
-      confirmationText: 'ブックマークを切り替えます',
-      description: 'Bookmark or unbookmark the active page'
+      // No confirmationText: '切り替えます' would misstate both the add and
+      // the already-bookmarked answers.
+      description: 'Bookmark the active page'
     });
 
-    // Bookmark panel toggle
+    // Bookmark panel toggle — direction-aware: the 'を閉じて' family must
+    // never open a panel that is already closed (same design as
+    // private-mode-off / unbookmark-page). Bare words still toggle.
     this.registerCommand('bookmarks', {
       patterns: [
         'ブックマーク',
@@ -65383,13 +65395,22 @@ export class VoiceCommands {
         'ブックマークを閉じて',
         'ブックマークパネルを閉じて',
         'ブックマーク一覧を閉じて',
-        'お気に入りを閉じて'
+        'お気に入りを閉じて',
+        /close (the )?bookmarks/i,
+        /hide (the )?bookmarks/i
       ],
-      action: () => {
+      action: (transcript) => {
+        const close = /閉じ|close|hide/i.test(transcript);
+        if (close && !bookmarkPanel?.visible) {
+          this.speak('ブックマークパネルは開いていません');
+          return { action: 'bookmarks', closed: true };
+        }
         bookmarkPanel?.toggle?.();
-        return { action: 'bookmarks' };
+        this.speak(bookmarkPanel?.visible ? 'ブックマークパネルを開きます' : 'ブックマークパネルを閉じます');
+        return { action: 'bookmarks', closed: false };
       },
-      confirmationText: 'ブックマークパネルを開きます',
+      // No confirmationText: the open/close direction is only known after the
+      // toggle, so a fixed '開きます' line would misstate half the results.
       description: 'Toggle bookmarks panel'
     });
 

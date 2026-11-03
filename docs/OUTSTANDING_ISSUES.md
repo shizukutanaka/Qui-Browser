@@ -114,6 +114,12 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - **問題だったもの**: 発話の方向（'にして'/'on'）を読まず無条件に `onTogglePrivateMode()` を呼んでいたため、既にオンの状態での指定は逆にオフにしていた。
 - **対応**: Session 389 で `onOff(transcript)` + `tabManager._privateMode` による冪等化を実施。兄弟コマンド `private-mode-off` と同じ設計に揃えた。
 
+### B-6. ~~音声 `bookmark-page`/`bookmarks` の方向性バグ~~（Session 390 で修正済み）
+
+- **場所**: `src/vr/input/VoiceCommands.js` の `bookmark-page` / `bookmarks` コマンド
+- **問題だったもの**: `bookmark-page` は追加系フレーズのみを持ちながらトグル実行で既保存を解除していた。`bookmarks` トグルは「を閉じて」系フレーズも拾い、閉状態で開いてしまっていた。両者の固定確認文も実結果と矛盾しえた。
+- **対応**: Session 390 で `bookmark-page` を追加専用化（Chrome Ctrl+D 準拠）、`bookmarks` コマンドを方向判定付きにして閉状態での誤オープンを防止、固定確認文を除去して実状態発話に統一。
+
 ---
 
 ## C. ロードマップ Phase 3（未着手・大規模リファクタ）
