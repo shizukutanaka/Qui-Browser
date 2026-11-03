@@ -67328,9 +67328,9 @@ export class VoiceCommands {
         // '音を切る' forms stay undefined (toggle) by contract.
         const want = /unmute|解除|戻して|外して|つけて|ならして|ありにして/i.test(transcript)
           ? false
-          : /ミュートにして|ミュートして|をミュート|全部ミュート|全体をミュート|消音|静音|静か|無音|サイレント|音なし|音を消|音消|声を消|出さ|黙|うるさい|モード|quiet|silen|shut|mute/i.test(
+          : /消音|静音|静か|無音|サイレント|音なし|音を消|音消|声を消|出さ|黙|うるさい|モード|quiet|silen|shut|mute/i.test(
                 transcript
-              )
+              ) || /ミュートにして|ミュートして|をミュート|全部ミュート|全体をミュート/.test(transcript)
             ? true
             : undefined;
         const muted = this._onMute ? this._onMute(want) : null;
