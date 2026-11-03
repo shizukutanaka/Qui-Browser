@@ -74,6 +74,10 @@ All notable changes to Qui Browser VR will be documented in this file.
 - Unhandled promise rejections in monitoring's dynamic Sentry imports.
 - WebGPU FFR shader used a hardcoded 1920×1080 resolution; now baked from the
   real canvas size.
+- Voice command `private-mode` honoured direction: 'プライベートモードにして'
+  / 'private mode on' while private mode is already on no longer toggles it
+  back off, and the command now announces the resulting state. The shared
+  on/off parser also recognises the directional suffix 'にして'.
 
 ### Changed
 

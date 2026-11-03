@@ -4007,3 +4007,11 @@ wait|so yeah|ok then|alright then` — 'id like it closed'→close-tab、'wait c
 
 - 🧹 **`createSettingsPanel()` の宣言部 ~340行を `src/vr/ui/settingsControls.js` へ移動**: toggles(17)・steppers(11)・cycles(2)・actions(3-4)・SECTIONS spec を `buildSettingsControls(app)` が返す。全コールバックは `this`→`app` の書き換えのみで挙動同一（Three.js 非依存でヘッドレステスト可能に）。`SEARCH_ENGINES`/`COMFORT_PRESETS` 定数も同モジュールへ移動（音声コマンド側は import で参照）。
 - ✅ **テスト +13（stash でモジュール不在を確認）**: tests/settings-controls.test.js — 宣言順・min/max/step・コールバック委譲・spec 全キー配置をオラクル検証。ソースgrep系の既存4テスト（vr-app-wiring/home-env-toggle/comfort-disable-974/deadzone-stepper）は参照先を新モジュールへ更新。Total 62086 tests (521 suites) 全緑・lint 0エラー（警告136=baseline）・build green。
+
+### Session 389: 音声 `private-mode` の方向性バグ修正 — オンの状態で「にして/on」と言うとオフに戻ってしまう
+
+外部基準: 兄弟コマンド `private-mode-off` の片方向設計（`tabManager._privateMode` を読んで冪等化）と Android Voice Access の "is X on / turn X on" 方向性パリティ。
+
+- 🐛 **実害**: `private-mode` は発話内容に関係なく無条件トグルだったため、すでにプライベートモードの状態で「プライベートモードにして」「private mode on」と言うと逆にオフになってしまう（設定トグル系 `toggleCmd` は `onOff(transcript)` で方向を解釈済みだったが、private-mode だけ未対応だった）。
+- 🔧 **修正**: `private-mode` のアクションが `onOff(transcript)` と `tabManager._privateMode` を読み、方向指定が現在値と一致する場合はトグルせず「すでにオン/オフです」と正直に応答。トグル後は `_privateMode` の新値を発話する。また共有 `onOff` の ON パターンに方向句 `にして` を追加（'オフにして' は OFF 判定が先なので安全）。
+- ✅ **テスト +3（git stash で3件赤確認）**: 'プライベートモードにして'/'private mode on'（既on→非トグル）、bare 'プライベートモード'（従来通りトグル＋結果発話）。Total 62,089 tests; lint 0 errors（警告136=baseline）; build green。

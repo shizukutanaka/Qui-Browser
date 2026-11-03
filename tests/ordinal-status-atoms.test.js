@@ -192,6 +192,33 @@ describe('private-mode-off', () => {
     expect(onTogglePrivateMode).not.toHaveBeenCalled();
     expect(vc.speak.mock.calls.at(-1)[0]).toBe('プライベートモードはオフです');
   });
+  test('"プライベートモードにして" while already on does NOT toggle back off', () => {
+    const onTogglePrivateMode = jest.fn();
+    const { vc, tm } = makeVC({ onTogglePrivateMode });
+    tm._privateMode = true;
+    vc.processCommand('プライベートモードにして');
+    expect(vc.lastCommand.key).toBe('private-mode');
+    expect(onTogglePrivateMode).not.toHaveBeenCalled();
+    expect(vc.speak.mock.calls.map((c) => c[0])).toContain('プライベートモードはすでにオンです');
+  });
+  test('"private mode on" while already on does NOT toggle back off', () => {
+    const onTogglePrivateMode = jest.fn();
+    const { vc, tm } = makeVC({ onTogglePrivateMode });
+    tm._privateMode = true;
+    vc.processCommand('private mode on');
+    expect(vc.lastCommand.key).toBe('private-mode');
+    expect(onTogglePrivateMode).not.toHaveBeenCalled();
+  });
+  test('bare "プライベートモード" still toggles and announces the new state', () => {
+    const onTogglePrivateMode = jest.fn(() => {
+      tm._privateMode = !tm._privateMode;
+    });
+    const { vc, tm } = makeVC({ onTogglePrivateMode });
+    vc.processCommand('プライベートモード');
+    expect(vc.lastCommand.key).toBe('private-mode');
+    expect(onTogglePrivateMode).toHaveBeenCalledTimes(1);
+    expect(vc.speak.mock.calls.map((c) => c[0])).toContain('プライベートモードをオンにします');
+  });
   test.each([
     'シークレットですか',
     'プライベートですか',
