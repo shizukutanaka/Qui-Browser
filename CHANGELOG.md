@@ -78,6 +78,11 @@ All notable changes to Qui Browser VR will be documented in this file.
   / 'private mode on' while private mode is already on no longer toggles it
   back off, and the command now announces the resulting state. The shared
   on/off parser also recognises the directional suffix 'にして'.
+- Voice command `mute-toggle` honoured explicit mute intent: 'ミュートにして'
+  / 'mute that' while already muted no longer un-mutes the page — the
+  command passes want=true to `onMute`, matching the unmute forms that
+  already passed want=false. Bare 'ミュート' and '音を切る' keep the toggle
+  contract.
 - Voice command `video-toggle` honoured direction: '一時停止' while the
   video is already paused no longer resumes it (and '再生して' while
   playing no longer pauses it). The command passes a 'play'|'pause' hint

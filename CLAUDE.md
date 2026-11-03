@@ -4023,3 +4023,11 @@ wait|so yeah|ok then|alright then` — 'id like it closed'→close-tab、'wait c
 - 🐛 **実害**: `video-toggle` の全パターンは一時停止（'一時停止'/'ポーズ'/'pause'）または再生（'再生して'/'再開'/'play'/'resume'）の方向を含んでいたが、アクションは方向を読まず無条件に `onVideoToggle()` → `togglePause()` を呼んでいた。一時停止中に「一時停止」と言うと**再生を再開**し、再生中に「再生して」と言うと**一時停止**する逆動作になっていた。
 - 🔧 **修正**: コマンドが発話から 'play'|'pause' の方向を解析して `onVideoToggle(want)` に渡す。VRApp 側フックは現在値と一致する方向をトグルせず `'already-playing'`/`'already-paused'` を返し、コマンドは「すでに再生中です」「すでに一時停止中です」と正直に応答する。方向なしパターンは従来通りトグル（want=null で後方互換）。
 - ✅ **テスト +12（git stash で11件赤確認）**: tests/video-toggle-direction.test.js — 9つの方向パターンの want 伝達、既状態一致時の正直応答、動画なし時の応答。既存 find-video-atoms 等は無変更で通過（mock フックは want を受け取っても従来戻り値で応答）。Total 62,101 tests; lint 0 errors（警告136=baseline）; build green。
+
+### Session 391: 音声 `mute-toggle` の方向性バグ修正 — ミュート済みで「ミュートにして」と言うと解除されてしまう
+
+外部基準: Session 389/390 と同じ方向性パリティ（Android Voice Access の "mute it" はミュート済みなら no-op でなければならない）。
+
+- 🐛 **実害**: `mute-toggle` は解除系発話（'ミュート解除して'/'音をつけて'/'unmute'）だけ `want=false` を渡し、明示ミュート系（'ミュートにして'/'音を消して'/'mute that' 等）には want=undefined→無条件トグルだった。ミュート済みで「ミュートにして」と言うと**ミュートが解除**されていた。ホスト `onMute(want)` は最初から want=true に対応済み（`target===muted` で no-op 返却）で、VoiceCommands 側が渡していなかっただけ。
+- 🔧 **修正**: unmute 判定の後に mute 意図判定を追加し、明示ミュート発話は `want=true` を渡す。ホストは状態一致時にトグルせず現状態を返すため「ミュート オンです」と正直に応答する。裸 'ミュート' とピン済み '音を切る' は従来契約（undefined→トグル）のまま維持。
+- ✅ **テスト +17（git stash で14件赤確認）**: tests/mute-direction-atoms.test.js — 13の明示ミュート形が want=true、4つの解除形が want=false、裸 'ミュート' が undefined、既ミュート時の正直応答。既存ピン（direct-select/help-rate 等）は無変更で通過。Total 62,120 tests; lint 0 errors（警告136=baseline）; build green。

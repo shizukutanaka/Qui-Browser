@@ -108,6 +108,12 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - **なぜ優先度が低いか**: 自分で追跡・検証済み。`THREE.Material.dispose()` は `.color`（Colorインスタンス）自体をnullにしない — GPUリソース解放をレンダラーに通知するだけなので、破棄後に `.color.set()` を呼んでも例外は出ず、単に無駄な代入が発生するだけ。実害（クラッシュや誤表示）は無い。
 - **対応するなら**: `dispose()`内で `controller.userData.hovered` からこの `stripMesh` への参照も明示的にクリアするか、`onHoverEnd` ハンドラ内で `this.stripMesh` の生存確認を厳密にする。優先度が低いため急ぎ対応不要。
 
+### B-7. ~~音声 `mute-toggle` が明示ミュート発話で無条件トグル~~（Session 391 で修正済み）
+
+- **場所**: `src/vr/input/VoiceCommands.js` の `mute-toggle` コマンド
+- **問題だったもの**: 解除系発話のみ `want=false` を渡し、明示ミュート系（'ミュートにして'/'音を消して'/'mute that'）は want=undefined→無条件トグルだったため、ミュート済みで言うと解除されていた。ホスト `onMute(want)` は want=true 対応済みで、コマンド側が渡していなかった。
+- **対応**: Session 391 で明示ミュート意図を解析して `want=true` を渡すよう修正。裸 'ミュート'/'音を切る' は従来契約（toggle）維持。private-mode/video-toggle 冪等化と同じ設計。
+
 ### B-6. ~~音声 `video-toggle` が方向指定を無視して無条件トグル~~（Session 390 で修正済み）
 
 - **場所**: `src/vr/input/VoiceCommands.js` の `video-toggle` コマンドと `src/vr/VRApp.js` の `onVideoToggle` フック
