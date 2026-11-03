@@ -63509,13 +63509,26 @@ export class VoiceCommands {
         /(?<!exit )private\s+mode(?!\s+off)/i,
         /(?<!exit )incognito(?!\s+tabs?)/i
       ],
-      action: () => {
+      action: (transcript) => {
+        const want = onOff(transcript);
+        const isOn = !!tabManager?._privateMode;
+        if (want === true && isOn) {
+          this.speak('プライベートモードはすでにオンです');
+          return { action: 'private-mode', on: true };
+        }
+        if (want === false && !isOn) {
+          this.speak('プライベートモードはすでにオフです');
+          return { action: 'private-mode', on: false };
+        }
         if (onTogglePrivateMode) {
           onTogglePrivateMode();
         }
-        return { action: 'private-mode' };
+        const on = !!tabManager?._privateMode;
+        this.speak(on ? 'プライベートモードをオンにします' : 'プライベートモードをオフにします');
+        return { action: 'private-mode', on };
       },
-      confirmationText: 'プライベートモードを切り替えます',
+      // No confirmationText: a fixed '切り替えます' line would contradict the
+      // action's own result announcement (already-on/off, toggled on/off).
       description: 'Toggle private mode'
     });
 
@@ -65914,7 +65927,7 @@ export class VoiceCommands {
       if (/オフ|無効|消して|消す|非表示|隠す|隠して|なし|off|disable|hide/i.test(transcript)) {
         return false;
       }
-      if (/オン|有効|つけて|つける|見せて|出して|出す|表示|あり|on|enable|show/i.test(transcript)) {
+      if (/オン|有効|つけて|つける|見せて|出して|出す|表示|あり|にして|on|enable|show/i.test(transcript)) {
         return true;
       }
       return undefined;

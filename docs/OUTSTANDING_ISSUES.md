@@ -108,6 +108,12 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - **なぜ優先度が低いか**: 自分で追跡・検証済み。`THREE.Material.dispose()` は `.color`（Colorインスタンス）自体をnullにしない — GPUリソース解放をレンダラーに通知するだけなので、破棄後に `.color.set()` を呼んでも例外は出ず、単に無駄な代入が発生するだけ。実害（クラッシュや誤表示）は無い。
 - **対応するなら**: `dispose()`内で `controller.userData.hovered` からこの `stripMesh` への参照も明示的にクリアするか、`onHoverEnd` ハンドラ内で `this.stripMesh` の生存確認を厳密にする。優先度が低いため急ぎ対応不要。
 
+### B-5. ~~音声 `private-mode` が方向指定を無視して無条件トグル~~（Session 389 で修正済み）
+
+- **場所**: `src/vr/input/VoiceCommands.js` の `private-mode` コマンド
+- **問題だったもの**: 発話の方向（'にして'/'on'）を読まず無条件に `onTogglePrivateMode()` を呼んでいたため、既にオンの状態での指定は逆にオフにしていた。
+- **対応**: Session 389 で `onOff(transcript)` + `tabManager._privateMode` による冪等化を実施。兄弟コマンド `private-mode-off` と同じ設計に揃えた。
+
 ---
 
 ## C. ロードマップ Phase 3（未着手・大規模リファクタ）
