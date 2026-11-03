@@ -199,7 +199,8 @@ describe('private-mode-off', () => {
     vc.processCommand('プライベートモードにして');
     expect(vc.lastCommand.key).toBe('private-mode');
     expect(onTogglePrivateMode).not.toHaveBeenCalled();
-    expect(vc.speak.mock.calls.map((c) => c[0])).toContain('プライベートモードはすでにオンです');
+    // Result announcement is the LAST spoken line — no trailing '切り替えます' confirmation.
+    expect(vc.speak.mock.calls.at(-1)[0]).toBe('プライベートモードはすでにオンです');
   });
   test('"private mode on" while already on does NOT toggle back off', () => {
     const onTogglePrivateMode = jest.fn();

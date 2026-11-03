@@ -63527,7 +63527,8 @@ export class VoiceCommands {
         this.speak(on ? 'プライベートモードをオンにします' : 'プライベートモードをオフにします');
         return { action: 'private-mode', on };
       },
-      confirmationText: 'プライベートモードを切り替えます',
+      // No confirmationText: a fixed '切り替えます' line would contradict the
+      // action's own result announcement (already-on/off, toggled on/off).
       description: 'Toggle private mode'
     });
 
