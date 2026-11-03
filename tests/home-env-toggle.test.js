@@ -54,7 +54,7 @@ const THREE = require('three');
 const { VRApp } = require('../src/vr/VRApp.js');
 const { t, setLanguage } = require('../src/i18n/i18n.js');
 
-const VRAPP_SRC = fs.readFileSync(path.join(__dirname, '../src/vr/VRApp.js'), 'utf8');
+const VRAPP_SRC = fs.readFileSync(path.join(__dirname, '../src/vr/ui/settingsControls.js'), 'utf8');
 
 function makeEnvApp(overrides = {}) {
   const app = {
@@ -161,7 +161,7 @@ describe('VRApp.setupScene home-environment gating', () => {
 
 describe('enableHomeEnvironment reachability', () => {
   it('has a settings-panel row wired to the toggle handler', () => {
-    expect(VRAPP_SRC).toMatch(/'enableHomeEnvironment',\s*\(v\)\s*=>\s*this\._onHomeEnvToggleChanged\(v\)/);
+    expect(VRAPP_SRC).toMatch(/'enableHomeEnvironment',\s*\(v\)\s*=>\s*app\._onHomeEnvToggleChanged\(v\)/);
   });
 
   it('is placed inside the display section', () => {

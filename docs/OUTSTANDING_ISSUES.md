@@ -119,9 +119,10 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - **完了内容**: `captionSystem`（Session 44）、`hapticFeedback`（Session 45）、`gazeInteraction`（Session 47）の3系統すべてを `AccessibilityCoordinator` に移動。VRApp側は各々に `get`/`set` を追加し、`this.a11y.X` に委譲。既存の全呼び出し箇所（構築・設定パネルの `apply` クロージャ・毎フレームの gaze-dwell ポーリング・dispose・`notifyCrossModal`/`fireTeleportFeedback` 等の呼び出し、合計40箇所以上）は一切変更不要——`tests/vr-app-wiring.test.js` の既存テストも無変更のまま通過することを確認済み。3系統とも「field-decl null → 構築 →（hapticFeedbackのみ）dispose時null再代入」という同一の形をしており、同じ getter/setter パターンがそのまま適用できた。挙動を変えない安全なリファクタであることを検証済み（フルスイート953件、無変更で通過）。
 - **スコープ外と判断したもの**: `highContrast`/`motionSensitivity`/`windowDistance` の同期ロジックは ComfortSystem/WindowManager 向けであり、この4系統（caption/haptic/gaze + 元々のhigh-contrast同期）のうち前者3つのみを対象とした。`highContrast` トグルの複合クロージャ（VRApp.js ~1177行）は `captionSystem.setHighContrast()`/`gazeInteraction.setHighContrast()` を呼ぶが、これらは対象オブジェクトのメソッド呼び出しであり `this.captionSystem`/`this.gazeInteraction` 自体の再代入ではないため、getter経由で問題なく動作する。
 
-### C-2. 設定パネルのグルーピング（優先度: 低、難易度: 中）
+### C-2. 設定パネルのグルーピング（優先度: 低、難易度: 中）— **分割フェーズとして部分実施済み**
 
 - **対象**: `src/vr/VRApp.js` の `createSettingsPanel()` 付近。20以上の設定項目が単一の2カラムレイアウトに未分類で並んでいる。
+- **進捗（Session ~309, PR #1286 / Session 388）**: 折りたたみセクション化自体は settingsLayout.js で実装済み。宣言フェーズは `src/vr/ui/settingsControls.js`（`buildSettingsControls(app)`、Session 388）へ、セクション割当は `assignSettingsSections`（PR #1286）へ切り出し済み — 残るのはボタン生成ループと Three.js 描画のみ。
 - **理由**: UX上の発見性の問題（CLAUDE.md "Medium-Priority Gaps #5"）。ロコモーション/アクセシビリティ/レンダリング/オプション機能ごとに折りたたみセクション化し、各ボタンにヘルプテキスト（キャプション経由）を追加する。
 
 ### C-3. Top Sites の視覚的スピードダイヤルタイル（**Session 75 で解決** — 描画先は BookmarkPanel 第3タブではなく新規タブページ）

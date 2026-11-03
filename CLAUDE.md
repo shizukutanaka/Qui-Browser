@@ -3403,3 +3403,8 @@ permission/capability questions (てもいいでしょうか / られますか)�
 - ✨ **zoom/brightness 系**: 'zoom way in/out'→reader-size-up/down、'unzoom/dezoom/zoom back/zoom normal/back to normal size'→reader-scale-reset、brightness EN 形（'light it up/darken it/dim it/too bright/blinding/lights on'）、dark-mode（'night time/turn on dark/lights out'）。
 - ✅ **テスト +149（git stash で128件赤確認）**: Total 6593 tests (142 suites); 0 lint errors（警告 137 = baseline 同一）; build green; FFFD 0件。
 
+
+### Session 388: 設定パネル宣言フェーズの切り出し（Split Phase 続行）— コントロール宣言を settingsControls.js へ
+外部基準: Fowler『リファクタリング』第2版 Split Phase（前回 #1286 の assignSettingsSections に続く第2段）。
+- 🧹 **`createSettingsPanel()` の宣言部 ~340行を `src/vr/ui/settingsControls.js` へ移動**: toggles(17)・steppers(11)・cycles(2)・actions(3-4)・SECTIONS spec を `buildSettingsControls(app)` が返す。全コールバックは `this`→`app` の書き換えのみで挙動同一（Three.js 非依存でヘッドレステスト可能に）。`SEARCH_ENGINES`/`COMFORT_PRESETS` 定数も同モジュールへ移動（音声コマンド側は import で参照）。
+- ✅ **テスト +13（stash でモジュール不在を確認）**: tests/settings-controls.test.js — 宣言順・min/max/step・コールバック委譲・spec 全キー配置をオラクル検証。ソースgrep系の既存4テスト（vr-app-wiring/home-env-toggle/comfort-disable-974/deadzone-stepper）は参照先を新モジュールへ更新。Total 62086 tests (521 suites) 全緑・lint 0エラー（警告136=baseline）・build green。

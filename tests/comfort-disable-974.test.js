@@ -110,7 +110,7 @@ describe('Comfort disable restores rest state (round 974)', () => {
   });
 
   test('the settings-panel Comfort item wires a live handler like its siblings', () => {
-    const src = require('fs').readFileSync(require('path').join(__dirname, '../src/vr/VRApp.js'), 'utf8');
+    const src = require('fs').readFileSync(require('path').join(__dirname, '../src/vr/ui/settingsControls.js'), 'utf8');
     // Sibling toggles all route through _applyToggle; the Comfort item must
     // not keep the do-nothing `null` handler.
     expect(src).toMatch(/t\('vr\.settings\.comfort'\),\s*'enableComfort',\s*\(v\)\s*=>/);

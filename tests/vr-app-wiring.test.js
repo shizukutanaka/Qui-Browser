@@ -1016,8 +1016,8 @@ describe('VRApp._onVoiceToggleChanged', () => {
 
 describe('enableVoice is reachable from the settings panel (the reachability fix)', () => {
   test('the settings items contain an enableVoice row wired to _onVoiceToggleChanged', () => {
-    const src = require('fs').readFileSync(require('path').join(__dirname, '../src/vr/VRApp.js'), 'utf8');
-    expect(src).toMatch(/t\('vr\.settings\.voice'\),\s*'enableVoice',\s*\(v\)\s*=>\s*this\._onVoiceToggleChanged\(v\)/);
+    const src = require('fs').readFileSync(require('path').join(__dirname, '../src/vr/ui/settingsControls.js'), 'utf8');
+    expect(src).toMatch(/t\('vr\.settings\.voice'\),\s*'enableVoice',\s*\(v\)\s*=>\s*app\._onVoiceToggleChanged\(v\)/);
     // …and the row must be placed in a section, not left to the leftover catch-all.
     expect(src).toMatch(/'enableVoice'/);
   });
@@ -1352,9 +1352,10 @@ describe('settings-panel labels route through t() (WCAG 3.1.2)', () => {
   });
 
   test('no raw ON/OFF state literal or Comfort label literal remains', () => {
-    const src = require('fs').readFileSync(require('path').join(__dirname, '../src/vr/VRApp.js'), 'utf8');
+    const src = require('fs').readFileSync(require('path').join(__dirname, '../src/vr/ui/settingsControls.js'), 'utf8');
     expect(src).not.toContain("? 'ON' : 'OFF'");
-    expect(src).toContain("t('vr.msg.toggleOn')");
+    const appSrc = require('fs').readFileSync(require('path').join(__dirname, '../src/vr/VRApp.js'), 'utf8');
+    expect(appSrc).toContain("t('vr.msg.toggleOn')");
     expect(src).toContain("t('vr.settings.comfort')");
   });
 });
