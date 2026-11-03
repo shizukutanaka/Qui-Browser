@@ -4015,3 +4015,11 @@ wait|so yeah|ok then|alright then` — 'id like it closed'→close-tab、'wait c
 - 🐛 **実害**: `private-mode` は発話内容に関係なく無条件トグルだったため、すでにプライベートモードの状態で「プライベートモードにして」「private mode on」と言うと逆にオフになってしまう（設定トグル系 `toggleCmd` は `onOff(transcript)` で方向を解釈済みだったが、private-mode だけ未対応だった）。
 - 🔧 **修正**: `private-mode` のアクションが `onOff(transcript)` と `tabManager._privateMode` を読み、方向指定が現在値と一致する場合はトグルせず「すでにオン/オフです」と正直に応答。トグル後は `_privateMode` の新値を発話する。また共有 `onOff` の ON パターンに方向句 `にして` を追加（'オフにして' は OFF 判定が先なので安全）。
 - ✅ **テスト +3（git stash で3件赤確認）**: 'プライベートモードにして'/'private mode on'（既on→非トグル）、bare 'プライベートモード'（従来通りトグル＋結果発話）。Total 62,089 tests; lint 0 errors（警告136=baseline）; build green。
+
+### Session 390: 音声 `video-toggle` の方向性バグ修正 — 一時停止中の「一時停止」で再生に戻ってしまう
+
+外部基準: Session 389 の private-mode 冪等化と同じ方向性パリティ設計（Android Voice Access の "pause video" は動画が既に停止中なら no-op でなければならない）。
+
+- 🐛 **実害**: `video-toggle` の全パターンは一時停止（'一時停止'/'ポーズ'/'pause'）または再生（'再生して'/'再開'/'play'/'resume'）の方向を含んでいたが、アクションは方向を読まず無条件に `onVideoToggle()` → `togglePause()` を呼んでいた。一時停止中に「一時停止」と言うと**再生を再開**し、再生中に「再生して」と言うと**一時停止**する逆動作になっていた。
+- 🔧 **修正**: コマンドが発話から 'play'|'pause' の方向を解析して `onVideoToggle(want)` に渡す。VRApp 側フックは現在値と一致する方向をトグルせず `'already-playing'`/`'already-paused'` を返し、コマンドは「すでに再生中です」「すでに一時停止中です」と正直に応答する。方向なしパターンは従来通りトグル（want=null で後方互換）。
+- ✅ **テスト +12（git stash で11件赤確認）**: tests/video-toggle-direction.test.js — 9つの方向パターンの want 伝達、既状態一致時の正直応答、動画なし時の応答。既存 find-video-atoms 等は無変更で通過（mock フックは want を受け取っても従来戻り値で応答）。Total 62,101 tests; lint 0 errors（警告136=baseline）; build green。
