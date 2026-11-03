@@ -3027,10 +3027,18 @@ export class VRApp {
           // Immersive-video voice control: togglePause() already reports the
           // new state; reading .playing after the toggle returns 'playing' or
           // 'paused'. No video active → null → the command says so honestly.
-          onVideoToggle: () => {
+          onVideoToggle: (want) => {
             const v = this.immersiveVideo;
             if (!v || !v.active) {
               return null;
+            }
+            // Direction-aware: an explicit 'play'/'pause' that matches the
+            // current state is a no-op reported honestly, never a toggle.
+            if (want === 'play' && v.playing) {
+              return 'already-playing';
+            }
+            if (want === 'pause' && !v.playing) {
+              return 'already-paused';
             }
             v.togglePause();
             return v.playing ? 'playing' : 'paused';

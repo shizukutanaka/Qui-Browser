@@ -7240,7 +7240,7 @@ export class VoiceCommands {
    * @param {Function} [opts.onReadAloud] () => string[]|null — narration
    *   chunks for the active panel's reader content; null/empty = nothing to
    *   read (the command announces that itself).
-   * @param {Function} [opts.onVideoToggle] () => 'playing'|'paused'|null —
+   * @param {Function} [opts.onVideoToggle] (want?: 'play'|'pause') => 'playing'|'paused'|'already-playing'|'already-paused'|null —
    *   toggle immersive-video playback; null = no video is active.
    * @param {Function} [opts.onVideoStop] () => boolean — stop the immersive
    *   video; false = nothing was playing.
@@ -65038,9 +65038,22 @@ export class VoiceCommands {
         /resume\s+video/i,
         /play\s+video/i
       ],
-      action: () => {
-        const state = onVideoToggle ? onVideoToggle() : null;
-        const labels = { playing: '再生を再開します', paused: '一時停止します' };
+      action: (transcript) => {
+        // Direction-aware like private-mode: '一時停止'/'pause' must never
+        // resume a paused video and '再生'/'play' must never pause a
+        // playing one — the host reports 'already-*' instead of toggling.
+        const want = /一時停止|ポーズ|pause/i.test(transcript)
+          ? 'pause'
+          : /再生|再開|play|resume/i.test(transcript)
+            ? 'play'
+            : null;
+        const state = onVideoToggle ? onVideoToggle(want) : null;
+        const labels = {
+          playing: '再生を再開します',
+          paused: '一時停止します',
+          'already-playing': 'すでに再生中です',
+          'already-paused': 'すでに一時停止中です'
+        };
         this.speak(labels[state] || '再生中の動画がありません');
         return { action: 'video-toggle', state };
       },

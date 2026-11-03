@@ -108,6 +108,12 @@ Session 74 の削除基準「real user が到達できない」に、追加し�
 - **なぜ優先度が低いか**: 自分で追跡・検証済み。`THREE.Material.dispose()` は `.color`（Colorインスタンス）自体をnullにしない — GPUリソース解放をレンダラーに通知するだけなので、破棄後に `.color.set()` を呼んでも例外は出ず、単に無駄な代入が発生するだけ。実害（クラッシュや誤表示）は無い。
 - **対応するなら**: `dispose()`内で `controller.userData.hovered` からこの `stripMesh` への参照も明示的にクリアするか、`onHoverEnd` ハンドラ内で `this.stripMesh` の生存確認を厳密にする。優先度が低いため急ぎ対応不要。
 
+### B-6. ~~音声 `video-toggle` が方向指定を無視して無条件トグル~~（Session 390 で修正済み）
+
+- **場所**: `src/vr/input/VoiceCommands.js` の `video-toggle` コマンドと `src/vr/VRApp.js` の `onVideoToggle` フック
+- **問題だったもの**: 全パターンが一時停止/再生の方向を含んでいたが、発話の方向を読まず無条件に `togglePause()` を呼んでいたため、既に一時停止中に「一時停止」というと再生に戻り、再生中に「再生して」というと一時停止していた。
+- **対応**: Session 390 でコマンドが発話から 'play'|'pause' の方向を解析してフックへ渡すよう修正。フックは現在値と一致する方向をトグルせず 'already-\*' を返し、コマンドは「すでに再生中/一時停止中です」と正直に応答する。private-mode 冪等化（Session 389）と同じ設計。
+
 ### B-5. ~~音声 `private-mode` が方向指定を無視して無条件トグル~~（Session 389 で修正済み）
 
 - **場所**: `src/vr/input/VoiceCommands.js` の `private-mode` コマンド
