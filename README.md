@@ -1,6 +1,6 @@
 # Qui Browser VR
 
-[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/shizukutanaka/qui-browser/releases)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](FINAL_RELEASE_SUMMARY_v2.0.0.md)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![WebXR](https://img.shields.io/badge/WebXR-Supported-purple.svg)](https://immersiveweb.dev/)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/shizukutanaka/qui-browser/actions)
@@ -108,19 +108,15 @@ A WebXR **VR shell** targeting Meta Quest 2/3 and Pico devices, featuring Japane
 
 ## 📦 Quick Start
 
-### Option 1: Hosted Build
+> **Availability today:** Qui Browser has not been published anywhere yet —
+> there is no GitHub Release, no live hosted build, and no prebuilt Docker
+> image. Version 2.0.0 is the version recorded in `package.json`; it has
+> never been tagged or released (see
+> [FINAL_RELEASE_SUMMARY_v2.0.0.md](FINAL_RELEASE_SUMMARY_v2.0.0.md)). The
+> only ways to run it today are from source: locally (Option 1) or in a
+> Docker image you build yourself (Option 2).
 
-GitHub Pages is a configured deploy target (the `deploy-github-pages` job in
-`.github/workflows/cd.yml`), but no deploy has published it yet — the URL
-currently returns 404:
-
-- **GitHub Pages**: https://shizukutanaka.github.io/qui-browser/ (deploy target — not live yet)
-
-Netlify and Vercel are also wired as deploy targets (see
-[docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)); no public URL is
-assigned to them.
-
-### Option 2: Install Locally
+### Option 1: Run Locally
 
 ```bash
 # Clone repository
@@ -136,15 +132,33 @@ npm run dev
 # Open http://localhost:5173 on your VR device browser
 ```
 
-### Option 3: Docker
+### Option 2: Docker (build the image yourself)
+
+No prebuilt image is published. The `docker-build-push` job in
+`.github/workflows/cd.yml` only runs when a `v*` tag is pushed, and this
+repository has no tags, so `ghcr.io/shizukutanaka/qui-browser:2.0.0` has
+never been pushed — pulling it fails. Build the image from this repository
+instead:
 
 ```bash
-# Pull and run Docker image
-docker pull ghcr.io/shizukutanaka/qui-browser:2.0.0
-docker run -d -p 8080:80 ghcr.io/shizukutanaka/qui-browser:2.0.0
+# Build and run the Docker image locally
+npm run docker:build
+npm run docker:run
 
 # Open http://localhost:8080 on your VR device
 ```
+
+### Hosted Build (not published)
+
+GitHub Pages is a configured deploy target (the `deploy-github-pages` job in
+`.github/workflows/cd.yml`), but no deploy has published it yet — the URL
+currently returns 404:
+
+- **GitHub Pages**: https://shizukutanaka.github.io/qui-browser/ (deploy target — not live yet)
+
+Netlify and Vercel are also wired as deploy targets (see
+[docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)); no public URL is
+assigned to them.
 
 **📖 Full Setup Guide:** [docs/QUICK_START.md](docs/QUICK_START.md)
 
@@ -241,13 +255,13 @@ npm run release:major         # Major version (X.0.0)
 
 ### Multi-Platform Support
 
-| Platform          | Status            | Deployment               | Configuration                                        |
-| ----------------- | ----------------- | ------------------------ | ---------------------------------------------------- |
-| **GitHub Pages**  | ✅ Auto           | Push to main             | [.github/workflows/cd.yml](.github/workflows/cd.yml) |
-| **Netlify**       | ✅ Auto           | `npm run deploy:netlify` | [netlify.toml](netlify.toml)                         |
-| **Vercel**        | ✅ Auto           | `npm run deploy:vercel`  | Vite preset (auto-detect)                            |
-| **Docker**        | ✅ Multi-platform | `npm run docker:compose` | [Dockerfile](Dockerfile)                             |
-| **Custom Server** | ✅ Nginx          | Manual setup             | [docker/nginx.conf](docker/nginx.conf)               |
+| Platform          | Status                                  | Deployment               | Configuration                                        |
+| ----------------- | --------------------------------------- | ------------------------ | ---------------------------------------------------- |
+| **GitHub Pages**  | ⚠️ Configured, not live (404)           | Push to main             | [.github/workflows/cd.yml](.github/workflows/cd.yml) |
+| **Netlify**       | ⚠️ Configured, no public URL            | `npm run deploy:netlify` | [netlify.toml](netlify.toml)                         |
+| **Vercel**        | ⚠️ Configured, no public URL            | `npm run deploy:vercel`  | Vite preset (auto-detect)                            |
+| **Docker**        | ⚠️ Local build only, no image published | `npm run docker:build`   | [Dockerfile](Dockerfile)                             |
+| **Custom Server** | ✅ Nginx                                | Manual setup             | [docker/nginx.conf](docker/nginx.conf)               |
 
 **📖 Deployment Guide:** [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)
 
