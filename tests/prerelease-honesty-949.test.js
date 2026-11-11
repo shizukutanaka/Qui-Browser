@@ -33,10 +33,12 @@ describe('pre-release validator honesty', () => {
     const cd = fs.readFileSync(path.join(ROOT, '.github/workflows/cd.yml'), 'utf8');
     // ci.yml: lint, test-unit, build, lighthouse, docker, security, summary.
     expect(countJobs(ci)).toBe(7);
-    // cd.yml: build, deploy-github-pages, deploy-netlify, deploy-vercel,
+    // cd.yml: build, deploy-github-pages, deploy-netlify,
     // docker-build-push, create-release, verify-performance, smoke-tests,
     // deployment-summary — all hyphenated names counted, none missed.
-    expect(countJobs(cd)).toBe(9);
+    // (deploy-vercel was removed: its token was never configured and it
+    // failed on every release; Netlify is the CD serving route.)
+    expect(countJobs(cd)).toBe(8);
   });
 
   test('the scripts pass-line claims the number actually checked, not a hard-coded quantity', () => {
