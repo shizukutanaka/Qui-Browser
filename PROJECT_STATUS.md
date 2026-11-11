@@ -203,17 +203,16 @@ npm run docker:compose
 6. **Security Scanning** - Trivy vulnerability scanner
 7. **CI Summary** - Aggregate results
 
-### CD Pipeline (9 Jobs, ~40 min)
+### CD Pipeline (8 Jobs, ~40 min)
 
 1. **Build Production Assets** - Build, test, generate build info
 2. **Deploy to GitHub Pages** - Automated Pages deployment
 3. **Deploy to Netlify** - Netlify CLI deployment
-4. **Deploy to Vercel** - Vercel action deployment
-5. **Build & Push Docker** - Multi-platform (amd64, arm64) to ghcr.io
-6. **Create GitHub Release** - Archives, checksums, changelog
-7. **Performance Verification** - Post-deployment Lighthouse
-8. **Smoke Tests** - HTTP checks, service worker validation
-9. **Deployment Summary** - Status aggregation and notifications
+4. **Build & Push Docker** - Multi-platform (amd64, arm64) to ghcr.io
+5. **Create GitHub Release** - Archives, checksums, changelog
+6. **Performance Verification** - Post-deployment Lighthouse
+7. **Smoke Tests** - HTTP checks, service worker validation
+8. **Deployment Summary** - Status aggregation and notifications
 
 ---
 

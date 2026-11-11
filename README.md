@@ -161,14 +161,17 @@ version tags (and on pushes to `main`); the deployment ran successfully for
 v2.0.0. The public site URL is managed in the Netlify project and is not
 recorded in this repository.
 
-Two further targets are wired in the CD workflow (see
-[docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)) but are **not active**:
+One further target is wired in the CD workflow (see
+[docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)) but is **not active**:
 
-- **Vercel**: not configured — the `VERCEL_TOKEN` secret is not set, so the
-  `deploy-vercel` job fails.
 - **GitHub Pages**: the `deploy-github-pages` job only runs on pushes to
   `main` and was skipped for the v2.0.0 tag release, so Pages is not a live
   channel today. Configured URL: https://shizukutanaka.github.io/qui-browser/
+
+Vercel is no longer a CD target: the `deploy-vercel` job was removed because
+its `VERCEL_TOKEN` secret was never configured and it failed on every
+release. Netlify is the CD serving route. (`npm run deploy:vercel` remains
+as a manual deploy script for anyone who configures their own project.)
 
 **📖 Full Setup Guide:** [docs/QUICK_START.md](docs/QUICK_START.md)
 
@@ -265,13 +268,13 @@ npm run release:major         # Major version (X.0.0)
 
 ### Multi-Platform Support
 
-| Platform          | Status                                  | Deployment               | Configuration                                        |
-| ----------------- | --------------------------------------- | ------------------------ | ---------------------------------------------------- |
-| **GitHub Pages**  | ⚠️ Configured, not active (skipped for tag releases) | Push to main             | [.github/workflows/cd.yml](.github/workflows/cd.yml) |
-| **Netlify**       | ✅ Deployed by CD on version tags       | Push of a `v*` tag       | [netlify.toml](netlify.toml)                         |
-| **Vercel**        | ❌ Not configured (`VERCEL_TOKEN` unset) | —                        | Vite preset (auto-detect)                            |
-| **Docker**        | ✅ Prebuilt image on GHCR               | Push of a `v*` tag       | [Dockerfile](Dockerfile)                             |
-| **Custom Server** | ✅ Nginx                                | Manual setup             | [docker/nginx.conf](docker/nginx.conf)               |
+| Platform          | Status                                               | Deployment         | Configuration                                        |
+| ----------------- | ---------------------------------------------------- | ------------------ | ---------------------------------------------------- |
+| **GitHub Pages**  | ⚠️ Configured, not active (skipped for tag releases) | Push to main       | [.github/workflows/cd.yml](.github/workflows/cd.yml) |
+| **Netlify**       | ✅ Deployed by CD on version tags                    | Push of a `v*` tag | [netlify.toml](netlify.toml)                         |
+| **Vercel**        | ❌ Not configured (`VERCEL_TOKEN` unset)             | —                  | Vite preset (auto-detect)                            |
+| **Docker**        | ✅ Prebuilt image on GHCR                            | Push of a `v*` tag | [Dockerfile](Dockerfile)                             |
+| **Custom Server** | ✅ Nginx                                             | Manual setup       | [docker/nginx.conf](docker/nginx.conf)               |
 
 **📖 Deployment Guide:** [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)
 
