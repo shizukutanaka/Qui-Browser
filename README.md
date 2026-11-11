@@ -108,13 +108,13 @@ A WebXR **VR shell** targeting Meta Quest 2/3 and Pico devices, featuring Japane
 
 ## 📦 Quick Start
 
-> **Availability today:** Qui Browser has not been published anywhere yet —
-> there is no GitHub Release, no live hosted build, and no prebuilt Docker
-> image. Version 2.0.0 is the version recorded in `package.json`; it has
-> never been tagged or released (see
-> [FINAL_RELEASE_SUMMARY_v2.0.0.md](FINAL_RELEASE_SUMMARY_v2.0.0.md)). The
-> only ways to run it today are from source: locally (Option 1) or in a
-> Docker image you build yourself (Option 2).
+> **Availability today:** Qui Browser is published. The
+> [v2.0.0 GitHub Release](https://github.com/shizukutanaka/qui-browser/releases/tag/v2.0.0)
+> provides prebuilt archives (zip and tar.gz, with checksums), and the CD
+> workflow publishes a prebuilt Docker image to GHCR on every version tag
+> (`ghcr.io/shizukutanaka/qui-browser:2.0.0` — see Option 2). A Netlify
+> deployment also runs on version tags. You can still run it from source:
+> locally (Option 1) or in a Docker image you build yourself (Option 2).
 
 ### Option 1: Run Locally
 
@@ -132,13 +132,17 @@ npm run dev
 # Open http://localhost:5173 on your VR device browser
 ```
 
-### Option 2: Docker (build the image yourself)
+### Option 2: Docker
 
-No prebuilt image is published. The `docker-build-push` job in
-`.github/workflows/cd.yml` only runs when a `v*` tag is pushed, and this
-repository has no tags, so `ghcr.io/shizukutanaka/qui-browser:2.0.0` has
-never been pushed — pulling it fails. Build the image from this repository
-instead:
+A prebuilt image is published to GHCR by the `docker-build-push` job in
+`.github/workflows/cd.yml` whenever a `v*` tag is pushed:
+
+```bash
+# Pull the prebuilt image for v2.0.0
+docker pull ghcr.io/shizukutanaka/qui-browser:2.0.0
+```
+
+Or build the image from this repository yourself:
 
 ```bash
 # Build and run the Docker image locally
@@ -148,17 +152,21 @@ npm run docker:run
 # Open http://localhost:8080 on your VR device
 ```
 
-### Hosted Build (not published)
+### Hosted Builds
 
-GitHub Pages is a configured deploy target (the `deploy-github-pages` job in
-`.github/workflows/cd.yml`), but no deploy has published it yet — the URL
-currently returns 404:
+The `deploy-netlify` job in `.github/workflows/cd.yml` deploys to Netlify on
+version tags (and on pushes to `main`); the deployment ran successfully for
+v2.0.0. The public site URL is managed in the Netlify project and is not
+recorded in this repository.
 
-- **GitHub Pages**: https://shizukutanaka.github.io/qui-browser/ (deploy target — not live yet)
+Two further targets are wired in the CD workflow (see
+[docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)) but are **not active**:
 
-Netlify and Vercel are also wired as deploy targets (see
-[docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)); no public URL is
-assigned to them.
+- **Vercel**: not configured — the `VERCEL_TOKEN` secret is not set, so the
+  `deploy-vercel` job fails.
+- **GitHub Pages**: the `deploy-github-pages` job only runs on pushes to
+  `main` and was skipped for the v2.0.0 tag release, so Pages is not a live
+  channel today. Configured URL: https://shizukutanaka.github.io/qui-browser/
 
 **📖 Full Setup Guide:** [docs/QUICK_START.md](docs/QUICK_START.md)
 
@@ -257,10 +265,10 @@ npm run release:major         # Major version (X.0.0)
 
 | Platform          | Status                                  | Deployment               | Configuration                                        |
 | ----------------- | --------------------------------------- | ------------------------ | ---------------------------------------------------- |
-| **GitHub Pages**  | ⚠️ Configured, not live (404)           | Push to main             | [.github/workflows/cd.yml](.github/workflows/cd.yml) |
-| **Netlify**       | ⚠️ Configured, no public URL            | `npm run deploy:netlify` | [netlify.toml](netlify.toml)                         |
-| **Vercel**        | ⚠️ Configured, no public URL            | `npm run deploy:vercel`  | Vite preset (auto-detect)                            |
-| **Docker**        | ⚠️ Local build only, no image published | `npm run docker:build`   | [Dockerfile](Dockerfile)                             |
+| **GitHub Pages**  | ⚠️ Configured, not active (skipped for tag releases) | Push to main             | [.github/workflows/cd.yml](.github/workflows/cd.yml) |
+| **Netlify**       | ✅ Deployed by CD on version tags       | Push of a `v*` tag       | [netlify.toml](netlify.toml)                         |
+| **Vercel**        | ❌ Not configured (`VERCEL_TOKEN` unset) | —                        | Vite preset (auto-detect)                            |
+| **Docker**        | ✅ Prebuilt image on GHCR               | Push of a `v*` tag       | [Dockerfile](Dockerfile)                             |
 | **Custom Server** | ✅ Nginx                                | Manual setup             | [docker/nginx.conf](docker/nginx.conf)               |
 
 **📖 Deployment Guide:** [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)
