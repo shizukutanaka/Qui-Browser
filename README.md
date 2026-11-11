@@ -11,6 +11,8 @@
 [![Meta Quest 3](https://img.shields.io/badge/Meta_Quest_3-Optimized-00a8e8.svg)](https://www.meta.com/quest/products/quest-3/)
 [![Pico 4](https://img.shields.io/badge/Pico_4-Supported-ff6b35.svg)](https://www.picoxr.com/global/products/pico4)
 
+All projects at a glance: [Project Portal](https://muse.ai/s/xuan-guan-potaru-ja6aqxqxlpxbxnxl/DpY3e_2xwrRyU5918RAV9v0G3UfbMvPX0HeuI-0ab-s)
+
 <div align="center">
   <h3>An accessibility-first WebXR reader shell for Quest &amp; Pico</h3>
   <p>
