@@ -267,6 +267,31 @@ jobs:
           name: production-build
           path: dist
 
+      - name: Add archive README
+        run: |
+          cat > dist/README.txt <<'ARCHIVE_README'
+          Qui-Browser - Release Archive / リリースアーカイブ
+          ===================================================
+
+          これは何か / What is this?
+          Qui-Browser（WebXRブラウザ）の静的PWAビルドです。
+          This is the static PWA build of Qui-Browser, a WebXR browser.
+
+          使い方 / How to run
+          index.html を file:// で開いても動きません（Service Worker が必要なため）。
+          展開したフォルダを静的サーバーで配信してからブラウザで開いてください。
+          Do NOT open index.html via file:// (a service worker requires HTTP).
+          Serve the extracted folder with any static file server, for example:
+            npx serve .
+            python3 -m http.server 8000
+          Then open the printed URL in your browser.
+
+          WebXR（VR表示）には Quest / Pico などの対応ヘッドセットが必要です。
+          WebXR features require a compatible headset (Quest / Pico).
+
+          Repository: https://github.com/shizukutanaka/Qui-Browser
+          ARCHIVE_README
+
       - name: Create release archive
         run: |
           cd dist
