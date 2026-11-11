@@ -268,13 +268,13 @@ npm run release:major         # Major version (X.0.0)
 
 ### Multi-Platform Support
 
-| Platform          | Status                                  | Deployment               | Configuration                                        |
-| ----------------- | --------------------------------------- | ------------------------ | ---------------------------------------------------- |
-| **GitHub Pages**  | ⚠️ Configured, not active (skipped for tag releases) | Push to main             | [.github/workflows/cd.yml](.github/workflows/cd.yml) |
-| **Netlify**       | ✅ Deployed by CD on version tags       | Push of a `v*` tag       | [netlify.toml](netlify.toml)                         |
-| **Vercel**        | ❌ Not configured (`VERCEL_TOKEN` unset) | —                        | Vite preset (auto-detect)                            |
-| **Docker**        | ✅ Prebuilt image on GHCR               | Push of a `v*` tag       | [Dockerfile](Dockerfile)                             |
-| **Custom Server** | ✅ Nginx                                | Manual setup             | [docker/nginx.conf](docker/nginx.conf)               |
+| Platform          | Status                                               | Deployment         | Configuration                                        |
+| ----------------- | ---------------------------------------------------- | ------------------ | ---------------------------------------------------- |
+| **GitHub Pages**  | ⚠️ Configured, not active (skipped for tag releases) | Push to main       | [.github/workflows/cd.yml](.github/workflows/cd.yml) |
+| **Netlify**       | ✅ Deployed by CD on version tags                    | Push of a `v*` tag | [netlify.toml](netlify.toml)                         |
+| **Vercel**        | ❌ Not configured (`VERCEL_TOKEN` unset)             | —                  | Vite preset (auto-detect)                            |
+| **Docker**        | ✅ Prebuilt image on GHCR                            | Push of a `v*` tag | [Dockerfile](Dockerfile)                             |
+| **Custom Server** | ✅ Nginx                                             | Manual setup       | [docker/nginx.conf](docker/nginx.conf)               |
 
 **📖 Deployment Guide:** [docs/DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)
 
