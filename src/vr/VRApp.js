@@ -910,6 +910,19 @@ export class VRApp {
       },
       topSitesProvider: () =>
         this.settings.privateMode ? [] : this.bookmarks.getTopSites(8, Date.now(), searchEngineHosts()),
+      // Bundled start page (public/start.html, copied next to index.html in
+      // every deploy). Shown as the single new-tab tile when the user has no
+      // top sites yet, so a first run always has one selectable thing that
+      // loads. It is app content, not user data, so it is offered in private
+      // mode too. Resolved against the document so subpath deploys
+      // (GitHub Pages /Qui-Browser/) point at the right copy.
+      startPageProvider: () => {
+        try {
+          return new URL('start.html', document.baseURI).href;
+        } catch {
+          return '';
+        }
+      },
       readerProxyUrl: this.settings.readerProxyUrl,
       // Honour the persisted readerTextScale preference so a user who enlarged
       // reader text keeps that size from startup, not just after re-stepping it
