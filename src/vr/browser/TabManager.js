@@ -305,6 +305,7 @@ export class TabManager {
       },
       privateMode,
       topSitesProvider: this.opts.topSitesProvider || null,
+      startPageProvider: this.opts.startPageProvider || null,
       onUrlInputRequested: this.opts.onUrlInputRequested || null,
       searchEngine: this.opts.searchEngine || undefined,
       isBookmarked: this.opts.isBookmarked || null,

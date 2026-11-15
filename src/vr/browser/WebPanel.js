@@ -106,6 +106,12 @@ export class WebPanel {
    *   and are excluded from tab-session persistence.
    * @param {Function} [opts.topSitesProvider] — () => [{url,title,host}];
    *   supplies the new-tab tile grid (getTopSites frecency). Null = no tiles.
+   * @param {Function} [opts.startPageProvider] — () => string; supplies the
+   *   bundled start-page URL shown as a single tile on the new-tab state
+   *   when the user has no top sites yet (first run). The start page ships
+   *   with the app and is same-origin, so it always loads — the first-run
+   *   path to a successful read that needs neither typing nor network luck.
+   *   Null/empty = no start tile (previous behaviour).
    */
   constructor({
     scene,
@@ -124,7 +130,8 @@ export class WebPanel {
     readerScale = 1,
     readerProxyUrl = '',
     privateMode = false,
-    topSitesProvider = null
+    topSitesProvider = null,
+    startPageProvider = null
   }) {
     this.scene = scene;
     this.registerInteractable = registerInteractable;
@@ -183,6 +190,8 @@ export class WebPanel {
     // from session persistence — set once at creation, never toggled.
     this.isPrivate = !!privateMode;
     this._topSitesProvider = typeof topSitesProvider === 'function' ? topSitesProvider : null;
+    this._startPageProvider = typeof startPageProvider === 'function' ? startPageProvider : null;
+    this._startTileUrl = ''; // start-page URL while its tile is on the new-tab state
     this._topSiteTiles = []; // rects hit-tested by _onContentSelect
     // Optional companion proxy (proxy/server.js). Empty = direct fetch only.
     this.readerProxyUrl = typeof readerProxyUrl === 'string' ? readerProxyUrl : '';
@@ -382,15 +391,31 @@ export class WebPanel {
    */
   _drawTopSites(ctx, w, col) {
     const sites = this._topSitesProvider ? this._topSitesProvider() : [];
-    this._topSiteTiles = topSiteTiles(sites.length, w);
-    if (!sites.length || !this._topSiteTiles.length) {
+    // First run (or a cleared history): the frecency grid is empty and the
+    // new-tab state used to be a dead end — a title and nothing selectable.
+    // Fall back to the bundled start page as a single tile. It is same-origin
+    // app content, so selecting it always yields a successful first read
+    // (guide + sample article) with no typing and no CORS luck involved.
+    let tiles = sites;
+    let heading = t('vr.content.topSites');
+    this._startTileUrl = '';
+    if (!tiles.length && this._startPageProvider) {
+      const startUrl = this._startPageProvider();
+      if (startUrl) {
+        tiles = [{ url: startUrl, host: '', glyph: 'Q', label: t('vr.content.startGuide') }];
+        heading = t('vr.content.startHere');
+        this._startTileUrl = startUrl;
+      }
+    }
+    this._topSiteTiles = topSiteTiles(tiles.length, w);
+    if (!tiles.length || !this._topSiteTiles.length) {
       return;
     }
     ctx.font = 'bold 24px sans-serif';
     ctx.fillStyle = col.stateTitle;
     ctx.textAlign = 'center';
-    ctx.fillText(t('vr.content.topSites'), w / 2, TILE_TOP - 16);
-    sites.slice(0, this._topSiteTiles.length).forEach((site, i) => {
+    ctx.fillText(heading, w / 2, TILE_TOP - 16);
+    tiles.slice(0, this._topSiteTiles.length).forEach((site, i) => {
       const r = this._topSiteTiles[i];
       ctx.fillStyle = col.tileBg;
       ctx.fillRect(r.x, r.y, r.w, r.h);
@@ -401,15 +426,16 @@ export class WebPanel {
       ctx.font = 'bold 26px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText(
-        (site.host || '')
-          .replace(/^www\./, '')
-          .slice(0, 1)
-          .toUpperCase(),
+        site.glyph ||
+          (site.host || '')
+            .replace(/^www\./, '')
+            .slice(0, 1)
+            .toUpperCase(),
         r.x + r.w / 2,
         r.y + 44
       );
       ctx.font = '17px sans-serif';
-      ctx.fillText(truncate(site.host || site.url, 22), r.x + r.w / 2, r.y + 86);
+      ctx.fillText(truncate(site.label || site.host || site.url, 22), r.x + r.w / 2, r.y + 86);
     });
   }
 
@@ -601,6 +627,9 @@ export class WebPanel {
         const site = sites[idx];
         if (site && site.url) {
           this.navigate(site.url);
+        } else if (idx === 0 && this._startTileUrl) {
+          // No top sites: the single tile is the bundled start page.
+          this.navigate(this._startTileUrl);
         }
       }
       return;
