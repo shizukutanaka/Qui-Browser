@@ -1,7 +1,7 @@
 {
-  "name": "Qui Browser",
+  "name": "Qui Browser VR",
   "short_name": "Qui Browser",
-  "description": "A lightweight, secure web browser with VR/WebXR support",
+  "description": "Qui Browser VR — an accessibility-first WebXR reader for Meta Quest and Pico. Reads the web as clean, large text in VR, with Japanese IME, hand tracking, gaze dwell, captions and a comfort system. No account: bookmarks and history stay on your headset.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#0a0e27",
@@ -13,49 +13,49 @@
   "dir": "ltr",
   "icons": [
     {
-      "src": "/assets/icons/icon-72.png",
+      "src": "assets/icons/icon-72.png",
       "sizes": "72x72",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/icons/icon-96.png",
+      "src": "assets/icons/icon-96.png",
       "sizes": "96x96",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/icons/icon-128.png",
+      "src": "assets/icons/icon-128.png",
       "sizes": "128x128",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/icons/icon-144.png",
+      "src": "assets/icons/icon-144.png",
       "sizes": "144x144",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/icons/icon-192.png",
+      "src": "assets/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/assets/icons/icon-384.png",
+      "src": "assets/icons/icon-384.png",
       "sizes": "384x384",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/assets/icons/icon-512.png",
+      "src": "assets/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/assets/icon.svg",
+      "src": "assets/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml"
     }
