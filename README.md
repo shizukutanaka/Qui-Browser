@@ -48,6 +48,12 @@ A WebXR **VR shell** targeting Meta Quest 2/3 and Pico devices, featuring Japane
 > system, in-VR captions and gaze-dwell accessibility, Japanese IME text entry,
 > spatial audio, hand tracking, and the VR settings shell.
 
+## 📸 Screenshot
+
+![Qui Browser VR start screen](docs/screenshot-start.png)
+
+_The start screen of the current build, captured in a desktop browser (not on VR hardware). On a Quest or Pico headset the same page opens in the headset browser, where **Enter VR Mode** starts the immersive session._
+
 ## 🌟 Highlights
 
 - **Accessibility measured, not asserted** - contrast, target angular size and text layout are enforced by tests against WCAG and platform thresholds
