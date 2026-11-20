@@ -13,6 +13,8 @@
 
 All projects at a glance: [Project Portal](https://muse.ai/s/project-portal-bf6avrxu7xyfxl/6PgvpkK4Nn1DPotxc3edgYXaYZgDC5_LeWpXkf1wsrg)
 
+**Form:** Qui Browser is a WebXR PWA by design, and that is its official software form (decided 2026-11-20). It runs inside the headset browser on Quest/Pico — the one environment a desktop shell cannot reach — so there is no Electron/Tauri wrapper and no native rewrite planned.
+
 <div align="center">
   <h3>An accessibility-first WebXR reader shell for Quest &amp; Pico</h3>
   <p>
